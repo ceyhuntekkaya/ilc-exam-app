@@ -1,0 +1,21 @@
+/*
+  Tailwind utility'leriyle karşılanamayan, tekrar kullanılan ham CSS
+  (özel keyframe'ler, üçüncü parti kütüphane override'ları vb.) burada
+  toplanır ve `app/globals.css` içine `@import "../styles/animations.css";`
+  ile eklenir. Çoğu durumda Tailwind yeterlidir, bu klasör istisnalar içindir.
+*/
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}

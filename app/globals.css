@@ -1,26 +1,256 @@
 @import "tailwindcss";
+@import "../src/styles/theme-colors.css";
+@import "../src/styles/animations.css";
+
+/* `dark:` sınıfları belgedeki data-theme ile gider. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light;
+  --bg: var(--color-neutral-50);
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --fg: var(--color-neutral-950);
+  --fg-muted: var(--color-neutral-700);
+  --fg-subtle: var(--color-neutral-600);
+  --primary: var(--color-primary-700);
+  --primary-fg: #ffffff;
+  --primary-hover: var(--color-primary-800);
+  --success: var(--color-success-700);
+  --success-bg: var(--color-success-50);
+  --warning: var(--color-warning-800);
+  --warning-bg: var(--color-warning-50);
+  --danger: var(--color-danger-700);
+  --danger-bg: var(--color-danger-50);
+  --info: var(--color-info-700);
+  --info-bg: var(--color-info-50);
+  --focus: var(--color-primary-600);
+  --shadow: 0 12px 40px rgb(26 26 24 / 8%);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Landing / marketing (mevcut ILC markası) — panel tokenlarından ayrı. */
+  --ilc-ink: #0c1a2e;
+  --ilc-navy: #14365c;
+  --ilc-teal: #0f766e;
+  --ilc-sand: #e8e0d4;
+  --ilc-paper: #f7f4ef;
+  --ilc-accent: #c45c26;
+  --ilc-line: #d6cfc4;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: var(--color-neutral-950);
+    --surface: var(--color-neutral-900);
+    --surface-raised: var(--color-neutral-800);
+    --border: var(--color-neutral-800);
+    --border-strong: var(--color-neutral-700);
+    --fg: var(--color-neutral-50);
+    --fg-muted: var(--color-neutral-300);
+    --fg-subtle: var(--color-neutral-400);
+    --primary: var(--color-primary-400);
+    --primary-fg: var(--color-neutral-950);
+    --primary-hover: var(--color-primary-300);
+    --success: var(--color-success-300);
+    --success-bg: var(--color-success-950);
+    --warning: var(--color-warning-300);
+    --warning-bg: var(--color-warning-950);
+    --danger: var(--color-danger-300);
+    --danger-bg: var(--color-danger-950);
+    --info: var(--color-info-300);
+    --info-bg: var(--color-info-950);
+    --focus: var(--color-primary-300);
+    --shadow: none;
   }
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--color-neutral-950);
+  --surface: var(--color-neutral-900);
+  --surface-raised: var(--color-neutral-800);
+  --border: var(--color-neutral-800);
+  --border-strong: var(--color-neutral-700);
+  --fg: var(--color-neutral-50);
+  --fg-muted: var(--color-neutral-300);
+  --fg-subtle: var(--color-neutral-400);
+  --primary: var(--color-primary-400);
+  --primary-fg: var(--color-neutral-950);
+  --primary-hover: var(--color-primary-300);
+  --success: var(--color-success-300);
+  --success-bg: var(--color-success-950);
+  --warning: var(--color-warning-300);
+  --warning-bg: var(--color-warning-950);
+  --danger: var(--color-danger-300);
+  --danger-bg: var(--color-danger-950);
+  --info: var(--color-info-300);
+  --info-bg: var(--color-info-950);
+  --focus: var(--color-primary-300);
+  --shadow: none;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-hover: var(--primary-hover);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-focus: var(--focus);
+  --color-ilc-ink: var(--ilc-ink);
+  --color-ilc-navy: var(--ilc-navy);
+  --color-ilc-teal: var(--ilc-teal);
+  --color-ilc-sand: var(--ilc-sand);
+  --color-ilc-paper: var(--ilc-paper);
+  --color-ilc-accent: var(--ilc-accent);
+  --color-ilc-line: var(--ilc-line);
+  --font-sans: var(--font-source-sans), "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: var(--shadow);
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled),
+  input:is([type="checkbox"], [type="radio"], [type="submit"], [type="button"], [type="reset"], [type="file"]):not(:disabled),
+  label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)) {
+    cursor: pointer;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+[data-input-variant="storefront"] {
+  line-height: 1.5;
+}
+
+[data-input-variant="storefront"]:focus-visible,
+[data-input-variant="admin"]:focus-visible {
+  outline: none;
+}
+
+[data-input-variant="admin"]::-webkit-search-cancel-button,
+[data-input-variant="admin"]::-webkit-search-decoration {
+  appearance: none;
+}
+
+[data-input-variant="storefront"]::-webkit-search-cancel-button,
+[data-input-variant="storefront"]::-webkit-search-decoration {
+  appearance: none;
+}
+
+#main,
+#main :focus {
+  scroll-margin-top: 5rem;
+}
+
+#main:focus {
+  outline: none;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+dialog {
+  margin: auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  border-radius: 12px;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0;
+}
+
+dialog::backdrop {
+  background: rgb(26 26 24 / 45%);
+}
+
+/*
+  Panel (super admin / staff) içeriği her zaman açık temada.
+*/
+[data-panel] {
+  color-scheme: light;
+  --bg: var(--color-neutral-50);
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --fg: var(--color-neutral-950);
+  --fg-muted: var(--color-neutral-700);
+  --fg-subtle: var(--color-neutral-600);
+  --primary: var(--color-primary-700);
+  --primary-fg: #ffffff;
+  --primary-hover: var(--color-primary-800);
+  --focus: var(--color-primary-600);
+  --success: var(--color-success-700);
+  --success-bg: var(--color-success-50);
+  --warning: var(--color-warning-800);
+  --warning-bg: var(--color-warning-50);
+  --danger: var(--color-danger-700);
+  --danger-bg: var(--color-danger-50);
+  --info: var(--color-info-700);
+  --info-bg: var(--color-info-50);
+  color: var(--fg);
+}
+
+[data-panel] header.mb-6 h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-panel] header.mb-6 p {
+  font-size: 0.875rem;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

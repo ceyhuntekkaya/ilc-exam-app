@@ -1,0 +1,114 @@
+/*
+  Marka renk paleti — https://dissepetim.com.tr sitesinden çıkarıldı.
+
+  Kaynak renkler (site CSS'inde tespit edildi):
+    - Turuncu (logo/buton):  #EB5C05 / #FF5E2B  (logo + --wd-primary-color)  → primary
+    - Amber:                 #FBBC34  (Woodmart tema --wd-alternative-color) → secondary
+    - Uyarı rengi:           #E0B252  (Woodmart tema --notices-warning-bg)  → warning
+    - Koyu nötr:             #1A1A18  (logo koyu tonu, saf siyah değil)
+
+  `primary` (turuncu) ana etkileşim rengi (CTA, link, odak); `secondary`
+  (amber) vurgu/aksan rengi olarak kullanılır. `neutral` sitenin sıcak
+  (kahverengimsi) gri tonu — Tailwind'in varsayılan soğuk grisi yerine.
+
+  Bu 3 temel rengin dışında, aynı üretim yöntemiyle (referans tondan
+  beyaz/koyu uca doğru mix) marka sıcaklığıyla uyumlu semantik paletler
+  eklendi:
+    - success: sıcak/zeytin yeşili (saf/soğuk yeşil yerine)
+    - danger:  net/klasik kırmızı — bilinçli olarak turuncudan uzak bir
+      tonda (hue ~355° vs turuncunun ~23°'si). İlk denemede turuncuya
+      çok yakın bir kırmızı seçilmişti (hue farkı sadece ~15°), bu da
+      "İndirim" rozetiyle marka turuncusunun gözde birbirine karışmasına
+      sebep oluyordu — indirim/uyarı sinyali net bir kırmızı olmalı.
+    - warning: sitede gerçekten bulunan uyarı rengi (#E0B252)
+    - info:    turuncunun tamamlayıcısı mavi (kontrast/denge için)
+
+  Kullanım: `bg-primary-600`, `text-secondary-700`, `border-neutral-200`,
+  `bg-success-500`, `text-danger-600`, `bg-warning-100`, `text-info-700` vb.
+*/
+
+@theme {
+  --color-primary-50: #fff5f2;
+  --color-primary-100: #ffe8e1;
+  --color-primary-200: #ffcbbb;
+  --color-primary-300: #ffab91;
+  --color-primary-400: #ff855e;
+  --color-primary-500: #ff5e2b;
+  --color-primary-600: #eb5c05;
+  --color-primary-700: #a8470b;
+  --color-primary-800: #7a380f;
+  --color-primary-900: #552c13;
+  --color-primary-950: #372315;
+
+  --color-secondary-50: #fffbf3;
+  --color-secondary-100: #fef6e3;
+  --color-secondary-200: #feeabe;
+  --color-secondary-300: #fddc95;
+  --color-secondary-400: #fccc65;
+  --color-secondary-500: #fbbc34;
+  --color-secondary-600: #d39f2f;
+  --color-secondary-700: #987428;
+  --color-secondary-800: #6f5723;
+  --color-secondary-900: #4e3f1e;
+  --color-secondary-950: #342d1b;
+
+  --color-neutral-50: #f8f8f8;
+  --color-neutral-100: #f1f1f1;
+  --color-neutral-200: #e4e4e3;
+  --color-neutral-300: #cdcdcc;
+  --color-neutral-400: #a3a3a3;
+  --color-neutral-500: #818180;
+  --color-neutral-600: #636362;
+  --color-neutral-700: #4c4c4b;
+  --color-neutral-800: #383836;
+  --color-neutral-900: #282826;
+  --color-neutral-950: #1a1a18;
+
+  --color-success-50: #f4f9f2;
+  --color-success-100: #e6f1e1;
+  --color-success-200: #c6dfbb;
+  --color-success-300: #a2ca90;
+  --color-success-400: #77b25d;
+  --color-success-500: #4c9a2a;
+  --color-success-600: #438327;
+  --color-success-700: #366122;
+  --color-success-800: #2d4a1f;
+  --color-success-900: #25371c;
+  --color-success-950: #20291a;
+
+  --color-danger-50: #fef4f4;
+  --color-danger-100: #fde5e5;
+  --color-danger-200: #fac3c3;
+  --color-danger-300: #f79e9e;
+  --color-danger-400: #f37171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #9e2222;
+  --color-danger-800: #73201e;
+  --color-danger-900: #501d1c;
+  --color-danger-950: #351c1a;
+
+  --color-warning-50: #fdfaf5;
+  --color-warning-100: #fbf4e7;
+  --color-warning-200: #f5e6c8;
+  --color-warning-300: #efd7a5;
+  --color-warning-400: #e7c47c;
+  --color-warning-500: #e0b252;
+  --color-warning-600: #bc9748;
+  --color-warning-700: #886f39;
+  --color-warning-800: #65542e;
+  --color-warning-900: #473d25;
+  --color-warning-950: #312c1f;
+
+  --color-info-50: #f3f7fe;
+  --color-info-100: #e2edfc;
+  --color-info-200: #bcd6f9;
+  --color-info-300: #93bdf6;
+  --color-info-400: #619ef1;
+  --color-info-500: #2f80ed;
+  --color-info-600: #2b6ec7;
+  --color-info-700: #26538f;
+  --color-info-800: #224169;
+  --color-info-900: #1f3249;
+  --color-info-950: #1c2631;
+}

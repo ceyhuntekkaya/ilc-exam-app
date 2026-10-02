@@ -6,12 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:api": "orval --config orval.config.ts",
+    "generate:api:live": "mkdir -p openapi && curl -sf \"$API_PUBLIC_URL/v3/api-docs\" -o openapi/openapi.json && orval --config orval.config.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.104.0",
+    "date-fns": "^4.4.0",
+    "dotenv": "^18.0.5",
     "next": "16.3.8",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -20,6 +26,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "orval": "^8.39.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
