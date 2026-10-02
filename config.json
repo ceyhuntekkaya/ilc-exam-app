@@ -1,29 +1,7 @@
 {
     "soundCheckTestAudioUrl": "/sample.mp3",
-    "apiDemo": {
-      "invokeUrl": "https://speakingapi.genixo.ai/api/v1",
-      "baseUrl": "https://speaking.genixo.ai.com",
-      "sttUrl": "https://speaking.stt.eltaexams.com/transcribe/en",
-      "sttService": "server",
-      "similarityThreshold": 60
-    },
     "api": {
-      "invokeUrl": "https://speaking.api.eltaexams.com/api/v1",
-      "baseUrl": "https://speaking.api.eltaexams.com",
-      "sttUrl": "https://speaking.stt.eltaexams.com/transcribe/en",
-      "sttService": "server",
-      "similarityThreshold": 60
-    },
-    "apiLocal": {
-      "invokeUrl": "http://localhost:8081/api/v1",
-      "baseUrl": "http://localhost:3000",
-      "sttUrl": "https://speaking.stt.eltaexams.com/transcribe/en",
-      "sttService": "server",
-      "similarityThreshold": 60
-    },
-    "apiIP": {
-      "invokeUrl": "http://95.216.172.88:8081/api/v1",
-      "baseUrl": "http://95.216.172.88:3000",
+      "ollamaUrl": "https://chat.genixo.ai",
       "sttUrl": "https://speaking.stt.eltaexams.com/transcribe/en",
       "sttService": "server",
       "similarityThreshold": 60

@@ -6,7 +6,13 @@ import type { ReactNode } from "react";
 
 const NAV = [
   { href: "/staff", label: "Panel" },
-  { href: "/staff/exams", label: "Sınavlar" },
+  { href: "/staff/content/questions", label: "Soru Bankası" },
+  { href: "/staff/content/exams", label: "Sınavlar" },
+  { href: "/staff/content/review", label: "İnceleme" },
+  { href: "/staff/content/media", label: "Medya" },
+  { href: "/staff/content/rubrics", label: "Rubrikler" },
+  { href: "/staff/content/formats", label: "Formatlar" },
+  { href: "/staff/content/settings", label: "Ayarlar" },
   { href: "/staff/students", label: "Öğrenciler" },
   { href: "/staff/reports", label: "Raporlar" },
 ];
