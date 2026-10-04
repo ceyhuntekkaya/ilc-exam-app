@@ -17,7 +17,8 @@ export async function authoringFetch<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
-  if (init.body && !headers.has("Content-Type")) {
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (init.body && !headers.has("Content-Type") && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
   if (authoringCompanyId) {
@@ -52,4 +53,9 @@ export async function authoringFetch<T>(
   }
 
   return body as T;
+}
+
+/** Katalog medya içerik URL'si (BFF + cookie auth). */
+export function mediaContentUrl(mediaId: string): string {
+  return `/api/backend/media/${mediaId}/content`;
 }

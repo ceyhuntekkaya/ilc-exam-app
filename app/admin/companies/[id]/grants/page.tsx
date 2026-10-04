@@ -4,7 +4,7 @@ import { useListGrants, useListExams } from "@/src/api/generated/admin-exams/adm
 import { useYears } from "@/src/api/generated/admin-companies/admin-companies";
 import { useCreateGrant } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
-import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable, Select } from "@/src/ui";
+import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable, Select, errorMessage, notify } from "@/src/ui";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -87,8 +87,11 @@ function Body() {
             });
             await refetch();
             setOpen(false);
+            notify.success("Sınav hakkı verildi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Verilemedi");
+            const message = errorMessage(err, "Sınav hakkı verilemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

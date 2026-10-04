@@ -12,6 +12,8 @@ import {
   Input,
   PageHeader,
   PasswordInput,
+  errorMessage,
+  notify,
 } from "@/src/ui";
 
 export default function NewCompanyPage() {
@@ -47,9 +49,12 @@ export default function NewCompanyPage() {
         },
       });
       const id = result.data.id;
+      notify.success("Kurum oluşturuldu");
       router.push(`/admin/companies/${id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kurum oluşturulamadı");
+      const message = errorMessage(err, "Kurum oluşturulamadı");
+      setError(message);
+      notify.error(message);
     }
   }
 

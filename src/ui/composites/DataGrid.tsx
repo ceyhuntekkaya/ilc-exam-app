@@ -108,7 +108,7 @@ export function DataGrid<T extends object>({
   rows,
   columns,
   getRowId,
-  pageSize = 10,
+  pageSize = 50,
   pageSizeOptions = [5, 10, 25, 50],
   checkboxSelection = false,
   disableRowSelectionOnClick = false,

@@ -11,7 +11,17 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
 import { yearStatusLabel } from "@/src/features/admin/labels";
-import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable } from "@/src/ui";
+import {
+  Badge,
+  Button,
+  ErrorState,
+  Field,
+  FormDialog,
+  Input,
+  SectionTable,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyYearsPage() {
   return (
@@ -61,8 +71,13 @@ function Body() {
               size="sm"
               variant="secondary"
               onClick={async () => {
-                await activate.mutateAsync({ id, yid: r.id! });
-                await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
+                try {
+                  await activate.mutateAsync({ id, yid: r.id! });
+                  await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
+                  notify.success("Sezon aktifleştirildi");
+                } catch (err) {
+                  notify.error(errorMessage(err, "Sezon aktifleştirilemedi"));
+                }
               }}
             >
               Aktifleştir
@@ -92,8 +107,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
             setOpen(false);
+            notify.success("Sezon eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Sezon eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

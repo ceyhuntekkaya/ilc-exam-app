@@ -12,7 +12,17 @@ import {
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
-import { Button, ErrorState, Field, FormDialog, Input, SectionTable, Select } from "@/src/ui";
+import {
+  Button,
+  ErrorState,
+  Field,
+  FormDialog,
+  Input,
+  SectionTable,
+  Select,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyBranchesPage() {
   return (
@@ -112,8 +122,11 @@ function Body() {
               queryKey: getBranchesQueryKey(id, { academicYearId: selectedYear }),
             });
             setOpen(false);
+            notify.success("Sınıf eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Sınıf eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

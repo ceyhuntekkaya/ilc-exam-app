@@ -204,6 +204,15 @@ export function IconPlay(props: IconProps) {
   );
 }
 
+export function IconPause(props: IconProps) {
+  return (
+    <svg {...base} fill="currentColor" stroke="none" {...props}>
+      <rect x="7" y="6" width="3.5" height="12" rx="0.5" />
+      <rect x="13.5" y="6" width="3.5" height="12" rx="0.5" />
+    </svg>
+  );
+}
+
 export function IconExpand(props: IconProps) {
   return (
     <svg {...base} {...props}>

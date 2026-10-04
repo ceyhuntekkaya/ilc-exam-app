@@ -1,5 +1,11 @@
 export const ACCESS_TOKEN_COOKIE = "ilc_access_token";
+export const REFRESH_TOKEN_COOKIE = "ilc_refresh_token";
 export const USER_TYPE_COOKIE = "ilc_user_type";
+
+/** Access JWT ömrü (backend ile uyumlu, saniye). */
+export const ACCESS_COOKIE_MAX_AGE = 60 * 60;
+/** Refresh JWT ömrü (~30 gün, backend ile uyumlu). */
+export const REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
 export type SessionUserType = "SUPER_ADMIN" | "STAFF" | "STUDENT";
 
@@ -33,6 +39,13 @@ export function readJwtPayload(token: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+export function isAccessTokenExpired(token: string, skewSeconds = 30): boolean {
+  const payload = readJwtPayload(token);
+  const exp = payload?.exp;
+  if (typeof exp !== "number") return true;
+  return exp * 1000 <= Date.now() + skewSeconds * 1000;
 }
 
 export function userTypeFromToken(token: string): SessionUserType | null {

@@ -16,6 +16,8 @@ import {
   Input,
   PageHeader,
   Select,
+  errorMessage,
+  notify,
   type GridColDef,
 } from "@/src/ui";
 import Link from "next/link";
@@ -137,9 +139,12 @@ export default function AdminExamsPage() {
               },
             });
             setGrantExam(null);
+            notify.success("Sınav hakkı verildi");
             router.push(`/admin/companies/${cid}/grants`);
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Verilemedi");
+            const message = errorMessage(err, "Sınav hakkı verilemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

@@ -10,6 +10,8 @@ import {
   ErrorState,
   PageHeader,
   Select,
+  errorMessage,
+  notify,
   type GridColDef,
 } from "@/src/ui";
 import Link from "next/link";
@@ -57,7 +59,38 @@ export function QuestionBankPage({ basePath }: { basePath: string }) {
         field: "primaryType",
         headerName: "Tip",
         minWidth: 160,
-        renderCell: ({ row }) => row.primaryType?.replaceAll("_", " ") ?? "—",
+        renderCell: ({ row }) => {
+          const types =
+            row.types && row.types.length > 0
+              ? row.types
+              : row.primaryType
+                ? [row.primaryType]
+                : [];
+          if (types.length === 0) return "—";
+          return (
+            <div className="flex flex-col gap-0.5 py-0.5 leading-snug">
+              {types.map((t) => (
+                <span key={t}>{t.replaceAll("_", " ")}</span>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        field: "tags",
+        headerName: "Etiketler",
+        minWidth: 160,
+        renderCell: ({ row }) => {
+          const tags = row.tags ?? [];
+          if (tags.length === 0) return "—";
+          return (
+            <div className="flex flex-col gap-0.5 py-0.5 leading-snug">
+              {tags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+          );
+        },
       },
       {
         field: "primarySkill",
@@ -96,7 +129,9 @@ export function QuestionBankPage({ basePath }: { basePath: string }) {
       });
       window.location.href = `${basePath}/${q.versionId}`;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Oluşturulamadı");
+      const message = errorMessage(e, "Oluşturulamadı");
+      setError(message);
+      notify.error(message);
       setCreating(false);
     }
   }

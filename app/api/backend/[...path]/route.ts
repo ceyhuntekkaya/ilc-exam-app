@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { ACCESS_TOKEN_COOKIE } from "@/src/lib/auth-constants";
 import { getApiBaseUrl } from "@/src/lib/env";
+import { ensureAccessToken } from "@/src/lib/server/session-cookies";
 
 type RouteParams = { params: Promise<{ path: string[] }> };
 
@@ -13,7 +13,7 @@ async function forward(request: NextRequest, path: string[]) {
   });
 
   const store = await cookies();
-  const token = store.get(ACCESS_TOKEN_COOKIE)?.value;
+  const token = await ensureAccessToken(store);
 
   const headers = new Headers();
   const contentType = request.headers.get("content-type");
@@ -22,6 +22,8 @@ async function forward(request: NextRequest, path: string[]) {
   if (token) headers.set("authorization", `Bearer ${token}`);
   const companyId = request.headers.get("x-company-id");
   if (companyId) headers.set("x-company-id", companyId);
+  const sessionToken = request.headers.get("x-session-token");
+  if (sessionToken) headers.set("x-session-token", sessionToken);
 
   const init: RequestInit = {
     method: request.method,

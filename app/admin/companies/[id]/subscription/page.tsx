@@ -19,6 +19,8 @@ import {
   FormDialog,
   Input,
   SectionTable,
+  errorMessage,
+  notify,
 } from "@/src/ui";
 
 export default function CompanySubscriptionPage() {
@@ -74,8 +76,13 @@ function Body() {
               size="sm"
               variant="ghost"
               onClick={async () => {
-                await patch.mutateAsync({ id, sid: r.id!, data: { cancel: true } });
-                await refresh();
+                try {
+                  await patch.mutateAsync({ id, sid: r.id!, data: { cancel: true } });
+                  await refresh();
+                  notify.success("Üyelik iptal edildi");
+                } catch (err) {
+                  notify.error(errorMessage(err, "Üyelik iptal edilemedi"));
+                }
               }}
             >
               İptal
@@ -106,8 +113,11 @@ function Body() {
             });
             await refresh();
             setOpen(false);
+            notify.success("Üyelik eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Üyelik eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

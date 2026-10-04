@@ -22,7 +22,11 @@ type AuthState = {
   user: LoginResponse | null;
   loading: boolean;
   refresh: () => Promise<void>;
-  establishSession: (accessToken: string, userType: SessionUserType) => Promise<void>;
+  establishSession: (
+    accessToken: string,
+    userType: SessionUserType,
+    refreshToken?: string,
+  ) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -55,12 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const establishSession = useCallback(
-    async (accessToken: string, userType: SessionUserType) => {
+    async (accessToken: string, userType: SessionUserType, refreshToken?: string) => {
       setClientAccessToken(accessToken);
       const res = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, userType }),
+        body: JSON.stringify({ accessToken, userType, refreshToken }),
       });
       if (!res.ok) {
         throw new Error("Oturum kaydedilemedi");

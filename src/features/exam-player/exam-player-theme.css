@@ -1,0 +1,72 @@
+/*
+  Exam-player (öğrenci soru) paleti — tomer-exam-app görsel diline yakın.
+  Admin primary (turuncu) ile karışmasın diye `exam-*` öneki kullanılır.
+*/
+
+@theme {
+  --color-exam-navy-50: #e8f1f8;
+  --color-exam-navy-100: #c5d9ea;
+  --color-exam-navy-200: #9fbfdb;
+  --color-exam-navy-300: #78a5cc;
+  --color-exam-navy-400: #4e8bbd;
+  --color-exam-navy-500: #2671ae;
+  --color-exam-navy-600: #1a5e98;
+  --color-exam-navy-700: #104c82;
+  --color-exam-navy-800: #073559;
+  --color-exam-navy-900: #003559;
+
+  --color-exam-sky-50: #edf7fe;
+  --color-exam-sky-100: #d2ecfb;
+  --color-exam-sky-200: #a8d9f7;
+  --color-exam-sky-300: #7ec6f3;
+  --color-exam-sky-400: #54b3ef;
+  --color-exam-sky-500: #1f9fe9;
+  --color-exam-sky-600: #1788cc;
+  --color-exam-sky-700: #1171aa;
+  --color-exam-sky-750: #1a5d92;
+  --color-exam-sky-800: #0b5a88;
+  --color-exam-sky-900: #064366;
+
+  --color-exam-slate-50: #f8fafb;
+  --color-exam-slate-100: #eef2f5;
+  --color-exam-slate-200: #d9e2e8;
+  --color-exam-slate-300: #b8c9d4;
+  --color-exam-slate-400: #8aa3b3;
+  --color-exam-slate-500: #66869b;
+  --color-exam-slate-600: #517084;
+  --color-exam-slate-700: #3f5868;
+  --color-exam-slate-800: #2f4250;
+  --color-exam-slate-900: #1e2c36;
+
+  --color-exam-gold-400: #e9ba00;
+  --color-exam-cream: #fbf1cc;
+}
+
+.exam-player .prose-section {
+  line-height: 1.55;
+  color: #1e293b;
+  overflow-wrap: anywhere;
+}
+
+.exam-player .prose-section :where(p, li, span, div, td, th, label) {
+  color: inherit;
+}
+
+.exam-player .prose-section :where(strong, b, h1, h2, h3, h4, h5, h6) {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.exam-player .prose-section p:first-child {
+  margin-top: 0;
+}
+
+.exam-player .prose-section p:last-child {
+  margin-bottom: 0;
+}
+
+.exam-player .prose-section mark {
+  border-radius: 0.125rem;
+  background-color: #fef08a;
+  padding-inline: 0.125rem;
+}

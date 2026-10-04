@@ -10,7 +10,17 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
 import { companyStatusLabel } from "@/src/features/admin/labels";
-import { Button, DefinitionList, Field, FormCard, FormGrid, FormMessage, Input } from "@/src/ui";
+import {
+  Button,
+  DefinitionList,
+  Field,
+  FormCard,
+  FormGrid,
+  FormMessage,
+  Input,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyOverviewPage() {
   return (
@@ -48,8 +58,11 @@ function OverviewBody() {
       await queryClient.invalidateQueries({ queryKey: getGetQueryKey(id) });
       setEditing(false);
       setOk(true);
+      notify.success("Kaydedildi");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Kaydedilemedi");
+      const message = errorMessage(err, "Kaydedilemedi");
+      setError(message);
+      notify.error(message);
     }
   }
 

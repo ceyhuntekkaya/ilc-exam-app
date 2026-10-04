@@ -14,6 +14,7 @@ export type { DataGridProps, GridColDef, PaginationModel } from "@/src/ui/compos
 export * from "@/src/ui/icons";
 export { SectionHeading } from "@/src/ui/composites/SectionHeading";
 export { Alert } from "@/src/ui/composites/Alert";
+export { Toaster, notify, errorMessage, type ToastTone } from "@/src/ui/composites/Toaster";
 export { DetailShell } from "@/src/ui/composites/DetailShell";
 export { EntityHeader, type EntityMetric } from "@/src/ui/composites/EntityHeader";
 export { DetailGroupTabs, DetailSectionPills } from "@/src/ui/composites/DetailTabs";

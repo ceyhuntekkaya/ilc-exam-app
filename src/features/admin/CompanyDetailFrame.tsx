@@ -25,6 +25,8 @@ import {
   DetailShell,
   EntityHeader,
   ErrorState,
+  errorMessage,
+  notify,
 } from "@/src/ui";
 
 export function CompanyDetailFrame({
@@ -51,13 +53,24 @@ export function CompanyDetailFrame({
     if (!confirm) return;
     setActionError(null);
     try {
-      if (confirm === "suspend") await suspend.mutateAsync({ id: companyId });
-      if (confirm === "activate") await activate.mutateAsync({ id: companyId });
-      if (confirm === "delete") await remove.mutateAsync({ id: companyId });
+      if (confirm === "suspend") {
+        await suspend.mutateAsync({ id: companyId });
+        notify.success("Kurum askıya alındı");
+      }
+      if (confirm === "activate") {
+        await activate.mutateAsync({ id: companyId });
+        notify.success("Kurum aktifleştirildi");
+      }
+      if (confirm === "delete") {
+        await remove.mutateAsync({ id: companyId });
+        notify.success("Kurum silindi");
+      }
       await queryClient.invalidateQueries({ queryKey: getGetQueryKey(companyId) });
       setConfirm(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "İşlem başarısız");
+      const message = errorMessage(err, "İşlem başarısız");
+      setActionError(message);
+      notify.error(message);
     }
   }
 

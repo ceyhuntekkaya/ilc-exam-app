@@ -10,7 +10,17 @@ import {
   useInstitutes,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
-import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable } from "@/src/ui";
+import {
+  Badge,
+  Button,
+  ErrorState,
+  Field,
+  FormDialog,
+  Input,
+  SectionTable,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyInstitutesPage() {
   return (
@@ -55,8 +65,13 @@ function Body() {
             size="sm"
             variant="ghost"
             onClick={async () => {
-              await remove.mutateAsync({ id, iid: r.id! });
-              await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
+              try {
+                await remove.mutateAsync({ id, iid: r.id! });
+                await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
+                notify.success("Kampüs silindi");
+              } catch (err) {
+                notify.error(errorMessage(err, "Kampüs silinemedi"));
+              }
             }}
           >
             Sil
@@ -79,8 +94,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
             setOpen(false);
+            notify.success("Kampüs eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Kampüs eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

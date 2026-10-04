@@ -30,6 +30,7 @@ export default function StaffLoginPage() {
       await establishSession(
         payload.accessToken,
         payload.userType as SessionUserType,
+        payload.refreshToken,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Giriş başarısız");

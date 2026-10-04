@@ -23,6 +23,8 @@ import {
   PasswordInput,
   SectionTable,
   Select,
+  errorMessage,
+  notify,
 } from "@/src/ui";
 
 export default function CompanyStaffPage() {
@@ -82,8 +84,13 @@ function Body() {
               size="sm"
               variant="ghost"
               onClick={async () => {
-                const res = await resetPassword.mutateAsync({ id, uid: r.id! });
-                setTempPassword(res.data.temporaryPassword ?? null);
+                try {
+                  const res = await resetPassword.mutateAsync({ id, uid: r.id! });
+                  setTempPassword(res.data.temporaryPassword ?? null);
+                  notify.success("Parola sıfırlandı");
+                } catch (err) {
+                  notify.error(errorMessage(err, "Parola sıfırlanamadı"));
+                }
               }}
             >
               Parola
@@ -114,8 +121,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
             setOpen(false);
+            notify.success("Personel eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Personel eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >
@@ -154,8 +164,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
             setScopeFor(null);
+            notify.success("Rol atandı");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Atanamadı");
+            const message = errorMessage(err, "Rol atanamadı");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

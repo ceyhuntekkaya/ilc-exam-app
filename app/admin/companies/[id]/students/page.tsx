@@ -13,7 +13,18 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
 import { userStatusLabel } from "@/src/features/admin/labels";
-import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable, Select } from "@/src/ui";
+import {
+  Badge,
+  Button,
+  ErrorState,
+  Field,
+  FormDialog,
+  Input,
+  SectionTable,
+  Select,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyStudentsPage() {
   return (
@@ -85,8 +96,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
             setOpen(false);
+            notify.success("Öğrenci eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Öğrenci eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >

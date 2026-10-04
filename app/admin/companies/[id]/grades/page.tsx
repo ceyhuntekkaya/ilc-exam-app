@@ -9,7 +9,17 @@ import {
   useGrades,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
-import { Badge, Button, ErrorState, Field, FormDialog, Input, SectionTable } from "@/src/ui";
+import {
+  Badge,
+  Button,
+  ErrorState,
+  Field,
+  FormDialog,
+  Input,
+  SectionTable,
+  errorMessage,
+  notify,
+} from "@/src/ui";
 
 export default function CompanyGradesPage() {
   return (
@@ -69,8 +79,11 @@ function Body() {
             });
             await queryClient.invalidateQueries({ queryKey: getGradesQueryKey(id) });
             setOpen(false);
+            notify.success("Seviye eklendi");
           } catch (err) {
-            setFormError(err instanceof Error ? err.message : "Eklenemedi");
+            const message = errorMessage(err, "Seviye eklenemedi");
+            setFormError(message);
+            notify.error(message);
           }
         }}
       >
