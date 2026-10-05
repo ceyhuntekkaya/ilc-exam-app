@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useAuth } from "@/src/components/auth-provider";
-import { visibleStaffNav } from "@/src/config/staff-nav";
+import { visibleNav } from "@/src/config/panel-nav";
 
 export default function StaffDashboardPage() {
   const { user, loading } = useAuth();
-  const groups = visibleStaffNav(user?.permissions).filter((group) => group.label !== "Genel");
+  const groups = visibleNav("STAFF", user?.permissions).filter((group) => group.label !== "Genel");
 
   return (
     <div className="grid gap-6">

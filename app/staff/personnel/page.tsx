@@ -1,10 +1,8 @@
-import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+"use client";
 
-export default function StaffPersonnelPage() {
-  return (
-    <ComingSoonPage
-      title="Personel"
-      description="Kurum kullanıcılarını ekleyip rol ve kapsam (kampüs, seviye, sınıf) atayabileceksiniz."
-    />
-  );
+import { StaffBound } from "@/src/features/panel/StaffBound";
+import { StaffSection } from "@/src/features/org/StaffSection";
+
+export default function Page() {
+  return <StaffBound>{(companyId) => <StaffSection companyId={companyId} />}</StaffBound>;
 }

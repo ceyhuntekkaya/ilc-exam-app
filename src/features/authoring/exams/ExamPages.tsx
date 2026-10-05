@@ -8,6 +8,7 @@ import {
 } from "@/src/features/authoring/shared/client";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { useContentBasePath } from "@/src/features/panel/PanelContext";
 import {
   Button,
   ButtonLink,
@@ -25,6 +26,7 @@ import {
   type GridColDef,
 } from "@/src/ui";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
@@ -66,7 +68,8 @@ function questionPointsTotal(exam: ExamDetail) {
   return Math.round(sum * 100) / 100;
 }
 
-export function ExamListPage({ basePath }: { basePath: string }) {
+export function ExamListPage() {
+  const basePath = useContentBasePath("exams");
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<ExamListItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -153,7 +156,9 @@ export function ExamListPage({ basePath }: { basePath: string }) {
   );
 }
 
-export function ExamWizardPage({ basePath }: { basePath: string }) {
+export function ExamWizardPage() {
+  const basePath = useContentBasePath("exams");
+  const router = useRouter();
   const { tenant } = useAuthoringTenant();
   const [step, setStep] = useState(1);
   const [code, setCode] = useState("");
@@ -227,7 +232,7 @@ export function ExamWizardPage({ basePath }: { basePath: string }) {
           descriptionHtml: descriptionHtml || null,
         });
       }
-      window.location.href = `${basePath}/${exam.id}`;
+      router.push(`${basePath}/${exam.id}`);
     } catch (e) {
       const message = errorMessage(e, "Oluşturulamadı");
       setError(message);
@@ -330,16 +335,9 @@ type Sel =
   | { kind: "sub"; sectionId: string; subId: string }
   | { kind: "question"; sectionId: string; subId: string; linkId: string };
 
-export function ExamBuilderPage({
-  basePath,
-  examId,
-  questionBasePath,
-}: {
-  basePath: string;
-  examId: string;
-  questionBasePath?: string;
-}) {
-  const qBase = questionBasePath ?? basePath.replace(/\/exams$/, "/questions");
+export function ExamBuilderPage({ examId }: { examId: string }) {
+  const basePath = useContentBasePath("exams");
+  const qBase = useContentBasePath("questions");
   const { tenant } = useAuthoringTenant();
   const [exam, setExam] = useState<ExamDetail | null>(null);
   const [sel, setSel] = useState<Sel>({ kind: "exam" });

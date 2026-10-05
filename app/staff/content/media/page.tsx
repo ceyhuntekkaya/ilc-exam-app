@@ -1,5 +1,1 @@
-"use client";
-import { MediaLibraryPage } from "@/src/features/authoring/shared/LibraryPages";
-export default function Page() {
-  return <MediaLibraryPage />;
-}
+export { MediaLibraryRoute as default } from "@/src/features/authoring/routes";

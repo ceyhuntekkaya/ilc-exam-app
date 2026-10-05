@@ -1,10 +1,8 @@
-import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+"use client";
 
-export default function StaffCompanyPage() {
-  return (
-    <ComingSoonPage
-      title="Kurum Ayarları"
-      description="Kampüs, sezon, seviye ve sınıf yapısını buradan düzenleyebileceksiniz."
-    />
-  );
+import { StaffBound } from "@/src/features/panel/StaffBound";
+import { StructureSection } from "@/src/features/org/StructureSection";
+
+export default function Page() {
+  return <StaffBound>{(companyId) => <StructureSection companyId={companyId} />}</StaffBound>;
 }

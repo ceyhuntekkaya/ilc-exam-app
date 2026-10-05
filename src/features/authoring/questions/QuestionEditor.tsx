@@ -25,6 +25,7 @@ import {
 } from "@/src/features/authoring/shared/client";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { useContentBasePath } from "@/src/features/panel/PanelContext";
 import {
   QuestionPreviewShell,
   type ContentBlock as PlayerContentBlock,
@@ -41,6 +42,7 @@ import {
   errorMessage,
   notify,
 } from "@/src/ui";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const SKILLS: Skill[] = [
@@ -93,7 +95,9 @@ function partContent(part: QuestionPart): { stem: ContentBlock[]; interaction: R
   };
 }
 
-export function QuestionTypePicker({ basePath }: { basePath: string }) {
+export function QuestionTypePicker() {
+  const basePath = useContentBasePath("questions");
+  const router = useRouter();
   const { tenant } = useAuthoringTenant();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +112,7 @@ export function QuestionTypePicker({ basePath }: { basePath: string }) {
         interactionType: type,
         skill: spec?.defaultSkill ?? "READING",
       });
-      window.location.href = `${basePath}/${q.versionId}`;
+      router.push(`${basePath}/${q.versionId}`);
     } catch (e) {
       const message = errorMessage(e, "Oluşturulamadı");
       setError(message);
@@ -144,13 +148,9 @@ export function QuestionTypePicker({ basePath }: { basePath: string }) {
   );
 }
 
-export function QuestionEditorPage({
-  basePath,
-  versionId,
-}: {
-  basePath: string;
-  versionId: string;
-}) {
+export function QuestionEditorPage({ versionId }: { versionId: string }) {
+  const basePath = useContentBasePath("questions");
+  const router = useRouter();
   const { tenant } = useAuthoringTenant();
   const [q, setQ] = useState<QuestionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1001,7 +1001,7 @@ export function QuestionEditorPage({
                         error: "Klonlanamadı",
                       })
                       .then((n) => {
-                        window.location.href = `${basePath}/${n.versionId}`;
+                        router.push(`${basePath}/${n.versionId}`);
                       })
                       .catch(() => undefined)
                   }
@@ -1017,7 +1017,7 @@ export function QuestionEditorPage({
                         error: "Sürüm oluşturulamadı",
                       })
                       .then((n) => {
-                        window.location.href = `${basePath}/${n.versionId}`;
+                        router.push(`${basePath}/${n.versionId}`);
                       })
                       .catch(() => undefined)
                   }
@@ -1033,7 +1033,7 @@ export function QuestionEditorPage({
                         error: "Arşivlenemedi",
                       })
                       .then(() => {
-                        window.location.href = basePath;
+                        router.push(basePath);
                       })
                       .catch(() => undefined)
                   }

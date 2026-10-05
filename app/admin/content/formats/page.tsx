@@ -1,5 +1,1 @@
-"use client";
-import { FormatsPage } from "@/src/features/authoring/shared/LibraryPages";
-export default function Page() {
-  return <FormatsPage />;
-}
+export { FormatsRoute as default } from "@/src/features/authoring/routes";

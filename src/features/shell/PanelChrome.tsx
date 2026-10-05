@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { NavGroup } from "@/src/config/nav";
+import type { NavGroup } from "@/src/config/panel-nav";
 import { useAuth } from "@/src/components/auth-provider";
 import { cn } from "@/src/lib/utils/cn";
 

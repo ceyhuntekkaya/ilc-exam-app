@@ -5,13 +5,15 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/src/components/auth-provider";
 import {
-  isStaffNavActive,
-  matchingStaffNavItem,
-  visibleStaffNav,
-  type StaffNavGroup,
-} from "@/src/config/staff-nav";
+  isNavActive,
+  matchingNavItem,
+  staffNavGroups,
+  visibleNav,
+  type PanelNavGroup,
+} from "@/src/config/panel-nav";
 import { hasAnyPermission } from "@/src/lib/permissions";
 import { cn } from "@/src/lib/utils/cn";
+import { PanelProvider } from "@/src/features/panel/PanelContext";
 import { UiVariantProvider } from "@/src/ui/primitives/UiVariant";
 import { IconMenu, IconX } from "@/src/ui/icons";
 
@@ -26,10 +28,17 @@ export function StaffShell({ children }: { children: ReactNode }) {
   }
 
   const close = useCallback(() => setOpen(false), []);
-  const groups = visibleStaffNav(user?.permissions);
-  const match = matchingStaffNavItem(pathname);
+  const groups = visibleNav("STAFF", user?.permissions);
+  const permKey = (user?.permissions ?? []).join(",");
+  const match = matchingNavItem(pathname, staffNavGroups());
   const denied =
     !loading && Boolean(match?.perms) && !hasAnyPermission(user?.permissions, match?.perms);
+
+  useEffect(() => {
+    document
+      .querySelector<HTMLElement>("#staff-sidebar a[aria-current='page']")
+      ?.scrollIntoView({ block: "nearest" });
+  }, [pathname, permKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +55,7 @@ export function StaffShell({ children }: { children: ReactNode }) {
   }, [open, close]);
 
   return (
+    <PanelProvider role="STAFF" basePath="/staff">
     <UiVariantProvider variant="staff">
       <div
         data-panel=""
@@ -124,12 +134,19 @@ export function StaffShell({ children }: { children: ReactNode }) {
 
           <main className="min-w-0 flex-1 px-4 py-6 md:px-6">
             <div className="mx-auto w-full max-w-6xl">
-              {denied ? <NoAccess /> : children}
+              {loading ? (
+                <div className="h-40 rounded-lg bg-white ring-1 ring-ilc-line" aria-hidden="true" />
+              ) : denied ? (
+                <NoAccess />
+              ) : (
+                children
+              )}
             </div>
           </main>
         </div>
       </div>
     </UiVariantProvider>
+    </PanelProvider>
   );
 }
 
@@ -138,7 +155,7 @@ function StaffNavList({
   pathname,
   onNavigate,
 }: {
-  groups: StaffNavGroup[];
+  groups: PanelNavGroup[];
   pathname: string;
   onNavigate: () => void;
 }) {
@@ -151,7 +168,7 @@ function StaffNavList({
           </p>
           <ul className="space-y-0.5">
             {group.items.map((item) => {
-              const active = isStaffNavActive(pathname, item.href);
+              const active = isNavActive(pathname, item.href, groups);
               return (
                 <li key={item.href}>
                   <Link

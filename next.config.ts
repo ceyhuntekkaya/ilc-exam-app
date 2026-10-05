@@ -27,6 +27,7 @@ const apiPublicUrl =
 process.env.NEXT_PUBLIC_API_URL = apiPublicUrl;
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   env: {
     NEXT_PUBLIC_API_URL: apiPublicUrl,
   },

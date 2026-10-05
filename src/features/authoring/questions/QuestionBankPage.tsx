@@ -3,6 +3,7 @@
 import { authoringApi, type QuestionSummary } from "@/src/features/authoring/shared/client";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { useContentBasePath } from "@/src/features/panel/PanelContext";
 import {
   Button,
   ButtonLink,
@@ -15,9 +16,12 @@ import {
   type GridColDef,
 } from "@/src/ui";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function QuestionBankPage({ basePath }: { basePath: string }) {
+export function QuestionBankPage() {
+  const basePath = useContentBasePath("questions");
+  const router = useRouter();
   const { tenant, loading: tenantLoading } = useAuthoringTenant();
   const [rows, setRows] = useState<QuestionSummary[]>([]);
   const [status, setStatus] = useState("");
@@ -127,11 +131,9 @@ export function QuestionBankPage({ basePath }: { basePath: string }) {
         interactionType: "MULTIPLE_CHOICE",
         skill: "READING",
       });
-      window.location.href = `${basePath}/${q.versionId}`;
+      router.push(`${basePath}/${q.versionId}`);
     } catch (e) {
-      const message = errorMessage(e, "Oluşturulamadı");
-      setError(message);
-      notify.error(message);
+      notify.error(errorMessage(e, "Soru oluşturulamadı"));
       setCreating(false);
     }
   }

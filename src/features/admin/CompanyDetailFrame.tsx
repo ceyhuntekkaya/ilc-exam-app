@@ -16,6 +16,7 @@ import {
   type CompanySection,
 } from "@/src/config/company-detail-nav";
 import { companyStatusLabel, companyStatusTone } from "@/src/features/admin/labels";
+import { PanelProvider } from "@/src/features/panel/PanelContext";
 import {
   ActionBar,
   Button,
@@ -130,7 +131,7 @@ export function CompanyDetailFrame({
         sectionGroup={meta.group}
         sectionTitle={meta.title}
       >
-        {children}
+        <PanelProvider companyId={companyId}>{children}</PanelProvider>
       </DetailShell>
 
       <ConfirmDialog

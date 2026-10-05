@@ -1,10 +1,8 @@
-import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+"use client";
 
-export default function StaffStudentsPage() {
-  return (
-    <ComingSoonPage
-      title="Öğrenciler"
-      description="Öğrenci ekleme, güncelleme, silme ve sınıf kaydı işlemleri bu ekrandan yönetilecek."
-    />
-  );
+import { StaffBound } from "@/src/features/panel/StaffBound";
+import { StudentsSection } from "@/src/features/org/StudentsSection";
+
+export default function Page() {
+  return <StaffBound>{(companyId) => <StudentsSection companyId={companyId} />}</StaffBound>;
 }

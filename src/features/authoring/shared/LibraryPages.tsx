@@ -3,6 +3,7 @@
 import { authoringApi, type MediaItem, type ReviewItem } from "@/src/features/authoring/shared/client";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { useContentBasePath } from "@/src/features/panel/PanelContext";
 import {
   Button,
   ConfirmDialog,
@@ -144,7 +145,8 @@ export function MediaLibraryPage() {
   );
 }
 
-export function ReviewQueuePage({ questionBasePath }: { questionBasePath: string }) {
+export function ReviewQueuePage() {
+  const questionBasePath = useContentBasePath("questions");
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<ReviewItem[]>([]);
   const [error, setError] = useState<string | null>(null);

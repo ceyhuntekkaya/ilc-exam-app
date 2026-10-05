@@ -1,10 +1,8 @@
-import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+"use client";
 
-export default function StaffReportsPage() {
-  return (
-    <ComingSoonPage
-      title="Raporlar"
-      description="Şube, kampüs ve kurum raporları bu ekranda toplanacak. Kapsamınız dışındaki veriler görünmez."
-    />
-  );
+import { StaffBound } from "@/src/features/panel/StaffBound";
+import { ReportsSection } from "@/src/features/org/ReportsSection";
+
+export default function Page() {
+  return <StaffBound>{(companyId) => <ReportsSection companyId={companyId} />}</StaffBound>;
 }
