@@ -34,7 +34,7 @@ export function BranchesSection({ companyId }: { companyId: string }) {
   const [yearId, setYearId] = useState<string | undefined>(undefined);
   const selectedYear = yearId ?? activeYear?.id;
 
-  const { data, isLoading, isError, error } = useBranches(id, { academicYearId: selectedYear }, {
+  const { data, isLoading, isError, error, refetch } = useBranches(id, { academicYearId: selectedYear }, {
     query: { enabled: !!selectedYear },
   });
   const rows = data?.data ?? [];
@@ -52,7 +52,7 @@ export function BranchesSection({ companyId }: { companyId: string }) {
     [grades],
   );
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
 
   return (
     <div className="grid gap-4">
@@ -75,7 +75,7 @@ export function BranchesSection({ companyId }: { companyId: string }) {
       </div>
 
       {isLoading || !selectedYear ? (
-        <div className="h-24 animate-pulse rounded-md bg-neutral-100" />
+        <SectionTable flush loading empty="" columns={["Ad", "Kampüs", "Seviye"]} rows={[]} />
       ) : (
         <SectionTable
           flush

@@ -54,6 +54,12 @@ export function GrantDialog({
         const cid = lockedCompanyId ?? String(fd.get("companyId") || "");
         const examId = lockedExamId ?? String(fd.get("examId") || "");
         setFormError(null);
+        const __s = String(fd.get("validFrom") || "");
+        const __e = String(fd.get("validUntil") || "");
+        if (__s && __e && __e < __s) {
+          setFormError("Geçerlilik bitişi başlangıçtan önce olamaz.");
+          return;
+        }
         try {
           await createGrant.mutateAsync({
             data: {
@@ -110,10 +116,10 @@ export function GrantDialog({
           ))}
         </Select>
       </Field>
-      <Field label="Geçerlilik başlangıç" required>
+      <Field label="Geçerlilik başlangıcı" required hint="Kurum bu tarihten itibaren sınavı atayabilir.">
         <Input name="validFrom" type="datetime-local" required />
       </Field>
-      <Field label="Geçerlilik bitiş">
+      <Field label="Geçerlilik bitişi" hint="Boş = süresiz lisans.">
         <Input name="validUntil" type="datetime-local" />
       </Field>
       <label className="flex min-h-11 items-center gap-2 text-sm text-fg">

@@ -6,11 +6,18 @@ import { Badge, ErrorState, SectionTable } from "@/src/ui";
 
 export function ReportsSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useExamReports(id);
+  const { data, isLoading, isError, error, refetch } = useExamReports(id);
   const rows = data?.data ?? [];
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={[
+        "Durum",
+        { label: "Alıcı", align: "right" },
+        { label: "Devam", align: "right" },
+        { label: "Tamam", align: "right" },
+        { label: "Girmedi", align: "right" },
+        { label: "Yayınlı sonuç", align: "right" },
+      ]} rows={[]} />;
 
   return (
     <SectionTable

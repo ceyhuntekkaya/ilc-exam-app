@@ -6,7 +6,17 @@ import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
 import { OptionListEditor, type OptionFormat, type OptionItem } from "@/src/features/authoring/blocks/OptionListEditor";
 import { newId, nextSequentialId } from "@/src/features/authoring/blocks/ids";
 import { extractBlankIds } from "@/src/features/exam-player/html";
-import { Button, Checkbox, Field, Input, Select, Textarea } from "@/src/ui";
+import {
+  Button,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  IconX,
+} from "@/src/ui";
+import type { ChangeEvent } from "react";
+import { SettingToggle as SharedSettingToggle } from "@/src/features/authoring/shared/FormGroup";
 
 type AnyRec = Record<string, unknown>;
 
@@ -48,6 +58,32 @@ function syncBlanksFromText(
 
 /* ───────── Interaction form ───────── */
 
+/** Ayar anahtarlarının öğrenciye etkisi — yazar ne seçtiğini bilsin. */
+const SETTING_HELP: Record<string, string> = {
+  "Seçenekleri karıştır":
+    "Her öğrenci seçenekleri farklı sırada görür; kopya riskini azaltır. Cevap anahtarı etkilenmez. “Hepsi”, “Hiçbiri” ya da “A ve B” gibi sıraya bağlı seçenekler varsa kapalı tutun.",
+  "İfadeleri karıştır":
+    "İfadeler her öğrencide farklı sırada gösterilir. İfadeler bir hikâye ya da metin akışını izliyorsa kapalı tutun.",
+  "“Verilmemiş” seçeneğini göster":
+    "Doğru / Yanlış'a ek olarak üçüncü şık çıkar (metinde bilgi yok). IELTS tipi okuma soruları için açın.",
+  "Sürüklenebilirleri karıştır":
+    "Sürüklenecek öğeler her öğrencide farklı sırada gelir; doğru eşleşme sıradan tahmin edilemez.",
+  "Sağdaki seçenekler birden çok kez eşleşebilir":
+    "Açıksa aynı sağ seçenek birden fazla sol öğeye eşlenebilir; kapalıysa her biri en fazla bir kez kullanılır.",
+  "Bölgeleri göster":
+    "Açıksa tıklanabilir alanlar öğrenciye çerçeveyle gösterilir; kapalıysa öğrenci görselin neresine tıklayacağını kendisi bulur.",
+  "Yazım denetimi açık":
+    "Tarayıcının yazım denetimi (kırmızı alt çizgi) çalışır. Yazım becerisi ölçülüyorsa kapalı tutun.",
+  "Metin yapıştırmaya izin ver":
+    "Kapalıysa öğrenci cevap alanına dışarıdan kopyaladığı metni yapıştıramaz.",
+  "Dosya yüklemeye izin ver":
+    "Öğrenci kayıt yerine hazır bir video dosyası da yükleyebilir.",
+};
+
+function SettingToggle(props: { label: string; checked: boolean; disabled?: boolean; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
+  return <SharedSettingToggle {...props} description={SETTING_HELP[props.label]} />;
+}
+
 export function InteractionForm({
   type,
   value,
@@ -84,7 +120,7 @@ export function InteractionForm({
               setKey({ type: "MULTIPLE_CHOICE", correctOptionId: ids[0] ?? "" })
             }
           />
-          <Checkbox label="Seçenekleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+          <SettingToggle label="Seçenekleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
         </div>
       );
     case "MULTIPLE_RESPONSE":
@@ -102,15 +138,15 @@ export function InteractionForm({
               setKey({ type: "MULTIPLE_RESPONSE", correctOptionIds: ids, elementPoints: key.elementPoints ?? {} })
             }
           />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="Min seçim">
+          <div className="grid items-end gap-3 sm:grid-cols-2">
+            <Field label="En az seçim" hint="Boş = sınırsız">
               <Input type="number" disabled={disabled} value={String(v.minSelections ?? "")} onChange={(e) => set({ minSelections: e.target.value === "" ? null : Number(e.target.value) })} />
             </Field>
-            <Field label="Max seçim">
+            <Field label="En fazla seçim" hint="Boş = sınırsız">
               <Input type="number" disabled={disabled} value={String(v.maxSelections ?? "")} onChange={(e) => set({ maxSelections: e.target.value === "" ? null : Number(e.target.value) })} />
             </Field>
           </div>
-          <Checkbox label="Seçenekleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+          <SettingToggle label="Seçenekleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
         </div>
       );
     case "TRUE_FALSE": {
@@ -119,16 +155,16 @@ export function InteractionForm({
       const answers = asObj(key.answers);
       return (
         <div className="space-y-3">
-          <div className="grid gap-2 sm:grid-cols-3">
-            <InlineHtmlField label="True" value={labels.trueLabel as { html: string }} onChange={(trueLabel) => set({ labels: { ...labels, trueLabel } })} disabled={disabled} />
-            <InlineHtmlField label="False" value={labels.falseLabel as { html: string }} onChange={(falseLabel) => set({ labels: { ...labels, falseLabel } })} disabled={disabled} />
-            <InlineHtmlField label="Not given" value={labels.notGivenLabel as { html: string }} onChange={(notGivenLabel) => set({ labels: { ...labels, notGivenLabel } })} disabled={disabled} />
+          <div className="grid items-end gap-3 sm:grid-cols-3">
+            <InlineHtmlField label="“Doğru” etiketi" placeholder="Doğru" value={labels.trueLabel as { html: string }} onChange={(trueLabel) => set({ labels: { ...labels, trueLabel } })} disabled={disabled} />
+            <InlineHtmlField label="“Yanlış” etiketi" placeholder="Yanlış" value={labels.falseLabel as { html: string }} onChange={(falseLabel) => set({ labels: { ...labels, falseLabel } })} disabled={disabled} />
+            <InlineHtmlField label="“Verilmemiş” etiketi" placeholder="Verilmemiş" value={labels.notGivenLabel as { html: string }} onChange={(notGivenLabel) => set({ labels: { ...labels, notGivenLabel } })} disabled={disabled} />
           </div>
-          <Checkbox label="Not given açık" checked={!!v.notGivenEnabled} disabled={disabled} onChange={(e) => set({ notGivenEnabled: e.target.checked })} />
-          <Checkbox label="İfadeleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+          <SettingToggle label="“Verilmemiş” seçeneğini göster" checked={!!v.notGivenEnabled} disabled={disabled} onChange={(e) => set({ notGivenEnabled: e.target.checked })} />
+          <SettingToggle label="İfadeleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
           <div className="space-y-2">
             <div className="flex justify-between">
-              <p className="text-sm font-medium">İfadeler</p>
+              <p className="text-[13px] font-semibold text-fg">İfadeler</p>
               <Button
                 type="button"
                 size="sm"
@@ -192,9 +228,9 @@ export function InteractionForm({
                       })
                     }
                   >
-                    <option value="TRUE">TRUE</option>
-                    <option value="FALSE">FALSE</option>
-                    {v.notGivenEnabled ? <option value="NOT_GIVEN">NOT_GIVEN</option> : null}
+                    <option value="TRUE">Doğru</option>
+                    <option value="FALSE">Yanlış</option>
+                    {v.notGivenEnabled ? <option value="NOT_GIVEN">Verilmemiş</option> : null}
                   </Select>
                 </Field>
               </div>
@@ -245,11 +281,11 @@ export function InteractionForm({
               <option value="WORD_BANK">Kelime bankası</option>
             </Select>
           </Field>
-          <Checkbox label="Seçenekleri karıştır" checked={!!v.shuffleChoices} disabled={disabled} onChange={(e) => set({ shuffleChoices: e.target.checked })} />
+          <SettingToggle label="Seçenekleri karıştır" checked={!!v.shuffleChoices} disabled={disabled} onChange={(e) => set({ shuffleChoices: e.target.checked })} />
           {supply === "WORD_BANK" ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium">Kelime bankası</p>
+                <p className="text-[13px] font-semibold text-fg">Kelime bankası</p>
                 <Button
                   type="button"
                   size="sm"
@@ -294,7 +330,7 @@ export function InteractionForm({
               ))}
               {blanks.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Boşluk cevapları</p>
+                  <p className="text-[13px] font-semibold text-fg">Boşluk cevapları</p>
                   {blanks.map((b) => (
                     <Field key={String(b.blankId)} label={`[[${b.blankId}]] doğru kelime`}>
                       <Select
@@ -334,7 +370,7 @@ export function InteractionForm({
                 return (
                   <div key={String(b.blankId)} className="space-y-2 rounded border border-border p-2">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">Boşluk [[{String(b.blankId)}]]</p>
+                      <p className="text-[13px] font-semibold text-fg">Boşluk [[{String(b.blankId)}]]</p>
                       <Button
                         type="button"
                         size="sm"
@@ -438,10 +474,10 @@ export function InteractionForm({
               Aynı boşluk adı birden fazla kullanılamaz: {dups.join(", ")}
             </p>
           ) : null}
-          <Field label="Limit modu">
+          <Field label="Sınır aşılırsa">
             <Select value={String(v.limitMode || "HARD")} disabled={disabled} onChange={(e) => set({ limitMode: e.target.value })}>
-              <option value="HARD">Hard</option>
-              <option value="SOFT">Soft</option>
+              <option value="HARD">Engelle</option>
+              <option value="SOFT">Uyar, izin ver</option>
             </Select>
           </Field>
           {blanks.length === 0 ? (
@@ -449,9 +485,9 @@ export function InteractionForm({
           ) : null}
           {blanks.map((b, i) => (
             <div key={String(b.blankId)} className="space-y-2 rounded border border-border p-2">
-              <p className="text-sm font-medium">Boşluk [[{String(b.blankId)}]]</p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Field label="Min kelime">
+              <p className="text-[13px] font-semibold text-fg">Boşluk [[{String(b.blankId)}]]</p>
+              <div className="grid items-end gap-3 sm:grid-cols-3">
+                <Field label="En az kelime">
                   <Input
                     type="number"
                     value={String(b.minWords ?? "")}
@@ -463,7 +499,7 @@ export function InteractionForm({
                     }}
                   />
                 </Field>
-                <Field label="Max kelime">
+                <Field label="En fazla kelime">
                   <Input
                     type="number"
                     value={String(b.maxWords ?? "")}
@@ -475,7 +511,7 @@ export function InteractionForm({
                     }}
                   />
                 </Field>
-                <Field label="Max karakter">
+                <Field label="En fazla karakter">
                   <Input
                     type="number"
                     value={String(b.maxChars ?? "")}
@@ -527,7 +563,7 @@ export function InteractionForm({
             }
           />
           <Checkbox
-            label="Kenar noktalama yoksay"
+            label="Baştaki/sondaki noktalamayı yoksay"
             checked={policy.ignoreEdgePunctuation !== false}
             disabled={disabled}
             onChange={(e) =>
@@ -599,8 +635,8 @@ export function InteractionForm({
             }}
             disabled={disabled}
           />
-          <Checkbox label="Karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
-          <Checkbox label="Sağ yeniden kullanılabilir" checked={!!v.rightReusable} disabled={disabled} onChange={(e) => set({ rightReusable: e.target.checked })} />
+          <SettingToggle label="Sürüklenebilirleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+          <SettingToggle label="Sağdaki seçenekler birden çok kez eşleşebilir" checked={!!v.rightReusable} disabled={disabled} onChange={(e) => set({ rightReusable: e.target.checked })} />
         </div>
       );
     }
@@ -635,7 +671,7 @@ export function InteractionForm({
         <div className="space-y-3">
           <div className="space-y-2">
             <div className="flex justify-between">
-              <p className="text-sm font-medium">Gruplar</p>
+              <p className="text-[13px] font-semibold text-fg">Gruplar</p>
               <Button
                 type="button"
                 size="sm"
@@ -730,7 +766,7 @@ export function InteractionForm({
               </Field>
             )}
           />
-          <Checkbox label="Karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+          <SettingToggle label="Sürüklenebilirleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
         </div>
       );
     }
@@ -742,40 +778,49 @@ export function InteractionForm({
         <div className="space-y-3">
           <MediaPicker kind="IMAGE" value={v.mediaId as string | null} onChange={(mediaId) => set({ mediaId })} disabled={disabled} label="Görsel" />
           {type === "HOTSPOT_SELECT" ? (
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Field label="Min"><Input type="number" value={String(v.minSelections ?? "")} disabled={disabled} onChange={(e) => set({ minSelections: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-              <Field label="Max"><Input type="number" value={String(v.maxSelections ?? "")} disabled={disabled} onChange={(e) => set({ maxSelections: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-              <Checkbox label="Bölgeleri göster" checked={!!v.showRegions} disabled={disabled} onChange={(e) => set({ showRegions: e.target.checked })} />
+            <div className="grid items-end gap-3 sm:grid-cols-3">
+              <Field label="En az seçim"><Input type="number" value={String(v.minSelections ?? "")} disabled={disabled} onChange={(e) => set({ minSelections: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+              <Field label="En fazla seçim"><Input type="number" value={String(v.maxSelections ?? "")} disabled={disabled} onChange={(e) => set({ maxSelections: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+              <SettingToggle label="Bölgeleri göster" checked={!!v.showRegions} disabled={disabled} onChange={(e) => set({ showRegions: e.target.checked })} />
             </div>
           ) : (
             <>
               <OptionListEditor format={(v.draggableFormat as OptionFormat) || "TEXT"} onFormatChange={(draggableFormat) => set({ draggableFormat })} options={(v.draggables as OptionItem[]) || []} onChange={(draggables) => set({ draggables })} disabled={disabled} title="Sürüklenebilirler" idPrefix="d" />
               <Field label="Bölge kapasitesi"><Input type="number" value={String(v.zoneCapacity ?? "")} disabled={disabled} onChange={(e) => set({ zoneCapacity: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-              <Checkbox label="Karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
+              <SettingToggle label="Sürüklenebilirleri karıştır" checked={!!v.shuffle} disabled={disabled} onChange={(e) => set({ shuffle: e.target.checked })} />
             </>
           )}
           <div className="space-y-2">
             <div className="flex justify-between">
-              <p className="text-sm font-medium">Bölgeler (0–1 normalize)</p>
+              <div>
+                <p className="text-[13px] font-semibold text-fg">{type === "HOTSPOT_SELECT" ? "Tıklanabilir bölgeler" : "Bırakma bölgeleri"} ({regions.length})</p>
+                <p className="text-xs text-fg-subtle">Konum ve boyut görsele oranla 0–1 arası (0,5 = ortası).</p>
+              </div>
               <Button type="button" size="sm" variant="secondary" disabled={disabled} onClick={() => set({
                 [regionKey]: [...regions, { id: newId(type === "HOTSPOT_SELECT" ? "r" : "z"), shape: { kind: "RECT", x: 0.1, y: 0.1, w: 0.3, h: 0.3 }, label: "Bölge" }],
-              })}>RECT ekle</Button>
+              })}>+ Dikdörtgen bölge</Button>
             </div>
             {regions.map((r, i) => {
               const shape = asObj(r.shape);
               return (
-                <div key={String(r.id)} className="grid gap-2 rounded border border-border p-2 sm:grid-cols-6">
-                  <Input value={String(r.id)} disabled readOnly />
-                  <Input value={String(r.label ?? "")} disabled={disabled} onChange={(e) => {
-                    const next = [...regions]; next[i] = { ...r, label: e.target.value }; set({ [regionKey]: next });
-                  }} />
-                  {(["x", "y", "w", "h"] as const).map((k) => (
-                    <Input key={k} type="number" step="0.01" value={String(shape[k] ?? "")} disabled={disabled} onChange={(e) => {
-                      const next = [...regions];
-                      next[i] = { ...r, shape: { ...shape, kind: "RECT", [k]: Number(e.target.value) } };
-                      set({ [regionKey]: next });
+                <div key={String(r.id)} className="grid items-end gap-2 rounded-lg border border-border p-2.5 sm:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto]">
+                  <Field label={`Bölge ${i + 1} adı`}>
+                    <Input value={String(r.label ?? "")} disabled={disabled} onChange={(e) => {
+                      const next = [...regions]; next[i] = { ...r, label: e.target.value }; set({ [regionKey]: next });
                     }} />
+                  </Field>
+                  {([["x", "Sol (x)"], ["y", "Üst (y)"], ["w", "Genişlik"], ["h", "Yükseklik"]] as const).map(([k, label]) => (
+                    <Field key={k} label={label}>
+                      <Input type="number" step="0.01" min={0} max={1} value={String(shape[k] ?? "")} disabled={disabled} onChange={(e) => {
+                        const next = [...regions];
+                        next[i] = { ...r, shape: { ...shape, kind: "RECT", [k]: Number(e.target.value) } };
+                        set({ [regionKey]: next });
+                      }} />
+                    </Field>
                   ))}
+                  <Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Bölge ${i + 1} sil`} title="Sil" onClick={() => set({ [regionKey]: regions.filter((_, x) => x !== i) })}>
+                    <IconX className="size-3.5" aria-hidden />
+                  </Button>
                 </div>
               );
             })}
@@ -785,43 +830,44 @@ export function InteractionForm({
     }
     case "OPEN_ENDED":
       return (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Min kelime"><Input type="number" value={String(v.minWords ?? "")} disabled={disabled} onChange={(e) => set({ minWords: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Max kelime"><Input type="number" value={String(v.maxWords ?? "")} disabled={disabled} onChange={(e) => set({ maxWords: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Limit"><Select value={String(v.limitMode || "SOFT")} disabled={disabled} onChange={(e) => set({ limitMode: e.target.value })}><option value="SOFT">Soft</option><option value="HARD">Hard</option></Select></Field>
-          <Checkbox label="Spellcheck" checked={!!v.spellcheckAllowed} disabled={disabled} onChange={(e) => set({ spellcheckAllowed: e.target.checked })} />
-          <Checkbox label="Yapıştırma serbest" checked={!!v.pasteAllowed} disabled={disabled} onChange={(e) => set({ pasteAllowed: e.target.checked })} />
+        <div className="grid items-end gap-3 sm:grid-cols-2">
+          <Field label="En az kelime"><Input type="number" value={String(v.minWords ?? "")} disabled={disabled} onChange={(e) => set({ minWords: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="En fazla kelime"><Input type="number" value={String(v.maxWords ?? "")} disabled={disabled} onChange={(e) => set({ maxWords: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="Sınır aşılırsa"><Select value={String(v.limitMode || "SOFT")} disabled={disabled} onChange={(e) => set({ limitMode: e.target.value })}><option value="SOFT">Uyar, izin ver</option><option value="HARD">Engelle</option></Select></Field>
+          <SettingToggle label="Yazım denetimi açık" checked={!!v.spellcheckAllowed} disabled={disabled} onChange={(e) => set({ spellcheckAllowed: e.target.checked })} />
+          <SettingToggle label="Metin yapıştırmaya izin ver" checked={!!v.pasteAllowed} disabled={disabled} onChange={(e) => set({ pasteAllowed: e.target.checked })} />
         </div>
       );
     case "AUDIO_RESPONSE":
       return (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Min süre (sn)"><Input type="number" value={String(v.minDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ minDurationSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Max süre (sn)"><Input type="number" value={String(v.maxDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ maxDurationSec: Number(e.target.value || 0) })} /></Field>
-          <Field label="Hazırlık (sn)"><Input type="number" value={String(v.prepTimeSec ?? "")} disabled={disabled} onChange={(e) => set({ prepTimeSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Max deneme"><Input type="number" value={String(v.maxAttempts ?? "")} disabled={disabled} onChange={(e) => set({ maxAttempts: Number(e.target.value || 1) })} /></Field>
+        <div className="grid items-end gap-3 sm:grid-cols-2">
+          <Field label="En kısa süre"><Input suffix="sn" type="number" value={String(v.minDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ minDurationSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="En uzun süre"><Input suffix="sn" type="number" value={String(v.maxDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ maxDurationSec: Number(e.target.value || 0) })} /></Field>
+          <Field label="Hazırlık süresi"><Input suffix="sn" type="number" value={String(v.prepTimeSec ?? "")} disabled={disabled} onChange={(e) => set({ prepTimeSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="Deneme hakkı"><Input type="number" value={String(v.maxAttempts ?? "")} disabled={disabled} onChange={(e) => set({ maxAttempts: Number(e.target.value || 1) })} /></Field>
         </div>
       );
     case "VIDEO_RESPONSE":
       return (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Min süre (sn)"><Input type="number" value={String(v.minDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ minDurationSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Max süre (sn)"><Input type="number" value={String(v.maxDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ maxDurationSec: Number(e.target.value || 0) })} /></Field>
-          <Field label="Hazırlık (sn)"><Input type="number" value={String(v.prepTimeSec ?? "")} disabled={disabled} onChange={(e) => set({ prepTimeSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Max deneme"><Input type="number" value={String(v.maxAttempts ?? "")} disabled={disabled} onChange={(e) => set({ maxAttempts: Number(e.target.value || 1) })} /></Field>
-          <Checkbox label="Yükleme serbest" checked={!!v.uploadAllowed} disabled={disabled} onChange={(e) => set({ uploadAllowed: e.target.checked })} />
-          <Field label="Max MB"><Input type="number" value={String(v.maxFileSizeMb ?? "")} disabled={disabled} onChange={(e) => set({ maxFileSizeMb: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+        <div className="grid items-end gap-3 sm:grid-cols-2">
+          <Field label="En kısa süre"><Input suffix="sn" type="number" value={String(v.minDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ minDurationSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="En uzun süre"><Input suffix="sn" type="number" value={String(v.maxDurationSec ?? "")} disabled={disabled} onChange={(e) => set({ maxDurationSec: Number(e.target.value || 0) })} /></Field>
+          <Field label="Hazırlık süresi"><Input suffix="sn" type="number" value={String(v.prepTimeSec ?? "")} disabled={disabled} onChange={(e) => set({ prepTimeSec: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="Deneme hakkı"><Input type="number" value={String(v.maxAttempts ?? "")} disabled={disabled} onChange={(e) => set({ maxAttempts: Number(e.target.value || 1) })} /></Field>
+          <SettingToggle label="Dosya yüklemeye izin ver" checked={!!v.uploadAllowed} disabled={disabled} onChange={(e) => set({ uploadAllowed: e.target.checked })} />
+          <Field label="En büyük dosya"><Input suffix="MB" type="number" value={String(v.maxFileSizeMb ?? "")} disabled={disabled} onChange={(e) => set({ maxFileSizeMb: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
         </div>
       );
     case "IMAGE_RESPONSE":
       return (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Max dosya"><Input type="number" value={String(v.maxFiles ?? "")} disabled={disabled} onChange={(e) => set({ maxFiles: Number(e.target.value || 1) })} /></Field>
-          <Field label="Max MB"><Input type="number" value={String(v.maxFileSizeMb ?? "")} disabled={disabled} onChange={(e) => set({ maxFileSizeMb: Number(e.target.value || 1) })} /></Field>
-          <Field label="Min genişlik"><Input type="number" value={String(v.minWidthPx ?? "")} disabled={disabled} onChange={(e) => set({ minWidthPx: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="Min yükseklik"><Input type="number" value={String(v.minHeightPx ?? "")} disabled={disabled} onChange={(e) => set({ minHeightPx: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
-          <Field label="MIME (virgülle)">
+        <div className="grid items-end gap-3 sm:grid-cols-2">
+          <Field label="En fazla dosya"><Input type="number" value={String(v.maxFiles ?? "")} disabled={disabled} onChange={(e) => set({ maxFiles: Number(e.target.value || 1) })} /></Field>
+          <Field label="En büyük dosya"><Input suffix="MB" type="number" value={String(v.maxFileSizeMb ?? "")} disabled={disabled} onChange={(e) => set({ maxFileSizeMb: Number(e.target.value || 1) })} /></Field>
+          <Field label="En az genişlik"><Input suffix="px" type="number" value={String(v.minWidthPx ?? "")} disabled={disabled} onChange={(e) => set({ minWidthPx: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="En az yükseklik"><Input suffix="px" type="number" value={String(v.minHeightPx ?? "")} disabled={disabled} onChange={(e) => set({ minHeightPx: e.target.value === "" ? null : Number(e.target.value) })} /></Field>
+          <Field label="İzin verilen dosya türleri" hint="Virgülle ayırın, ör. image/png, image/jpeg">
             <Input
+              placeholder="image/png, image/jpeg"
               value={Array.isArray(v.allowedMimeTypes) ? (v.allowedMimeTypes as string[]).join(",") : ""}
               disabled={disabled}
               onChange={(e) => set({ allowedMimeTypes: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}

@@ -57,6 +57,10 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   async function prepare() {
     if (!grant?.examVersionId || !grant.id) return;
     setError(null);
+    if (from && until && until < from) {
+      setError("Kapanış, açılıştan önce olamaz.");
+      return;
+    }
     try {
       const season = yearId || grant.academicYearId;
       if (!season) return;
@@ -100,7 +104,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         : branches;
 
   return (
-    <section className="mx-auto grid max-w-3xl gap-4">
+    <section className="grid max-w-3xl gap-4">
       <h1 className="font-[family-name:var(--font-fraunces)] text-2xl text-ilc-navy">
         {grant?.examTitle ?? "Atama"}
       </h1>
@@ -157,11 +161,15 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       ) : null}
       {step === 2 ? (
         <div className="grid gap-3 rounded-xl border border-border bg-surface p-4 md:grid-cols-2">
-          <Field label="Başlangıç">
+          <Field label="Sınav açılışı" hint="Öğrenciler bu andan itibaren girebilir.">
             <Input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
           </Field>
-          <Field label="Bitiş">
-            <Input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
+          <Field
+            label="Sınav kapanışı"
+            hint={until ? undefined : "Bu andan sonra yeni giriş yapılamaz."}
+            error={from && until && until < from ? "Kapanış, açılıştan önce olamaz." : undefined}
+          >
+            <Input type="datetime-local" min={from || undefined} value={until} onChange={(e) => setUntil(e.target.value)} />
           </Field>
           <Field label="Deneme hakkı">
             <Input type="number" min={1} value={attempts} onChange={(e) => setAttempts(Number(e.target.value))} />

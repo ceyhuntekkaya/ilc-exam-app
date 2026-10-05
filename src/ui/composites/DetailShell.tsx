@@ -36,12 +36,13 @@ export function DetailShell({
         <div className="p-4 sm:p-5">{header}</div>
         {notice ? <div className="grid gap-2 px-4 pb-4 sm:px-5 sm:pb-5">{notice}</div> : null}
         {tabs ? <div className="border-t border-border">{tabs}</div> : null}
-        {subtabs ? <div className="rounded-b-xl border-t border-border bg-bg/70 px-3 py-2 sm:px-4">{subtabs}</div> : null}
+        {subtabs ? <div className="rounded-b-xl border-t border-border bg-neutral-50 px-3 py-2 sm:px-4">{subtabs}</div> : null}
       </div>
       <section className="min-w-0 rounded-xl border border-border bg-surface shadow-sm">
         {sectionTitle ? (
           <header className="border-b border-border px-4 py-3 sm:px-5">
             <h2 className="flex items-center gap-1.5 text-[15px] font-semibold text-fg">
+              <span aria-hidden className="mr-1 h-4 w-1 rounded-full bg-primary" />
               {sectionGroup ? (
                 <>
                   <span className="font-normal text-fg-subtle">{sectionGroup}</span>

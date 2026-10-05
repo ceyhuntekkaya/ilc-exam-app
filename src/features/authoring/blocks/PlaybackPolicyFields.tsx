@@ -8,6 +8,7 @@ export type PlaybackPolicy = {
   seekable?: boolean;
 };
 
+/** Ses/video oynatma kuralları: dinleme hakkı + iki anahtar; anahtarlar alanların altında, hizası bozulmasın. */
 export function PlaybackPolicyFields({
   value,
   onChange,
@@ -19,11 +20,13 @@ export function PlaybackPolicyFields({
 }) {
   const v = value ?? { maxPlays: 3, autoplay: false, seekable: false };
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
-      <Field label="Maks. oynatma">
+    <div className="grid gap-3 rounded-lg bg-neutral-50 p-3 ring-1 ring-border ring-inset sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:items-center">
+      <Field label="Dinleme / izleme hakkı" hint="Boş = sınırsız">
         <Input
           type="number"
-          min={0}
+          min={1}
+          inputMode="numeric"
+          placeholder="Sınırsız"
           disabled={disabled}
           value={v.maxPlays ?? ""}
           onChange={(e) =>
@@ -31,18 +34,20 @@ export function PlaybackPolicyFields({
           }
         />
       </Field>
-      <Checkbox
-        label="Otomatik başlat"
-        checked={!!v.autoplay}
-        disabled={disabled}
-        onChange={(e) => onChange({ ...v, autoplay: e.target.checked })}
-      />
-      <Checkbox
-        label="Seek serbest"
-        checked={!!v.seekable}
-        disabled={disabled}
-        onChange={(e) => onChange({ ...v, seekable: e.target.checked })}
-      />
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <Checkbox
+          label="Otomatik başlat"
+          checked={!!v.autoplay}
+          disabled={disabled}
+          onChange={(e) => onChange({ ...v, autoplay: e.target.checked })}
+        />
+        <Checkbox
+          label="İleri / geri sarılabilir"
+          checked={!!v.seekable}
+          disabled={disabled}
+          onChange={(e) => onChange({ ...v, seekable: e.target.checked })}
+        />
+      </div>
     </div>
   );
 }

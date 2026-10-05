@@ -106,3 +106,21 @@ export function Field({ label, hint, error, required, variant: variantProp, labe
     </FieldContext.Provider>
   );
 }
+
+/**
+ * Form satırında alanların yanındaki eylem (Ekle, Kaydet…): etiket yüksekliğinde görünmez boşluk bırakır, böylece buton
+ * yanındaki `Field`'ın kontrolüyle (input) aynı hizada durur — alanın altında ipucu/hata olsa da kaymaz.
+ * Satır `items-start` olmalı (`items-end` ipucu satırına hizalar).
+ */
+export function FieldAction({ children, variant: variantProp }: { children: ReactNode; variant?: FieldVariant }) {
+  const uiVariant = useUiVariant();
+  const variant = variantProp ?? uiVariant;
+  return (
+    <div className={variant === "admin" ? "grid shrink-0 content-start gap-1" : "grid shrink-0 content-start gap-1.5"}>
+      <span aria-hidden className={`${styles[variant].label} invisible select-none`}>
+        &nbsp;
+      </span>
+      <div className="flex items-center gap-2">{children}</div>
+    </div>
+  );
+}

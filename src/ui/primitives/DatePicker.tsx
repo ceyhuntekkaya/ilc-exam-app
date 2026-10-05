@@ -14,7 +14,9 @@ import {
 } from "date-fns";
 import { tr } from "date-fns/locale";
 import { useEffect, useId, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/src/lib/utils/cn";
+import { useFloatingPanel } from "@/src/ui/primitives/floating";
 import { IconChevronRight, IconX } from "@/src/ui/icons";
 import { inlineGroupClass, inlineLabelClass } from "@/src/ui/primitives/inline-label";
 
@@ -166,6 +168,8 @@ export function DatePicker({
   const button = useRef<HTMLButtonElement>(null);
   const grid = useRef<HTMLDivElement>(null);
   const hidden = useRef<HTMLInputElement>(null);
+  // Takvim portal + fixed: kart/tablo overflow'unda kırpılmaz.
+  const { panelRef, container: panelContainer, prepare: preparePanel } = useFloatingPanel(button, open, { upward, alignRight });
   const autoId = useId();
   const buttonId = id ?? `date-${autoId}`;
   const panelId = `${buttonId}-panel`;
@@ -177,11 +181,12 @@ export function DatePicker({
   useEffect(() => {
     if (!open) return;
     const outside = (event: MouseEvent) => {
-      if (root.current && !root.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (root.current && !root.current.contains(target) && !panelRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("mousedown", outside);
     return () => document.removeEventListener("mousedown", outside);
-  }, [open]);
+  }, [open, panelRef]);
 
   // Klavye odağı takvimdeki odaklı güne taşınır (açılışta ve ok tuşlarıyla gezinirken).
   useEffect(() => {
@@ -207,6 +212,7 @@ export function DatePicker({
       setAlignRight(rect.left + 300 > window.innerWidth);
     }
     setFocused(selected ?? new Date());
+    preparePanel(button.current);
     setOpen(true);
   };
 
@@ -312,20 +318,16 @@ export function DatePicker({
       ) : (
         trigger
       )}
-      {open ? (
-        // z-20: sayfa içi açılır katman (globals.css ölçeği); modal içinde modalın katmanında kalır.
+      {open ? portalTo(
+        // Portal + fixed (useFloatingPanel); modal içinde dialog'un katmanında kalır.
         <div
+          ref={panelRef}
           id={panelId}
           role="dialog"
           aria-modal="false"
           aria-labelledby={titleId}
           onKeyDown={onPanelKeyDown}
-          className={cn(
-            "absolute z-20 w-max animate-fade-in",
-            t.panel,
-            upward ? "bottom-full mb-1.5" : "top-full mt-1.5",
-            alignRight ? "right-0" : "left-0",
-          )}
+          className={cn("fixed z-[70] w-max animate-fade-in", t.panel)}
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <button type="button" onClick={() => setFocused(addMonths(focused, -1))} aria-label="Önceki ay" className={cn("flex items-center justify-center transition-colors", t.nav)}>
@@ -391,7 +393,8 @@ export function DatePicker({
               </button>
             ) : null}
           </div>
-        </div>
+        </div>,
+        panelContainer,
       ) : null}
     </div>
   );
@@ -399,4 +402,8 @@ export function DatePicker({
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function portalTo(node: React.ReactNode, container: HTMLElement | null) {
+  return container ? createPortal(node, container) : node;
 }

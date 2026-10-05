@@ -402,7 +402,7 @@ export function DataGrid<T extends object>({
         <div className="overflow-auto">
           <table className="w-full border-collapse" style={{ minWidth: tableMinWidth }}>
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-border bg-bg">
+              <tr className="border-b border-border bg-neutral-50">
                 {checkboxSelection ? (
                   <th className="w-12 px-4 py-2.5">
                     <input
@@ -421,7 +421,7 @@ export function DataGrid<T extends object>({
                     title={col.description ?? col.headerName}
                     aria-sort={sortField === String(col.field) && sortDirection ? (sortDirection === "asc" ? "ascending" : "descending") : undefined}
                     className={cn(
-                      "group/th relative px-4 py-2.5 text-xs font-semibold whitespace-nowrap text-fg-muted select-none",
+                      "group/th relative px-4 py-2.5 text-[11.5px] font-semibold tracking-wide whitespace-nowrap text-fg-subtle select-none",
                       col.sortable !== false && "cursor-pointer hover:text-fg",
                     )}
                     style={{ textAlign: col.headerAlign ?? "left", width: columnWidths[String(col.field)] }}
@@ -444,7 +444,7 @@ export function DataGrid<T extends object>({
                       }}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <span className="h-4 w-0.5 rounded-full bg-border-strong group-hover/resize:bg-primary-500" />
+                      <span className="h-4 w-px rounded-full bg-border-strong opacity-0 transition-opacity group-hover/th:opacity-100 group-hover/resize:w-0.5 group-hover/resize:bg-primary-500" />
                     </span>
                   </th>
                 ))}
@@ -464,7 +464,7 @@ export function DataGrid<T extends object>({
                     }}
                     className={cn(
                       "group/row transition-colors",
-                      selected ? "bg-primary-50" : "hover:bg-bg",
+                      selected ? "bg-primary-50" : "hover:bg-primary-50/40",
                       (checkboxSelection || onRowClick) && "cursor-pointer",
                       rowClassName?.(row, index),
                     )}

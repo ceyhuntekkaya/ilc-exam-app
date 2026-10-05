@@ -15,29 +15,30 @@ import {
   FormDialog,
   Input,
   SectionTable,
+  SectionToolbar,
   errorMessage,
   notify,
 } from "@/src/ui";
 
 export function GradesSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useGrades(id);
+  const { data, isLoading, isError, error, refetch } = useGrades(id);
   const rows = data?.data ?? [];
   const create = useCreateGrade();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={[{ label: "Sıra", align: "right" }, "Ad", "Durum"]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      <div className="flex justify-end">
+      <SectionToolbar count={rows.length} noun="seviye">
         <Button size="sm" onClick={() => setOpen(true)}>
           Seviye ekle
         </Button>
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Seviye yok"

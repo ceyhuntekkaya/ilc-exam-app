@@ -1,6 +1,7 @@
 "use client";
 
 import { authoringApi, type MediaItem, type ReviewItem } from "@/src/features/authoring/shared/client";
+import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
 import { useContentBasePath } from "@/src/features/panel/PanelContext";
@@ -10,20 +11,57 @@ import {
   EmptyState,
   ErrorState,
   Field,
+  FieldAction,
+  FilterTabs,
   FormCard,
+  FormMessage,
+  IconEdit,
+  IconSearch,
+  IconTrash,
+  IconUpload,
   Input,
   PageHeader,
+  SectionTable,
   Select,
+  Skeleton,
   Textarea,
   errorMessage,
   notify,
+  IconArrowUp,
+  IconArrowDown,
+  IconX,
 } from "@/src/ui";
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+const KIND_LABEL: Record<string, string> = { IMAGE: "Görsel", AUDIO: "Ses", VIDEO: "Video" };
+const KIND_ACCEPT: Record<string, string> = {
+  IMAGE: "image/jpeg,image/png,image/webp,image/gif",
+  AUDIO: "audio/*",
+  VIDEO: "video/*",
+};
+
+function formatBytes(n?: number | null) {
+  if (!n) return null;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatDuration(ms?: number | null) {
+  if (!ms) return null;
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/* ───────── Medya kütüphanesi ───────── */
 
 export function MediaLibraryPage() {
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<MediaItem[]>([]);
-  const [kind, setKind] = useState("IMAGE");
+  const [loaded, setLoaded] = useState(false);
+  const [filter, setFilter] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [uploadKind, setUploadKind] = useState("IMAGE");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [altText, setAltText] = useState("");
@@ -33,12 +71,14 @@ export function MediaLibraryPage() {
   const load = useCallback(async () => {
     if (!tenant) return;
     try {
-      setRows(await authoringApi.listMedia(kind || undefined));
+      setRows(await authoringApi.listMedia(undefined));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
+    } finally {
+      setLoaded(true);
     }
-  }, [tenant, kind]);
+  }, [tenant]);
 
   useEffect(() => {
     void load();
@@ -47,11 +87,8 @@ export function MediaLibraryPage() {
   async function upload(file: File) {
     setBusy(true);
     try {
-      const detected =
-        kind ||
-        (file.type.startsWith("audio") ? "AUDIO" : file.type.startsWith("video") ? "VIDEO" : "IMAGE");
-      await authoringApi.uploadMedia(detected, file, {
-        altText: altText || (detected === "IMAGE" ? file.name : null),
+      await authoringApi.uploadMedia(uploadKind, file, {
+        altText: altText || (uploadKind === "IMAGE" ? file.name : null),
         transcript: transcript || null,
         license: license || null,
       });
@@ -59,231 +96,728 @@ export function MediaLibraryPage() {
       setTranscript("");
       setLicense("");
       await load();
-      notify.success("Medya yüklendi");
+      notify.success(`${KIND_LABEL[uploadKind]} yüklendi`);
     } catch (e) {
-      const message = errorMessage(e, "Yüklenemedi");
-      setError(message);
-      notify.error(message);
+      notify.error(errorMessage(e, "Yüklenemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { IMAGE: 0, AUDIO: 0, VIDEO: 0 };
+    for (const m of rows) c[m.kind] = (c[m.kind] ?? 0) + 1;
+    return c;
+  }, [rows]);
+
+  const term = query.trim().toLocaleLowerCase("tr-TR");
+  const shown = rows.filter(
+    (m) =>
+      (!filter || m.kind === filter) &&
+      (!term || `${m.originalFilename ?? ""} ${m.altText ?? ""} ${m.transcript ?? ""}`.toLocaleLowerCase("tr-TR").includes(term)),
+  );
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Medya kütüphanesi"
+        description="Sorularda kullanılan görsel, ses ve video dosyaları. Soru editöründeki medya seçici bu kütüphaneyi gösterir."
+        count={loaded ? rows.length : undefined}
+      />
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section className="min-w-0 rounded-xl border border-border bg-surface shadow-sm">
+          <div className="flex flex-col-reverse gap-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
+            <FilterTabs
+              label="Medya türü"
+              value={filter}
+              onChange={setFilter}
+              items={[
+                { label: "Tümü", value: null, count: rows.length },
+                { label: "Görsel", value: "IMAGE", count: counts.IMAGE },
+                { label: "Ses", value: "AUDIO", count: counts.AUDIO },
+                { label: "Video", value: "VIDEO", count: counts.VIDEO },
+              ]}
+            />
+            <div className="px-3 pt-3 sm:w-64 sm:py-2">
+              <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Dosya adı veya açıklama…" aria-label="Medya ara" />
+            </div>
+          </div>
+          <div className="p-4">
+            {error ? (
+              <ErrorState title="Medya alınamadı" message={error} onRetry={() => void load()} compact />
+            ) : !loaded ? (
+              <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3" aria-busy="true">
+                {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-56 rounded-lg" />)}
+              </div>
+            ) : shown.length === 0 ? (
+              <EmptyState
+                title={rows.length ? "Sonuç yok" : "Kütüphane boş"}
+                description={rows.length ? "Filtreyi ya da aramayı değiştirin." : "Sağdaki panelden ilk dosyanızı yükleyin."}
+              />
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                {shown.map((m) => (
+                  <MediaCard key={m.id} m={m} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <FormCard title="Dosya yükle" description="Önce türü seçin; açıklama alanları erişilebilirlik ve telif kaydı içindir." className="xl:sticky xl:top-20">
+          <div role="radiogroup" aria-label="Yüklenecek tür" className="grid grid-cols-3 gap-1 rounded-lg bg-neutral-100 p-0.5 ring-1 ring-border ring-inset">
+            {Object.entries(KIND_LABEL).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={uploadKind === value}
+                onClick={() => setUploadKind(value)}
+                className={`h-7 rounded-md text-xs font-medium transition-colors ${uploadKind === value ? "bg-surface text-primary shadow-sm ring-1 ring-border" : "text-fg-muted hover:text-fg"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {uploadKind === "IMAGE" ? (
+            <Field label="Alternatif metin" hint="Ekran okuyucu kullanan öğrenciler için görseli kısaca tarif edin. Boşsa dosya adı kullanılır.">
+              <Input value={altText} onChange={(e) => setAltText(e.target.value)} placeholder="ör. Parkta top oynayan iki çocuk" />
+            </Field>
+          ) : (
+            <Field label="Transkript" hint="Kaydın yazılı metni; işitme engelli öğrenciler ve inceleme için.">
+              <Textarea rows={3} value={transcript} onChange={(e) => setTranscript(e.target.value)} />
+            </Field>
+          )}
+          <Field label="Lisans / kaynak" hint="İsteğe bağlı, ör. CC BY 4.0 · Kurum çekimi">
+            <Input value={license} onChange={(e) => setLicense(e.target.value)} />
+          </Field>
+          <label
+            className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-border-strong bg-neutral-50 px-4 py-6 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/40 ${busy || !tenant ? "pointer-events-none opacity-60" : ""}`}
+          >
+            <IconUpload className="size-6 text-primary" aria-hidden />
+            <span className="text-[13px] font-medium text-fg">{busy ? "Yükleniyor…" : `${KIND_LABEL[uploadKind]} dosyası seç`}</span>
+            <span className="text-xs text-fg-subtle">
+              {uploadKind === "IMAGE" ? "JPG, PNG, WEBP, GIF" : uploadKind === "AUDIO" ? "MP3, WAV, M4A…" : "MP4, WEBM…"}
+            </span>
+            <input
+              type="file"
+              className="sr-only"
+              disabled={busy || !tenant}
+              accept={KIND_ACCEPT[uploadKind]}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void upload(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </FormCard>
+      </div>
+    </div>
+  );
+}
+
+function MediaCard({ m }: { m: MediaItem }) {
+  const src = `/api/backend/media/${m.id}/content`;
+  const meta = [
+    m.widthPx && m.heightPx ? `${m.widthPx}×${m.heightPx}` : null,
+    formatDuration(m.durationMs),
+    formatBytes(m.sizeBytes),
+  ].filter(Boolean);
+  return (
+    <li className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-shadow hover:shadow-sm">
+      <div className="flex aspect-video items-center justify-center bg-neutral-50">
+        {m.status !== "READY" ? (
+          <StatusBadge status={m.status} />
+        ) : m.kind === "IMAGE" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={m.altText || m.originalFilename || ""} className="size-full object-contain" />
+        ) : m.kind === "AUDIO" ? (
+          <audio controls preload="metadata" src={src} className="w-[90%]" />
+        ) : (
+          <video controls preload="metadata" src={src} className="size-full object-contain" />
+        )}
+      </div>
+      <div className="grid flex-1 gap-1 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <p className="min-w-0 truncate text-[13px] font-medium text-fg" title={m.originalFilename ?? undefined}>
+            {m.originalFilename || "Adsız dosya"}
+          </p>
+          <span className="shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-fg-muted">{KIND_LABEL[m.kind] ?? m.kind}</span>
+        </div>
+        {meta.length ? <p className="text-[11px] text-fg-subtle">{meta.join(" · ")}</p> : null}
+        {m.altText || m.transcript ? <p className="line-clamp-2 text-xs text-fg-muted">{m.altText || m.transcript}</p> : null}
+        {m.license ? <p className="text-[11px] text-fg-subtle">Lisans: {m.license}</p> : null}
+        <button
+          type="button"
+          className="mt-auto w-fit pt-1 text-[11px] font-medium text-primary hover:underline"
+          onClick={() => void navigator.clipboard.writeText(m.id).then(() => notify.success("Medya kimliği kopyalandı"))}
+        >
+          Kimliği kopyala
+        </button>
+      </div>
+    </li>
+  );
+}
+
+/* ───────── İnceleme kuyruğu ───────── */
+
+const REVIEW_TARGET: Record<string, string> = { QUESTION_VERSION: "Soru", EXAM_VERSION: "Sınav", EXAM: "Sınav" };
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3600000);
+  if (h < 1) return `${Math.max(1, Math.floor(diff / 60000))} dk önce`;
+  if (h < 24) return `${h} sa önce`;
+  const d = Math.floor(h / 24);
+  return d < 30 ? `${d} gün önce` : new Date(iso).toLocaleDateString("tr-TR");
+}
+
+export function ReviewQueuePage() {
+  const questionBasePath = useContentBasePath("questions");
+  const examBasePath = useContentBasePath("exams");
+  const { tenant } = useAuthoringTenant();
+  const [rows, setRows] = useState<ReviewItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [type, setType] = useState("");
+
+  const load = useCallback(async () => {
+    if (!tenant) return;
+    try {
+      setRows(await authoringApi.listReviews());
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yüklenemedi");
+    } finally {
+      setLoaded(true);
+    }
+  }, [tenant]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const statuses = useMemo(() => Array.from(new Set(rows.map((r) => r.status))), [rows]);
+  const shown = rows
+    .filter((r) => (!status || r.status === status) && (!type || (REVIEW_TARGET[r.targetType] ?? r.targetType) === type))
+    .sort((a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime());
+
+  const href = (r: ReviewItem) =>
+    r.targetType === "QUESTION_VERSION" ? `${questionBasePath}/${r.targetId}` : r.targetType.startsWith("EXAM") ? `${examBasePath}/${r.targetId}` : null;
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="İnceleme kuyruğu"
+        description="Yazarların incelemeye gönderdiği sorular ve sınavlar; en eski gönderim en üstte. Yazar kendi içeriğini onaylayamaz — açıp inceleyin, sonra editördeki Kaydet ve inceleme adımından onaylayın ya da taslağa döndürün."
+        count={loaded ? rows.length : undefined}
+      />
+      <section className="rounded-xl border border-border bg-surface shadow-sm">
+        <div className="flex flex-col-reverse gap-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
+          <FilterTabs
+            label="İnceleme durumu"
+            value={status}
+            onChange={setStatus}
+            items={[{ label: "Tümü", value: null, count: rows.length }, ...statuses.map((s) => ({ label: STATUS_TR[s] ?? s, value: s, count: rows.filter((r) => r.status === s).length }))]}
+          />
+          <div className="px-3 pt-3 sm:w-44 sm:py-2">
+            <Select value={type} onChange={(e) => setType(e.target.value)} aria-label="İçerik türü">
+              <option value="">Tüm içerik</option>
+              <option value="Soru">Sorular</option>
+              <option value="Sınav">Sınavlar</option>
+            </Select>
+          </div>
+        </div>
+        <div className="p-4">
+          {error ? (
+            <ErrorState title="Kuyruk alınamadı" message={error} onRetry={() => void load()} compact />
+          ) : (
+            <SectionTable
+              flush
+              loading={!loaded}
+              empty={rows.length ? "Filtreye uyan kayıt yok" : "Kuyruk boş"}
+              emptyHint={rows.length ? "Filtreleri değiştirin." : "İncelemeye gönderilen içerik burada listelenir."}
+              columns={["İçerik", "Tür", "Gönderilme", "Durum", ""]}
+              rows={shown.map((r) => {
+                const link = href(r);
+                return [
+                  <span key="t" className="font-mono text-[13px]" title={r.targetId}>{r.targetId.slice(0, 8)}…</span>,
+                  <span key="k" className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-fg-muted">{REVIEW_TARGET[r.targetType] ?? r.targetType}</span>,
+                  <span key="d" title={new Date(r.submittedAt).toLocaleString("tr-TR")}>{timeAgo(r.submittedAt)}</span>,
+                  <StatusBadge key="s" status={r.status} />,
+                  link ? (
+                    <Link key="a" href={link} className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium text-fg hover:border-primary-300 hover:text-primary">
+                      İncele →
+                    </Link>
+                  ) : (
+                    ""
+                  ),
+                ];
+              })}
+            />
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const STATUS_TR: Record<string, string> = {
+  PENDING: "Bekliyor",
+  IN_PROGRESS: "İnceleniyor",
+  APPROVED: "Onaylı",
+  RETURNED: "İade",
+};
+
+export { RubricsPage } from "@/src/features/authoring/rubrics/RubricEditor";
+
+/* ───────── Sınav formatları ───────── */
+
+type FormatRow = { id: string; code: string; name: string; description?: string; skeleton?: unknown; minLevel?: string; maxLevel?: string; purpose?: string };
+type SkSub = { title: string; taskType?: string; blueprint?: { count?: number; cefrLevel?: string } & Record<string, unknown> } & Record<string, unknown>;
+type SkSection = { title: string; skill: string; subSections: SkSub[] } & Record<string, unknown>;
+type SkeletonDef = { sections: SkSection[] } & Record<string, unknown>;
+
+/** Format alt bölümlerinde görev türü önerileri (serbest metin de kabul edilir). */
+const TASK_TYPES = [
+  { value: "MCQ", label: "Çoktan seçmeli" },
+  { value: "MATCHING", label: "Eşleştirme" },
+  { value: "TRUE_FALSE", label: "Doğru / Yanlış" },
+  { value: "GAP_FILL", label: "Boşluk doldurma" },
+  { value: "ORDERING", label: "Sıralama" },
+  { value: "SHORT_ANSWER", label: "Kısa cevap" },
+  { value: "WRITING", label: "Yazma" },
+  { value: "SPEAKING", label: "Konuşma" },
+];
+
+const FORMAT_PURPOSES = [
+  { value: "ACHIEVEMENT", label: "Başarı" },
+  { value: "PLACEMENT", label: "Seviye tespit" },
+  { value: "DIAGNOSTIC", label: "Tanılama" },
+  { value: "PRACTICE", label: "Alıştırma" },
+];
+
+/** Bilinmeyen alanları koruyarak (round-trip) düzenlenebilir biçime getirir. */
+function toSkeleton(raw: unknown): SkeletonDef {
+  const s = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const sections = Array.isArray(s.sections) ? s.sections : [];
+  return {
+    ...s,
+    sections: sections.map((x) => {
+      const sec = (x ?? {}) as Record<string, unknown>;
+      return {
+        ...sec,
+        title: String(sec.title ?? ""),
+        skill: String(sec.skill ?? "READING"),
+        subSections: (Array.isArray(sec.subSections) ? sec.subSections : []).map((y) => {
+          const sub = (y ?? {}) as Record<string, unknown>;
+          return { ...sub, title: String(sub.title ?? ""), taskType: sub.taskType ? String(sub.taskType) : undefined, blueprint: { ...((sub.blueprint as object) ?? {}) } };
+        }),
+      };
+    }),
+  };
+}
+
+function skeletonStats(sk: SkeletonDef) {
+  const parts = sk.sections.reduce((n, s) => n + s.subSections.length, 0);
+  const questions = sk.sections.reduce((n, s) => n + s.subSections.reduce((m, p) => m + (Number(p.blueprint?.count) || 0), 0), 0);
+  return { sections: sk.sections.length, parts, questions };
+}
+
+const STARTER_SKELETON: SkeletonDef = {
+  sections: [
+    {
+      title: "Reading and Writing",
+      skill: "READING",
+      subSections: [
+        { title: "Part 1", taskType: "MCQ", blueprint: { count: 5, cefrLevel: "PRE_A1" } },
+        { title: "Part 2", taskType: "MATCHING", blueprint: { count: 5, cefrLevel: "A1" } },
+      ],
+    },
+    { title: "Listening", skill: "LISTENING", subSections: [{ title: "Part 1", taskType: "MCQ", blueprint: { count: 5, cefrLevel: "PRE_A1" } }] },
+  ],
+};
+
+export function FormatsPage() {
+  const { tenant } = useAuthoringTenant();
+  const [rows, setRows] = useState<FormatRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const load = useCallback(async () => {
+    if (!tenant) return;
+    try {
+      setRows(await authoringApi.listFormats());
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Yüklenemedi");
+    } finally {
+      setLoaded(true);
+    }
+  }, [tenant]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const selected = rows.find((r) => r.id === selectedId) ?? (creating ? null : rows[0] ?? null);
+  const term = query.trim().toLocaleLowerCase("tr-TR");
+  const shown = rows.filter((r) => !term || `${r.name} ${r.code}`.toLocaleLowerCase("tr-TR").includes(term));
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Sınav formatları"
+        description="Tekrar kullanılabilir sınav iskeletleri: bölümler, alt bölümler ve her birinde kaç soru olacağı. Yeni sınav sihirbazında “Formattan” seçeneğiyle seçilir; sınav bu iskeletle oluşturulur, sorular sonra atanır."
+        count={loaded ? rows.length : undefined}
+        actions={
+          <Button onClick={() => { setCreating(true); setSelectedId(null); }} disabled={!tenant}>
+            + Yeni format
+          </Button>
+        }
+      />
+      {error ? (
+        <ErrorState title="Formatlar alınamadı" message={error} onRetry={() => void load()} compact />
+      ) : !loaded ? (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]" aria-busy="true">
+          <Skeleton className="h-72 rounded-xl" />
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
+      ) : rows.length === 0 && !creating ? (
+        <EmptyState
+          title="Henüz format yok"
+          description="Format, sık kullandığınız sınav yapısını şablon olarak saklar (ör. Cambridge YLE: Okuma 2 part + Dinleme 1 part). Sıfırdan oluşturun ya da örnek iskeletle başlayın."
+          action={<Button onClick={() => setCreating(true)}>+ Yeni format</Button>}
+        />
+      ) : (
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+          <nav aria-label="Formatlar" className="rounded-xl border border-border bg-surface shadow-sm lg:sticky lg:top-20">
+            <div className="border-b border-border p-2.5">
+              <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ad veya kod ara" aria-label="Format ara" />
+            </div>
+            <ul className="max-h-[65vh] divide-y divide-border overflow-y-auto">
+              {creating ? (
+                <li className="bg-primary-50/70 px-3.5 py-2.5 text-[13px] font-medium text-primary">+ Yeni format (kaydedilmedi)</li>
+              ) : null}
+              {shown.map((f) => {
+                const active = !creating && selected?.id === f.id;
+                const st = skeletonStats(toSkeleton(f.skeleton));
+                return (
+                  <li key={f.id}>
+                    <button
+                      type="button"
+                      aria-current={active ? "true" : undefined}
+                      onClick={() => { setCreating(false); setSelectedId(f.id); }}
+                      className={`grid w-full gap-0.5 px-3.5 py-2.5 text-left ${active ? "bg-primary-50/70" : "hover:bg-neutral-50"}`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className={`truncate text-[13px] font-medium ${active ? "text-primary" : "text-fg"}`}>{f.name}</span>
+                        {f.minLevel || f.maxLevel ? (
+                          <span className="shrink-0 rounded bg-(--accent-plum-bg) px-1 font-mono text-[10.5px] font-semibold text-(--accent-plum)">{f.minLevel}–{f.maxLevel}</span>
+                        ) : null}
+                      </span>
+                      <span className="font-mono text-[11px] text-fg-subtle">{f.code}</span>
+                      <span className="text-[11px] text-fg-muted">{st.sections} bölüm · {st.parts} alt bölüm · {st.questions || "—"} soru</span>
+                    </button>
+                  </li>
+                );
+              })}
+              {shown.length === 0 && !creating ? <li className="px-4 py-6 text-center text-[13px] text-fg-subtle">Eşleşen format yok.</li> : null}
+            </ul>
+          </nav>
+
+          {creating ? (
+            <FormatCreateCard
+              key="new"
+              onCancel={() => setCreating(false)}
+              onCreated={async () => {
+                setCreating(false);
+                await load();
+              }}
+            />
+          ) : selected ? (
+            <FormatEditor key={selected.id} format={selected} onSaved={load} />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FormatCreateCard({ onCancel, onCreated }: { onCancel: () => void; onCreated: () => Promise<void> }) {
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [purpose, setPurpose] = useState("ACHIEVEMENT");
+  const [minLevel, setMinLevel] = useState("A1");
+  const [maxLevel, setMaxLevel] = useState("A2");
+  const [start, setStart] = useState<"blank" | "starter">("blank");
+  const [busy, setBusy] = useState(false);
+  const levelError = CEFR.indexOf(minLevel as (typeof CEFR)[number]) > CEFR.indexOf(maxLevel as (typeof CEFR)[number]) ? "En düşük seviye en yüksekten büyük olamaz." : undefined;
+
+  async function submit() {
+    setBusy(true);
+    try {
+      await authoringApi.createFormat({
+        code: code.trim() || `FMT-${Date.now().toString(36).toUpperCase()}`,
+        name: name.trim(),
+        description: description.trim() || null,
+        purpose,
+        minLevel,
+        maxLevel,
+        skeleton: start === "starter" ? STARTER_SKELETON : { sections: [{ title: "Bölüm 1", skill: "READING", subSections: [{ title: "Part 1", blueprint: { count: 5 } }] }] },
+      });
+      notify.success("Format oluşturuldu");
+      await onCreated();
+    } catch (e) {
+      notify.error(errorMessage(e, "Format oluşturulamadı"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Medya kütüphanesi"
-        description="Dosyalar sunucuya yazılır; soru editöründeki MediaPicker buradan seçer."
-      />
-      {error ? <ErrorState title="Medya hatası" message={error} /> : null}
-      <FormCard title="Yükle">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Tür">
-            <Select value={kind} onChange={(e) => setKind(e.target.value)}>
-              <option value="IMAGE">Görsel</option>
-              <option value="AUDIO">Ses</option>
-              <option value="VIDEO">Video</option>
+    <FormCard
+      title="Yeni format"
+      description="Önce kimliği belirleyin; bölüm ve alt bölümleri oluşturduktan sonra düzenlersiniz."
+      footer={
+        <>
+          <Button variant="ghost" className="sm:mr-auto" onClick={onCancel}>Vazgeç</Button>
+          <Button loading={busy} disabled={busy || !name.trim() || Boolean(levelError)} onClick={() => void submit()}>Formatı oluştur</Button>
+        </>
+      }
+    >
+      <FormGroup title="Kimlik">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Field label="Format adı" required>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. YLE Starters (Okuma + Dinleme)" />
+          </Field>
+          <Field label="Kod" hint="Boş = otomatik">
+            <Input className="font-mono" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="YLE-STARTERS" />
+          </Field>
+        </div>
+        <Field label="Açıklama" hint="Sihirbazda format seçerken görünür.">
+          <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+      </FormGroup>
+      <FormGroup title="Hedef">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Amaç">
+            <Select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+              {FORMAT_PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
             </Select>
           </Field>
-          <Field label="Alt metin"><Input value={altText} onChange={(e) => setAltText(e.target.value)} /></Field>
-          <Field label="Transkript"><Input value={transcript} onChange={(e) => setTranscript(e.target.value)} /></Field>
-          <Field label="Lisans"><Input value={license} onChange={(e) => setLicense(e.target.value)} /></Field>
+          <Field label="En düşük seviye" error={levelError}>
+            <Select value={minLevel} onChange={(e) => setMinLevel(e.target.value)}>{CEFR.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
+          </Field>
+          <Field label="En yüksek seviye">
+            <Select value={maxLevel} onChange={(e) => setMaxLevel(e.target.value)}>{CEFR.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
+          </Field>
         </div>
-        <label className="mt-2 inline-flex cursor-pointer">
-          <span className="rounded-lg bg-primary px-3 py-2 text-sm text-white">{busy ? "Yükleniyor…" : "Dosya seç ve yükle"}</span>
-          <input
-            type="file"
-            className="hidden"
-            disabled={busy || !tenant}
-            accept={
-              kind === "IMAGE"
-                ? "image/jpeg,image/png,image/webp,image/gif"
-                : kind === "AUDIO"
-                  ? "audio/*"
-                  : "video/*"
-            }
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void upload(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
-      </FormCard>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.map((m) => (
-          <div key={m.id} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-medium">{m.kind}</p>
-              <StatusBadge status={m.status} />
-            </div>
-            {m.kind === "IMAGE" && m.status === "READY" ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/api/backend/media/${m.id}/content`}
-                alt={m.altText || m.originalFilename || ""}
-                className="mt-2 max-h-40 w-full rounded-lg object-contain bg-bg"
-              />
-            ) : null}
-            {m.kind === "AUDIO" && m.status === "READY" ? (
-              <audio controls src={`/api/backend/media/${m.id}/content`} className="mt-2 w-full" />
-            ) : null}
-            {m.kind === "VIDEO" && m.status === "READY" ? (
-              <video controls src={`/api/backend/media/${m.id}/content`} className="mt-2 max-h-40 w-full rounded-lg" />
-            ) : null}
-            <p className="mt-1 text-xs text-fg-muted">{m.originalFilename || m.mimeType}</p>
-            <p className="mt-1 font-mono text-[10px] text-fg-muted">{m.id}</p>
-            {m.altText ? <p className="mt-2 text-sm">{m.altText}</p> : null}
-            {m.transcript ? <p className="mt-1 text-xs text-fg-muted">{m.transcript}</p> : null}
-          </div>
-        ))}
-      </div>
-      {rows.length === 0 && !error ? (
-        <EmptyState title="Medya yok" description="Soru editöründe kullanmak için yükleyin." />
-      ) : null}
-    </div>
+      </FormGroup>
+      <FormGroup title="Başlangıç iskeleti">
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Başlangıç iskeleti">
+          {[
+            { v: "blank" as const, label: "Tek bölümle başla", hint: "1 bölüm, 1 alt bölüm (5 soru). Gerisini siz eklersiniz." },
+            { v: "starter" as const, label: "YLE Starters örneği", hint: "Okuma + Yazma (2 part) ve Dinleme (1 part), 15 soru." },
+          ].map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              role="radio"
+              aria-checked={start === o.v}
+              onClick={() => setStart(o.v)}
+              className={`rounded-lg border p-3 text-left transition-colors ${start === o.v ? "border-primary bg-primary-50/60 ring-1 ring-primary-200" : "border-border hover:border-border-strong hover:bg-neutral-50"}`}
+            >
+              <span className="block text-[13px] font-semibold text-fg">{o.label}</span>
+              <span className="block text-xs text-fg-muted">{o.hint}</span>
+            </button>
+          ))}
+        </div>
+      </FormGroup>
+    </FormCard>
   );
 }
 
-export function ReviewQueuePage() {
-  const questionBasePath = useContentBasePath("questions");
-  const { tenant } = useAuthoringTenant();
-  const [rows, setRows] = useState<ReviewItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!tenant) return;
-    void authoringApi
-      .listReviews()
-      .then(setRows)
-      .catch((e) => setError(e instanceof Error ? e.message : "Yüklenemedi"));
-  }, [tenant]);
-
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="İnceleme kuyruğu"
-        description="Hakeme atanan sorular ve sınavlar. Yazar kendi içeriğini onaylayamaz."
-      />
-      {error ? <ErrorState title="Kuyruk alınamadı" message={error} /> : null}
-      <div className="rounded-xl border border-border bg-surface shadow-sm divide-y divide-border">
-        {rows.map((r) => (
-          <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <div>
-              <p className="font-medium">
-                {r.targetType} · {r.targetId.slice(0, 8)}…
-              </p>
-              <p className="text-xs text-fg-muted">
-                {new Date(r.submittedAt).toLocaleString("tr-TR")}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <StatusBadge status={r.status} />
-              {r.targetType === "QUESTION_VERSION" ? (
-                <a className="text-sm text-primary hover:underline" href={`${questionBasePath}/${r.targetId}`}>
-                  Aç
-                </a>
-              ) : null}
-            </div>
-          </div>
-        ))}
-        {rows.length === 0 && !error ? (
-          <div className="p-6">
-            <EmptyState title="Kuyruk boş" description="İncelemeye gönderilen içerik burada listelenir." />
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-export { RubricsPage } from "@/src/features/authoring/rubrics/RubricEditor";
-
-
-export function FormatsPage() {
-  const { tenant } = useAuthoringTenant();
-  const [rows, setRows] = useState<Array<{ id: string; code: string; name: string; description?: string; skeleton?: unknown }>>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!tenant) return;
-    void authoringApi
-      .listFormats()
-      .then(setRows)
-      .catch((e) => setError(e instanceof Error ? e.message : "Yüklenemedi"));
-  }, [tenant]);
-
-  async function seedStarter() {
+function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => Promise<void> }) {
+  const initial = useMemo(() => toSkeleton(format.skeleton), [format.skeleton]);
+  const [sk, setSk] = useState<SkeletonDef>(initial);
+  const [json, setJson] = useState(() => JSON.stringify(initial, null, 2));
+  const [jsonOpen, setJsonOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const dirty = JSON.stringify(sk) !== JSON.stringify(initial);
+  const stats = skeletonStats(sk);
+  const jsonValid = useMemo(() => {
     try {
-      await authoringApi.createFormat({
-        code: `yle-starters-${Date.now().toString(36)}`,
-        name: "YLE Starters benzeri",
-        description: "Reading + Listening iskeleti",
-        purpose: "ACHIEVEMENT",
-        minLevel: "PRE_A1",
-        maxLevel: "A1",
-        skeleton: {
-          sections: [
-            {
-              title: "Reading and Writing",
-              skill: "READING",
-              subSections: [
-                { title: "Part 1", taskType: "MCQ", blueprint: { count: 5, cefrLevel: "PRE_A1" } },
-                { title: "Part 2", taskType: "MATCHING", blueprint: { count: 5, cefrLevel: "A1" } },
-              ],
-            },
-            {
-              title: "Listening",
-              skill: "LISTENING",
-              subSections: [
-                { title: "Part 1", taskType: "MCQ", blueprint: { count: 5, cefrLevel: "PRE_A1" } },
-              ],
-            },
-          ],
-        },
-      });
-      setRows(await authoringApi.listFormats());
-      notify.success("Format eklendi");
+      JSON.parse(json);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [json]);
+
+  function update(next: SkeletonDef) {
+    setSk(next);
+    setJson(JSON.stringify(next, null, 2));
+  }
+  const setSection = (i: number, patch: Partial<SkSection>) => update({ ...sk, sections: sk.sections.map((s, x) => (x === i ? { ...s, ...patch } : s)) });
+  const setSub = (i: number, j: number, patch: Partial<SkSub>) =>
+    setSection(i, { subSections: sk.sections[i].subSections.map((p, y) => (y === j ? { ...p, ...patch } : p)) });
+  const moveSection = (i: number, dir: -1 | 1) => {
+    const arr = [...sk.sections];
+    [arr[i], arr[i + dir]] = [arr[i + dir], arr[i]];
+    update({ ...sk, sections: arr });
+  };
+
+  async function save(skeleton: SkeletonDef) {
+    setBusy(true);
+    try {
+      await authoringApi.updateFormat(format.id, { skeleton });
+      notify.success("İskelet kaydedildi");
+      await onSaved();
     } catch (e) {
-      const message = errorMessage(e, "Oluşturulamadı");
-      setError(message);
-      notify.error(message);
+      notify.error(errorMessage(e, "Kaydedilemedi"));
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Sınav formatları"
-        description="Hazır iskeletler: bölüm, kısım ve blueprint."
-        actions={
-          <Button onClick={() => void seedStarter()} disabled={!tenant}>
-            YLE Starters ekle
-          </Button>
-        }
-      />
-      {error ? <ErrorState title="Hata" message={error} /> : null}
-      <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
-        {rows.map((f) => (
-          <li key={f.id} className="space-y-2 px-4 py-3">
-            <p className="font-medium">{f.name}</p>
-            <p className="text-sm text-fg-muted">
-              {f.code}
-              {f.description ? ` · ${f.description}` : ""}
-            </p>
-            <details>
-              <summary className="cursor-pointer text-xs text-primary">Skeleton düzenle</summary>
-              <FormatSkeletonEditor id={f.id} skeleton={f.skeleton} onSaved={async () => setRows(await authoringApi.listFormats())} />
-            </details>
-          </li>
-        ))}
-        {rows.length === 0 ? (
-          <li className="p-6">
-            <EmptyState title="Format yok" description="Sihirbazda kullanmak için bir iskelet ekleyin." />
-          </li>
-        ) : null}
-      </ul>
-    </div>
+    <FormCard
+      title={format.name}
+      description={[format.code, format.purpose ? FORMAT_PURPOSES.find((p) => p.value === format.purpose)?.label : null, format.minLevel || format.maxLevel ? `${format.minLevel}–${format.maxLevel}` : null].filter(Boolean).join(" · ")}
+      aside={dirty ? <span className="rounded-full bg-warning-bg px-2 py-0.5 text-[11px] font-semibold text-warning">Kaydedilmedi</span> : null}
+      footer={
+        <>
+          <span className="text-xs text-fg-subtle sm:mr-auto">
+            {stats.sections} bölüm · {stats.parts} alt bölüm · toplam {stats.questions} soru
+          </span>
+          <Button variant="ghost" disabled={!dirty || busy} onClick={() => update(initial)}>Değişiklikleri geri al</Button>
+          <Button loading={busy} disabled={!dirty || busy} onClick={() => void save(sk)}>İskeleti kaydet</Button>
+        </>
+      }
+    >
+      {format.description ? <p className="text-[13px] text-fg-muted">{format.description}</p> : null}
+
+      {sk.sections.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">İskelet boş. Aşağıdan bölüm ekleyin.</p>
+      ) : (
+        <ol className="grid gap-3">
+          {sk.sections.map((sec, i) => {
+            const secQ = sec.subSections.reduce((m, p) => m + (Number(p.blueprint?.count) || 0), 0);
+            return (
+              <li key={i} className="overflow-hidden rounded-lg border border-border">
+                <div className="grid gap-2 border-b border-border bg-neutral-50 p-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,10rem)_auto] sm:items-end">
+                  <span className="flex size-7 items-center justify-center self-center rounded-md bg-primary text-xs font-bold text-white">{i + 1}</span>
+                  <Field label="Bölüm adı">
+                    <Input value={sec.title} onChange={(e) => setSection(i, { title: e.target.value })} placeholder="ör. Reading and Writing" />
+                  </Field>
+                  <Field label="Beceri">
+                    <Select value={sec.skill} onChange={(e) => setSection(i, { skill: e.target.value })}>
+                      {SKILLS.map((s) => <option key={s} value={s}>{SKILL_LABEL[s]}</option>)}
+                    </Select>
+                  </Field>
+                  <span className="flex items-center gap-0.5">
+                    <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => moveSection(i, -1)} aria-label={`${i + 1}. bölümü yukarı taşı`} title="Yukarı taşı"><IconArrowUp className="size-3.5" aria-hidden /></Button>
+                    <Button size="sm" variant="ghost" disabled={i === sk.sections.length - 1} onClick={() => moveSection(i, 1)} aria-label={`${i + 1}. bölümü aşağı taşı`} title="Aşağı taşı"><IconArrowDown className="size-3.5" aria-hidden /></Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`${i + 1}. bölümü sil`}
+                      title="Bölümü sil"
+                      onClick={() => confirm(`“${sec.title || `Bölüm ${i + 1}`}” ve ${sec.subSections.length} alt bölümü silinsin mi?`) && update({ ...sk, sections: sk.sections.filter((_, x) => x !== i) })}
+                    >
+                      <IconTrash className="size-3.5" aria-hidden />
+                    </Button>
+                  </span>
+                </div>
+                <div className="grid gap-2 p-3">
+                  <div className="hidden grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,10rem)_minmax(0,7rem)_minmax(0,7rem)_2rem] gap-2 px-0.5 text-[11px] font-semibold tracking-wide text-fg-subtle md:grid">
+                    <span />
+                    <span>Alt bölüm adı</span>
+                    <span>Görev türü</span>
+                    <span>Soru sayısı</span>
+                    <span>Seviye</span>
+                    <span />
+                  </div>
+                  {sec.subSections.map((sub, j) => (
+                    <div key={j} className="grid grid-cols-2 items-center gap-2 rounded-md border border-border p-2 md:grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,10rem)_minmax(0,7rem)_minmax(0,7rem)_2rem] md:border-0 md:p-0">
+                      <span className="hidden text-right text-xs tabular-nums text-fg-subtle md:block">{j + 1}.</span>
+                      <Input className="col-span-2 md:col-span-1" aria-label="Alt bölüm adı" value={sub.title} onChange={(e) => setSub(i, j, { title: e.target.value })} placeholder={`Part ${j + 1}`} />
+                      <div className="col-span-2 md:col-span-1">
+                        <Select aria-label="Görev türü" value={sub.taskType ?? ""} onChange={(e) => setSub(i, j, { taskType: e.target.value || undefined })}>
+                          <option value="">— Belirtilmemiş</option>
+                          {TASK_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                          {sub.taskType && !TASK_TYPES.some((t) => t.value === sub.taskType) ? (
+                            <option value={sub.taskType}>{sub.taskType} (özel)</option>
+                          ) : null}
+                        </Select>
+                      </div>
+                      <Input type="number" min={0} suffix="soru" aria-label="Soru sayısı" value={sub.blueprint?.count ?? ""} onChange={(e) => setSub(i, j, { blueprint: { ...sub.blueprint, count: e.target.value === "" ? undefined : Number(e.target.value) } })} />
+                      <Select aria-label="Seviye" value={sub.blueprint?.cefrLevel ?? ""} onChange={(e) => setSub(i, j, { blueprint: { ...sub.blueprint, cefrLevel: e.target.value || undefined } })}>
+                        <option value="">Seviye —</option>
+                        {CEFR.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </Select>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="justify-self-end"
+                        aria-label={`${j + 1}. alt bölümü sil`}
+                        title="Sil"
+                        onClick={() => setSection(i, { subSections: sec.subSections.filter((_, y) => y !== j) })}
+                      >
+                        <IconX className="size-3.5" aria-hidden />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setSection(i, { subSections: [...sec.subSections, { title: `Part ${sec.subSections.length + 1}`, blueprint: { count: 5 } }] })}
+                    >
+                      + Alt bölüm
+                    </Button>
+                    <span className="text-xs text-fg-subtle">{sec.subSections.length} alt bölüm · {secQ} soru</span>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <button
+        type="button"
+        onClick={() => update({ ...sk, sections: [...sk.sections, { title: `Bölüm ${sk.sections.length + 1}`, skill: "READING", subSections: [{ title: "Part 1", blueprint: { count: 5 } }] }] })}
+        className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong text-[13px] font-medium text-fg-muted transition-colors hover:border-primary-300 hover:bg-primary-50/40 hover:text-primary"
+      >
+        + Bölüm ekle
+      </button>
+
+      <details className="rounded-lg border border-border" open={jsonOpen} onToggle={(e) => setJsonOpen((e.target as HTMLDetailsElement).open)}>
+        <summary className="flex cursor-pointer items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium text-fg-muted hover:text-fg">
+          <IconEdit className="size-3.5" aria-hidden /> Gelişmiş: JSON olarak düzenle
+        </summary>
+        <div className="grid gap-2 border-t border-border p-3">
+          <Textarea rows={12} className="font-mono text-xs" value={json} onChange={(e) => setJson(e.target.value)} spellCheck={false} aria-label="İskelet JSON" />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className={`text-xs ${jsonValid ? "text-fg-subtle" : "text-danger"}`}>{jsonValid ? "Geçerli JSON. Uygula ile yukarıdaki düzenleyiciye aktarılır." : "Geçersiz JSON."}</span>
+            <Button size="sm" variant="secondary" disabled={!jsonValid} onClick={() => setSk(toSkeleton(JSON.parse(json)))}>
+              JSON’u uygula
+            </Button>
+          </div>
+        </div>
+      </details>
+    </FormCard>
   );
 }
 
@@ -506,268 +1040,373 @@ export function SettingsDictionariesPage() {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Ayarlar / Sözlükler"
-        description="Etiketler, yaş bantları, can-do kazanımları, toplu içe aktarma ve TTS/STT yardımcıları."
-      />
-      {error ? <ErrorState title="Hata" message={error} /> : null}
-      {message ? <p className="text-sm text-success">{message}</p> : null}
+  const [section, setSection] = useState<string | null>("tags");
+  const [tagQuery, setTagQuery] = useState("");
+  const [outcomeQuery, setOutcomeQuery] = useState("");
+  const [outcomeSkill, setOutcomeSkill] = useState("");
+  const [showOutcomeForm, setShowOutcomeForm] = useState(false);
 
-      <FormCard title="Etiketler">
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label="Yeni etiket">
-            <Input value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="family" />
-          </Field>
-          <Button onClick={() => void addTag()} disabled={!tagName.trim()}>
-            Ekle
-          </Button>
-        </div>
-        {tags.length === 0 ? (
-          <p className="text-sm text-fg-muted">Etiket yok.</p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {tags.map((tag) => (
-              <li key={tag.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
-                {editingTagId === tag.id ? (
-                  <>
-                    <Input
-                      className="min-w-0 flex-1"
-                      value={editingTagName}
-                      onChange={(e) => setEditingTagName(e.target.value)}
-                    />
-                    <Button size="sm" onClick={() => void saveTag(tag.id)} disabled={!editingTagName.trim()}>
-                      Kaydet
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingTagId(null)}>
-                      Vazgeç
-                    </Button>
-                  </>
+  const importState = useMemo(() => {
+    try {
+      const parsed = JSON.parse(importJson) as unknown;
+      if (!Array.isArray(parsed)) return { ok: false as const, msg: "Kök bir dizi ( [ … ] ) olmalı." };
+      return { ok: true as const, msg: `${parsed.length} satır okunacak.` };
+    } catch {
+      return { ok: false as const, msg: "Geçerli JSON değil." };
+    }
+  }, [importJson]);
+
+  const tagTerm = tagQuery.trim().toLocaleLowerCase("tr-TR");
+  const shownTags = tags.filter((t) => !tagTerm || t.name.toLocaleLowerCase("tr-TR").includes(tagTerm));
+  const outTerm = outcomeQuery.trim().toLocaleLowerCase("tr-TR");
+  const shownOutcomes = outcomes.filter(
+    (o) =>
+      (!outcomeSkill || o.skill === outcomeSkill) &&
+      (!outTerm || `${o.code} ${o.description}`.toLocaleLowerCase("tr-TR").includes(outTerm)),
+  );
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="İçerik ayarları"
+        description="Soru yazarken kullanılan sözlükler: etiketler, yaş bantları ve kazanımlar. Ayrıca toplu soru içe aktarma."
+      />
+      {error ? <ErrorState title="Ayarlar yüklenemedi" message={error} onRetry={() => void load().catch((e) => setError(errorMessage(e, "Yüklenemedi")))} compact /> : null}
+
+      <div className="rounded-xl border border-border bg-surface shadow-sm">
+        <FilterTabs
+          label="Ayar bölümleri"
+          value={section}
+          onChange={(v) => setSection(v ?? "tags")}
+          items={[
+            { label: "Etiketler", value: "tags", count: tags.length },
+            { label: "Yaş bantları", value: "ages", count: ageBands.length },
+            { label: "Kazanımlar", value: "outcomes", count: outcomes.length },
+            { label: "Toplu içe aktarma", value: "import" },
+            { label: "Geliştirici araçları", value: "dev" },
+          ]}
+        />
+      </div>
+
+      {section === "tags" ? (
+        <FormCard
+          title="Etiketler"
+          description="Konu, tema ya da kaynak etiketleri (ör. aile, hayvanlar, Unit 3). Soru sınıflandırmasında seçilir; soru bankasında filtrelenir."
+        >
+          <FormGroup title="Yeni etiket">
+            <form
+              className="flex items-start gap-2 sm:max-w-xl"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (tagName.trim()) void addTag();
+              }}
+            >
+              <div className="min-w-0 flex-1">
+                <Field label="Etiket adı" hint="Enter ile de ekleyebilirsiniz.">
+                  <Input value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="ör. hayvanlar" />
+                </Field>
+              </div>
+              <FieldAction>
+                <Button type="submit" disabled={!tagName.trim()}>Ekle</Button>
+              </FieldAction>
+            </form>
+          </FormGroup>
+          <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[13px] text-fg-muted">
+              <span className="font-semibold text-fg tabular-nums">{tags.length}</span> etiket
+              {tagTerm ? <> · <span className="tabular-nums">{shownTags.length}</span> eşleşme</> : null}
+            </p>
+            <div className="sm:w-60">
+              <Input type="search" icon={<IconSearch />} value={tagQuery} onChange={(e) => setTagQuery(e.target.value)} placeholder="Etiket ara" aria-label="Etiket ara" />
+            </div>
+          </div>
+          {shownTags.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">{tags.length ? "Aramayla eşleşen etiket yok." : "Henüz etiket yok."}</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {shownTags.map((tag) =>
+                editingTagId === tag.id ? (
+                  <li key={tag.id} className="flex items-center gap-1 rounded-full bg-primary-50 py-0.5 pr-1 pl-1 ring-1 ring-primary-200">
+                    <form
+                      className="flex items-center gap-1"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (editingTagName.trim()) void saveTag(tag.id);
+                      }}
+                    >
+                      <Input autoFocus className="h-7 w-40 rounded-full" value={editingTagName} onChange={(e) => setEditingTagName(e.target.value)} aria-label="Etiket adı" />
+                      <Button size="sm" type="submit" disabled={!editingTagName.trim()}>Kaydet</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingTagId(null)}>Vazgeç</Button>
+                    </form>
+                  </li>
                 ) : (
-                  <>
-                    <span className="min-w-0 flex-1 text-sm">{tag.name}</span>
-                    <Button
-                      size="sm"
-                      variant="secondary"
+                  <li key={tag.id} className="group flex items-center gap-0.5 rounded-full bg-neutral-100 py-1 pr-1 pl-3 text-[13px] text-fg ring-1 ring-border">
+                    {tag.name}
+                    <button
+                      type="button"
+                      aria-label={`${tag.name} etiketini düzenle`}
+                      className="ml-1 grid size-6 place-items-center rounded-full text-fg-subtle hover:bg-surface hover:text-primary"
                       onClick={() => {
                         setEditingTagId(tag.id);
                         setEditingTagName(tag.name);
                       }}
                     >
-                      Düzenle
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
+                      <IconEdit className="size-3.5" aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${tag.name} etiketini sil`}
+                      className="grid size-6 place-items-center rounded-full text-fg-subtle hover:bg-danger-bg hover:text-danger"
                       onClick={() => setPendingDelete({ kind: "tag", id: tag.id, label: tag.name })}
                     >
-                      Sil
-                    </Button>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </FormCard>
+                      <IconTrash className="size-3.5" aria-hidden />
+                    </button>
+                  </li>
+                ),
+              )}
+            </ul>
+          )}
+        </FormCard>
+      ) : null}
 
-      <FormCard title="Yaş bantları" description="Soru sınıflandırmasındaki yaş bandı listesi.">
-        <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_5.5rem_auto]">
-          <Field label="Kod">
-            <Input value={ageCode} onChange={(e) => setAgeCode(e.target.value)} placeholder="10-12" />
-          </Field>
-          <Field label="Etiket">
-            <Input value={ageLabel} onChange={(e) => setAgeLabel(e.target.value)} placeholder="10–12 yaş" />
-          </Field>
-          <Field label="Sıra">
-            <Input type="number" value={ageSort} onChange={(e) => setAgeSort(e.target.value)} placeholder="1" />
-          </Field>
-          <Button onClick={() => void addAgeBand()} disabled={!ageCode.trim() || !ageLabel.trim()}>
-            Ekle
-          </Button>
-        </div>
-        {ageBands.length === 0 ? (
-          <p className="text-sm text-fg-muted">Yaş bandı yok. Boşsa HQ varsayılanları kullanılır.</p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {ageBands.map((band) => {
-              const owned = band.ownerOrgId === tenant?.id;
-              return (
-              <li key={band.id} className="px-3 py-2">
-                {editingAgeId === band.id ? (
-                  <div className="grid grid-cols-2 items-end gap-2 md:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_5.5rem_auto_auto]">
-                    <Field label="Kod">
-                      <Input value={editingAge.code} onChange={(e) => setEditingAge({ ...editingAge, code: e.target.value })} />
-                    </Field>
-                    <Field label="Etiket">
-                      <Input value={editingAge.label} onChange={(e) => setEditingAge({ ...editingAge, label: e.target.value })} />
-                    </Field>
-                    <Field label="Sıra">
-                      <Input
-                        type="number"
-                        value={editingAge.sortOrder}
-                        onChange={(e) => setEditingAge({ ...editingAge, sortOrder: e.target.value })}
-                      />
-                    </Field>
-                    <Button size="sm" onClick={() => void saveAgeBand(band.id)} disabled={!editingAge.code.trim() || !editingAge.label.trim()}>
-                      Kaydet
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingAgeId(null)}>
-                      Vazgeç
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="min-w-0 flex-1 text-sm">
-                      <span className="font-mono text-xs">{band.code}</span>
-                      {" — "}
-                      {band.label}
-                      <span className="text-fg-muted"> · sıra {band.sortOrder}</span>
-                    </span>
-                    {owned ? (
-                      <>
+      {section === "ages" ? (
+        <FormCard
+          title="Yaş bantları"
+          description="Soru sınıflandırmasındaki “Yaş bandı” listesi; sıra numarasına göre dizilir. Kurum kendi bandını tanımlamazsa HQ varsayılanları kullanılır (düzenlenemez)."
+        >
+          <FormGroup title="Yeni yaş bandı">
+            <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,7rem)_auto]">
+              <Field label="Kod" hint="Kısa, boşluksuz"><Input className="font-mono" value={ageCode} onChange={(e) => setAgeCode(e.target.value)} placeholder="10-12" /></Field>
+              <Field label="Görünen ad"><Input value={ageLabel} onChange={(e) => setAgeLabel(e.target.value)} placeholder="10–12 yaş" /></Field>
+              <Field label="Sıra" hint="Boş = sona"><Input type="number" min={0} value={ageSort} onChange={(e) => setAgeSort(e.target.value)} placeholder={String(ageBands.length + 1)} /></Field>
+              <FieldAction>
+                <Button onClick={() => void addAgeBand()} disabled={!ageCode.trim() || !ageLabel.trim()}>Ekle</Button>
+              </FieldAction>
+            </div>
+          </FormGroup>
+          {ageBands.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">Yaş bandı yok; HQ varsayılanları kullanılıyor.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg ring-1 ring-border">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="bg-neutral-50 text-left text-[11.5px] tracking-wide text-fg-subtle">
+                    <th className="w-16 px-3 py-2 text-right font-semibold">Sıra</th>
+                    <th className="px-3 py-2 font-semibold">Kod</th>
+                    <th className="px-3 py-2 font-semibold">Görünen ad</th>
+                    <th className="px-3 py-2 font-semibold">Kaynak</th>
+                    <th className="px-3 py-2"><span className="sr-only">İşlem</span></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {[...ageBands].sort((a, b) => a.sortOrder - b.sortOrder).map((band) => {
+                    const owned = band.ownerOrgId === tenant?.id;
+                    if (editingAgeId === band.id) {
+                      return (
+                        <tr key={band.id} className="bg-primary-50/30">
+                          <td className="px-3 py-2"><Input type="number" min={0} aria-label="Sıra" value={editingAge.sortOrder} onChange={(e) => setEditingAge({ ...editingAge, sortOrder: e.target.value })} /></td>
+                          <td className="px-3 py-2"><Input className="font-mono" aria-label="Kod" value={editingAge.code} onChange={(e) => setEditingAge({ ...editingAge, code: e.target.value })} /></td>
+                          <td className="px-3 py-2"><Input aria-label="Görünen ad" value={editingAge.label} onChange={(e) => setEditingAge({ ...editingAge, label: e.target.value })} /></td>
+                          <td />
+                          <td className="px-3 py-2">
+                            <span className="flex justify-end gap-1">
+                              <Button size="sm" onClick={() => void saveAgeBand(band.id)} disabled={!editingAge.code.trim() || !editingAge.label.trim()}>Kaydet</Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingAgeId(null)}>Vazgeç</Button>
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return (
+                      <tr key={band.id}>
+                        <td className="px-3 py-2 text-right tabular-nums text-fg-subtle">{band.sortOrder}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{band.code}</td>
+                        <td className="px-3 py-2 font-medium text-fg">{band.label}</td>
+                        <td className="px-3 py-2">
+                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${owned ? "bg-primary-50 text-primary" : "bg-neutral-100 text-fg-subtle"}`}>{owned ? "Kurum" : "HQ varsayılanı"}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {owned ? (
+                            <span className="flex justify-end gap-0.5">
+                              <Button size="sm" variant="ghost" aria-label={`${band.label} düzenle`} title="Düzenle" onClick={() => { setEditingAgeId(band.id); setEditingAge({ code: band.code, label: band.label, sortOrder: String(band.sortOrder) }); }}>
+                                <IconEdit className="size-3.5" aria-hidden />
+                              </Button>
+                              <Button size="sm" variant="ghost" aria-label={`${band.label} sil`} title="Sil" onClick={() => setPendingDelete({ kind: "age", id: band.id, label: band.label })}>
+                                <IconTrash className="size-3.5" aria-hidden />
+                              </Button>
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </FormCard>
+      ) : null}
+
+      {section === "outcomes" ? (
+        <FormCard
+          title="Kazanımlar (öğrenme çıktıları)"
+          description="Soru editörünün Cevap ve puanlama adımında seçilir; karne ve kazanım raporları bu kayıtlarla hesaplanır. Kod ve çerçeve oluşturulduktan sonra değiştirilemez."
+          aside={
+            <Button size="sm" variant={showOutcomeForm ? "ghost" : "primary"} onClick={() => setShowOutcomeForm((v) => !v)}>
+              {showOutcomeForm ? "Formu kapat" : "+ Yeni kazanım"}
+            </Button>
+          }
+        >
+          {showOutcomeForm ? (
+            <div className="rounded-lg bg-neutral-50 p-3 ring-1 ring-border ring-inset">
+              <OutcomeFields
+                draft={outcomeDraft}
+                onChange={setOutcomeDraft}
+                onSubmit={() => void addOutcome()}
+                onCancel={() => setShowOutcomeForm(false)}
+                submitLabel="Kazanımı ekle"
+              />
+            </div>
+          ) : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex-1">
+              <Input type="search" icon={<IconSearch />} value={outcomeQuery} onChange={(e) => setOutcomeQuery(e.target.value)} placeholder="Kod veya açıklama ara" aria-label="Kazanım ara" />
+            </div>
+            <div className="sm:w-44">
+              <Select value={outcomeSkill} onChange={(e) => setOutcomeSkill(e.target.value)} aria-label="Beceri filtresi">
+                <option value="">Tüm beceriler</option>
+                {SKILLS.map((s) => <option key={s} value={s}>{SKILL_LABEL[s]}</option>)}
+              </Select>
+            </div>
+          </div>
+          {shownOutcomes.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">{outcomes.length ? "Filtreye uyan kazanım yok." : "Henüz kazanım yok."}</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg ring-1 ring-border">
+              {shownOutcomes.map((outcome) => (
+                <li key={outcome.id} className="px-3 py-2.5">
+                  {editingOutcomeId === outcome.id ? (
+                    <OutcomeFields
+                      draft={editingOutcome}
+                      lockIdentity
+                      onChange={setEditingOutcome}
+                      onSubmit={() => void saveOutcome(outcome.id)}
+                      onCancel={() => setEditingOutcomeId(null)}
+                      submitLabel="Kaydet"
+                    />
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-fg-muted">{outcome.code}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] text-fg">{outcome.description}</p>
+                        <p className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+                          {outcome.framework ? <span className="rounded bg-primary-50 px-1.5 py-0.5 font-medium text-primary">{outcome.framework}</span> : null}
+                          {outcome.skill ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-fg-muted">{SKILL_LABEL[outcome.skill as keyof typeof SKILL_LABEL] ?? outcome.skill}</span> : null}
+                          {outcome.cefrLevel ? <span className="rounded bg-(--accent-plum-bg) px-1.5 py-0.5 font-mono font-semibold text-(--accent-plum)">{outcome.cefrLevel}</span> : null}
+                          {outcome.gradeLevel != null ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-fg-muted">MEB {outcome.gradeLevel}. sınıf</span> : null}
+                        </p>
+                      </div>
+                      <span className="flex shrink-0 gap-0.5">
                         <Button
                           size="sm"
-                          variant="secondary"
+                          variant="ghost"
+                          aria-label={`${outcome.code} düzenle`}
+                          title="Düzenle"
                           onClick={() => {
-                            setEditingAgeId(band.id);
-                            setEditingAge({ code: band.code, label: band.label, sortOrder: String(band.sortOrder) });
+                            setEditingOutcomeId(outcome.id);
+                            setEditingOutcome({
+                              framework: outcome.framework ?? "ILC",
+                              code: outcome.code,
+                              description: outcome.description,
+                              skill: outcome.skill ?? "READING",
+                              cefrLevel: outcome.cefrLevel ?? "A1",
+                              gradeLevel: outcome.gradeLevel != null ? String(outcome.gradeLevel) : "",
+                            });
                           }}
                         >
-                          Düzenle
+                          <IconEdit className="size-3.5" aria-hidden />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => setPendingDelete({ kind: "age", id: band.id, label: band.label })}
-                        >
-                          Sil
+                        <Button size="sm" variant="ghost" aria-label={`${outcome.code} sil`} title="Sil" onClick={() => setPendingDelete({ kind: "outcome", id: outcome.id, label: outcome.code })}>
+                          <IconTrash className="size-3.5" aria-hidden />
                         </Button>
-                      </>
-                    ) : (
-                      <span className="text-xs text-fg-muted">HQ varsayılanı</span>
-                    )}
-                  </div>
-                )}
-              </li>
-              );
-            })}
-          </ul>
-        )}
-      </FormCard>
-
-      <FormCard title="Kazanımlar" description="Soru editöründeki öğrenme çıktıları bu listeden seçilir. Kod ve çerçeve sonradan değişmez.">
-        <OutcomeFields
-          draft={outcomeDraft}
-          onChange={setOutcomeDraft}
-          onSubmit={() => void addOutcome()}
-          submitLabel="Ekle"
-        />
-        {outcomes.length === 0 ? (
-          <p className="text-sm text-fg-muted">Kazanım yok.</p>
-        ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {outcomes.map((outcome) => (
-              <li key={outcome.id} className="px-3 py-2">
-                {editingOutcomeId === outcome.id ? (
-                  <OutcomeFields
-                    draft={editingOutcome}
-                    lockIdentity
-                    onChange={setEditingOutcome}
-                    onSubmit={() => void saveOutcome(outcome.id)}
-                    onCancel={() => setEditingOutcomeId(null)}
-                    submitLabel="Kaydet"
-                  />
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm">
-                        <span className="font-mono text-xs">{outcome.code}</span>
-                        {" — "}
-                        {outcome.description}
-                      </p>
-                      <p className="text-xs text-fg-muted">
-                        {[outcome.framework, outcome.skill ? SKILL_LABEL[outcome.skill as keyof typeof SKILL_LABEL] ?? outcome.skill : null, outcome.cefrLevel]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
+                      </span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setEditingOutcomeId(outcome.id);
-                        setEditingOutcome({
-                          framework: outcome.framework ?? "ILC",
-                          code: outcome.code,
-                          description: outcome.description,
-                          skill: outcome.skill ?? "READING",
-                          cefrLevel: outcome.cefrLevel ?? "A1",
-                          gradeLevel: outcome.gradeLevel != null ? String(outcome.gradeLevel) : "",
-                        });
-                      }}
-                    >
-                      Düzenle
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => setPendingDelete({ kind: "outcome", id: outcome.id, label: outcome.code })}
-                    >
-                      Sil
-                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </FormCard>
+      ) : null}
+
+      {section === "import" ? (
+        <FormCard
+          title="Toplu soru içe aktarma"
+          description="Her satır bir taslak soru oluşturur; içerik daha sonra soru editöründe tamamlanır. Mevcut sorular etkilenmez."
+          footer={
+            <>
+              {message ? <FormMessage tone="success">{message}</FormMessage> : <span className={`text-xs sm:mr-auto ${importState.ok ? "text-fg-subtle" : "text-danger"}`}>{importState.msg}</span>}
+              <Button onClick={() => void runImport()} disabled={!importState.ok}>İçe aktar</Button>
+            </>
+          }
+        >
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <Field label="JSON satırları" hint="Köşeli parantez içinde nesne dizisi.">
+              <Textarea rows={10} className="font-mono text-xs" value={importJson} onChange={(e) => { setImportJson(e.target.value); setMessage(null); }} spellCheck={false} />
+            </Field>
+            <div className="grid content-start gap-2 rounded-lg bg-neutral-50 p-3 text-xs ring-1 ring-border ring-inset">
+              <p className="text-[13px] font-semibold text-fg">Alanlar</p>
+              <dl className="grid gap-1.5">
+                {[
+                  ["interactionType", "Soru tipi, ör. MULTIPLE_CHOICE, TRUE_FALSE"],
+                  ["skill", "READING, LISTENING, WRITING, SPEAKING…"],
+                  ["cefrLevel", "PRE_A1, A1 … C2"],
+                  ["ageBand", "Yaş bandı kodu, ör. 10-12"],
+                ].map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="font-mono font-semibold text-fg">{k}</dt>
+                    <dd className="text-fg-muted">{v}</dd>
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </FormCard>
+                ))}
+              </dl>
+            </div>
+          </div>
+        </FormCard>
+      ) : null}
 
-      <FormCard title="Toplu içe aktarma (JSON satırları)">
-        <textarea
-          className="min-h-28 w-full rounded-md border border-border bg-bg p-2 font-mono text-xs"
-          value={importJson}
-          onChange={(e) => setImportJson(e.target.value)}
-        />
-        <Button className="mt-2" onClick={() => void runImport()}>
-          İçe aktar
-        </Button>
-      </FormCard>
+      {section === "dev" ? (
+        <FormCard title="Geliştirici araçları" description="Metinden sese (TTS) ve sesten metne (STT) servislerinin bağlantı testi. Sonuç bildirim olarak gösterilir; içerik değişmez.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2 rounded-lg border border-border p-3">
+              <p className="text-[13px] font-semibold text-fg">Metinden sese (TTS)</p>
+              <p className="text-xs text-fg-muted">Örnek cümleyi seslendirme servisine gönderir.</p>
+              <Button variant="secondary" size="sm" className="w-fit" onClick={() => void ttsDemo()}>TTS’i dene</Button>
+            </div>
+            <div className="grid gap-2 rounded-lg border border-border p-3">
+              <p className="text-[13px] font-semibold text-fg">Sesten metne (STT)</p>
+              <p className="text-xs text-fg-muted">Örnek kayıt kimliğiyle yazıya çevirme servisini çağırır.</p>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-fit"
+                onClick={() =>
+                  void notify
+                    .run(authoringApi.stt("00000000-0000-0000-0000-000000000001"), { error: "STT başarısız" })
+                    .then((r) => notify.info(r.message))
+                    .catch(() => undefined)
+                }
+              >
+                STT’yi dene
+              </Button>
+            </div>
+          </div>
+          {message ? <p className="text-[13px] text-fg-muted">Son yanıt: {message}</p> : null}
+        </FormCard>
+      ) : null}
 
-      <FormCard title="TTS / STT yardımcıları">
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => void ttsDemo()}>
-            TTS dene
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() =>
-              void notify
-                .run(authoringApi.stt("00000000-0000-0000-0000-000000000001"), {
-                  error: "STT başarısız",
-                })
-                .then((r) => {
-                  setMessage(r.message);
-                  notify.info(r.message);
-                })
-                .catch(() => undefined)
-            }
-          >
-            STT dene
-          </Button>
-        </div>
-      </FormCard>
       <ConfirmDialog
         open={pendingDelete != null}
-        title={
-          pendingDelete?.kind === "tag"
-            ? "Etiketi sil"
-            : pendingDelete?.kind === "age"
-              ? "Yaş bandını kaldır"
-              : "Kazanımı kaldır"
-        }
+        title={pendingDelete?.kind === "tag" ? "Etiketi sil" : pendingDelete?.kind === "age" ? "Yaş bandını kaldır" : "Kazanımı kaldır"}
         description={
           pendingDelete?.kind === "tag"
             ? `“${pendingDelete.label}” kalıcı silinir. Soru veya sınavda kullanılıyorsa silinemez.`
@@ -802,113 +1441,37 @@ function OutcomeFields({
   submitLabel: string;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 items-end gap-3 lg:grid-cols-4">
-        <Field label="Çerçeve">
-          <Select
-            value={draft.framework}
-            disabled={lockIdentity}
-            onChange={(e) => onChange({ ...draft, framework: e.target.value })}
-          >
-            {FRAMEWORKS.map((framework) => (
-              <option key={framework} value={framework}>{framework}</option>
-            ))}
+    <div className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,7rem)_minmax(0,1fr)_minmax(0,9rem)_minmax(0,7rem)_minmax(0,7rem)]">
+        <Field label="Çerçeve" hint={lockIdentity ? "Değiştirilemez" : undefined}>
+          <Select value={draft.framework} disabled={lockIdentity} onChange={(e) => onChange({ ...draft, framework: e.target.value })}>
+            {FRAMEWORKS.map((framework) => <option key={framework} value={framework}>{framework}</option>)}
           </Select>
         </Field>
-        <Field label="Kod">
-          <Input
-            value={draft.code}
-            disabled={lockIdentity}
-            onChange={(e) => onChange({ ...draft, code: e.target.value })}
-            placeholder="CAN-READ-A1-01"
-          />
+        <Field label="Kod" required hint={lockIdentity ? "Değiştirilemez" : "Benzersiz, ör. CAN-READ-A1-01"}>
+          <Input className="font-mono" value={draft.code} disabled={lockIdentity} onChange={(e) => onChange({ ...draft, code: e.target.value.toUpperCase() })} placeholder="CAN-READ-A1-01" />
         </Field>
         <Field label="Beceri">
           <Select value={draft.skill} onChange={(e) => onChange({ ...draft, skill: e.target.value })}>
-            {SKILLS.map((skill) => (
-              <option key={skill} value={skill}>{SKILL_LABEL[skill]}</option>
-            ))}
+            {SKILLS.map((skill) => <option key={skill} value={skill}>{SKILL_LABEL[skill]}</option>)}
           </Select>
         </Field>
         <Field label="CEFR">
           <Select value={draft.cefrLevel} onChange={(e) => onChange({ ...draft, cefrLevel: e.target.value })}>
-            {CEFR.map((level) => (
-              <option key={level} value={level}>{level}</option>
-            ))}
+            {CEFR.map((level) => <option key={level} value={level}>{level}</option>)}
           </Select>
         </Field>
-      </div>
-      <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_8rem_auto]">
-        <Field label="Açıklama">
-          <Textarea
-            rows={2}
-            value={draft.description}
-            onChange={(e) => onChange({ ...draft, description: e.target.value })}
-            placeholder="Can understand short simple texts"
-          />
+        <Field label="MEB sınıfı" hint="İsteğe bağlı">
+          <Input type="number" min={1} max={12} suffix=". sınıf" value={draft.gradeLevel} onChange={(e) => onChange({ ...draft, gradeLevel: e.target.value })} />
         </Field>
-        <Field label="MEB sınıf" hint="Boş bırakılabilir">
-          <Input
-            type="number"
-            value={draft.gradeLevel}
-            onChange={(e) => onChange({ ...draft, gradeLevel: e.target.value })}
-          />
-        </Field>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onSubmit} disabled={!draft.code.trim() || !draft.description.trim()}>
-            {submitLabel}
-          </Button>
-          {onCancel ? (
-            <Button variant="ghost" onClick={onCancel}>
-              Vazgeç
-            </Button>
-          ) : null}
-        </div>
       </div>
-    </div>
-  );
-}
-
-
-function FormatSkeletonEditor({
-  id,
-  skeleton,
-  onSaved,
-}: {
-  id: string;
-  skeleton?: unknown;
-  onSaved: () => Promise<void>;
-}) {
-  const [json, setJson] = useState(JSON.stringify(skeleton ?? { sections: [] }, null, 2));
-  const [err, setErr] = useState<string | null>(null);
-  return (
-    <div className="mt-2 space-y-2">
-      <textarea
-        className="min-h-32 w-full rounded-md border border-border bg-bg p-2 font-mono text-xs"
-        value={json}
-        onChange={(e) => setJson(e.target.value)}
-      />
-      {err ? <p className="text-xs text-danger">{err}</p> : null}
-      <Button
-        size="sm"
-        onClick={() => {
-          try {
-            const skeleton = JSON.parse(json);
-            void notify
-              .run(authoringApi.updateFormat(id, { skeleton }), {
-                success: "Kaydedildi",
-                error: "Kaydedilemedi",
-              })
-              .then(() => onSaved())
-              .catch((e) => setErr(errorMessage(e, "Kaydedilemedi")));
-          } catch {
-            setErr("Geçersiz JSON");
-            notify.error("Geçersiz JSON");
-          }
-        }}
-      >
-        Kaydet
-      </Button>
+      <Field label="Açıklama" required hint="Öğrencinin yapabildiği şey, “Can …” kalıbıyla.">
+        <Textarea rows={2} value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="Can understand short simple texts" />
+      </Field>
+      <div className="flex flex-wrap justify-end gap-2">
+        {onCancel ? <Button variant="ghost" onClick={onCancel}>Vazgeç</Button> : null}
+        <Button onClick={onSubmit} disabled={!draft.code.trim() || !draft.description.trim()}>{submitLabel}</Button>
+      </div>
     </div>
   );
 }

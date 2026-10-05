@@ -13,6 +13,8 @@ import {
   CountBadge,
   DataGrid,
   ErrorState,
+  FilterTabs,
+  IconSearch,
   Input,
   PageHeader,
   type GridColDef,
@@ -49,11 +51,24 @@ export default function AdminCompaniesPage() {
         headerName: "Kurum",
         minWidth: 220,
         renderCell: ({ row }) => (
-          <div>
-            <Link href={`/admin/companies/${row.id}`} className="font-medium text-fg hover:text-primary">
-              {row.name}
-            </Link>
-            <p className="text-xs text-fg-muted">{row.code}</p>
+          <div className="flex items-center gap-3">
+            {row.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={row.logoUrl} alt="" className="size-9 shrink-0 rounded-lg bg-surface object-contain ring-1 ring-border" />
+            ) : (
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-[13px] font-bold text-primary ring-1 ring-primary-100"
+              >
+                {(row.name ?? "?").trim().slice(0, 2).toLocaleUpperCase("tr-TR")}
+              </span>
+            )}
+            <div className="min-w-0">
+              <Link href={`/admin/companies/${row.id}`} className="font-medium text-fg hover:text-primary">
+                {row.name}
+              </Link>
+              <p className="font-mono text-xs text-fg-subtle">{row.code}</p>
+            </div>
           </div>
         ),
       },
@@ -72,7 +87,7 @@ export default function AdminCompaniesPage() {
         headerName: "Oluşturulma",
         width: 140,
         valueGetter: (_v, row) =>
-          row.createdAt ? new Date(row.createdAt).toLocaleDateString("tr-TR") : "—",
+          row.createdAt ? new Date(row.createdAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : "—",
       },
     ],
     [],
@@ -90,7 +105,7 @@ export default function AdminCompaniesPage() {
     <div className="grid gap-4">
       <PageHeader
         title="Kurumlar"
-        description="Platform üzerindeki kurumları görüntüleyin ve yönetin."
+        description="Platformdaki okul ve kurumlar. Bir kuruma tıklayarak üyeliğini, kampüslerini, personelini, öğrencilerini ve sınav lisanslarını yönetin."
         count={pageData?.totalElements}
         countSlot={
           pageData?.totalElements != null ? <CountBadge count={pageData.totalElements} /> : undefined
@@ -99,39 +114,39 @@ export default function AdminCompaniesPage() {
       />
 
       <div className="rounded-xl border border-border bg-surface shadow-sm">
-        <div className="flex flex-col-reverse gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-          <nav className="flex gap-1 overflow-x-auto">
-            {STATUS_TABS.map((tab) => {
-              const active = (status ?? null) === tab.value;
-              return (
-                <button
-                  key={tab.label}
-                  type="button"
-                  onClick={() => setParam("status", tab.value)}
-                  className={`h-8 shrink-0 rounded-md px-3 text-[13px] font-medium ${
-                    active ? "bg-bg text-fg ring-1 ring-border" : "text-fg-muted hover:text-fg"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
+        <div className="flex flex-col-reverse gap-2 border-b border-border sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <FilterTabs
+            label="Kurum durumu"
+            items={STATUS_TABS}
+            value={status ?? null}
+            onChange={(value) => setParam("status", value)}
+          />
           <form
-            className="w-full sm:max-w-xs"
+            className="w-full px-3 pt-3 sm:max-w-xs sm:py-2 sm:pt-2"
             onSubmit={(e) => {
               e.preventDefault();
               const form = new FormData(e.currentTarget);
               setParam("q", String(form.get("q") || "") || null);
             }}
           >
-            <Input name="q" defaultValue={q} placeholder="Kurum veya kod ara…" />
+            <Input key={q} name="q" type="search" icon={<IconSearch />} defaultValue={q} placeholder="Kurum adı veya kodu ara (Enter)" aria-label="Kurum ara" />
           </form>
         </div>
 
+        {q ? (
+          <p className="flex flex-wrap items-center gap-2 border-b border-border bg-primary-50/40 px-4 py-2 text-[13px] text-fg-muted">
+            <span>
+              “<span className="font-medium text-fg">{q}</span>” için{" "}
+              {pageData?.totalElements != null ? <span className="font-semibold text-fg tabular-nums">{pageData.totalElements}</span> : "…"} sonuç
+            </span>
+            <button type="button" className="font-medium text-primary hover:underline" onClick={() => setParam("q", null)}>
+              Aramayı temizle
+            </button>
+          </p>
+        ) : null}
         {isError ? (
           <div className="p-4">
-            <ErrorState message={error instanceof Error ? error.message : "Liste yüklenemedi"} />
+            <ErrorState error={error} compact />
           </div>
         ) : (
           <DataGrid

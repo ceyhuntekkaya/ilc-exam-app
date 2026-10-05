@@ -3,23 +3,23 @@
 import { useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import { GrantDialog } from "@/src/features/assignments/GrantDialog";
 import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
-import { Badge, Button, ButtonLink, ErrorState, SectionTable } from "@/src/ui";
+import { Badge, Button, ButtonLink, ErrorState, SectionTable, SectionToolbar } from "@/src/ui";
 import { useState } from "react";
 
 export function LicensedExamsSection({ companyId }: { companyId: string }) {
   const role = usePanelRole();
   const hrefs = useOpsHref();
-  const { data, isLoading, isError, error } = useListGrants({ companyId });
+  const { data, isLoading, isError, error, refetch } = useListGrants({ companyId });
   const rows = data?.data ?? [];
   const [open, setOpen] = useState(false);
   const canGrant = role === "SUPER_ADMIN";
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Sınav", "Versiyon", "Geçerlilik", "Kota", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap justify-end gap-2">
+      <SectionToolbar count={rows.length} noun="lisanslı sınav">
         {canGrant ? (
           <Button size="sm" onClick={() => setOpen(true)}>
             Lisans ver
@@ -29,7 +29,7 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
             Atamalar
           </ButtonLink>
         )}
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Lisanslı sınav yok"

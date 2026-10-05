@@ -18,6 +18,7 @@ import {
   FormDialog,
   Input,
   SectionTable,
+  SectionToolbar,
   errorMessage,
   notify,
 } from "@/src/ui";
@@ -25,7 +26,7 @@ import {
 export function SubscriptionSection({ companyId }: { companyId: string }) {
   const id = companyId;
   const role = usePanelRole();
-  const { data, isLoading, isError, error } = useSubscriptions(id);
+  const { data, isLoading, isError, error, refetch } = useSubscriptions(id);
   const rows = data?.data ?? [];
   const create = useCreateSubscription();
   const patch = usePatchSubscription();
@@ -37,17 +38,17 @@ export function SubscriptionSection({ companyId }: { companyId: string }) {
     await queryClient.invalidateQueries({ queryKey: getSubscriptionsQueryKey(id) });
   }
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Dönem", { label: "Max öğrenci", align: "right" }, "Durum", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
       {role === "SUPER_ADMIN" ? (
-        <div className="flex justify-end">
+        <SectionToolbar count={rows.length} noun="üyelik">
           <Button size="sm" onClick={() => setOpen(true)}>
             Yeni üyelik
           </Button>
-        </div>
+        </SectionToolbar>
       ) : null}
       <SectionTable
         flush
@@ -96,6 +97,12 @@ export function SubscriptionSection({ companyId }: { companyId: string }) {
         error={formError}
         onSubmit={async (fd) => {
           setFormError(null);
+          const __s = String(fd.get("startDate") || "");
+          const __e = String(fd.get("endDate") || "");
+          if (__s && __e && __e < __s) {
+            setFormError("Bitiş tarihi başlangıçtan önce olamaz.");
+            return;
+          }
           try {
             await create.mutateAsync({
               id,
@@ -115,13 +122,15 @@ export function SubscriptionSection({ companyId }: { companyId: string }) {
           }
         }}
       >
-        <Field label="Başlangıç" required>
-          <Input name="startDate" type="date" required />
-        </Field>
-        <Field label="Bitiş" required>
-          <Input name="endDate" type="date" required />
-        </Field>
-        <Field label="Max öğrenci" hint="0 = sınırsız">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Başlangıç" required>
+            <Input name="startDate" type="date" required />
+          </Field>
+          <Field label="Bitiş" required hint="Bu günün sonunda erişim kapanır">
+            <Input name="endDate" type="date" required />
+          </Field>
+        </div>
+        <Field label="En fazla öğrenci" hint="0 = sınırsız">
           <Input name="maxStudents" type="number" min={0} defaultValue={0} />
         </Field>
       </FormDialog>

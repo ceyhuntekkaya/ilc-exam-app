@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { ACCESS_TOKEN_COOKIE } from "@/src/lib/auth-constants";
 import { getApiBaseUrl } from "@/src/lib/env";
 import { ensureAccessToken } from "@/src/lib/server/session-cookies";
 
@@ -19,7 +20,12 @@ async function forward(request: NextRequest, path: string[]) {
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
   headers.set("accept", request.headers.get("accept") ?? "application/json");
-  if (token) headers.set("authorization", `Bearer ${token}`);
+  if (token) {
+    headers.set("authorization", `Bearer ${token}`);
+    // Upstream başka bir ILC BFF ise (geçici env: app.ilccenter.com/api/backend)
+    // token'ı Authorization yerine kendi cookie'sinden okur.
+    headers.set("cookie", `${ACCESS_TOKEN_COOKIE}=${token}`);
+  }
   const companyId = request.headers.get("x-company-id");
   if (companyId) headers.set("x-company-id", companyId);
   const sessionToken = request.headers.get("x-session-token");

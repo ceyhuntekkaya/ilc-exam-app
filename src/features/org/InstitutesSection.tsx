@@ -11,35 +11,38 @@ import {
 import {
   Badge,
   Button,
+  ConfirmDialog,
   ErrorState,
   Field,
   FormDialog,
   Input,
   SectionTable,
+  SectionToolbar,
   errorMessage,
   notify,
 } from "@/src/ui";
 
 export function InstitutesSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useInstitutes(id);
+  const { data, isLoading, isError, error, refetch } = useInstitutes(id);
   const rows = data?.data ?? [];
   const create = useCreateInstitute();
   const remove = useDeleteInstitute();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name?: string } | null>(null);
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "Kod", "Durum", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      <div className="flex justify-end">
+      <SectionToolbar count={rows.length} noun="kampüs">
         <Button size="sm" onClick={() => setOpen(true)}>
           Kampüs ekle
         </Button>
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Kampüs yok"
@@ -50,23 +53,30 @@ export function InstitutesSection({ companyId }: { companyId: string }) {
           <Badge key="s" tone={r.status === "ACTIVE" ? "success" : "neutral"} dot>
             {r.status === "ACTIVE" ? "Aktif" : "Pasif"}
           </Badge>,
-          <Button
-            key="d"
-            size="sm"
-            variant="ghost"
-            onClick={async () => {
-              try {
-                await remove.mutateAsync({ id, iid: r.id! });
-                await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
-                notify.success("Kampüs silindi");
-              } catch (err) {
-                notify.error(errorMessage(err, "Kampüs silinemedi"));
-              }
-            }}
-          >
+          <Button key="d" size="sm" variant="danger" onClick={() => setPendingDelete({ id: r.id!, name: r.name })}>
             Sil
           </Button>,
         ])}
+      />
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        title="Kampüsü sil"
+        description={`"${pendingDelete?.name ?? "Kampüs"}" silinecek. Bağlı sınıf ve kayıtlar etkilenebilir; bu işlem geri alınamaz.`}
+        confirmLabel="Sil"
+        tone="danger"
+        pending={remove.isPending}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          try {
+            await remove.mutateAsync({ id, iid: pendingDelete.id });
+            await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
+            notify.success("Kampüs silindi");
+            setPendingDelete(null);
+          } catch (err) {
+            notify.error(errorMessage(err, "Kampüs silinemedi"));
+          }
+        }}
       />
       <FormDialog
         open={open}

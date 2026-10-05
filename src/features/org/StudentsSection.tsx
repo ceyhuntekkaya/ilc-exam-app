@@ -19,6 +19,7 @@ import {
   FormDialog,
   Input,
   SectionTable,
+  SectionToolbar,
   Select,
   errorMessage,
   notify,
@@ -26,7 +27,7 @@ import {
 
 export function StudentsSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useStudents(id);
+  const { data, isLoading, isError, error, refetch } = useStudents(id);
   const years = useYears(id).data?.data ?? [];
   const institutes = useInstitutes(id).data?.data ?? [];
   const grades = useGrades(id).data?.data ?? [];
@@ -37,16 +38,16 @@ export function StudentsSection({ companyId }: { companyId: string }) {
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "No", "Kullanıcı", "Durum", "Kayıtlar"]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      <div className="flex justify-end">
+      <SectionToolbar count={rows.length} noun="öğrenci">
         <Button size="sm" onClick={() => setOpen(true)}>
           Öğrenci ekle
         </Button>
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Öğrenci yok"

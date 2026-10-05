@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+import { useFloatingPanel } from "@/src/ui/primitives/floating";
 import { useField } from "@/src/ui/primitives/Field";
 import { useUiVariant, type UiVariant } from "@/src/ui/primitives/UiVariant";
 import { cn } from "@/src/lib/utils/cn";
@@ -213,6 +215,8 @@ function ListboxSelect({
   const list = useRef<HTMLUListElement>(null);
   const native = useRef<HTMLSelectElement>(null);
   const typed = useRef({ text: "", at: 0 });
+  // Liste portal + fixed: kart/tablo overflow'unda kırpılmaz, komşu katmanların arkasında kalmaz.
+  const { panelRef, container: panelContainer, prepare: preparePanel } = useFloatingPanel(button, open, { upward, matchWidth: true });
   const autoId = useId();
   const buttonId = id ?? `select-${autoId}`;
   const listId = `${buttonId}-list`;
@@ -234,11 +238,12 @@ function ListboxSelect({
   useEffect(() => {
     if (!open) return;
     const outside = (event: MouseEvent) => {
-      if (root.current && !root.current.contains(event.target as Node)) close();
+      const target = event.target as Node;
+      if (root.current && !root.current.contains(target) && !panelRef.current?.contains(target)) close();
     };
     document.addEventListener("mousedown", outside);
     return () => document.removeEventListener("mousedown", outside);
-  }, [open]);
+  }, [open, panelRef]);
 
   // Aranabilir listede açılınca odak arama kutusuna geçer.
   useEffect(() => {
@@ -278,6 +283,7 @@ function ListboxSelect({
     const needed = searchable ? 330 : 280;
     setUpward(Boolean(rect && window.innerHeight - rect.bottom < needed && rect.top > window.innerHeight - rect.bottom));
     setActive(Math.max(0, options.findIndex((option) => option.value === selectedValue)));
+    preparePanel(button.current);
     setOpen(true);
   };
 
@@ -488,14 +494,14 @@ function ListboxSelect({
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
         </svg>
       </button>
-      {open ? (
-        // z-20: sayfa içi açılır katman (globals.css ölçeği); modal içinde modalın katmanında kalır.
+      {open ? floatingPortal(
+        // Portal + fixed (useFloatingPanel): konum DOM'a yazılır; modal içinde dialog'un katmanında kalır.
         <div
+          ref={panelRef}
           className={cn(
-            "absolute z-20 flex w-full min-w-max flex-col text-sm animate-fade-in",
+            "fixed z-[70] flex min-w-max flex-col text-sm animate-fade-in",
             searchable && "min-w-64",
             t.list,
-            upward ? "bottom-full mb-1.5" : "top-full mt-1.5",
           )}
         >
           {searchable ? (
@@ -531,8 +537,14 @@ function ListboxSelect({
               {visible.length.toLocaleString("tr-TR")} sonuç
             </p>
           ) : null}
-        </div>
+        </div>,
+        panelContainer,
       ) : null}
     </div>
   );
+}
+
+/** Kapsayıcı hazırsa portal, değilse yerinde çiz (ilk kare / SSR). */
+function floatingPortal(node: React.ReactNode, container: HTMLElement | null) {
+  return container ? createPortal(node, container) : node;
 }

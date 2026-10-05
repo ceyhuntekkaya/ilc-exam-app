@@ -20,6 +20,8 @@ import {
   Input,
   PasswordInput,
   SectionTable,
+  SectionToolbar,
+  SecretNotice,
   Select,
   errorMessage,
   notify,
@@ -27,7 +29,7 @@ import {
 
 export function StaffSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useStaff(id);
+  const { data, isLoading, isError, error, refetch } = useStaff(id);
   const rolesQ = useRoles(id);
   const rows = data?.data ?? [];
   const roles = rolesQ.data?.data ?? [];
@@ -40,21 +42,19 @@ export function StaffSection({ companyId }: { companyId: string }) {
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "Kullanıcı", "Durum", "Roller", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
       {tempPassword ? (
-        <p className="rounded-md border border-border bg-bg px-3 py-2 text-sm text-fg">
-          Geçici parola: <span className="font-mono font-semibold">{tempPassword}</span>
-        </p>
+        <SecretNotice label="Geçici parola" value={tempPassword} onDismiss={() => setTempPassword(null)} />
       ) : null}
-      <div className="flex justify-end">
+      <SectionToolbar count={rows.length} noun="personel">
         <Button size="sm" onClick={() => setOpen(true)}>
           Personel ekle
         </Button>
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Personel yok"

@@ -24,7 +24,7 @@ export function DetailGroupTabs({ groups }: { groups: DetailTabGroup[] }) {
             aria-current={selected ? "true" : undefined}
             className={cn(
               "shrink-0 border-b-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors",
-              selected ? "border-primary text-fg" : "border-transparent text-fg-muted hover:border-border-strong hover:text-fg",
+              selected ? "border-primary font-semibold text-primary" : "border-transparent text-fg-muted hover:border-border-strong hover:text-fg",
             )}
           >
             {group.group}

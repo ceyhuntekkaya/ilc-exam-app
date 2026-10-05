@@ -35,6 +35,7 @@ export function MultiPicker({
   label,
   layout = "list",
   collapsible = false,
+  codeLabels = false,
 }: {
   options: MultiPickerOption[];
   value: string[];
@@ -49,6 +50,11 @@ export function MultiPicker({
   layout?: "list" | "chips";
   /** Seçenek kataloğu kapalı başlar; seçilenler her zaman görünür. */
   collapsible?: boolean;
+  /**
+   * Etiket kısa bir kod (ör. kazanım kodu), açıklama asıl metin: listede kod rozeti + açıklama her zaman görünür,
+   * seçili çipte yalnız kod (açıklama ipucunda).
+   */
+  codeLabels?: boolean;
 }) {
   const listId = useId();
   const [query, setQuery] = useState("");
@@ -72,7 +78,7 @@ export function MultiPicker({
   }
 
   return (
-    <div className="grid min-w-0 gap-2.5 rounded-lg border border-border bg-bg/40 p-2.5">
+    <div className="grid min-w-0 gap-2.5 rounded-lg border border-border bg-surface p-2.5">
       {/* Seçilenler: listede kaybolmaz, bir bakışta görülür. */}
       <div className="flex min-h-7 flex-wrap items-center gap-1.5">
         {value.length ? (
@@ -85,7 +91,7 @@ export function MultiPicker({
                   title={option?.description ?? option?.label}
                   className="inline-flex max-w-full items-center gap-1 rounded-md bg-primary-50 py-0.5 pr-0.5 pl-2 text-[13px] text-primary-800 ring-1 ring-primary-200"
                 >
-                  <span className="truncate">{option?.label ?? item}</span>
+                  <span className={cn("truncate", codeLabels && "font-mono text-xs font-semibold")}>{option?.label ?? item}</span>
                   <button
                     type="button"
                     onClick={() => toggle(item)}
@@ -112,13 +118,13 @@ export function MultiPicker({
           aria-expanded={catalogOpen}
           aria-controls={listId}
           onClick={() => setCatalogOpen((open) => !open)}
-          className="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-2.5 text-left text-[13px] text-fg hover:border-border-strong"
+          className="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-dashed border-border-strong bg-neutral-50 px-2.5 text-left text-[13px] text-fg-muted hover:border-primary-300 hover:text-fg"
         >
           <span className="inline-flex min-w-0 items-center gap-1.5">
             <IconChevronRight className={cn("size-3.5 shrink-0 text-fg-muted transition-transform", catalogOpen && "rotate-90")} />
-            <span className="truncate">{catalogOpen ? "Etiket listesini kapat" : "Etiket listesini aç"}</span>
+            <span className="truncate">{catalogOpen ? "Listeyi kapat" : `${label} listesinden seç`}</span>
           </span>
-          <span className="shrink-0 tabular-nums text-fg-muted">{options.length.toLocaleString("tr-TR")}</span>
+          <span className="shrink-0 rounded-full bg-surface px-1.5 text-[11px] font-semibold tabular-nums text-fg-subtle ring-1 ring-border">{options.length.toLocaleString("tr-TR")}</span>
         </button>
       ) : null}
 
@@ -138,7 +144,7 @@ export function MultiPicker({
             id={listId}
             role="group"
             aria-label={label}
-            className="flex max-h-36 min-w-0 flex-wrap content-start gap-1.5 overflow-y-auto overscroll-contain"
+            className="flex max-h-44 min-w-0 flex-wrap content-start gap-1.5 overflow-y-auto overscroll-contain rounded-md bg-neutral-50 p-2 ring-1 ring-border ring-inset"
           >
             {shown.length ? (
               shown.map((option) => {
@@ -153,12 +159,13 @@ export function MultiPicker({
                     title={option.description ?? option.label}
                     onClick={() => toggle(option.value)}
                     className={cn(
-                      "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-md px-2.5 text-[13px] disabled:opacity-50",
+                      "inline-flex h-7 max-w-full items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[13px] transition-colors disabled:opacity-50",
                       checked
                         ? "bg-primary-50 font-medium text-primary-800 ring-1 ring-primary-200"
                         : "bg-surface text-fg ring-1 ring-border hover:ring-border-strong",
                     )}
                   >
+                    {checked ? <span aria-hidden className="text-primary">✓</span> : null}
                     <span className="truncate">{option.label}</span>
                   </button>
                 );
@@ -201,7 +208,7 @@ export function MultiPicker({
             return (
               <li
                 key={option.value}
-                className={cn("rounded-md px-2 transition-colors", checked ? "bg-primary-50/70" : "hover:bg-bg")}
+                className={cn("rounded-md px-2 transition-colors", codeLabels && "py-1", checked ? "bg-primary-50/70" : "hover:bg-bg")}
                 // Ağaç girintisi yalnız arama/filtre yokken: aramada sonuçlar düz liste, bağlam (yol) altında.
                 style={!flat && option.depth ? { paddingLeft: `${0.5 + option.depth}rem` } : undefined}
               >
@@ -210,8 +217,17 @@ export function MultiPicker({
                   disabled={disabled}
                   onChange={() => toggle(option.value)}
                   className={cn(!flat && option.depth === 0 && "font-medium", checked && "font-medium")}
-                  label={<span className="wrap-anywhere">{option.label}</span>}
-                  description={flat && option.description && option.description !== option.label ? <span className="wrap-anywhere">{option.description}</span> : undefined}
+                  label={
+                    codeLabels ? (
+                      <span className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2.5">
+                        <span className="w-fit shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-fg-muted">{option.label}</span>
+                        <span className="wrap-anywhere text-fg">{option.description}</span>
+                      </span>
+                    ) : (
+                      <span className="wrap-anywhere">{option.label}</span>
+                    )
+                  }
+                  description={!codeLabels && flat && option.description && option.description !== option.label ? <span className="wrap-anywhere">{option.description}</span> : undefined}
                 />
               </li>
             );

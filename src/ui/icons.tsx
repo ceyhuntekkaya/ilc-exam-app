@@ -585,3 +585,45 @@ export function IconEraser(props: IconProps) {
     </svg>
   );
 }
+
+export function IconChevronUp(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="m6 15 6-6 6 6" />
+    </svg>
+  );
+}
+
+export function IconChevronDown(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  );
+}
+
+/** Sıralama: öğeyi yukarı taşı. */
+export function IconArrowUp(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 19V5M6 11l6-6 6 6" />
+    </svg>
+  );
+}
+
+/** Sıralama: öğeyi aşağı taşı. */
+export function IconArrowDown(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 5v14M6 13l6 6 6-6" />
+    </svg>
+  );
+}

@@ -4,7 +4,14 @@ import { InlineHtmlField } from "@/src/features/authoring/blocks/InlineHtmlField
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
 import { PlaybackPolicyFields, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
 import { newId } from "@/src/features/authoring/blocks/ids";
-import { Button, Checkbox, Field, Select } from "@/src/ui";
+import {
+  Button,
+  Field,
+  Select,
+  IconArrowDown,
+  IconArrowUp,
+  IconX,
+} from "@/src/ui";
 import type { ReactNode } from "react";
 
 export type OptionFormat = "TEXT" | "IMAGE" | "AUDIO" | "VIDEO";
@@ -75,13 +82,47 @@ export function OptionListEditor({
     onCorrectIdsChange([...next]);
   }
 
+  function addRow() {
+    onChange([
+      ...rows,
+      {
+        id: newId(idPrefix),
+        text: { html: "" },
+        mediaId: null,
+        playback: format === "AUDIO" || format === "VIDEO" ? { maxPlays: 2, autoplay: false, seekable: false } : null,
+      },
+    ]);
+  }
+
+  function removeRow(i: number, o: OptionItem) {
+    onChange(rows.filter((_, x) => x !== i));
+    if (onCorrectIdsChange && selected.has(o.id)) {
+      onCorrectIdsChange([...(correctIds ?? [])].filter((id) => id !== o.id));
+    }
+  }
+
+  const missingCorrect = Boolean(correctMode) && rows.length > 0 && selected.size === 0;
+
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <p className="text-sm font-medium">{title}</p>
-        <div className="flex gap-2">
-          {onFormatChange ? (
-            <Field label="Format">
+    <div className="grid gap-2.5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[13px] font-semibold text-fg">
+            {title} <span className="font-normal text-fg-subtle">({rows.length})</span>
+          </p>
+          {correctMode ? (
+            <p className={`text-xs ${missingCorrect ? "text-warning" : "text-fg-subtle"}`}>
+              {missingCorrect
+                ? "Henüz doğru cevap işaretlenmedi."
+                : correctMode === "single"
+                  ? "Doğru seçeneği soldaki daireyle işaretleyin."
+                  : "Doğru seçenekleri soldaki kutularla işaretleyin (birden fazla olabilir)."}
+            </p>
+          ) : null}
+        </div>
+        {onFormatChange ? (
+          <div className="w-36">
+            <Field label="Seçenek türü">
               <Select value={format} disabled={disabled} onChange={(e) => onFormatChange(e.target.value as OptionFormat)}>
                 <option value="TEXT">Metin</option>
                 <option value="IMAGE">Görsel</option>
@@ -89,97 +130,99 @@ export function OptionListEditor({
                 <option value="VIDEO">Video</option>
               </Select>
             </Field>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            disabled={disabled}
-            onClick={() =>
-              onChange([
-                ...rows,
-                {
-                  id: newId(idPrefix),
-                  text: { html: "" },
-                  mediaId: null,
-                  playback: format === "AUDIO" || format === "VIDEO" ? { maxPlays: 2, autoplay: false, seekable: false } : null,
-                },
-              ])
-            }
-          >
-            Ekle
-          </Button>
-        </div>
+          </div>
+        ) : null}
       </div>
-      {rows.map((o, i) => (
-        <div
-          key={o.id}
-          className={`grid gap-2 rounded-lg border border-border p-3 ${
-            hideIds ? "sm:grid-cols-[1fr_auto]" : "sm:grid-cols-[120px_1fr_auto]"
-          }`}
-        >
-          {!hideIds ? (
-            <Field label="ID">
-              <input
-                className="h-8 w-full rounded-md border border-border bg-surface px-2 text-sm"
-                value={o.id}
-                disabled
-                readOnly
-              />
-            </Field>
-          ) : null}
-          <div className="min-w-0 space-y-2">
-            {format === "TEXT" || !format ? (
-              <InlineHtmlField value={o.text} onChange={(text) => update(i, { ...o, text })} disabled={disabled} />
-            ) : (
-              <>
-                <MediaPicker
-                  kind={format}
-                  value={o.mediaId}
-                  onChange={(mediaId) => update(i, { ...o, mediaId })}
-                  disabled={disabled}
-                />
-                <InlineHtmlField label="Altyazı" value={o.text} onChange={(text) => update(i, { ...o, text })} disabled={disabled} />
-                {format === "AUDIO" || format === "VIDEO" ? (
-                  <PlaybackPolicyFields value={o.playback} onChange={(playback) => update(i, { ...o, playback })} disabled={disabled} />
-                ) : null}
-              </>
-            )}
-            {correctMode ? (
-              <Checkbox
-                label={correctMode === "single" ? "Doğru cevap" : "Doğru (çoklu)"}
-                checked={selected.has(o.id)}
-                disabled={disabled}
-                onChange={() => toggleCorrect(o.id)}
-              />
-            ) : null}
-            {renderRowExtra?.(o, i)}
-          </div>
-          <div className="flex flex-col gap-1">
-            <Button type="button" size="sm" variant="ghost" disabled={disabled || i === 0} onClick={() => move(i, -1)}>
-              ↑
-            </Button>
-            <Button type="button" size="sm" variant="ghost" disabled={disabled || i === rows.length - 1} onClick={() => move(i, 1)}>
-              ↓
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={disabled}
-              onClick={() => {
-                const next = rows.filter((_, x) => x !== i);
-                onChange(next);
-                if (onCorrectIdsChange && selected.has(o.id)) {
-                  onCorrectIdsChange([...(correctIds ?? [])].filter((id) => id !== o.id));
-                }
-              }}
-            >
-              Sil
-            </Button>
-          </div>
-        </div>
-      ))}
+
+      {rows.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[13px] text-fg-subtle">
+          Henüz seçenek yok. Aşağıdan ekleyin.
+        </p>
+      ) : (
+        <ol className="grid gap-2">
+          {rows.map((o, i) => {
+            const correct = selected.has(o.id);
+            const letter = String.fromCharCode(65 + (i % 26));
+            return (
+              <li
+                key={o.id}
+                className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2.5 rounded-lg border p-2.5 transition-colors ${
+                  correct ? "border-success/40 bg-success-bg/40" : "border-border bg-surface"
+                }`}
+              >
+                <div className="flex flex-col items-center gap-1.5 pt-0.5">
+                  <span aria-hidden className="flex size-6 items-center justify-center rounded-md bg-neutral-100 text-xs font-bold text-fg-muted">
+                    {letter}
+                  </span>
+                  {correctMode ? (
+                    <button
+                      type="button"
+                      role={correctMode === "single" ? "radio" : "checkbox"}
+                      aria-checked={correct}
+                      aria-label={`${letter} seçeneği doğru cevap`}
+                      title={correct ? "Doğru cevap" : "Doğru cevap olarak işaretle"}
+                      disabled={disabled}
+                      onClick={() => toggleCorrect(o.id)}
+                      className={`flex size-6 items-center justify-center border-2 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                        correctMode === "single" ? "rounded-full" : "rounded-md"
+                      } ${correct ? "border-success bg-success text-white" : "border-border-strong bg-surface text-transparent hover:border-success"}`}
+                    >
+                      ✓
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="grid min-w-0 gap-2">
+                  {!hideIds ? <code className="text-[11px] text-fg-subtle">{o.id}</code> : null}
+                  {format === "TEXT" || !format ? (
+                    <InlineHtmlField
+                      value={o.text}
+                      placeholder={`${letter} seçeneğinin metni`}
+                      onChange={(text) => update(i, { ...o, text })}
+                      disabled={disabled}
+                    />
+                  ) : (
+                    <>
+                      <MediaPicker kind={format} label={`${letter} seçeneği`} value={o.mediaId} onChange={(mediaId) => update(i, { ...o, mediaId })} disabled={disabled} />
+                      <InlineHtmlField
+                        value={o.text}
+                        placeholder="Altyazı (isteğe bağlı)"
+                        onChange={(text) => update(i, { ...o, text })}
+                        disabled={disabled}
+                      />
+                      {format === "AUDIO" || format === "VIDEO" ? (
+                        <PlaybackPolicyFields value={o.playback} onChange={(playback) => update(i, { ...o, playback })} disabled={disabled} />
+                      ) : null}
+                    </>
+                  )}
+                  {renderRowExtra?.(o, i)}
+                </div>
+
+                <div className="flex items-center gap-0.5">
+                  <Button type="button" size="sm" variant="ghost" disabled={disabled || i === 0} onClick={() => move(i, -1)} aria-label={`${letter} seçeneğini yukarı taşı`} title="Yukarı taşı">
+                    <IconArrowUp className="size-3.5" aria-hidden />
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={disabled || i === rows.length - 1} onClick={() => move(i, 1)} aria-label={`${letter} seçeneğini aşağı taşı`} title="Aşağı taşı">
+                    <IconArrowDown className="size-3.5" aria-hidden />
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={() => removeRow(i, o)} aria-label={`${letter} seçeneğini sil`} title="Sil">
+                    <IconX className="size-3.5" aria-hidden />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={addRow}
+        className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong text-[13px] font-medium text-fg-muted transition-colors hover:border-primary-300 hover:bg-primary-50/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        + Seçenek ekle
+      </button>
     </div>
   );
 }

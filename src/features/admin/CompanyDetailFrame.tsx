@@ -76,7 +76,7 @@ export function CompanyDetailFrame({
   }
 
   if (isError) {
-    return <ErrorState message={error instanceof Error ? error.message : "Kurum yüklenemedi"} />;
+    return <ErrorState error={error} />;
   }
 
   return (

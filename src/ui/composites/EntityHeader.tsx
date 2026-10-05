@@ -70,12 +70,12 @@ export function EntityHeader({
   return (
     <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="flex min-w-0 items-start gap-3.5">
-        <div aria-hidden className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary-50 text-base font-bold text-primary-700 ring-1 ring-primary-100">
+        <div aria-hidden className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-primary-500 to-primary-800 text-base font-bold text-white shadow-sm">
           {avatar ?? initials(title)}
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <Title className="truncate text-xl font-semibold tracking-tight text-fg">{title}</Title>
+            <Title className="truncate font-display text-[22px] font-semibold tracking-tight text-fg">{title}</Title>
             {status ? (
               <Badge dot tone={statusTone === "brand" ? "info" : statusTone}>
                 {status}

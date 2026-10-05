@@ -68,7 +68,9 @@ function buttonClass(uiVariant: ReturnType<typeof useUiVariant>, { variant = "pr
   const tone = (uiVariant === "storefront" && storefrontTones[variant]) || ((uiVariant === "admin" || uiVariant === "staff") && adminTones[variant]) || variant;
   return cn(
     // Köşe ve yazı kalınlığı variant'ta: cn çakışan sınıfları birleştirmediği için base'te tutulmaz.
-    "relative inline-flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+    "relative inline-flex items-center justify-center gap-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+    // Kompakt admin butonları tek satır kalır; staff/öğrenci/vitrinde uzun etiket dar ekranda sarabilsin.
+    uiVariant === "admin" && "shrink-0 whitespace-nowrap",
     variants[tone],
     variant === "link" ? "h-auto" : (uiVariant === "admin" ? adminSizes : sizes)[size],
     uiVariant === "staff" && "min-h-11",
@@ -83,7 +85,9 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> &
     icon?: ReactNode;
   };
 
-const iconSlot = "shrink-0 [&>svg]:size-4";
+const iconSlot = "inline-flex shrink-0 [&>svg]:size-4";
+// İçerik: ikon + metin her zaman tek satırda yan yana (Tailwind preflight `svg { display: block }` satır kırmasın).
+const labelSlot = "inline-flex min-w-0 items-center gap-1.5 [&>svg]:shrink-0";
 
 export function Button({ variant = "primary", size = "md", loading = false, fullWidth = false, icon, className, children, disabled, ...props }: Props) {
   const uiVariant = useUiVariant();
@@ -95,8 +99,13 @@ export function Button({ variant = "primary", size = "md", loading = false, full
       className={cn(buttonClass(uiVariant, { variant, size, fullWidth }), className)}
     >
       {icon ? <span aria-hidden className={cn(iconSlot, loading && "invisible")}>{icon}</span> : null}
-      <span className={cn(loading && "invisible")}>{children}</span>
-      {loading ? <span className="absolute">Kaydediliyor</span> : null}
+      <span className={cn(labelSlot, loading && "invisible")}>{children}</span>
+      {loading ? (
+        <span className="absolute inset-0 flex items-center justify-center" role="status">
+          <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80" />
+          <span className="sr-only">İşleniyor</span>
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -119,7 +128,7 @@ export function ButtonLink({
   return (
     <Link href={href} {...props} className={cn(buttonClass(uiVariant, { variant, size, fullWidth }), className)}>
       {icon ? <span aria-hidden className={iconSlot}>{icon}</span> : null}
-      <span>{children}</span>
+      <span className={labelSlot}>{children}</span>
     </Link>
   );
 }

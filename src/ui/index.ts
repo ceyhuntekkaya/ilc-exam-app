@@ -1,5 +1,5 @@
 export { Button, ButtonLink } from "@/src/ui/primitives/Button";
-export { Field } from "@/src/ui/primitives/Field";
+export { Field, FieldAction } from "@/src/ui/primitives/Field";
 export { Input } from "@/src/ui/primitives/Input";
 export { Textarea } from "@/src/ui/primitives/Textarea";
 export { Select } from "@/src/ui/primitives/Select";
@@ -18,7 +18,8 @@ export { Toaster, notify, errorMessage, type ToastTone } from "@/src/ui/composit
 export { DetailShell } from "@/src/ui/composites/DetailShell";
 export { EntityHeader, type EntityMetric } from "@/src/ui/composites/EntityHeader";
 export { DetailGroupTabs, DetailSectionPills } from "@/src/ui/composites/DetailTabs";
-export { SectionTable, type SectionColumn } from "@/src/ui/composites/SectionTable";
+export { SectionTable, SectionToolbar, type SectionColumn } from "@/src/ui/composites/SectionTable";
+export { SecretNotice } from "@/src/ui/composites/SecretNotice";
 export type { DetailTabGroup, DetailTabItem } from "@/src/ui/composites/DetailTabs";
 export { DefinitionList } from "@/src/ui/composites/DefinitionList";
 export { ActionBar } from "@/src/ui/composites/ActionBar";
@@ -28,6 +29,7 @@ export { MoneyBreakdown } from "@/src/ui/composites/MoneyBreakdown";
 export { AmountDelta } from "@/src/ui/composites/AmountDelta";
 export { MaskedValue } from "@/src/ui/composites/MaskedValue";
 export { Tabs } from "@/src/ui/composites/Tabs";
+export { FilterTabs, type FilterTabItem } from "@/src/ui/composites/FilterTabs";
 export { UiVariantProvider, type UiVariant } from "@/src/ui/primitives/UiVariant";
 export { PasswordInput } from "@/src/ui/primitives/PasswordInput";
 export { PhoneInput } from "@/src/ui/primitives/PhoneInput";

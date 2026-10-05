@@ -23,6 +23,7 @@ import {
   type QuestionPart,
   type Skill,
 } from "@/src/features/authoring/shared/client";
+import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
 import { useContentBasePath } from "@/src/features/panel/PanelContext";
@@ -33,14 +34,20 @@ import {
 } from "@/src/features/exam-player";
 import {
   Button,
+  EmptyState,
+  ErrorState,
   Field,
   FormCard,
   Input,
   MultiPicker,
   PageHeader,
   Select,
+  Skeleton,
+  SkeletonStatus,
   errorMessage,
   notify,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@/src/ui";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -55,7 +62,7 @@ const SKILLS: Skill[] = [
   "USE_OF_ENGLISH",
 ];
 
-const SKILL_LABEL: Record<Skill, string> = {
+export const SKILL_LABEL: Record<Skill, string> = {
   READING: "Okuma",
   LISTENING: "Dinleme",
   WRITING: "Yazma",
@@ -66,6 +73,20 @@ const SKILL_LABEL: Record<Skill, string> = {
 };
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
+
+const SECURITY_LABEL: Record<string, string> = {
+  STANDARD: "Standart",
+  SECURE: "Güvenli",
+  HIGH_STAKES: "Yüksek önemli",
+};
+
+const SCORING_LABEL: Record<string, string> = {
+  ALL_OR_NOTHING: "Tam puan / sıfır",
+  PARTIAL: "Kısmi puan",
+  PARTIAL_WITH_PENALTY: "Kısmi puan (yanlış cezalı)",
+  RUBRIC: "Rubrikle",
+};
+
 
 /** Saklanan kod: anasınıfı -2/-1/0, sonra 1–12. sınıf. */
 const MEB_GRADES: Array<{ value: string; label: string }> = [
@@ -500,10 +521,19 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   }, [openPanel, q?.questionId]);
 
   if (!tenant) {
-    return <p className="text-sm text-fg-muted">Kurum seçin.</p>;
+    return <EmptyState title="İçerik kiracısı seçilmedi" description="Soruyu düzenlemek için önce kurum / içerik kiracısı seçilmelidir." />;
   }
   if (!q) {
-    return error ? <p className="text-sm text-danger">{error}</p> : <p className="text-sm text-fg-muted">Yükleniyor…</p>;
+    return error ? (
+      <ErrorState title="Soru açılamadı" message={error} compact />
+    ) : (
+      <div className="grid gap-4" aria-busy="true">
+        <SkeletonStatus label="Soru yükleniyor" />
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <Skeleton className="h-72 w-full rounded-xl" />
+      </div>
+    );
   }
 
   const rubricOptions = rubrics
@@ -514,43 +544,84 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     <div className="space-y-4">
       <PageHeader
         title={q.code}
-        description={`v${q.versionNo} · ${selectedPart?.interactionType ?? ""}`}
+        description={`Sürüm ${q.versionNo} · ${q.parts.length} part · ${template?.label ?? selectedPart?.interactionType ?? "Tip seçilmedi"}`}
         back={{ href: basePath, label: "Soru bankası" }}
-        actions={<StatusBadge status={q.status} />}
+        actions={
+          <span className="flex items-center gap-2">
+            {!editable ? <span className="text-xs text-fg-subtle">Salt okunur</span> : null}
+            <StatusBadge status={q.status} />
+          </span>
+        }
       />
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="rounded-lg border border-danger/20 bg-danger-bg px-3.5 py-2.5 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        {PANELS.map((label, i) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setOpenPanel(i)}
-            className={`rounded-full px-3 py-1 text-sm ${
-              openPanel === i ? "bg-primary text-white" : "bg-bg text-fg-muted"
-            }`}
-          >
-            {i + 1}. {label}
-          </button>
-        ))}
-      </div>
+      <nav aria-label="Soru düzenleme adımları" className="scrollbar-none overflow-x-auto rounded-xl border border-border bg-surface p-1.5 shadow-sm">
+        <ol className="flex min-w-max gap-1">
+          {PANELS.map((label, i) => {
+            const active = openPanel === i;
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  aria-current={active ? "step" : undefined}
+                  onClick={() => setOpenPanel(i)}
+                  className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[13px] font-medium whitespace-nowrap transition-colors ${
+                    active ? "bg-primary-50 text-primary ring-1 ring-primary-200" : "text-fg-muted hover:bg-neutral-50 hover:text-fg"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`flex size-5 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ${
+                      active ? "bg-primary text-white" : "bg-neutral-100 text-fg-subtle"
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  {label}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
-      <div className="space-y-6">
+      <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(26rem,38rem)]">
+      <div className="min-w-0 space-y-6">
         {openPanel === 0 ? (
-          <FormCard title="Soru tipi">
-            <div className="grid gap-2 sm:grid-cols-2">
+          <FormCard title="Soru tipi" description="Seçili part'ın etkileşim tipi. Tip değişirse part içeriği sıfırlanır.">
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {TEMPLATE_REGISTRY.map((t) => (
                 <button
                   key={t.type}
                   type="button"
                   disabled={!editable}
                   onClick={() => void changeType(t.type)}
-                  className={`rounded-lg border p-3 text-left text-sm ${
-                    selectedPart?.interactionType === t.type ? "border-primary bg-primary/5" : "border-border"
+                  aria-pressed={selectedPart?.interactionType === t.type}
+                  className={`relative rounded-lg border p-3 pr-9 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    selectedPart?.interactionType === t.type
+                      ? "border-primary bg-primary-50/60 ring-1 ring-primary-200"
+                      : "border-border hover:border-border-strong hover:bg-neutral-50"
                   }`}
                 >
-                  <p className="font-medium">{t.label}</p>
-                  <p className="text-xs text-fg-muted">{t.hint}</p>
+                  <p className="font-medium text-fg">{t.label}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-fg-muted">{t.hint}</p>
+                  <span className="mt-2 flex flex-wrap gap-1">
+                    <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] text-fg-subtle">
+                      {t.autoGradable ? "Otomatik puan" : "Elle değerlendirme"}
+                    </span>
+                    {t.requiresRubric ? (
+                      <span className="rounded bg-(--accent-plum-bg) px-1.5 py-0.5 text-[11px] text-(--accent-plum)">Rubrik</span>
+                    ) : null}
+                  </span>
+                  {selectedPart?.interactionType === t.type ? (
+                    <span aria-hidden className="absolute top-3 right-3 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] text-white">
+                      ✓
+                    </span>
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -558,9 +629,18 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         ) : null}
 
           {openPanel === 1 ? (
-            <FormCard title="Sınıflandırma">
-              <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-6">
-                <Field label="CEFR">
+            <FormCard
+              title="Sınıflandırma"
+              description="Soru bankasında arama, filtre ve sınav eşleştirmesi bu alanlarla yapılır."
+              footer={
+                <Button disabled={!editable || saving} loading={saving} onClick={() => void saveMetadata()}>
+                  Sınıflandırmayı kaydet
+                </Button>
+              }
+            >
+              <FormGroup title="Seviye ve beceri">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Field label="CEFR seviyesi">
                   <Select value={cefr} disabled={!editable} onChange={(e) => setCefr(e.target.value)}>
                     <option value="">—</option>
                     {CEFR.map((c) => (
@@ -583,7 +663,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     ))}
                   </Select>
                 </Field>
-                <Field label="MEB sınıf">
+                <Field label="MEB sınıfı">
                   <Select value={mebGrade} disabled={!editable} onChange={(e) => setMebGrade(e.target.value)}>
                     <option value="">—</option>
                     {MEB_GRADES.map((g) => (
@@ -599,38 +679,50 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Güvenlik">
+              </div>
+              </FormGroup>
+              <FormGroup title="Süre ve güvenlik" hint="Süreler saniye cinsindendir; boş bırakılırsa sınav ayarı geçerlidir.">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <Field label="Tahmini süre">
+                  <Input suffix="sn" type="number" min={0} inputMode="numeric" placeholder="ör. 60" value={estimatedTimeSec} disabled={!editable} onChange={(e) => setEstimatedTimeSec(e.target.value)} />
+                </Field>
+                <Field label="Süre limiti">
+                  <Input suffix="sn" type="number" min={0} inputMode="numeric" placeholder="Sınırsız" value={timeLimitSec} disabled={!editable} onChange={(e) => setTimeLimitSec(e.target.value)} />
+                </Field>
+                <Field label="Güvenlik düzeyi">
                   <Select value={securityLevel} disabled={!editable} onChange={(e) => setSecurityLevel(e.target.value)}>
-                    <option value="STANDARD">STANDARD</option>
-                    <option value="SECURE">SECURE</option>
-                    <option value="HIGH_STAKES">HIGH_STAKES</option>
+                    {Object.entries(SECURITY_LABEL).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
                   </Select>
                 </Field>
-                <Field label="Tahmini süre (sn)">
-                  <Input type="number" value={estimatedTimeSec} disabled={!editable} onChange={(e) => setEstimatedTimeSec(e.target.value)} />
-                </Field>
-                <Field label="Süre limiti (sn)">
-                  <Input type="number" value={timeLimitSec} disabled={!editable} onChange={(e) => setTimeLimitSec(e.target.value)} />
-                </Field>
               </div>
-              <Field label="Etiketler">
+              </FormGroup>
+              <FormGroup title="Etiketler" hint="Konu, kazanım veya kaynak etiketleri; soru bankasında filtre olarak kullanılır.">
                 <MultiPicker
-                  label="Etiketler"
+                  label="Etiket"
                   layout="chips"
                   collapsible
+                  searchPlaceholder="Etiket ara"
+                  emptyText="Henüz etiket seçilmedi."
                   options={tags.map((t) => ({ value: t.id, label: t.name }))}
                   value={tagIds}
                   onChange={setTagIds}
                 />
-              </Field>
-              <Button disabled={!editable || saving} onClick={() => void saveMetadata()}>
-                Sınıflandırmayı kaydet
-              </Button>
+              </FormGroup>
             </FormCard>
           ) : null}
 
           {openPanel === 2 ? (
-            <FormCard title="Uyaran (QuestionBody)">
+            <FormCard
+              title="Uyaran"
+              description="Tüm part'lar için ortak yönerge, ses ve okuma metni."
+              footer={
+                <Button disabled={!editable || saving} loading={saving} onClick={() => void saveBody()}>
+                  Uyaranı kaydet
+                </Button>
+              }
+            >
               <BlockHtmlField label="Yönerge" value={instruction} onChange={setInstruction} disabled={!editable} />
               <div className="grid items-start gap-4 md:grid-cols-2">
                 <div className="min-w-0 space-y-2">
@@ -657,28 +749,41 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   ) : null}
                 </div>
               </div>
-              <ContentBlockList value={stimulus} onChange={setStimulus} disabled={!editable} title="Stimulus" />
-              <Button disabled={!editable || saving} onClick={() => void saveBody()}>
-                Uyaranı kaydet
-              </Button>
+              <ContentBlockList value={stimulus} onChange={setStimulus} disabled={!editable} title="Okuma / görsel içerik" />
             </FormCard>
           ) : null}
 
           {openPanel === 3 || openPanel === 4 || openPanel === 5 ? (
-            <FormCard title={openPanel === 3 ? "İçerik" : openPanel === 4 ? "Cevap / puan" : "Gerekçe"}>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
+            <FormCard
+              title={openPanel === 3 ? "İçerik" : openPanel === 4 ? "Cevap ve puanlama" : "Gerekçe"}
+              description={selectedPart ? `Part ${selectedPart.position + 1} · ${getTemplate(selectedPart.interactionType)?.label ?? selectedPart.interactionType}` : undefined}
+              footer={
+                partDraft && selectedPart ? (
+                  <Button disabled={!editable || saving} loading={saving} onClick={() => void savePart()}>
+                    {"Part'ı kaydet"}
+                  </Button>
+                ) : undefined
+              }
+            >
+              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-neutral-50 p-1.5 ring-1 ring-border ring-inset">
+                <div role="tablist" aria-label="Part'lar" className="flex flex-wrap gap-1">
                 {q.parts.map((p) => (
                   <button
                     key={p.id}
                     type="button"
+                    role="tab"
+                    aria-selected={selectedPart?.id === p.id}
                     onClick={() => setSelectedPartId(p.id)}
-                    className={`rounded-lg px-2 py-1 text-xs ${
-                      selectedPart?.id === p.id ? "bg-primary text-white" : "bg-bg"
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${
+                      selectedPart?.id === p.id ? "bg-surface text-primary shadow-sm ring-1 ring-primary-200" : "text-fg-muted hover:bg-surface hover:text-fg"
                     }`}
                   >
-                    Part {p.position + 1}: {p.interactionType}
+                    <span className="font-semibold tabular-nums">{p.position + 1}</span>
+                    <span>{getTemplate(p.interactionType)?.label ?? p.interactionType}</span>
                   </button>
                 ))}
+                </div>
+                <span aria-hidden className="mx-1 hidden h-5 w-px bg-border sm:block" />
                 <div className="relative">
                   <Button
                     type="button"
@@ -742,9 +847,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   <Button
                     type="button"
                     size="sm"
-                    variant="ghost"
+                    variant="danger"
                     disabled={!editable}
                     onClick={() =>
+                      confirm(`Part ${selectedPart.position + 1} silinsin mi? İçeriği ve cevap anahtarı kaybolur.`) &&
                       void notify
                         .run(authoringApi.removePart(q.versionId, selectedPart.id), {
                           success: "Part silindi",
@@ -780,8 +886,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                           .then(setQ)
                           .catch(() => undefined)
                       }
+                      aria-label="Part'ı sola taşı"
+                      title="Sola taşı"
                     >
-                      ←
+                      <IconChevronLeft className="size-3.5" aria-hidden />
                     </Button>
                     <Button
                       type="button"
@@ -801,8 +909,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                           .then(setQ)
                           .catch(() => undefined)
                       }
+                      aria-label="Part'ı sağa taşı"
+                      title="Sağa taşı"
                     >
-                      →
+                      <IconChevronRight className="size-3.5" aria-hidden />
                     </Button>
                   </>
                 ) : null}
@@ -812,12 +922,25 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 <div className="space-y-4">
                   {openPanel === 3 ? (
                     <>
-                      <ContentBlockList
-                        value={partDraft.stem}
-                        onChange={(stem) => setPartDraft({ ...partDraft, stem })}
-                        disabled={!editable}
-                        title="Stem"
-                      />
+                      <p className="rounded-lg bg-info-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-info">
+                        Bu adımda öğrencinin <strong>bu part’ta</strong> göreceği soruyu yazarsınız. Tüm part’lar için ortak okuma metni ya da dinleme sesi
+                        varsa onu <button type="button" className="font-semibold underline underline-offset-2" onClick={() => setOpenPanel(2)}>3. Uyaran</button> adımına ekleyin.
+                      </p>
+                      <FormGroup
+                        title="1. Soru kökü"
+                        hint="Öğrenciye sorulan cümle veya yönerge (ör. “Metne göre yazarın asıl amacı nedir?”). Gerekirse görsel ya da ses bloğu ekleyin."
+                      >
+                        <ContentBlockList
+                          value={partDraft.stem}
+                          onChange={(stem) => setPartDraft({ ...partDraft, stem })}
+                          disabled={!editable}
+                          title="Soru kökü blokları"
+                        />
+                      </FormGroup>
+                      <FormGroup
+                        title={`2. ${template?.label ?? "Etkileşim"} ayarları`}
+                        hint={`${template?.hint ?? ""} Doğru cevabı burada işaretleyebilirsiniz; puanlama ayrıntıları 5. adımdadır.`.trim()}
+                      >
                       <InteractionForm
                         type={selectedPart.interactionType}
                         value={partDraft.interaction}
@@ -838,11 +961,12 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                         }
                         disabled={!editable}
                       />
+                      </FormGroup>
                     </>
                   ) : null}
                   {openPanel === 4 ? (
                     <>
-                      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-4">
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <Field label="Beceri">
                           <Select
                             value={partDraft.skill}
@@ -854,7 +978,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                             ))}
                           </Select>
                         </Field>
-                        <Field label="Max puan">
+                        <Field label="Maksimum puan">
                           <Input
                             type="number"
                             value={partDraft.maxScore}
@@ -879,19 +1003,26 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                             onChange={(e) => setPartDraft({ ...partDraft, scoringMode: e.target.value })}
                           >
                             {(template?.scoringModes ?? ["ALL_OR_NOTHING"]).map((m) => (
-                              <option key={m} value={m}>{m}</option>
+                              <option key={m} value={m}>{SCORING_LABEL[m] ?? m}</option>
                             ))}
                           </Select>
                         </Field>
                       </div>
-                      <Field label="Öğrenme çıktıları">
+                      <FormGroup
+                        title="Öğrenme çıktıları (kazanımlar)"
+                        hint="Bu part'ın ölçtüğü kazanımları işaretleyin. Öğrenci karnesi ve kazanım raporları bu eşleşmeyle hesaplanır; genelde 1–3 kazanım yeterlidir."
+                      >
                         <MultiPicker
-                          label="Öğrenme çıktıları"
-                          options={outcomes.map((o) => ({ value: o.id, label: `${o.code} — ${o.description}` }))}
+                          label="Öğrenme çıktısı"
+                          codeLabels
+                          searchPlaceholder="Kazanım kodu veya açıklama ara"
+                          emptyText="Henüz kazanım seçilmedi. Aşağıdaki listeden işaretleyin."
+                          noResultText="Aramayla eşleşen kazanım yok."
+                          options={outcomes.map((o) => ({ value: o.id, label: o.code, description: o.description }))}
                           value={partDraft.outcomeIds}
                           onChange={(outcomeIds) => setPartDraft({ ...partDraft, outcomeIds })}
                         />
-                      </Field>
+                      </FormGroup>
                       {template?.requiresRubric ? (
                         <Field
                           label="Rubrik grubu"
@@ -937,19 +1068,18 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                       />
                     )
                   ) : null}
-                  <Button disabled={!editable || saving} onClick={() => void savePart()}>
-                    Part kaydet
-                  </Button>
                 </div>
               ) : null}
             </FormCard>
           ) : null}
 
           {openPanel === 6 ? (
-            <FormCard title="Kaydet / İnceleme">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => void runValidate(false)}>Doğrula</Button>
-                <Button variant="secondary" onClick={() => void runValidate(true)}>Yayın doğrula</Button>
+            <FormCard title="Kaydet ve inceleme" description="Önce doğrulayın; eksik yoksa incelemeye gönderin.">
+              <div className="grid gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-full text-xs font-semibold text-fg-subtle sm:w-24">İş akışı</span>
+                <Button variant="secondary" onClick={() => void runValidate(false)}>Eksikleri kontrol et</Button>
+                <Button variant="secondary" onClick={() => void runValidate(true)}>Yayına hazır mı?</Button>
                 <Button
                   disabled={!editable}
                   onClick={() =>
@@ -992,6 +1122,9 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 >
                   Taslağa döndür
                 </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                <span className="w-full text-xs font-semibold text-fg-subtle sm:w-24">Kopya / sürüm</span>
                 <Button
                   variant="secondary"
                   onClick={() =>
@@ -1026,7 +1159,9 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 </Button>
                 <Button
                   variant="danger"
+                  className="sm:ml-auto"
                   onClick={() =>
+                    confirm("Soru arşivlensin mi? Arşivlenen soru yeni sınavlara eklenemez.") &&
                     void notify
                       .run(authoringApi.archiveQuestion(q.questionId), {
                         success: "Arşivlendi",
@@ -1041,9 +1176,14 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   Arşivle
                 </Button>
               </div>
-              <div className="mt-3 grid items-start gap-3 md:grid-cols-3">
+              </div>
+              <div className="mt-2 grid items-start gap-5 border-t border-border pt-4 lg:grid-cols-3">
                 <div className="min-w-0 space-y-1">
-                  <p className="text-xs font-medium text-fg-muted">Eksikler{impact ? ` · Etki: ${impact}` : ""}</p>
+                  <p className="text-[13px] font-semibold text-fg">
+                    Eksikler{" "}
+                    {violations.length ? <span className="rounded-full bg-danger-bg px-1.5 text-[11px] text-danger">{violations.length}</span> : null}
+                  </p>
+                  {impact ? <p className="text-xs text-fg-subtle">Kullanıldığı yer: {impact}</p> : null}
                   {violations.length ? (
                     <ul className="max-h-72 space-y-2 overflow-y-auto">
                       {violations.map((v, i) => {
@@ -1052,7 +1192,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                           <li key={`${v.path}-${i}`}>
                             <button
                               type="button"
-                              className="flex min-h-11 w-full flex-col items-start justify-center rounded-lg bg-bg px-3 py-2 text-left"
+                              className="flex min-h-11 w-full flex-col items-start justify-center rounded-lg border border-danger/15 bg-danger-bg/50 px-3 py-2 text-left transition-colors hover:border-danger/40"
                               onClick={() => {
                                 const focus = focusForViolation(v.path);
                                 if (focus.partIndex != null) {
@@ -1070,29 +1210,38 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                       })}
                     </ul>
                   ) : (
-                    <p className="text-sm text-fg-muted">Son kontrolde eksik yok.</p>
+                    <p className="rounded-lg bg-success-bg px-3 py-2 text-sm text-success">Son kontrolde eksik yok.</p>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-fg-muted">Geçmiş</p>
-                  <p className="text-xs leading-relaxed text-fg-muted">
-                    {history.length
-                      ? history.map((h) => `${h.action}: ${h.summary}`).join(" · ")
-                      : "—"}
-                  </p>
+                  <p className="text-[13px] font-semibold text-fg">Geçmiş</p>
+                  {history.length ? (
+                    <ol className="mt-2 grid max-h-72 gap-2 overflow-y-auto border-l-2 border-border pl-3">
+                      {history.map((h, i) => (
+                        <li key={i} className="text-xs leading-relaxed">
+                          <span className="font-semibold text-fg">{h.action}</span>
+                          <span className="block text-fg-muted">{h.summary}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="mt-1 text-xs text-fg-subtle">Kayıt yok.</p>
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-fg-muted">Düşman sorular</p>
+                  <p className="text-[13px] font-semibold text-fg">Düşman sorular</p>
+                  <p className="text-xs text-fg-subtle">Aynı sınavda birlikte çıkmaması gereken sorular.</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <Input
                       className="min-w-[8rem] flex-1"
                       value={enemyInput}
                       onChange={(e) => setEnemyInput(e.target.value)}
-                      placeholder="questionId"
+                      placeholder="Soru kimliği (UUID)"
+                      aria-label="Düşman soru kimliği"
                     />
                     <Button
                       size="sm"
-                      disabled={!editable}
+                      disabled={!editable || !enemyInput.trim()}
                       onClick={() =>
                         void notify
                           .run(authoringApi.addEnemy(q.questionId, enemyInput), {
@@ -1134,11 +1283,14 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
             </FormCard>
           ) : null}
 
+      </div>
+      <aside aria-label="Öğrenci önizlemesi" className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm 2xl:sticky 2xl:top-20 2xl:max-h-[calc(100dvh-6rem)] 2xl:overflow-y-auto">
         <QuestionPreviewShell
           model={previewModel}
           rubricParts={previewRubricParts}
           rubricCatalog={rubrics}
         />
+      </aside>
       </div>
     </div>
   );

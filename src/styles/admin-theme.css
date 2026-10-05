@@ -1,0 +1,138 @@
+/*
+  Super Admin teması — "sınav kâğıdı + mürekkep".
+  Kapsam: yalnız `[data-panel="admin"]` (PanelChrome kökü). Staff, öğrenci,
+  landing bu dosyadan etkilenmez.
+
+  Nasıl çalışır: Tailwind v4 utility'leri (`bg-primary-600`) değeri
+  `var(--color-primary-600)` üzerinden okur. Ölçekleri bu kapsamda yeniden
+  tanımlayınca `src/ui` bileşenlerinin tamamı tek yerden yeni paleti alır;
+  bileşenlerde renk değiştirmeye gerek kalmaz.
+
+  Paletler:
+    primary   → Mürekkep mavisi (tükenmez kalem). CTA, link, odak, aktif nav.
+    neutral   → Soğuk kâğıt grisi (hafif mavi). Yüzey, çizgi, metin.
+    secondary → Fosforlu kalem sarısı. Vurgu, "dikkat çek", işaretleme.
+    accent-*  → Dashboard / kategori ayrımı için ek tonlar (teal, mor).
+  Semantik (success/warning/danger/info) mevcut ölçeklerden gelir.
+*/
+
+[data-panel][data-panel="admin"] {
+  /* — Mürekkep mavisi — */
+  --color-primary-50: #f0f3ff;
+  --color-primary-100: #e1e7fe;
+  --color-primary-200: #c7d1fd;
+  --color-primary-300: #a1b1fa;
+  --color-primary-400: #7486f5;
+  --color-primary-500: #4f5fec;
+  --color-primary-600: #3a45de;
+  --color-primary-700: #2f36c1;
+  --color-primary-800: #29309b;
+  --color-primary-900: #272f7a;
+  --color-primary-950: #181c47;
+
+  /* — Kâğıt grisi — */
+  --color-neutral-50: #f6f7f9;
+  --color-neutral-100: #eceef2;
+  --color-neutral-200: #dde1e8;
+  --color-neutral-300: #c3c9d4;
+  --color-neutral-400: #8f98a8;
+  --color-neutral-500: #677184;
+  --color-neutral-600: #4f586a;
+  --color-neutral-700: #3d4555;
+  --color-neutral-800: #283041;
+  --color-neutral-900: #1a2030;
+  --color-neutral-950: #0e1320;
+
+  /* — Fosforlu kalem — */
+  --color-secondary-50: #fffbea;
+  --color-secondary-100: #fff3c4;
+  --color-secondary-200: #ffe685;
+  --color-secondary-300: #ffd546;
+  --color-secondary-400: #ffc41b;
+  --color-secondary-500: #f5a70a;
+  --color-secondary-600: #d98006;
+  --color-secondary-700: #b45909;
+  --color-secondary-800: #92450e;
+  --color-secondary-900: #783a0f;
+  --color-secondary-950: #451d03;
+
+  /* — Semantik panel tokenları — */
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --fg: var(--color-neutral-950);
+  --fg-muted: var(--color-neutral-600);
+  --fg-subtle: var(--color-neutral-500);
+  --primary: var(--color-primary-600);
+  --primary-fg: #ffffff;
+  --primary-hover: var(--color-primary-700);
+  --focus: var(--color-primary-500);
+  --shadow: 0 1px 2px rgb(14 19 32 / 4%), 0 4px 16px rgb(14 19 32 / 4%);
+
+  /* — Kabuk (sidebar) — */
+  --sidebar-bg: #111832;
+  --sidebar-bg-2: #0b1126;
+  --sidebar-line: rgb(255 255 255 / 7%);
+  --sidebar-fg: #c9d0e4;
+  --sidebar-fg-muted: #7d87a6;
+
+  /* — Ek vurgu tonları (stat kartı, kategori) — */
+  --accent-ink: var(--color-primary-600);
+  --accent-ink-bg: var(--color-primary-50);
+  --accent-teal: #0f8a7e;
+  --accent-teal-bg: #e6f6f3;
+  --accent-marker: #b45909;
+  --accent-marker-bg: #fff3c4;
+  --accent-plum: #8a3fb8;
+  --accent-plum-bg: #f6ecfb;
+  --accent-red: #c8323c;
+  --accent-red-bg: #fdecee;
+
+  /* — Konteyner sistemi —
+     İçerik tam genişlik; max-width / ortalama YOK (büyük ekranda ortada sıkışmasın).
+     İki yanda breakpoint'e göre sabit boşluk: mobil 16px, sm 24px, lg 32px.
+     Header ve main aynı konteyneri kullanır → breadcrumb ile sayfa başlığı aynı hizada. */
+  --gutter: 1rem;
+  --container-narrow: 960px; /* yalnız form içeriği için: max-w-(--container-narrow) */
+
+  background: var(--bg);
+  color: var(--fg);
+}
+
+@media (width >= 40rem) {
+  [data-panel][data-panel="admin"] {
+    --gutter: 1.5rem;
+  }
+}
+
+@media (width >= 64rem) {
+  [data-panel][data-panel="admin"] {
+    --gutter: 2rem;
+  }
+}
+
+@utility panel-container {
+  width: 100%;
+  padding-inline: var(--gutter);
+}
+
+/* Sayfa başlıkları: akademik serif, admin'e özgü kimlik. */
+[data-panel][data-panel="admin"] header.mb-6 h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
+  letter-spacing: -0.015em;
+  font-variation-settings: "opsz" 72;
+}
+
+/* Kart gölgesi: yumuşak, iki katmanlı. */
+[data-panel][data-panel="admin"] .shadow-sm {
+  box-shadow: var(--shadow);
+}
+
+[data-panel][data-panel="admin"] ::selection {
+  background: var(--color-secondary-200);
+  color: var(--color-neutral-950);
+}

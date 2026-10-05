@@ -26,11 +26,11 @@
 
 | Bölge | Davranış |
 |---|---|
-| Sidebar | Koyu gradient (`neutral-800 → 900`), grup başlıkları uppercase küçük, ikon + etiket |
-| Aktif nav | `bg-white/10`, solda `primary` şerit, `aria-current="page"` |
+| Sidebar | Mürekkep gradient (`--sidebar-bg → --sidebar-bg-2`), optik-form marka işareti, aktif öğede sarı "işaretli baloncuk" |
+| Aktif nav | `bg-primary-500/18` + iç halka, sağda `secondary-300` baloncuk, `aria-current="page"` |
 | Üst şerit | Yapışkan; breadcrumb = `Grup / Sayfa`; mobilde hamburger |
 | Kullanıcı | Avatar baş harf, rol etiketi (“Süper yönetici”), çıkış ikonu |
-| İçerik | `main#main`, `px-4/6/8`, odak programatik taşınabilir (route değişiminde) |
+| İçerik | `main#main` + header aynı `panel-container` (tam genişlik, sabit yan boşluk 16/24/32px), odak programatik taşınabilir (route değişiminde) |
 
 Nav grupları: `src/config/nav.ts`. Yeni Super Admin sayfası önce buraya eklenir.
 

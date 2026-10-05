@@ -17,13 +17,14 @@ import {
   FormDialog,
   Input,
   SectionTable,
+  SectionToolbar,
   errorMessage,
   notify,
 } from "@/src/ui";
 
 export function YearsSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error } = useYears(id);
+  const { data, isLoading, isError, error, refetch } = useYears(id);
   const rows = data?.data ?? [];
   const create = useCreateYear();
   const activate = useActivateYear();
@@ -31,16 +32,16 @@ export function YearsSection({ companyId }: { companyId: string }) {
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "Dönem", "Durum", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      <div className="flex justify-end">
+      <SectionToolbar count={rows.length} noun="sezon">
         <Button size="sm" onClick={() => setOpen(true)}>
           Sezon ekle
         </Button>
-      </div>
+      </SectionToolbar>
       <SectionTable
         flush
         empty="Sezon yok"
@@ -86,6 +87,12 @@ export function YearsSection({ companyId }: { companyId: string }) {
         error={formError}
         onSubmit={async (fd) => {
           setFormError(null);
+          const __s = String(fd.get("startDate") || "");
+          const __e = String(fd.get("endDate") || "");
+          if (__s && __e && __e < __s) {
+            setFormError("Sezon bitişi başlangıçtan önce olamaz.");
+            return;
+          }
           try {
             await create.mutateAsync({
               id,
@@ -108,12 +115,14 @@ export function YearsSection({ companyId }: { companyId: string }) {
         <Field label="Ad" required>
           <Input name="name" required placeholder="2026-2027" />
         </Field>
-        <Field label="Başlangıç" required>
-          <Input name="startDate" type="date" required />
-        </Field>
-        <Field label="Bitiş" required>
-          <Input name="endDate" type="date" required />
-        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Başlangıç" required>
+            <Input name="startDate" type="date" required />
+          </Field>
+          <Field label="Bitiş" required>
+            <Input name="endDate" type="date" required />
+          </Field>
+        </div>
       </FormDialog>
     </div>
   );

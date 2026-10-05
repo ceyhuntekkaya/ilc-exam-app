@@ -13,7 +13,7 @@ export function Tabs({
   if (!current) return null;
   return (
     <div>
-      <div role="tablist" className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
+      <div role="tablist" className="flex gap-1 overflow-x-auto rounded-xl bg-neutral-100 p-1 ring-1 ring-border ring-inset">
         {items.map((item) => {
           const selected = item.id === current.id;
           return (
@@ -24,7 +24,7 @@ export function Tabs({
               aria-selected={selected}
               className={cn(
                 "min-h-11 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap",
-                selected ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700",
+                selected ? "bg-surface text-fg shadow-sm ring-1 ring-border" : "text-fg-muted hover:text-fg",
               )}
               onClick={() => setActive(item.id)}
             >

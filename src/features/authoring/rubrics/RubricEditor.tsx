@@ -18,6 +18,11 @@ import {
   errorMessage,
   notify,
   Textarea,
+  IconArrowDown,
+  IconArrowUp,
+  IconSearch,
+  IconTrash,
+  IconX,
 } from "@/src/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -364,148 +369,205 @@ export function RubricsPage() {
     }
   }
 
-  if (!tenant) {
-    return <p className="text-sm text-fg-muted">Kurum seçin.</p>;
+  const [query, setQuery] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  // Sunucudaki (son açılan / kaydedilen) tanım — kaydedilmemiş değişiklik takibi.
+  const savedSnapshot = useMemo(
+    () => (detail ? JSON.stringify(toPayload(((detail.definition?.items ?? []) as Record<string, unknown>[]).map((r) => normalizeItem(r)))) : ""),
+    [detail],
+  );
+  const dirty = detail != null && JSON.stringify(toPayload(items)) !== savedSnapshot;
+
+  function guardedOpen(id: string) {
+    if (dirty && !confirm("Kaydedilmemiş değişiklikler var. Kaydetmeden başka gruba geçilsin mi?")) return;
+    void open(id);
   }
 
+  if (!tenant) {
+    return <EmptyState title="İçerik kiracısı seçilmedi" description="Rubrikleri yönetmek için önce kurum / içerik kiracısı seçilmelidir." />;
+  }
+
+  const term = query.trim().toLocaleLowerCase("tr-TR");
+  const shownRows = rows.filter((r) => !term || `${r.name} ${r.code}`.toLocaleLowerCase("tr-TR").includes(term));
+  const remaining = TARGET_TOTAL - total;
+  const pct = Math.min(100, Math.max(0, (total / TARGET_TOTAL) * 100));
+  const sections = Array.from(new Set(items.map((i) => i.section || "Main")));
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         title="Rubrik grupları"
-        description="Grup /100 üzerinden CHECK, SCALE ve PENALTY maddeleri; onay sonrası soruya grup olarak bağlanır."
-      />
-      {error ? <ErrorState title="Hata" message={error} /> : null}
-
-      <FormCard title="Yeni rubrik grubu">
-        <div className="flex flex-wrap gap-2">
-          <Field label="Kod">
-            <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="A2-SPEAKING" />
-          </Field>
-          <Field label="Ad">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="A2 Speaking Rubriği"
-            />
-          </Field>
-          <Field label="Beceri">
-            <Select value={skill} onChange={(e) => setSkill(e.target.value)}>
-              {RUBRIC_SKILLS.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </Select>
-          </Field>
-          <Button className="min-h-11 self-end" disabled={busy} onClick={() => void create()}>
-            Ekle
+        description="Yazma ve konuşma gibi açık uçlu cevapları puanlamak için ölçütler. Her grup tam 100 puan üzerinden kurulur; onaylanınca soru editöründe seçilebilir."
+        count={rows.length}
+        actions={
+          <Button variant={showCreate ? "ghost" : "primary"} onClick={() => setShowCreate((v) => !v)}>
+            {showCreate ? "Vazgeç" : "+ Yeni rubrik grubu"}
           </Button>
-        </div>
-      </FormCard>
+        }
+      />
+      {error ? <ErrorState title="İşlem başarısız" message={error} compact /> : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface">
-          {rows.length === 0 ? (
-            <li className="p-4">
-              <EmptyState title="Rubrik grubu yok" description="Yukarıdan yeni bir grup ekleyin." />
-            </li>
+      {showCreate ? (
+        <FormCard
+          title="Yeni rubrik grubu"
+          description="Başlangıç maddeleriyle oluşturulur (kriter 40 + ölçek 60 + bir ceza); sonra düzenlersiniz."
+          footer={
+            <Button loading={busy} disabled={busy || !name.trim()} onClick={() => void create().then(() => setShowCreate(false))}>
+              Oluştur ve aç
+            </Button>
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,10rem)]">
+            <Field label="Kod" hint="Boş = otomatik">
+              <Input className="font-mono" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="A2-SPEAKING" />
+            </Field>
+            <Field label="Grup adı" required>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. A2 Konuşma Rubriği" />
+            </Field>
+            <Field label="Beceri" hint="Yalnız bu beceriye ait part'larda seçilir">
+              <Select value={skill} onChange={(e) => setSkill(e.target.value)}>
+                {RUBRIC_SKILLS.map((s) => <option key={s} value={s}>{SKILL_TR[s]}</option>)}
+              </Select>
+            </Field>
+          </div>
+        </FormCard>
+      ) : null}
+
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+        <nav aria-label="Rubrik grupları" className="rounded-xl border border-border bg-surface shadow-sm lg:sticky lg:top-20">
+          <div className="border-b border-border p-2.5">
+            <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ad veya kod ara" aria-label="Rubrik ara" />
+          </div>
+          {shownRows.length === 0 ? (
+            <p className="px-4 py-8 text-center text-[13px] text-fg-subtle">{rows.length ? "Eşleşen grup yok." : "Henüz rubrik grubu yok."}</p>
           ) : (
-            rows.map((r) => {
-              const active = detail?.id === r.id;
-              return (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    onClick={() => void open(r.id)}
-                    className={`flex min-h-11 w-full items-start justify-between gap-2 px-4 py-3 text-left text-sm ${
-                      active ? "bg-primary/10" : "hover:bg-bg"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-fg">{r.name}</span>
-                      <span className="text-xs text-fg-muted">
-                        {r.code} · {r.skill}
-                        {r.currentVersionId ? " · onaylı" : ""}
+            <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
+              {shownRows.map((r) => {
+                const active = detail?.id === r.id;
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      aria-current={active ? "true" : undefined}
+                      onClick={() => guardedOpen(r.id)}
+                      className={`flex w-full items-start justify-between gap-2 px-3.5 py-2.5 text-left ${active ? "bg-primary-50/70" : "hover:bg-neutral-50"}`}
+                    >
+                      <span className="min-w-0">
+                        <span className={`block truncate text-[13px] font-medium ${active ? "text-primary" : "text-fg"}`}>{r.name}</span>
+                        <span className="block font-mono text-[11px] text-fg-subtle">{r.code}</span>
                       </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })
+                      <span className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] text-fg-muted">{SKILL_TR[r.skill] ?? r.skill}</span>
+                        {r.currentVersionId ? <span className="text-[10.5px] font-semibold text-success">✓ Onaylı</span> : <span className="text-[10.5px] text-fg-subtle">Taslak</span>}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </ul>
+        </nav>
 
         {detail ? (
           <FormCard
-            title={`${detail.name}`}
-            description={`Sürüm ${detail.versionNo} · ${detail.code}`}
-            aside={<StatusBadge status={detail.status} />}
-          >
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-bg px-3 py-2">
-              <p className="text-sm text-fg">
-                Toplam (CHECK + SCALE max):{" "}
-                <span className={`font-semibold tabular-nums ${totalOk ? "text-success" : "text-danger"}`}>
-                  {total} / {TARGET_TOTAL}
+            title={detail.name}
+            description={`${detail.code} · ${SKILL_TR[detail.skill] ?? detail.skill} · Sürüm ${detail.versionNo}`}
+            aside={
+              <span className="flex items-center gap-2">
+                {dirty ? <span className="rounded-full bg-warning-bg px-2 py-0.5 text-[11px] font-semibold text-warning">Kaydedilmedi</span> : null}
+                <StatusBadge status={detail.status} />
+              </span>
+            }
+            footer={
+              <>
+                <span className="text-xs text-fg-subtle sm:mr-auto">
+                  {editable ? (totalOk ? "Toplam 100 — onaylanabilir." : `Onay için toplam tam ${TARGET_TOTAL} olmalı.`) : "Onaylı sürüm salt okunur."}
                 </span>
-              </p>
-              <p className="text-xs text-fg-muted">PENALTY toplama dahil değil · part Max puan ayrı ağırlıktır</p>
-            </div>
-
-            {!totalOk ? (
-              <p className="mb-3 text-sm text-amber-800">
-                Onay için toplam kesin {TARGET_TOTAL} olmalıdır. Maddelerin puanlarını ayarlayın.
+                <Button variant="secondary" disabled={!editable || busy || !dirty} onClick={() => void saveDef()}>
+                  Maddeleri kaydet
+                </Button>
+                <Button
+                  disabled={!canApprove || busy || !totalOk}
+                  onClick={() => confirm("Rubrik onaylansın mı? Onaylanan sürüm soru editöründe seçilebilir ve artık düzenlenemez.") && void approve()}
+                >
+                  Onayla
+                </Button>
+              </>
+            }
+          >
+            {!editable ? (
+              <p className="rounded-lg bg-info-bg px-3.5 py-2.5 text-[13px] text-info">
+                Bu sürüm {detail.status === "IN_REVIEW" ? "incelemede" : "onaylı"}; maddeler değiştirilemez. Değişiklik için yeni sürüm gerekir.
               </p>
             ) : null}
 
-            <div className="mb-3 flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" disabled={!editable || busy} onClick={() => addItem("CHECK")}>
-                + CHECK
-              </Button>
-              <Button size="sm" variant="secondary" disabled={!editable || busy} onClick={() => addItem("SCALE")}>
-                + SCALE
-              </Button>
-              <Button size="sm" variant="secondary" disabled={!editable || busy} onClick={() => addItem("PENALTY")}>
-                + PENALTY
-              </Button>
+            {/* Toplam göstergesi */}
+            <div className="grid gap-1.5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-[13px] text-fg">
+                  Toplam puan{" "}
+                  <span className={`text-lg font-semibold tabular-nums ${totalOk ? "text-success" : remaining < 0 ? "text-danger" : "text-fg"}`}>{total}</span>
+                  <span className="text-fg-subtle"> / {TARGET_TOTAL}</span>
+                </p>
+                <p className={`text-xs font-medium ${totalOk ? "text-success" : remaining < 0 ? "text-danger" : "text-warning"}`}>
+                  {totalOk ? "✓ Tam" : remaining > 0 ? `${remaining} puan eksik` : `${-remaining} puan fazla`}
+                </p>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuenow={total} aria-valuemin={0} aria-valuemax={TARGET_TOTAL} aria-label="Toplam puan">
+                <div className={`h-full rounded-full transition-all ${totalOk ? "bg-success" : remaining < 0 ? "bg-danger" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+              </div>
+              <p className="text-[11px] text-fg-subtle">Kriter puanı + her ölçeğin en yüksek seviyesi toplanır. Cezalar toplamdan düşülür, 100’e dahil değildir.</p>
             </div>
 
-            <div className="space-y-3">
-              {items.length === 0 ? (
-                <EmptyState title="Madde yok" description="En az bir CHECK veya SCALE ekleyin." />
-              ) : (
-                items.map((item, index) => (
-                  <RubricItemCard
-                    key={`${item.id}-${index}`}
-                    item={item}
-                    index={index}
-                    disabled={!editable || busy}
-                    onChange={(next) => updateItem(index, next)}
-                    onMove={(dir) => moveItem(index, dir)}
-                    onRemove={() => removeItem(index)}
-                    canUp={index > 0}
-                    canDown={index < items.length - 1}
-                  />
-                ))
-              )}
-            </div>
+            {items.length === 0 ? (
+              <EmptyState title="Madde yok" description="Aşağıdan en az bir kriter veya ölçek maddesi ekleyin." />
+            ) : (
+              <div className="grid gap-4">
+                {sections.map((sec) => (
+                  <div key={sec} className="grid gap-2.5">
+                    {sections.length > 1 ? <p className="text-[11.5px] font-semibold tracking-wide text-fg-subtle">{sec === "Main" ? "ANA ÖLÇÜTLER" : sec === "Penalties" ? "CEZALAR" : sec.toLocaleUpperCase("tr-TR")}</p> : null}
+                    {items.map((item, index) =>
+                      (item.section || "Main") !== sec ? null : (
+                        <RubricItemCard
+                          key={`${item.id}-${index}`}
+                          item={item}
+                          index={index}
+                          disabled={!editable || busy}
+                          onChange={(next) => updateItem(index, next)}
+                          onMove={(dir) => moveItem(index, dir)}
+                          onRemove={() => confirm(`“${item.description || ITEM_KIND[item.kind].label}” maddesi silinsin mi?`) && removeItem(index)}
+                          canUp={index > 0}
+                          canDown={index < items.length - 1}
+                        />
+                      ),
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button className="min-h-11" disabled={!editable || busy} onClick={() => void saveDef()}>
-                Maddeleri kaydet
-              </Button>
-              <Button
-                className="min-h-11"
-                variant="secondary"
-                disabled={!canApprove || busy || !totalOk}
-                onClick={() => void approve()}
-              >
-                Onayla
-              </Button>
-            </div>
+            {editable ? (
+              <div className="grid gap-2 sm:grid-cols-3" role="group" aria-label="Madde ekle">
+                {(Object.keys(ITEM_KIND) as RubricItemKind[]).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => addItem(k)}
+                    className="rounded-lg border border-dashed border-border-strong p-3 text-left transition-colors hover:border-primary-300 hover:bg-primary-50/40 disabled:opacity-50"
+                  >
+                    <span className={`block text-[13px] font-semibold ${ITEM_KIND[k].tone}`}>+ {ITEM_KIND[k].label}</span>
+                    <span className="block text-xs text-fg-muted">{ITEM_KIND[k].hint}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </FormCard>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-surface p-6">
             <EmptyState
-              title="Grup seçin"
-              description="Soldan bir rubrik grubu açın veya yeni oluşturun. Soru oluştururken bu gruptan seçilir."
+              title="Bir rubrik grubu seçin"
+              description="Soldaki listeden bir grubu açın ya da “Yeni rubrik grubu” ile oluşturun. Onaylı gruplar soru editörünün Cevap ve puanlama adımında seçilir."
             />
           </div>
         )}
@@ -513,6 +575,29 @@ export function RubricsPage() {
     </div>
   );
 }
+
+const SKILL_TR: Record<string, string> = { READING: "Okuma", LISTENING: "Dinleme", WRITING: "Yazma", SPEAKING: "Konuşma" };
+
+const ITEM_KIND: Record<RubricItemKind, { label: string; hint: string; tone: string; badge: string }> = {
+  CHECK: {
+    label: "Kriter",
+    hint: "Var / yok: karşılanırsa puanın tamamı verilir.",
+    tone: "text-primary",
+    badge: "bg-primary-50 text-primary",
+  },
+  SCALE: {
+    label: "Ölçek",
+    hint: "Seviyeli: Zayıf / Orta / Güçlü gibi kademelerden biri seçilir.",
+    tone: "text-(--accent-plum)",
+    badge: "bg-(--accent-plum-bg) text-(--accent-plum)",
+  },
+  PENALTY: {
+    label: "Ceza",
+    hint: "Durum görülürse puan düşülür (ör. konu dışı, eksik kelime).",
+    tone: "text-danger",
+    badge: "bg-danger-bg text-danger",
+  },
+};
 
 function RubricItemCard({
   item,
@@ -533,116 +618,71 @@ function RubricItemCard({
   canUp: boolean;
   canDown: boolean;
 }) {
+  const meta = ITEM_KIND[item.kind];
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-surface p-3 sm:p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-neutral-50 px-3 py-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded bg-neutral-100 px-2 py-1 text-[11px] font-semibold tracking-wide text-fg-muted uppercase">
-            {item.kind}
+          <span className="text-xs tabular-nums text-fg-subtle">{index + 1}.</span>
+          <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${meta.badge}`} title={meta.hint}>{meta.label}</span>
+          <span className={`text-xs font-semibold tabular-nums ${item.kind === "PENALTY" ? "text-danger" : "text-fg"}`}>
+            {item.kind === "PENALTY" ? `−${item.points ?? 0}` : `en çok ${itemMax(item)}`} puan
           </span>
-          <span className="text-xs text-fg-muted">#{index + 1}</span>
-          {item.kind !== "PENALTY" ? (
-            <span className="text-xs tabular-nums text-fg-muted">max +{itemMax(item)}</span>
-          ) : (
-            <span className="text-xs tabular-nums text-fg-muted">−{item.points ?? 0}</span>
-          )}
         </div>
-        <div className="flex flex-wrap gap-1">
-          <Button size="sm" variant="ghost" disabled={disabled || !canUp} onClick={() => onMove(-1)}>
-            ↑
+        <div className="flex items-center gap-0.5">
+          <Button size="sm" variant="ghost" disabled={disabled || !canUp} onClick={() => onMove(-1)} aria-label="Yukarı taşı" title="Yukarı taşı">
+            <IconArrowUp className="size-3.5" aria-hidden />
           </Button>
-          <Button size="sm" variant="ghost" disabled={disabled || !canDown} onClick={() => onMove(1)}>
-            ↓
+          <Button size="sm" variant="ghost" disabled={disabled || !canDown} onClick={() => onMove(1)} aria-label="Aşağı taşı" title="Aşağı taşı">
+            <IconArrowDown className="size-3.5" aria-hidden />
           </Button>
-          <Button size="sm" variant="ghost" disabled={disabled} onClick={onRemove}>
-            Sil
+          <Button size="sm" variant="ghost" disabled={disabled} onClick={onRemove} aria-label="Maddeyi sil" title="Sil">
+            <IconTrash className="size-3.5" aria-hidden />
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Field label="Madde id">
-          <Input
-            value={item.id}
-            disabled={disabled}
-            onChange={(e) => onChange({ ...item, id: e.target.value })}
-          />
-        </Field>
-        <Field label="Bölüm">
-          <Input
-            value={item.section}
-            disabled={disabled}
-            onChange={(e) => onChange({ ...item, section: e.target.value })}
-          />
-        </Field>
-      </div>
-
-      <Field label="Açıklama">
-        <Textarea
-          rows={2}
-          disabled={disabled}
-          value={item.description}
-          placeholder="AI ve puanlayıcı için düz metin açıklama"
-          onChange={(e) => onChange({ ...item, description: e.target.value })}
-        />
-      </Field>
-
-      {item.kind === "CHECK" || item.kind === "PENALTY" ? (
-        <Field label={item.kind === "PENALTY" ? "Ceza puanı" : "Puan"}>
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            className="max-w-40"
-            value={item.points ?? 0}
-            disabled={disabled}
-            onChange={(e) => onChange({ ...item, points: Number(e.target.value) })}
-          />
-        </Field>
-      ) : null}
-
-      {item.kind === "SCALE" ? (
-        <div className="space-y-2 rounded-lg border border-border bg-bg/50 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-fg-muted">Seviyeler (en az 2)</p>
-            <Button
-              size="sm"
-              variant="secondary"
+      <div className="grid gap-3 p-3">
+        <div className={`grid gap-3 ${item.kind === "SCALE" ? "" : "sm:grid-cols-[minmax(0,1fr)_minmax(0,9rem)]"}`}>
+          <Field label="Ölçüt açıklaması" hint="Puanlayıcı ve yapay zekâ bu metne göre değerlendirir; somut yazın.">
+            <Textarea
+              rows={2}
               disabled={disabled}
-              onClick={() =>
-                onChange({
-                  ...item,
-                  levels: [
-                    ...(item.levels ?? []),
-                    { id: newId("lv"), label: { html: "Yeni seviye" }, points: 0 },
-                  ],
-                })
-              }
-            >
-              + Seviye
-            </Button>
-          </div>
-          <ul className="space-y-2">
-            {(item.levels ?? []).map((level, li) => (
-              <li
-                key={level.id}
-                className="grid gap-2 rounded-md border border-border bg-surface p-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]"
-              >
-                <InlineHtmlField
-                  label="Etiket"
-                  value={level.label}
-                  disabled={disabled}
-                  onChange={(label) => {
-                    const levels = [...(item.levels ?? [])];
-                    levels[li] = { ...level, label };
-                    onChange({ ...item, levels });
-                  }}
-                />
-                <Field label="Puan">
+              value={item.description}
+              placeholder={item.kind === "PENALTY" ? "ör. Cevap konu dışı" : "ör. Görevdeki üç noktaya da değiniyor"}
+              onChange={(e) => onChange({ ...item, description: e.target.value })}
+            />
+          </Field>
+          {item.kind !== "SCALE" ? (
+            <Field label={item.kind === "PENALTY" ? "Düşülecek puan" : "Puan"}>
+              <Input type="number" min={0} step={1} suffix="puan" value={item.points ?? 0} disabled={disabled} onChange={(e) => onChange({ ...item, points: Number(e.target.value) })} />
+            </Field>
+          ) : null}
+        </div>
+
+        {item.kind === "SCALE" ? (
+          <div className="grid gap-2">
+            <p className="text-xs font-semibold text-fg-muted">Seviyeler <span className="font-normal text-fg-subtle">— düşükten yükseğe; en az 2</span></p>
+            <ol className="grid gap-1.5">
+              {(item.levels ?? []).map((level, li) => (
+                <li key={level.id} className="grid grid-cols-[1.25rem_minmax(0,1fr)_7.5rem_auto] items-center gap-2">
+                  <span className="text-right text-xs tabular-nums text-fg-subtle">{li + 1}</span>
+                  <InlineHtmlField
+                    value={level.label}
+                    placeholder="Seviye adı, ör. Güçlü"
+                    disabled={disabled}
+                    onChange={(label) => {
+                      const levels = [...(item.levels ?? [])];
+                      levels[li] = { ...level, label };
+                      onChange({ ...item, levels });
+                    }}
+                  />
                   <Input
                     type="number"
                     min={0}
                     step={1}
+                    suffix="puan"
+                    aria-label={`${li + 1}. seviye puanı`}
                     value={level.points}
                     disabled={disabled}
                     onChange={(e) => {
@@ -651,25 +691,43 @@ function RubricItemCard({
                       onChange({ ...item, levels });
                     }}
                   />
-                </Field>
-                <div className="flex items-end">
                   <Button
                     size="sm"
                     variant="ghost"
+                    aria-label={`${li + 1}. seviyeyi sil`}
+                    title={(item.levels?.length ?? 0) <= 2 ? "En az 2 seviye gerekli" : "Sil"}
                     disabled={disabled || (item.levels?.length ?? 0) <= 2}
-                    onClick={() => {
-                      const levels = (item.levels ?? []).filter((_, i) => i !== li);
-                      onChange({ ...item, levels });
-                    }}
+                    onClick={() => onChange({ ...item, levels: (item.levels ?? []).filter((_, i) => i !== li) })}
                   >
-                    Sil
+                    <IconX className="size-3.5" aria-hidden />
                   </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+                </li>
+              ))}
+            </ol>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-fit"
+              disabled={disabled}
+              onClick={() => onChange({ ...item, levels: [...(item.levels ?? []), { id: newId("lv"), label: { html: "Yeni seviye" }, points: 0 }] })}
+            >
+              + Seviye ekle
+            </Button>
+          </div>
+        ) : null}
+
+        <details className="text-xs">
+          <summary className="cursor-pointer text-fg-subtle hover:text-fg">Gelişmiş: madde kimliği ve gruplama</summary>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <Field label="Madde kimliği" hint="Puanlama kayıtlarında kullanılır; onaydan sonra değiştirmeyin.">
+              <Input className="font-mono" value={item.id} disabled={disabled} onChange={(e) => onChange({ ...item, id: e.target.value })} />
+            </Field>
+            <Field label="Grup" hint="Main = ana ölçütler, Penalties = cezalar">
+              <Input value={item.section} disabled={disabled} onChange={(e) => onChange({ ...item, section: e.target.value })} />
+            </Field>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }

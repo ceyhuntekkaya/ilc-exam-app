@@ -7,12 +7,12 @@ import { Badge, ButtonLink, ErrorState, SectionTable } from "@/src/ui";
 
 export function AssignmentListSection({ companyId }: { companyId: string }) {
   const hrefs = useOpsHref();
-  const { data, isLoading, isError, error } = useListAssignments({ companyId });
+  const { data, isLoading, isError, error, refetch } = useListAssignments({ companyId });
   const grants = useListGrants({ companyId }).data?.data ?? [];
   const rows = data?.data ?? [];
 
-  if (isError) return <ErrorState message={error instanceof Error ? error.message : "Yüklenemedi"} />;
-  if (isLoading) return <div className="h-24 animate-pulse rounded-md bg-neutral-100" />;
+  if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
+  if (isLoading) return <SectionTable flush loading empty="" columns={["Sınav", "Durum", "Pencere", ""]} rows={[]} />;
 
   return (
     <SectionTable

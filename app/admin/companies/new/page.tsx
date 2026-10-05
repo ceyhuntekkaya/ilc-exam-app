@@ -25,6 +25,17 @@ export default function NewCompanyPage() {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
+    for (const [a, b, msg] of [
+      ["subscriptionStart", "subscriptionEnd", "Üyelik bitişi başlangıçtan önce olamaz."],
+      ["academicYearStart", "academicYearEnd", "Sezon bitişi başlangıçtan önce olamaz."],
+    ] as const) {
+      const s = String(fd.get(a) || "");
+      const en = String(fd.get(b) || "");
+      if (s && en && en < s) {
+        setError(msg);
+        return;
+      }
+    }
     try {
       const result = await create.mutateAsync({
         data: {
@@ -85,13 +96,13 @@ export default function NewCompanyPage() {
 
         <FormCard title="Üyelik" description="İlk abonelik dönemi.">
           <FormGrid>
-            <Field label="Başlangıç">
+            <Field label="Üyelik başlangıcı" hint="Boş = bugün">
               <Input name="subscriptionStart" type="date" />
             </Field>
-            <Field label="Bitiş">
+            <Field label="Üyelik bitişi" hint="Bu günün sonunda erişim kapanır">
               <Input name="subscriptionEnd" type="date" />
             </Field>
-            <Field label="Max öğrenci" hint="0 = sınırsız">
+            <Field label="En fazla öğrenci" hint="0 = sınırsız">
               <Input name="maxStudents" type="number" min={0} defaultValue={0} />
             </Field>
           </FormGrid>
@@ -108,10 +119,10 @@ export default function NewCompanyPage() {
             <Field label="Sezon adı">
               <Input name="academicYearName" placeholder="2026-2027" />
             </Field>
-            <Field label="Sezon başlangıç">
+            <Field label="Sezon başlangıcı">
               <Input name="academicYearStart" type="date" />
             </Field>
-            <Field label="Sezon bitiş">
+            <Field label="Sezon bitişi">
               <Input name="academicYearEnd" type="date" />
             </Field>
           </FormGrid>

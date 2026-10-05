@@ -6,6 +6,8 @@ import { cn } from "@/src/lib/utils/cn";
 import { IconAlert, IconX } from "@/src/ui/icons";
 import { inlineControlClass, inlineGroupClass, inlineLabelClass } from "@/src/ui/primitives/inline-label";
 import { DatePicker } from "@/src/ui/primitives/DatePicker";
+import { NumberInput } from "@/src/ui/primitives/NumberInput";
+import { DateTimePicker } from "@/src/ui/primitives/DateTimePicker";
 import { useState, type ComponentPropsWithRef, type MouseEvent, type ReactNode } from "react";
 
 /**
@@ -34,6 +36,8 @@ type Props = ComponentPropsWithRef<"input"> & {
   wrapperClassName?: string;
   /** Yalnız admin: etiket kontrolün içinde solda gösterilir (Field'sız kullanım, ör. filtre şeridindeki tarih). */
   inlineLabel?: string;
+  /** Yalnız admin sayısal alan: içeride sağda birim ("dk", "%", "puan"). */
+  suffix?: string;
 };
 
 // Renk sınıfları yalnızca valid/invalid içinde: cn çakışan sınıfları ayıklamadığı için aynı özelliği (bg, text,
@@ -86,7 +90,7 @@ const variants: Record<InputVariant, VariantStyles> = {
   },
 };
 
-export function Input({ className, invalid, id, variant: variantProp, icon, trailing, action, pill = false, wrapperClassName, inlineLabel, ...props }: Props) {
+export function Input({ className, invalid, id, variant: variantProp, icon, trailing, action, pill = false, wrapperClassName, inlineLabel, suffix, ...props }: Props) {
   const field = useField();
   const uiVariant = useUiVariant();
   // Açık prop > içinde bulunduğu Field > UiVariantProvider > default.
@@ -126,6 +130,46 @@ export function Input({ className, invalid, id, variant: variantProp, icon, trai
         inlineLabel={variant === "admin" ? inlineLabel : undefined}
         className={variant === "admin" && inlineLabel ? wrapperClassName : className}
         onChange={onChange}
+      />
+    );
+  }
+  // Tarih + saat: native datetime-local stillenemediği için takvim + saat/dakika seçici (değer biçimi aynı).
+  if (props.type === "datetime-local" && variant !== "default") {
+    return (
+      <DateTimePicker
+        theme={variant}
+        id={id ?? field?.id}
+        name={props.name}
+        form={props.form}
+        value={props.value === undefined ? undefined : String(props.value ?? "")}
+        defaultValue={props.defaultValue === undefined ? undefined : String(props.defaultValue ?? "")}
+        min={props.min === undefined ? undefined : String(props.min)}
+        max={props.max === undefined ? undefined : String(props.max)}
+        required={props.required}
+        disabled={props.disabled}
+        invalid={isInvalid}
+        describedBy={field?.describedBy}
+        aria-label={props["aria-label"]}
+        className={className}
+        onChange={onChange}
+      />
+    );
+  }
+  // Sayı: admin'de native spinner yerine adım düğmeli, sınır kontrollü alan (değer sözleşmesi aynı).
+  if (props.type === "number" && variant === "admin" && !inlineLabel) {
+    const { type: _type, ...numberProps } = props;
+    void _type;
+    return (
+      <NumberInput
+        {...numberProps}
+        id={id ?? field?.id}
+        aria-describedby={field?.describedBy}
+        data-input-variant={variant}
+        invalid={isInvalid}
+        suffix={suffix}
+        baseClassName={cn(styles.base, styles.radius)}
+        stateClassName={isInvalid ? styles.invalid : styles.valid}
+        className={className}
       />
     );
   }
