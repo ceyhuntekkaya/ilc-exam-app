@@ -26,7 +26,7 @@ function Body() {
     <SectionTable
       flush
       empty="Atama yok"
-      emptyHint="Kurum henüz öğrenciye sınav ataması yapmamış."
+      emptyHint="Okul personeli henüz öğrenciye sınav ataması yapmamış."
       columns={["Durum", "Pencere", "Oluşturulma"]}
       rows={rows.map((r) => [
         <Badge

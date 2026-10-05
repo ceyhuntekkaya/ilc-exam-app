@@ -65,12 +65,13 @@ type ButtonLook = {
 };
 
 function buttonClass(uiVariant: ReturnType<typeof useUiVariant>, { variant = "primary", size = "md", fullWidth = false }: ButtonLook) {
-  const tone = (uiVariant === "storefront" && storefrontTones[variant]) || (uiVariant === "admin" && adminTones[variant]) || variant;
+  const tone = (uiVariant === "storefront" && storefrontTones[variant]) || ((uiVariant === "admin" || uiVariant === "staff") && adminTones[variant]) || variant;
   return cn(
     // Köşe ve yazı kalınlığı variant'ta: cn çakışan sınıfları birleştirmediği için base'te tutulmaz.
     "relative inline-flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
     variants[tone],
     variant === "link" ? "h-auto" : (uiVariant === "admin" ? adminSizes : sizes)[size],
+    uiVariant === "staff" && "min-h-11",
     fullWidth && "w-full",
   );
 }

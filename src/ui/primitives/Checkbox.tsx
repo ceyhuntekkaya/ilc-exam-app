@@ -26,11 +26,12 @@ export function Checkbox({ label, description, variant: variantProp, className, 
 
   // admin: Input/Select admin ile aynı dil — kutu solda, border-border kenar + bg-bg zemin, odakta marka halkası (ring-3),
   // işaretliyken marka dolgusu; etiket 13px. Native input sr-only (klavye, ekran okuyucu, form gönderimi aynen çalışır).
-  if (variant === "admin") {
+  if (variant === "admin" || variant === "staff") {
     return (
       <label
         className={cn(
-          "group/check flex min-h-8 cursor-pointer items-start gap-2 py-1.5 text-[13px] text-fg",
+          "group/check flex cursor-pointer items-start gap-2 py-1.5 text-fg",
+          variant === "staff" ? "min-h-11 text-base" : "min-h-8 text-[13px]",
           "has-disabled:cursor-not-allowed has-disabled:opacity-60",
           className,
         )}

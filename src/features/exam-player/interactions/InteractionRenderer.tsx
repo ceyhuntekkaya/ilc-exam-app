@@ -42,11 +42,11 @@ export function InteractionRenderer({
   switch (type) {
     case "MULTIPLE_CHOICE":
       return (
-        <MultipleChoiceView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <MultipleChoiceView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "MULTIPLE_RESPONSE":
       return (
-        <MultipleResponseView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <MultipleResponseView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "TRUE_FALSE":
       return <TrueFalseView interaction={i} disabled={disabled} answerKey={key} preview={preview} />;

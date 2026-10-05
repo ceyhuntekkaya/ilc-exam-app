@@ -7,7 +7,7 @@ export const adminNav: NavGroup[] = [
     label: "Kurum yönetimi",
     items: [
       { href: "/admin/companies", label: "Kurumlar" },
-      { href: "/admin/exams", label: "Dağıtım (grant)" },
+      { href: "/admin/exams", label: "Lisanslar" },
     ],
   },
   {

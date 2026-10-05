@@ -1,8 +1,10 @@
+import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+
 export default function StaffStudentsPage() {
   return (
-    <div className="rounded-lg border border-ilc-line bg-white p-6">
-      <h1 className="font-[family-name:var(--font-fraunces)] text-xl font-semibold">Öğrenciler</h1>
-      <p className="mt-2 text-ilc-navy/70">Yakında.</p>
-    </div>
+    <ComingSoonPage
+      title="Öğrenciler"
+      description="Öğrenci ekleme, güncelleme, silme ve sınıf kaydı işlemleri bu ekrandan yönetilecek."
+    />
   );
 }

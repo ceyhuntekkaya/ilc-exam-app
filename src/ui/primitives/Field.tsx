@@ -42,6 +42,12 @@ const styles: Record<FieldVariant, { label: string; required: string; hint: stri
     hint: "text-xs leading-relaxed text-fg-subtle wrap-anywhere",
     error: "text-xs text-danger wrap-anywhere",
   },
+  staff: {
+    label: "text-sm font-medium text-fg",
+    required: "text-danger",
+    hint: "text-sm leading-relaxed text-fg-subtle wrap-anywhere",
+    error: "text-sm text-danger wrap-anywhere",
+  },
   storefront: {
     label: "text-sm font-medium text-neutral-700 dark:text-neutral-300",
     required: "text-danger-500",

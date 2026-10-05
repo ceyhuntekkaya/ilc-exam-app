@@ -23,8 +23,8 @@ const SECTIONS: { group: string; section: CompanySection; label: string }[] = [
   { group: "Yapı", section: "branches", label: "Sınıflar" },
   { group: "İnsanlar", section: "staff", label: "Personel" },
   { group: "İnsanlar", section: "students", label: "Öğrenciler" },
-  { group: "Sınavlar", section: "grants", label: "Atanan sınavlar" },
-  { group: "Sınavlar", section: "assignments", label: "Atama özeti" },
+  { group: "Sınavlar", section: "grants", label: "Lisanslı sınavlar" },
+  { group: "Sınavlar", section: "assignments", label: "Sınav atamaları" },
   { group: "Raporlar", section: "reports", label: "Uygulama" },
   { group: "Raporlar", section: "report-cards", label: "Karneler" },
 ];

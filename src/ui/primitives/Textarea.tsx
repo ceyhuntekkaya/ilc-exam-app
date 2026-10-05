@@ -19,6 +19,11 @@ const variants = {
     valid: "border-border hover:border-border-strong focus:border-primary-500 focus:ring-primary-500/15",
     invalid: "border-danger focus:border-danger focus:ring-danger-500/15",
   },
+  staff: {
+    base: "min-h-28 max-h-60 w-full resize-y rounded-md border bg-bg px-3 py-2.5 text-base leading-relaxed text-fg placeholder:text-fg-subtle outline-none transition-[border-color,box-shadow,background-color] focus:bg-surface focus:ring-3 disabled:cursor-not-allowed disabled:opacity-60",
+    valid: "border-border hover:border-border-strong focus:border-primary-500 focus:ring-primary-500/15",
+    invalid: "border-danger focus:border-danger focus:ring-danger-500/15",
+  },
   storefront: {
     base: "min-h-24 w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-shadow focus:ring-2 disabled:pointer-events-none disabled:opacity-50",
     valid:

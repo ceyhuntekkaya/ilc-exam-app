@@ -61,6 +61,16 @@ const variants: Record<InputVariant, VariantStyles> = {
     iconValid: "text-fg-subtle",
     iconInvalid: "text-danger",
   },
+  staff: {
+    radius: "rounded-md",
+    base: "min-h-11 h-11 w-full border bg-bg px-3 text-base text-fg placeholder:text-fg-subtle outline-none transition-[border-color,box-shadow,background-color] focus:bg-surface focus:ring-3 disabled:cursor-not-allowed disabled:opacity-60",
+    valid: "border-border hover:border-border-strong focus:border-primary-500 focus:ring-primary-500/15",
+    invalid: "border-danger focus:border-danger focus:ring-danger-500/15",
+    withIcon: "pl-10",
+    icon: "left-3",
+    iconValid: "text-fg-subtle",
+    iconInvalid: "text-danger",
+  },
   storefront: {
     radius: "rounded-lg",
     base: "h-10 w-full border px-3 text-sm outline-none transition-shadow focus:ring-2 disabled:pointer-events-none disabled:opacity-50",

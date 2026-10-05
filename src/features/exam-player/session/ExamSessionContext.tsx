@@ -11,8 +11,9 @@ export type ExamUploadResult = {
 export type ExamSessionContextValue = {
   applicationId: string;
   sessionToken: string;
-  /** itemId = soru part / application item id */
+  /** itemId = question_part.id */
   uploadMedia: (itemId: string, file: File, durationMs?: number | null) => Promise<ExamUploadResult>;
+  saveAnswer?: (itemId: string, answer: Record<string, unknown>) => void;
 };
 
 const ExamSessionCtx = createContext<ExamSessionContextValue | null>(null);

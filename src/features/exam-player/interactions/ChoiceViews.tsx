@@ -1,6 +1,7 @@
 "use client";
 
 import { OptionButton } from "@/src/features/exam-player/interactions/OptionChip";
+import { useAnswerSync } from "@/src/features/exam-player/session/useAnswerSync";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { useMemo, useState } from "react";
 
@@ -11,16 +12,19 @@ export function MultipleChoiceView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const options = (interaction.options as PlayerOption[]) || [];
   const correctId = preview ? String(answerKey?.correctOptionId ?? "") : "";
   const [selected, setSelected] = useState<string | null>(correctId || null);
+  useAnswerSync(itemId, selected ? { optionId: selected } : null, !preview && !disabled);
 
   return (
     <div className="space-y-2" role="radiogroup">
@@ -45,11 +49,13 @@ export function MultipleResponseView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const options = (interaction.options as PlayerOption[]) || [];
@@ -61,6 +67,7 @@ export function MultipleResponseView({
   const [selected, setSelected] = useState<string[]>(() =>
     preview ? [...correctIds] : [],
   );
+  useAnswerSync(itemId, { optionIds: selected }, !preview && !disabled && selected.length > 0);
 
   function toggle(id: string) {
     setSelected((prev) => {

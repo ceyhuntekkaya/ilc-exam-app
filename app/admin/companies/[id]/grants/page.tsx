@@ -34,13 +34,13 @@ function Body() {
     <div className="grid gap-4">
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setOpen(true)}>
-          Sınav hakkı ver
+          Lisans ver
         </Button>
       </div>
       <SectionTable
         flush
-        empty="Atanan sınav yok"
-        emptyHint="Genel merkezden bu kuruma henüz sınav hakkı verilmemiş."
+        empty="Lisanslı sınav yok"
+        emptyHint="Genel merkez bu kuruma henüz sınav lisansı vermemiş."
         columns={["Sınav", "Versiyon", "Geçerlilik", "Kota", ""]}
         rows={rows.map((r) => [
           <div key="t">
@@ -65,7 +65,7 @@ function Body() {
       <FormDialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Sınav hakkı ver"
+        title="Sınav lisansı ver"
         submitLabel="Ver"
         pending={createGrant.isPending}
         error={formError}
@@ -81,15 +81,14 @@ function Body() {
                 validUntil: fd.get("validUntil")
                   ? new Date(String(fd.get("validUntil"))).toISOString()
                   : undefined,
-                quota: Number(fd.get("quota") || 0) || undefined,
                 mandatory: fd.get("mandatory") === "on",
               },
             });
             await refetch();
             setOpen(false);
-            notify.success("Sınav hakkı verildi");
+            notify.success("Sınav lisansı verildi");
           } catch (err) {
-            const message = errorMessage(err, "Sınav hakkı verilemedi");
+            const message = errorMessage(err, "Sınav lisansı verilemedi");
             setFormError(message);
             notify.error(message);
           }
@@ -118,9 +117,6 @@ function Body() {
         </Field>
         <Field label="Geçerlilik bitiş">
           <Input name="validUntil" type="datetime-local" />
-        </Field>
-        <Field label="Kota" hint="Boş = sınırsız">
-          <Input name="quota" type="number" min={1} />
         </Field>
         <label className="flex items-center gap-2 text-[13px] text-fg">
           <input type="checkbox" name="mandatory" />

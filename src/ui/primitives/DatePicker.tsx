@@ -18,7 +18,7 @@ import { cn } from "@/src/lib/utils/cn";
 import { IconChevronRight, IconX } from "@/src/ui/icons";
 import { inlineGroupClass, inlineLabelClass } from "@/src/ui/primitives/inline-label";
 
-export type DatePickerTheme = "admin" | "storefront";
+export type DatePickerTheme = "admin" | "storefront" | "staff";
 
 type Props = {
   id?: string;
@@ -65,6 +65,27 @@ const themes = {
     footer: "border-t border-border pt-2 mt-2",
     link: "rounded-md px-2 py-1 text-[12px] font-medium text-primary hover:bg-bg",
     muted: "rounded-md px-2 py-1 text-[12px] font-medium text-fg-muted hover:bg-bg hover:text-fg",
+  },
+  staff: {
+    trigger:
+      "min-h-11 h-11 w-full rounded-md border bg-bg px-3 text-base text-fg outline-none transition-[border-color,box-shadow,background-color] focus-visible:bg-surface focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-60",
+    valid: "border-border hover:border-border-strong focus-visible:border-primary-500 focus-visible:ring-primary-500/15",
+    invalid: "border-danger focus-visible:border-danger focus-visible:ring-danger-500/15",
+    placeholder: "text-fg-subtle",
+    icon: "size-4 text-fg-subtle",
+    panel: "rounded-lg border border-border bg-surface p-3 shadow-[0_8px_24px_rgb(26_26_24/0.12)] text-sm",
+    nav: "size-11 rounded-md text-fg-muted hover:bg-bg hover:text-fg",
+    title: "text-sm font-semibold text-fg",
+    weekday: "text-xs font-medium text-fg-subtle",
+    day: "size-11 rounded-md text-sm",
+    dayIdle: "text-fg hover:bg-bg",
+    dayOutside: "text-fg-subtle/60 hover:bg-bg",
+    today: "font-semibold text-primary ring-1 ring-inset ring-primary-500/40",
+    selected: "bg-primary text-white font-semibold hover:bg-primary",
+    focus: "focus-visible:ring-2 focus-visible:ring-primary-500/40",
+    footer: "border-t border-border pt-2 mt-2",
+    link: "min-h-11 rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-bg",
+    muted: "min-h-11 rounded-md px-3 py-2 text-sm font-medium text-fg-muted hover:bg-bg hover:text-fg",
   },
   storefront: {
     trigger:

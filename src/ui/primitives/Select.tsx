@@ -46,6 +46,11 @@ const variants = {
     valid: "border-border hover:border-border-strong focus:border-primary-500 focus:ring-primary-500/15",
     invalid: "border-danger focus:border-danger focus:ring-danger-500/15",
   },
+  staff: {
+    base: "min-h-11 h-11 w-full cursor-pointer rounded-md border bg-bg px-3 text-base text-fg outline-none transition-[border-color,box-shadow,background-color] focus:bg-surface focus:ring-3 disabled:cursor-not-allowed disabled:opacity-60",
+    valid: "border-border hover:border-border-strong focus:border-primary-500 focus:ring-primary-500/15",
+    invalid: "border-danger focus:border-danger focus:ring-danger-500/15",
+  },
   storefront: {
     base: "h-10 w-full cursor-pointer rounded-lg border px-3 text-sm outline-none transition-shadow focus:ring-2 disabled:pointer-events-none disabled:opacity-50",
     valid:
@@ -91,7 +96,7 @@ export function Select({ className, invalid, id, children, variant: variantProp,
   );
 }
 
-type ListboxTheme = "storefront" | "admin";
+type ListboxTheme = "storefront" | "admin" | "staff";
 
 const listbox: Record<ListboxTheme, { placeholder: string; chevron: string; list: string; option: string; empty: string; selected: string; active: string; check: string }> = {
   storefront: {
@@ -109,6 +114,16 @@ const listbox: Record<ListboxTheme, { placeholder: string; chevron: string; list
     chevron: "text-fg-subtle",
     list: "rounded-lg border border-border bg-surface p-1 shadow-[0_8px_24px_rgb(26_26_24/0.12)]",
     option: "rounded-md px-2.5 py-1.5 text-fg",
+    empty: "text-fg-subtle",
+    selected: "font-semibold text-primary",
+    active: "bg-bg",
+    check: "text-primary",
+  },
+  staff: {
+    placeholder: "text-fg-subtle",
+    chevron: "text-fg-subtle",
+    list: "rounded-lg border border-border bg-surface p-1 shadow-[0_8px_24px_rgb(26_26_24/0.12)]",
+    option: "min-h-11 rounded-md px-3 py-2.5 text-base text-fg",
     empty: "text-fg-subtle",
     selected: "font-semibold text-primary",
     active: "bg-bg",

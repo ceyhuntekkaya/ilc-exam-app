@@ -73,7 +73,7 @@ export default function AdminExamsPage() {
         width: 140,
         renderCell: ({ row }) => (
           <Button size="sm" variant="secondary" onClick={() => setGrantExam(row)}>
-            Kuruma ver
+            Lisans ver
           </Button>
         ),
       },
@@ -85,7 +85,7 @@ export default function AdminExamsPage() {
     <div className="grid gap-4">
       <PageHeader
         title="Sınavlar"
-        description="Yayınlanmış sınavları görüntüleyin ve kurumlara kullanım hakkı verin."
+        description="Yayınlanmış katalog sınavlarını görüntüleyin ve okullara lisans verin."
         count={rows.length}
       />
 
@@ -115,7 +115,7 @@ export default function AdminExamsPage() {
           setCompanyId("");
           setFormError(null);
         }}
-        title="Kuruma sınav hakkı ver"
+        title="Okula sınav lisansı ver"
         description={grantExam ? `${grantExam.title} (${grantExam.code})` : undefined}
         submitLabel="Ver"
         pending={createGrant.isPending}
@@ -134,15 +134,14 @@ export default function AdminExamsPage() {
                 validUntil: fd.get("validUntil")
                   ? new Date(String(fd.get("validUntil"))).toISOString()
                   : undefined,
-                quota: Number(fd.get("quota") || 0) || undefined,
                 mandatory: fd.get("mandatory") === "on",
               },
             });
             setGrantExam(null);
-            notify.success("Sınav hakkı verildi");
+            notify.success("Sınav lisansı verildi");
             router.push(`/admin/companies/${cid}/grants`);
           } catch (err) {
-            const message = errorMessage(err, "Sınav hakkı verilemedi");
+            const message = errorMessage(err, "Sınav lisansı verilemedi");
             setFormError(message);
             notify.error(message);
           }
@@ -177,9 +176,6 @@ export default function AdminExamsPage() {
         </Field>
         <Field label="Geçerlilik bitiş">
           <Input name="validUntil" type="datetime-local" />
-        </Field>
-        <Field label="Kota">
-          <Input name="quota" type="number" min={1} />
         </Field>
         <label className="flex items-center gap-2 text-[13px] text-fg">
           <input type="checkbox" name="mandatory" />
