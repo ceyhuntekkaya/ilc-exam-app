@@ -60,6 +60,8 @@ type RubricDetail = {
 
 const TARGET_TOTAL = 100;
 
+const RUBRIC_SKILLS = ["READING", "LISTENING", "WRITING", "SPEAKING"] as const;
+
 function asObj(value: HtmlValue | unknown): { html: string } {
   if (value && typeof value === "object" && "html" in (value as object)) {
     const h = String((value as { html: string }).html);
@@ -388,8 +390,9 @@ export function RubricsPage() {
           </Field>
           <Field label="Beceri">
             <Select value={skill} onChange={(e) => setSkill(e.target.value)}>
-              <option value="WRITING">WRITING</option>
-              <option value="SPEAKING">SPEAKING</option>
+              {RUBRIC_SKILLS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </Select>
           </Field>
           <Button className="min-h-11 self-end" disabled={busy} onClick={() => void create()}>

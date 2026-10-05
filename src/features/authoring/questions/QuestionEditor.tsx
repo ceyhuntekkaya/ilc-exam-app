@@ -13,6 +13,11 @@ import { PlaybackPolicyFields, type PlaybackPolicy } from "@/src/features/author
 import { AnswerKeyForm, InteractionForm } from "@/src/features/authoring/templates/InteractionForms";
 import { TEMPLATE_REGISTRY, getTemplate } from "@/src/features/authoring/templates/registry";
 import {
+  describeQuestionViolation,
+  focusForViolation,
+  type QuestionViolation,
+} from "@/src/features/authoring/questions/violationCopy";
+import {
   authoringApi,
   type QuestionDetail,
   type QuestionPart,
@@ -48,7 +53,28 @@ const SKILLS: Skill[] = [
   "USE_OF_ENGLISH",
 ];
 
+const SKILL_LABEL: Record<Skill, string> = {
+  READING: "Okuma",
+  LISTENING: "Dinleme",
+  WRITING: "Yazma",
+  SPEAKING: "Konuşma",
+  GRAMMAR: "Dilbilgisi",
+  VOCABULARY: "Kelime",
+  USE_OF_ENGLISH: "Use of English",
+};
+
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
+
+/** Saklanan kod: anasınıfı -2/-1/0, sonra 1–12. sınıf. */
+const MEB_GRADES: Array<{ value: string; label: string }> = [
+  { value: "-2", label: "Anasınıfı 3 Yaş" },
+  { value: "-1", label: "Anasınıfı 4 Yaş" },
+  { value: "0", label: "Anasınıfı 5 Yaş" },
+  ...Array.from({ length: 12 }, (_, i) => ({
+    value: String(i + 1),
+    label: `${i + 1}. Sınıf`,
+  })),
+];
 const PANELS = [
   "Tip",
   "Sınıflandırma",
@@ -129,7 +155,7 @@ export function QuestionEditorPage({
   const [q, setQ] = useState<QuestionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [violations, setViolations] = useState<Array<{ path: string; message: string }>>([]);
+  const [violations, setViolations] = useState<QuestionViolation[]>([]);
   const [impact, setImpact] = useState<string | null>(null);
   const [history, setHistory] = useState<Array<{ action: string; summary: string; createdAt: string }>>([]);
   const [enemies, setEnemies] = useState<string[]>([]);
@@ -148,7 +174,9 @@ export function QuestionEditorPage({
   const [ageBands, setAgeBands] = useState<Array<{ code: string; label: string }>>([]);
   const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
   const [outcomes, setOutcomes] = useState<Array<{ id: string; code: string; description: string }>>([]);
-  const [rubrics, setRubrics] = useState<Array<{ id: string; name: string; currentVersionId?: string | null }>>([]);
+  const [rubrics, setRubrics] = useState<
+    Array<{ id: string; name: string; skill?: string; currentVersionId?: string | null }>
+  >([]);
 
   const [instruction, setInstruction] = useState<{ html: string }>({ html: "" });
   const [instructionAudioId, setInstructionAudioId] = useState<string | null>(null);
@@ -322,7 +350,7 @@ export function QuestionEditorPage({
     if (!q) return;
     setSaving(true);
     try {
-      const next = await authoringApi.updateMetadata(q.versionId, {
+      let next = await authoringApi.updateMetadata(q.versionId, {
         cefrLevel: cefr || null,
         mebGrade: mebGrade === "" ? null : Number(mebGrade),
         ageBand: ageBand || null,
@@ -331,6 +359,9 @@ export function QuestionEditorPage({
         securityLevel,
         tagIds,
       });
+      if (selectedPart && partDraft && (selectedPart.skill ?? "") !== partDraft.skill) {
+        next = await authoringApi.updatePart(q.versionId, selectedPart.id, { skill: partDraft.skill });
+      }
       setQ(next);
       notify.success("Kaydedildi");
     } catch (e) {
@@ -445,8 +476,8 @@ export function QuestionEditorPage({
     try {
       const v = await authoringApi.validateQuestion(q.versionId, publish);
       setViolations(v);
-      if (v.length === 0) notify.success("Doğrulama tamam");
-      else notify.error(`${v.length} doğrulama ihlali`);
+      if (v.length === 0) notify.success(publish ? "Yayına hazır" : "Eksik yok");
+      else notify.error(publish ? `Yayın için ${v.length} eksik var` : `${v.length} eksik var`);
     } catch (e) {
       notify.error(errorMessage(e, "Doğrulama başarısız"));
     }
@@ -476,8 +507,8 @@ export function QuestionEditorPage({
   }
 
   const rubricOptions = rubrics
-    .filter((r) => r.currentVersionId)
-    .map((r) => ({ id: r.currentVersionId as string, label: r.name }));
+    .filter((r) => r.currentVersionId && (!partDraft?.skill || !r.skill || r.skill === partDraft.skill))
+    .map((r) => ({ id: r.currentVersionId as string, label: `${r.name} · ${r.skill ?? ""}` }));
 
   return (
     <div className="space-y-4">
@@ -528,7 +559,7 @@ export function QuestionEditorPage({
 
           {openPanel === 1 ? (
             <FormCard title="Sınıflandırma">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-6">
                 <Field label="CEFR">
                   <Select value={cefr} disabled={!editable} onChange={(e) => setCefr(e.target.value)}>
                     <option value="">—</option>
@@ -537,8 +568,28 @@ export function QuestionEditorPage({
                     ))}
                   </Select>
                 </Field>
+                <Field
+                  label="Beceri"
+                >
+                  <Select
+                    value={partDraft?.skill ?? ""}
+                    disabled={!editable || !partDraft}
+                    onChange={(e) =>
+                      setPartDraft((prev) => (prev ? { ...prev, skill: e.target.value } : prev))
+                    }
+                  >
+                    {SKILLS.map((s) => (
+                      <option key={s} value={s}>{SKILL_LABEL[s]}</option>
+                    ))}
+                  </Select>
+                </Field>
                 <Field label="MEB sınıf">
-                  <Input type="number" value={mebGrade} disabled={!editable} onChange={(e) => setMebGrade(e.target.value)} />
+                  <Select value={mebGrade} disabled={!editable} onChange={(e) => setMebGrade(e.target.value)}>
+                    <option value="">—</option>
+                    {MEB_GRADES.map((g) => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </Select>
                 </Field>
                 <Field label="Yaş bandı">
                   <Select value={ageBand} disabled={!editable} onChange={(e) => setAgeBand(e.target.value)}>
@@ -565,6 +616,8 @@ export function QuestionEditorPage({
               <Field label="Etiketler">
                 <MultiPicker
                   label="Etiketler"
+                  layout="chips"
+                  collapsible
                   options={tags.map((t) => ({ value: t.id, label: t.name }))}
                   value={tagIds}
                   onChange={setTagIds}
@@ -579,25 +632,31 @@ export function QuestionEditorPage({
           {openPanel === 2 ? (
             <FormCard title="Uyaran (QuestionBody)">
               <BlockHtmlField label="Yönerge" value={instruction} onChange={setInstruction} disabled={!editable} />
-              <MediaPicker
-                kind="AUDIO"
-                label="Yönerge sesi"
-                value={instructionAudioId}
-                onChange={(id) => {
-                  setInstructionAudioId(id);
-                  if (id) {
-                    setInstructionPlayback({ maxPlays: null, autoplay: false, seekable: true });
-                  }
-                }}
-                disabled={!editable}
-              />
-              {instructionAudioId ? (
-                <p className="text-xs text-fg-muted">Yönerge sesi sınırsız dinlenebilir; oynatma limiti yok.</p>
-              ) : null}
-              <MediaPicker kind="AUDIO" label="Ana dinleme sesi" value={mainAudioId} onChange={setMainAudioId} disabled={!editable} />
-              {mainAudioId ? (
-                <PlaybackPolicyFields value={mainPlayback} onChange={setMainPlayback} disabled={!editable} />
-              ) : null}
+              <div className="grid items-start gap-4 md:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <MediaPicker
+                    kind="AUDIO"
+                    label="Yönerge sesi"
+                    value={instructionAudioId}
+                    onChange={(id) => {
+                      setInstructionAudioId(id);
+                      if (id) {
+                        setInstructionPlayback({ maxPlays: null, autoplay: false, seekable: true });
+                      }
+                    }}
+                    disabled={!editable}
+                  />
+                  {instructionAudioId ? (
+                    <p className="text-xs text-fg-muted">Yönerge sesi sınırsız dinlenebilir; oynatma limiti yok.</p>
+                  ) : null}
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <MediaPicker kind="AUDIO" label="Ana dinleme sesi" value={mainAudioId} onChange={setMainAudioId} disabled={!editable} />
+                  {mainAudioId ? (
+                    <PlaybackPolicyFields value={mainPlayback} onChange={setMainPlayback} disabled={!editable} />
+                  ) : null}
+                </div>
+              </div>
               <ContentBlockList value={stimulus} onChange={setStimulus} disabled={!editable} title="Stimulus" />
               <Button disabled={!editable || saving} onClick={() => void saveBody()}>
                 Uyaranı kaydet
@@ -783,7 +842,7 @@ export function QuestionEditorPage({
                   ) : null}
                   {openPanel === 4 ? (
                     <>
-                      <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-4">
                         <Field label="Beceri">
                           <Select
                             value={partDraft.skill}
@@ -791,7 +850,7 @@ export function QuestionEditorPage({
                             onChange={(e) => setPartDraft({ ...partDraft, skill: e.target.value })}
                           >
                             {SKILLS.map((s) => (
-                              <option key={s} value={s}>{s}</option>
+                              <option key={s} value={s}>{SKILL_LABEL[s]}</option>
                             ))}
                           </Select>
                         </Field>
@@ -836,7 +895,7 @@ export function QuestionEditorPage({
                       {template?.requiresRubric ? (
                         <Field
                           label="Rubrik grubu"
-                          hint="Onaylı grup seçilir (/100). Part Max puan sınav ağırlığıdır; maddelerden seçim yok."
+                          hint="Part becerisiyle aynı onaylı grup (/100). Listening için şablon Sesli cevap olsun; kayıt AI'ya gider."
                         >
                           <Select
                             value={partDraft.rubricVersionId}
@@ -862,41 +921,21 @@ export function QuestionEditorPage({
                     </>
                   ) : null}
                   {openPanel === 5 ? (
-                    <AnswerKeyForm
-                      type={
-                        ["OPEN_ENDED", "AUDIO_RESPONSE", "VIDEO_RESPONSE", "IMAGE_RESPONSE"].includes(
-                          selectedPart.interactionType,
-                        )
-                          ? selectedPart.interactionType
-                          : "OPEN_ENDED"
-                      }
-                      interaction={partDraft.interaction}
-                      value={
-                        ["OPEN_ENDED", "AUDIO_RESPONSE", "VIDEO_RESPONSE", "IMAGE_RESPONSE"].includes(
-                          selectedPart.interactionType,
-                        )
-                          ? partDraft.answerKey
-                          : { type: "MANUAL", sampleAnswers: [], raterNotes: (partDraft.answerKey as { raterNotes?: string })?.raterNotes ?? "" }
-                      }
-                      onChange={(answerKey) => {
-                        if (
-                          ["OPEN_ENDED", "AUDIO_RESPONSE", "VIDEO_RESPONSE", "IMAGE_RESPONSE"].includes(
-                            selectedPart.interactionType,
-                          )
-                        ) {
-                          setPartDraft({ ...partDraft, answerKey: answerKey as Record<string, unknown> });
-                        } else {
-                          setPartDraft({
-                            ...partDraft,
-                            answerKey: {
-                              ...partDraft.answerKey,
-                              raterNotes: (answerKey as { raterNotes?: string }).raterNotes,
-                            },
-                          });
+                    template?.autoGradable ? (
+                      <p className="rounded-lg border border-dashed border-border bg-bg/40 px-3 py-2 text-sm text-fg-muted">
+                        Bu şablon otomatik puanlanır. Örnek cevap ve değerlendirici notu gerekmez.
+                      </p>
+                    ) : (
+                      <AnswerKeyForm
+                        type={selectedPart.interactionType}
+                        interaction={partDraft.interaction}
+                        value={partDraft.answerKey}
+                        onChange={(answerKey) =>
+                          setPartDraft({ ...partDraft, answerKey: answerKey as Record<string, unknown> })
                         }
-                      }}
-                      disabled={!editable}
-                    />
+                        disabled={!editable}
+                      />
+                    )
                   ) : null}
                   <Button disabled={!editable || saving} onClick={() => void savePart()}>
                     Part kaydet
@@ -1002,71 +1041,95 @@ export function QuestionEditorPage({
                   Arşivle
                 </Button>
               </div>
-              {violations.length ? (
-                <ul className="mt-3 space-y-1 text-sm text-danger">
-                  {violations.map((v, i) => (
-                    <li key={i}>
-                      <button type="button" className="underline" onClick={() => setOpenPanel(v.path.includes("body") ? 2 : v.path.includes("part") ? 3 : 1)}>
-                        {v.path}: {v.message}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm text-fg-muted">İhlal yok (son kontrol).</p>
-              )}
-              {impact ? <p className="mt-2 text-sm">Etki: {impact}</p> : null}
-              <div className="mt-3 space-y-1">
-                <p className="text-sm font-medium">Geçmiş</p>
-                {history.map((h, i) => (
-                  <p key={i} className="text-xs text-fg-muted">
-                    {h.action}: {h.summary}
-                  </p>
-                ))}
-              </div>
-              <div className="mt-3 space-y-2">
-                <p className="text-sm font-medium">Düşman sorular</p>
-                <div className="flex gap-2">
-                  <Input value={enemyInput} onChange={(e) => setEnemyInput(e.target.value)} placeholder="questionId" />
-                  <Button
-                    size="sm"
-                    disabled={!editable}
-                    onClick={() =>
-                      void notify
-                        .run(authoringApi.addEnemy(q.questionId, enemyInput), {
-                          success: "Düşman eklendi",
-                          error: "Eklenemedi",
-                        })
-                        .then(() => {
-                          setEnemyInput("");
-                          return loadSide();
-                        })
-                        .catch(() => undefined)
-                    }
-                  >
-                    Ekle
-                  </Button>
+              <div className="mt-3 grid items-start gap-3 md:grid-cols-3">
+                <div className="min-w-0 space-y-1">
+                  <p className="text-xs font-medium text-fg-muted">Eksikler{impact ? ` · Etki: ${impact}` : ""}</p>
+                  {violations.length ? (
+                    <ul className="max-h-72 space-y-2 overflow-y-auto">
+                      {violations.map((v, i) => {
+                        const view = describeQuestionViolation(v, q.parts);
+                        return (
+                          <li key={`${v.path}-${i}`}>
+                            <button
+                              type="button"
+                              className="flex min-h-11 w-full flex-col items-start justify-center rounded-lg bg-bg px-3 py-2 text-left"
+                              onClick={() => {
+                                const focus = focusForViolation(v.path);
+                                if (focus.partIndex != null) {
+                                  const part = q.parts[focus.partIndex];
+                                  if (part) setSelectedPartId(part.id);
+                                }
+                                setOpenPanel(focus.panel);
+                              }}
+                            >
+                              <span className="text-xs font-medium text-fg">{view.where}</span>
+                              <span className="mt-0.5 text-sm leading-snug text-danger">{view.text}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-fg-muted">Son kontrolde eksik yok.</p>
+                  )}
                 </div>
-                {enemies.map((id) => (
-                  <div key={id} className="flex items-center gap-2 text-xs">
-                    <code>{id}</code>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-fg-muted">Geçmiş</p>
+                  <p className="text-xs leading-relaxed text-fg-muted">
+                    {history.length
+                      ? history.map((h) => `${h.action}: ${h.summary}`).join(" · ")
+                      : "—"}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-fg-muted">Düşman sorular</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Input
+                      className="min-w-[8rem] flex-1"
+                      value={enemyInput}
+                      onChange={(e) => setEnemyInput(e.target.value)}
+                      placeholder="questionId"
+                    />
                     <Button
                       size="sm"
-                      variant="ghost"
+                      disabled={!editable}
                       onClick={() =>
                         void notify
-                          .run(authoringApi.removeEnemy(q.questionId, id), {
-                            success: "Düşman silindi",
-                            error: "Silinemedi",
+                          .run(authoringApi.addEnemy(q.questionId, enemyInput), {
+                            success: "Düşman eklendi",
+                            error: "Eklenemedi",
                           })
-                          .then(loadSide)
+                          .then(() => {
+                            setEnemyInput("");
+                            return loadSide();
+                          })
                           .catch(() => undefined)
                       }
                     >
-                      Sil
+                      Ekle
                     </Button>
+                    {enemies.map((id) => (
+                      <span key={id} className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-bg px-2 text-xs">
+                        <code className="max-w-40 truncate">{id}</code>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            void notify
+                              .run(authoringApi.removeEnemy(q.questionId, id), {
+                                success: "Düşman silindi",
+                                error: "Silinemedi",
+                              })
+                              .then(loadSide)
+                              .catch(() => undefined)
+                          }
+                        >
+                          Sil
+                        </Button>
+                      </span>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </FormCard>
           ) : null}

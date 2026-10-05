@@ -25,10 +25,46 @@ import {
   type GridColDef,
 } from "@/src/ui";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
-const SKILLS = ["READING", "LISTENING", "WRITING", "SPEAKING", "GRAMMAR", "VOCABULARY", "USE_OF_ENGLISH"];
+const SKILL_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "READING", label: "Okuma" },
+  { value: "LISTENING", label: "Dinleme" },
+  { value: "WRITING", label: "Yazma" },
+  { value: "SPEAKING", label: "Konuşma" },
+  { value: "GRAMMAR", label: "Dilbilgisi" },
+  { value: "VOCABULARY", label: "Kelime" },
+  { value: "USE_OF_ENGLISH", label: "Use of English" },
+];
+
+function skillLabel(skill?: string | null) {
+  return SKILL_OPTIONS.find((s) => s.value === skill)?.label ?? skill ?? "—";
+}
+
+function formatPoints(n: number) {
+  const rounded = Math.round(n * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+function questionPointsTotal(exam: ExamDetail) {
+  let sum = 0;
+  for (const section of exam.sections) {
+    for (const sub of section.subSections) {
+      const scored = sub.questions.filter((q) => q.role === "SCORED");
+      if (sub.selectionMode === "RANDOM_SUBSET") {
+        const n = Math.min(sub.selectionCount ?? 0, scored.length);
+        sum += (Number(scored[0]?.points) || 0) * n;
+      } else if (sub.selectionMode === "BANK_QUERY") {
+        const criteria = (sub.bankCriteria ?? {}) as { count?: number; pointsPerQuestion?: number };
+        sum += (Number(criteria.pointsPerQuestion) || 0) * (Number(criteria.count) || 0);
+      } else {
+        sum += scored.reduce((acc, q) => acc + (Number(q.points) || 0), 0);
+      }
+    }
+  }
+  return Math.round(sum * 100) / 100;
+}
 
 export function ExamListPage({ basePath }: { basePath: string }) {
   const { tenant } = useAuthoringTenant();
@@ -138,6 +174,12 @@ export function ExamWizardPage({ basePath }: { basePath: string }) {
   const [mode, setMode] = useState<"blank" | "format" | "copy">("blank");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const creating = useRef(false);
+
+  const existingWithCode = useMemo(
+    () => exams.find((e) => e.code === code.trim() && e.versionNumber === 1) ?? null,
+    [exams, code],
+  );
 
   useEffect(() => {
     if (!tenant) return;
@@ -146,11 +188,21 @@ export function ExamWizardPage({ basePath }: { basePath: string }) {
   }, [tenant]);
 
   async function create() {
+    if (creating.current) return;
+    const normalized = code.trim();
+    if (normalized && existingWithCode) {
+      const message = `“${normalized}” kodu bu kurumda zaten kullanılıyor. Farklı bir kod girin.`;
+      setError(message);
+      notify.error(message);
+      setStep(1);
+      return;
+    }
+    creating.current = true;
     setBusy(true);
     setError(null);
     try {
       const exam = await authoringApi.createExam({
-        code: code || `EX-${Date.now().toString(36).toUpperCase()}`,
+        code: normalized || `EX-${Date.now().toString(36).toUpperCase()}`,
         title: title || "Yeni sınav",
         purpose,
         minLevel,
@@ -180,14 +232,29 @@ export function ExamWizardPage({ basePath }: { basePath: string }) {
       const message = errorMessage(e, "Oluşturulamadı");
       setError(message);
       notify.error(message);
+      if (message.includes("sınav kodu") || message.includes("kodu bu kurumda")) setStep(1);
       setBusy(false);
+    } finally {
+      creating.current = false;
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <PageHeader title="Yeni sınav" back={{ href: basePath, label: "Sınavlar" }} />
-      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {error ? (
+        <div className="rounded-lg border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
+          <p>{error}</p>
+          {existingWithCode ? (
+            <Link
+              href={`${basePath}/${existingWithCode.id}`}
+              className="mt-2 inline-flex min-h-11 items-center font-medium underline"
+            >
+              Mevcut sınavı aç
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
       <FormCard title={`Adım ${step}`}>
         {step === 1 ? (
           <div className="space-y-3">
@@ -281,6 +348,9 @@ export function ExamBuilderPage({
   const [bankQ, setBankQ] = useState("");
   const [bankCefr, setBankCefr] = useState("");
   const [bankSkill, setBankSkill] = useState("");
+  const [catalog, setCatalog] = useState<Record<string, QuestionSummary>>({});
+  const [tab, setTab] = useState<"detail" | "questions">("detail");
+  const [attachSubId, setAttachSubId] = useState("");
   const [violations, setViolations] = useState<Array<{ severity: string; path: string; message: string }>>([]);
   const [busy, setBusy] = useState(false);
 
@@ -305,6 +375,21 @@ export function ExamBuilderPage({
       .then(setBank)
       .catch(() => setBank([]));
   }, [tenant, bankQ, bankCefr, bankSkill]);
+
+  useEffect(() => {
+    if (bank.length === 0) return;
+    setCatalog((prev) => {
+      const next = { ...prev };
+      for (const q of bank) next[q.versionId] = q;
+      return next;
+    });
+  }, [bank]);
+
+  useEffect(() => {
+    if (!exam) return;
+    const ids = exam.sections.flatMap((s) => s.subSections.map((ss) => ss.id));
+    if (!attachSubId || !ids.includes(attachSubId)) setAttachSubId(ids[0] ?? "");
+  }, [exam, attachSubId]);
 
   const section = exam?.sections.find((s) => sel.kind !== "exam" && "sectionId" in sel && s.id === sel.sectionId);
   const sub =
@@ -370,6 +455,15 @@ export function ExamBuilderPage({
     return error ? <p className="text-sm text-danger">{error}</p> : <p className="text-sm text-fg-muted">Yükleniyor…</p>;
   }
 
+  const rawPoints = questionPointsTotal(exam);
+  const aggregation = String((exam.scoring as Record<string, unknown> | null | undefined)?.aggregation ?? "SUM_OF_POINTS");
+  const pointsMustMatch = aggregation !== "WEIGHTED_BY_SECTION";
+  const pointsMismatch = pointsMustMatch && Math.abs(rawPoints - Number(exam.totalPoints)) > 0.001;
+  const attachedCount = exam.sections.reduce(
+    (n, section) => n + section.subSections.reduce((m, sub) => m + sub.questions.length, 0),
+    0,
+  );
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -379,22 +473,53 @@ export function ExamBuilderPage({
         actions={<StatusBadge status={exam.status} />}
       />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
+      <PointsMatchBanner
+        raw={rawPoints}
+        total={Number(exam.totalPoints)}
+        mismatch={pointsMismatch}
+        weighted={!pointsMustMatch}
+        onAlign={() => void saveExamBasics({ totalPoints: rawPoints })}
+      />
+      <div role="tablist" className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
+        {(
+          [
+            ["detail", "Detay"],
+            ["questions", `Sorular (${attachedCount})`],
+          ] as const
+        ).map(([id, label]) => {
+          const selected = tab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              className={`min-h-11 rounded-lg px-3.5 py-1.5 text-sm font-medium whitespace-nowrap ${
+                selected ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              }`}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="grid gap-3 lg:grid-cols-[240px_1fr_280px]">
+      <div className={tab === "detail" ? "grid gap-3 md:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)]" : "hidden"}>
         {/* Left tree */}
         <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
-          <button type="button" className={`block w-full rounded px-2 py-1 text-left text-sm ${sel.kind === "exam" ? "bg-primary/10 font-medium" : ""}`} onClick={() => setSel({ kind: "exam" })}>
+          <button type="button" className={`flex min-h-11 w-full items-center rounded px-2 text-left text-sm ${sel.kind === "exam" ? "bg-primary/10 font-medium" : ""}`} onClick={() => setSel({ kind: "exam" })}>
             Sınav
           </button>
           {exam.sections.map((s, si) => (
             <div key={s.id} className="pl-2">
               <div className="flex items-center gap-1">
-                <button type="button" className={`block min-w-0 flex-1 rounded px-2 py-1 text-left text-sm ${sel.kind === "section" && sel.sectionId === s.id ? "bg-primary/10 font-medium" : ""}`} onClick={() => setSel({ kind: "section", sectionId: s.id })}>
+                <button type="button" className={`flex min-h-11 min-w-0 flex-1 items-center rounded px-2 text-left text-sm ${sel.kind === "section" && sel.sectionId === s.id ? "bg-primary/10 font-medium" : ""}`} onClick={() => setSel({ kind: "section", sectionId: s.id })}>
                   {s.title}
                 </button>
                 <button
                   type="button"
-                  className="text-xs text-fg-muted"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm text-fg-muted"
                   disabled={si === 0}
                   onClick={() => {
                     const ids = exam.sections.map((x) => x.id);
@@ -411,7 +536,7 @@ export function ExamBuilderPage({
                 </button>
                 <button
                   type="button"
-                  className="text-xs text-fg-muted"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center text-sm text-fg-muted"
                   disabled={si === exam.sections.length - 1}
                   onClick={() => {
                     const ids = exam.sections.map((x) => x.id);
@@ -434,7 +559,7 @@ export function ExamBuilderPage({
                   <button
                     key={ss.id}
                     type="button"
-                    className={`ml-3 block w-full rounded px-2 py-1 text-left text-xs ${sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id ? "bg-primary/10 font-medium" : ""}`}
+                    className={`ml-3 flex min-h-11 w-full items-center rounded px-2 text-left text-xs ${sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id ? "bg-primary/10 font-medium" : ""}`}
                     onClick={() => setSel({ kind: "sub", sectionId: s.id, subId: ss.id })}
                   >
                     {ss.title}{" "}
@@ -496,7 +621,13 @@ export function ExamBuilderPage({
               <FormCard title="Temel">
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Field label="Başlık"><Input value={exam.title} onChange={(e) => setExam({ ...exam, title: e.target.value })} onBlur={() => void saveExamBasics({ title: exam.title })} /></Field>
-                  <Field label="Toplam puan"><Input type="number" value={exam.totalPoints} onChange={(e) => setExam({ ...exam, totalPoints: Number(e.target.value) })} onBlur={() => void saveExamBasics({ totalPoints: exam.totalPoints })} /></Field>
+                  <Field
+                    label="Toplam puan"
+                    error={pointsMismatch ? `Soru puanları toplamı ${formatPoints(rawPoints)}. İkisi eşit olmalı.` : undefined}
+                    hint={pointsMismatch ? undefined : `Soru puanları: ${formatPoints(rawPoints)}`}
+                  >
+                    <Input type="number" value={exam.totalPoints} onChange={(e) => setExam({ ...exam, totalPoints: Number(e.target.value) })} onBlur={() => void saveExamBasics({ totalPoints: exam.totalPoints })} />
+                  </Field>
                   <Field label="Min yaş"><Input type="number" value={exam.minAge ?? ""} onChange={(e) => setExam({ ...exam, minAge: e.target.value === "" ? null : Number(e.target.value) })} onBlur={() => void saveExamBasics({ minAge: exam.minAge })} /></Field>
                   <Field label="Max yaş"><Input type="number" value={exam.maxAge ?? ""} onChange={(e) => setExam({ ...exam, maxAge: e.target.value === "" ? null : Number(e.target.value) })} onBlur={() => void saveExamBasics({ maxAge: exam.maxAge })} /></Field>
                 </div>
@@ -513,7 +644,7 @@ export function ExamBuilderPage({
                 <Field label="Başlık"><Input defaultValue={section.title} id="sec-title" /></Field>
                 <Field label="Beceri">
                   <Select defaultValue={section.skill} id="sec-skill">
-                    {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
+                    {SKILL_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </Select>
                 </Field>
                 <Field label="Süre (sn)"><Input type="number" defaultValue={section.durationSeconds ?? ""} id="sec-dur" /></Field>
@@ -735,6 +866,7 @@ export function ExamBuilderPage({
                 Doğrula
               </Button>
               <Button
+                disabled={pointsMismatch}
                 onClick={() =>
                   void notify
                     .run(authoringApi.submitExam(exam.id), {
@@ -748,6 +880,7 @@ export function ExamBuilderPage({
                 İncelemeye gönder
               </Button>
               <Button
+                disabled={pointsMismatch}
                 onClick={() =>
                   void notify
                     .run(authoringApi.publishExam(exam.id), {
@@ -770,47 +903,294 @@ export function ExamBuilderPage({
             </ul>
           </FormCard>
         </div>
-
-        {/* Right bank */}
-        <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
-          <p className="text-sm font-medium">Soru bankası</p>
-          <Input placeholder="Ara" value={bankQ} onChange={(e) => setBankQ(e.target.value)} />
-          <Select value={bankCefr} onChange={(e) => setBankCefr(e.target.value)}>
-            <option value="">CEFR</option>
-            {CEFR.map((c) => <option key={c} value={c}>{c}</option>)}
-          </Select>
-          <Select value={bankSkill} onChange={(e) => setBankSkill(e.target.value)}>
-            <option value="">Beceri</option>
-            {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </Select>
-          <ButtonLink href={`${qBase}/new`}>Yeni soru yaz</ButtonLink>
-          <div className="max-h-[480px] space-y-1 overflow-auto">
-            {bank.map((q) => (
-              <div key={q.versionId} className="rounded border border-border p-2 text-xs">
-                <p className="font-medium">{q.code}</p>
-                <p className="text-fg-muted">{q.primaryType} · {q.cefrLevel}</p>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={sel.kind !== "sub"}
-                  onClick={() => {
-                    if (sel.kind !== "sub") return;
-                    void notify
-                      .run(authoringApi.attachQuestion(exam.id, sel.subId, q.versionId), {
-                        success: "Soru eklendi",
-                        error: "Soru eklenemedi",
-                      })
-                      .then(setExam)
-                      .catch(() => undefined);
-                  }}
-                >
-                  Ekle
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
+
+      <div className={tab === "questions" ? "block" : "hidden"}>
+        <QuestionAssignPanel
+          exam={exam}
+          bank={bank}
+          catalog={catalog}
+          qBase={qBase}
+          bankQ={bankQ}
+          bankCefr={bankCefr}
+          bankSkill={bankSkill}
+          attachSubId={attachSubId}
+          rawPoints={rawPoints}
+          pointsMismatch={pointsMismatch}
+          onSearch={setBankQ}
+          onCefr={setBankCefr}
+          onSkill={setBankSkill}
+          onPickSub={setAttachSubId}
+          onAttach={(versionId) => {
+            if (!attachSubId) {
+              notify.error("Önce sağdan bir alt bölüm seçin");
+              return;
+            }
+            void notify
+              .run(authoringApi.attachQuestion(exam.id, attachSubId, versionId), {
+                success: "Soru eklendi",
+                error: "Soru eklenemedi",
+              })
+              .then(setExam)
+              .catch(() => undefined);
+          }}
+          onDetach={(linkId) => {
+            void notify
+              .run(authoringApi.detachQuestion(exam.id, linkId), {
+                success: "Soru kaldırıldı",
+                error: "Kaldırılamadı",
+              })
+              .then(setExam)
+              .catch(() => undefined);
+          }}
+          onPoints={(linkId, points) => {
+            void notify
+              .run(authoringApi.updateQuestionLink(exam.id, linkId, { points }), {
+                error: "Puan güncellenemedi",
+              })
+              .then(setExam)
+              .catch(() => undefined);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function questionSkillText(q: QuestionSummary) {
+  const list = q.skills?.length ? q.skills : q.primarySkill ? [q.primarySkill] : [];
+  return list.length ? list.map((s) => skillLabel(s)).join(", ") : "Beceri yok";
+}
+
+function PointsMatchBanner({
+  raw,
+  total,
+  mismatch,
+  weighted,
+  onAlign,
+}: {
+  raw: number;
+  total: number;
+  mismatch: boolean;
+  weighted: boolean;
+  onAlign: () => void;
+}) {
+  if (weighted) {
+    return (
+      <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-fg-muted">
+        Ağırlıklı puanlama açık. Ham soru puanı {formatPoints(raw)}, sınav toplamı {formatPoints(total)}.
+      </p>
+    );
+  }
+  return (
+    <div
+      className={`flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+        mismatch ? "border-danger bg-danger-bg text-danger" : "border-border bg-surface text-fg"
+      }`}
+    >
+      <p className="text-sm">
+        Soru puanları toplamı <span className="font-semibold tabular-nums">{formatPoints(raw)}</span>
+        {" · "}
+        sınav toplamı <span className="font-semibold tabular-nums">{formatPoints(total)}</span>
+        {mismatch ? ". Yayınlamadan önce ikisi eşit olmalı." : "."}
+      </p>
+      {mismatch && raw > 0 ? (
+        <Button type="button" variant="secondary" className="min-h-11 shrink-0" onClick={onAlign}>
+          Toplamı {formatPoints(raw)} yap
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function QuestionAssignPanel({
+  exam,
+  bank,
+  catalog,
+  qBase,
+  bankQ,
+  bankCefr,
+  bankSkill,
+  attachSubId,
+  rawPoints,
+  pointsMismatch,
+  onSearch,
+  onCefr,
+  onSkill,
+  onPickSub,
+  onAttach,
+  onDetach,
+  onPoints,
+}: {
+  exam: ExamDetail;
+  bank: QuestionSummary[];
+  catalog: Record<string, QuestionSummary>;
+  qBase: string;
+  bankQ: string;
+  bankCefr: string;
+  bankSkill: string;
+  attachSubId: string;
+  rawPoints: number;
+  pointsMismatch: boolean;
+  onSearch: (value: string) => void;
+  onCefr: (value: string) => void;
+  onSkill: (value: string) => void;
+  onPickSub: (id: string) => void;
+  onAttach: (versionId: string) => void;
+  onDetach: (linkId: string) => void;
+  onPoints: (linkId: string, points: number) => void;
+}) {
+  const attachedIds = new Set(
+    exam.sections.flatMap((section) => section.subSections.flatMap((sub) => sub.questions.map((q) => q.questionId))),
+  );
+  const hasTarget = exam.sections.some((section) => section.subSections.some((sub) => sub.id === attachSubId));
+
+  return (
+    <div className="grid items-start gap-3 md:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
+      <section className="flex min-h-0 flex-col rounded-xl border border-border bg-surface md:sticky md:top-3 md:max-h-[calc(100dvh-12rem)]">
+        <div className="space-y-2 border-b border-border p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-fg">Soru bankası</h2>
+            <ButtonLink href={`${qBase}/new`} variant="secondary" size="sm">
+              Yeni soru
+            </ButtonLink>
+          </div>
+          <Input placeholder="Kod ara" value={bankQ} onChange={(e) => onSearch(e.target.value)} aria-label="Soru ara" />
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={bankCefr} onChange={(e) => onCefr(e.target.value)} aria-label="CEFR filtresi">
+              <option value="">CEFR</option>
+              {CEFR.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </Select>
+            <Select value={bankSkill} onChange={(e) => onSkill(e.target.value)} aria-label="Beceri filtresi">
+              <option value="">Beceri</option>
+              {SKILL_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </Select>
+          </div>
+          <p className="text-xs text-fg-muted">
+            Beceri, sorunun part alanına yazılır. Sınıflandırma ve Cevap / puan adımlarında.
+          </p>
+        </div>
+        <div className="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+          {bank.length === 0 ? (
+            <p className="text-sm text-fg-muted">Bu filtreye uyan onaylı soru yok.</p>
+          ) : (
+            bank.map((q) => {
+              const added = attachedIds.has(q.questionId);
+              return (
+                <article key={q.versionId} className="rounded-lg border border-border bg-bg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-fg">{q.code}</p>
+                      <p className="mt-0.5 text-xs text-fg-muted">
+                        {q.primaryType ?? "—"} · {q.cefrLevel ?? "CEFR yok"} · {questionSkillText(q)}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={added ? "ghost" : "secondary"}
+                      className="min-h-11 shrink-0"
+                      disabled={added || !hasTarget}
+                      onClick={() => onAttach(q.versionId)}
+                    >
+                      {added ? "Eklendi" : "Ekle"}
+                    </Button>
+                  </div>
+                  <Link href={`${qBase}/${q.versionId}`} className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-primary hover:underline">
+                    Soruyu düzenle
+                  </Link>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      <section className="min-h-0 rounded-xl border border-border bg-surface md:max-h-[calc(100dvh-12rem)] md:overflow-auto">
+        <div className="sticky top-0 z-10 border-b border-border bg-surface px-4 py-3">
+          <h2 className="text-sm font-semibold text-fg">Seçilen sorular</h2>
+          <p className={`mt-1 text-xs ${pointsMismatch ? "text-danger" : "text-fg-muted"}`}>
+            Toplam {formatPoints(rawPoints)} puan
+            {hasTarget ? " · Ekle, vurgulanan alt bölüme gider." : " · Önce Detay’dan bir alt bölüm ekleyin."}
+          </p>
+        </div>
+        <div className="space-y-4 p-3">
+          {exam.sections.length === 0 ? (
+            <p className="text-sm text-fg-muted">Henüz bölüm yok. Detay sekmesinden bölüm ekleyin.</p>
+          ) : (
+            exam.sections.map((section) => (
+              <div key={section.id} className="space-y-2">
+                <h3 className="text-sm font-semibold text-fg">
+                  {section.title}
+                  <span className="ml-2 font-normal text-fg-muted">{skillLabel(section.skill)}</span>
+                </h3>
+                {section.subSections.length === 0 ? (
+                  <p className="text-xs text-fg-muted">Alt bölüm yok.</p>
+                ) : (
+                  section.subSections.map((sub) => {
+                    const active = sub.id === attachSubId;
+                    return (
+                      <div
+                        key={sub.id}
+                        className={`rounded-lg border p-3 ${active ? "border-primary ring-2 ring-primary/20" : "border-border"}`}
+                      >
+                        <button
+                          type="button"
+                          className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
+                          onClick={() => onPickSub(sub.id)}
+                        >
+                          <span className="text-sm font-medium text-fg">{sub.title}</span>
+                          <span className="text-xs text-fg-muted">{active ? "Eklenecek yer" : "Seç"}</span>
+                        </button>
+                        {sub.questions.length === 0 ? (
+                          <p className="mt-2 text-xs text-fg-muted">Bu alt bölümde soru yok.</p>
+                        ) : (
+                          <ul className="mt-2 space-y-2">
+                            {sub.questions.map((link, index) => {
+                              const known = catalog[link.questionVersionId];
+                              return (
+                                <li key={link.id} className="flex flex-col gap-2 rounded-lg border border-border bg-bg p-3 sm:flex-row sm:items-center">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium text-fg">
+                                      {index + 1}. {known?.code ?? `${link.questionVersionId.slice(0, 8)}…`}
+                                    </p>
+                                    <p className="text-xs text-fg-muted">
+                                      {known ? `${known.primaryType ?? "—"} · ${questionSkillText(known)} · ` : ""}
+                                      {link.role}
+                                    </p>
+                                  </div>
+                                  <label className="flex items-center gap-2 text-xs text-fg-muted">
+                                    Puan
+                                    <Input
+                                      type="number"
+                                      className="w-20"
+                                      key={`${link.id}-${link.points}`}
+                                      defaultValue={link.points}
+                                      aria-label="Soru puanı"
+                                      onBlur={(e) => onPoints(link.id, Number(e.target.value))}
+                                    />
+                                  </label>
+                                  <Button type="button" variant="danger" size="sm" className="min-h-11" onClick={() => onDetach(link.id)}>
+                                    Kaldır
+                                  </Button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

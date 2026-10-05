@@ -115,7 +115,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   {
     type: "AUDIO_RESPONSE",
     label: "Sesli cevap",
-    hint: "Speaking kaydı; rubrik ile puanlanır.",
+    hint: "Speaking veya Listening. Öğrenci ses kaydeder; transkript rubriğe göre AI ile puanlanır.",
     defaultSkill: "SPEAKING",
     scoringModes: ["RUBRIC"],
     requiresRubric: true,

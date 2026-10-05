@@ -37,6 +37,7 @@ export type QuestionSummary = {
   ageBand?: string | null;
   primaryType?: InteractionType | null;
   primarySkill?: Skill | null;
+  skills?: Skill[] | null;
   types?: InteractionType[];
   tags?: string[];
   calibrationStatus?: string;
@@ -384,16 +385,46 @@ export const authoringApi = {
       method: "POST",
       body: JSON.stringify({ name }),
     }),
+  updateTag: (id: string, name: string) =>
+    authoringFetch<{ id: string; name: string }>(`/authoring/tags/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    }),
+  deleteTag: (id: string) => authoringFetch<void>(`/authoring/tags/${id}`, { method: "DELETE" }),
   listAgeBands: () =>
-    authoringFetch<Array<{ id: string; code: string; label: string }>>("/authoring/age-bands"),
-  createAgeBand: (body: Record<string, unknown>) =>
+    authoringFetch<Array<{ id: string; code: string; label: string; sortOrder: number; ownerOrgId: string }>>(
+      "/authoring/age-bands",
+    ),
+  createAgeBand: (body: { code: string; label: string; sortOrder: number }) =>
     authoringFetch("/authoring/age-bands", { method: "POST", body: JSON.stringify(body) }),
+  updateAgeBand: (id: string, body: { code: string; label: string; sortOrder: number }) =>
+    authoringFetch(`/authoring/age-bands/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteAgeBand: (id: string) => authoringFetch<void>(`/authoring/age-bands/${id}`, { method: "DELETE" }),
   listOutcomes: () =>
     authoringFetch<
-      Array<{ id: string; code: string; description: string; skill?: string; cefrLevel?: string }>
+      Array<{
+        id: string;
+        code: string;
+        description: string;
+        framework?: string;
+        skill?: string | null;
+        cefrLevel?: string | null;
+        gradeLevel?: number | null;
+      }>
     >("/authoring/outcomes"),
-  createOutcome: (body: Record<string, unknown>) =>
-    authoringFetch("/authoring/outcomes", { method: "POST", body: JSON.stringify(body) }),
+  createOutcome: (body: {
+    framework: string;
+    code: string;
+    description: string;
+    skill: string;
+    cefrLevel: string;
+    gradeLevel?: number | null;
+  }) => authoringFetch("/authoring/outcomes", { method: "POST", body: JSON.stringify(body) }),
+  updateOutcome: (
+    id: string,
+    body: { description: string; skill: string; cefrLevel: string; gradeLevel?: number | null },
+  ) => authoringFetch(`/authoring/outcomes/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteOutcome: (id: string) => authoringFetch<void>(`/authoring/outcomes/${id}`, { method: "DELETE" }),
   listRubrics: () =>
     authoringFetch<
       Array<{ id: string; code: string; name: string; skill: string; currentVersionId?: string | null }>

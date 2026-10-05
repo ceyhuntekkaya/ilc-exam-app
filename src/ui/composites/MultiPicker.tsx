@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
-import { IconSearch, IconX } from "@/src/ui/icons";
+import { IconChevronRight, IconSearch, IconX } from "@/src/ui/icons";
 import { Checkbox } from "@/src/ui/primitives/Checkbox";
 import { Input } from "@/src/ui/primitives/Input";
 
@@ -33,6 +33,8 @@ export function MultiPicker({
   emptyText = "Seçim yapılmamıştır.",
   noResultText = "Aramanızla eşleşen seçenek bulunmamaktadır.",
   label,
+  layout = "list",
+  collapsible = false,
 }: {
   options: MultiPickerOption[];
   value: string[];
@@ -43,14 +45,20 @@ export function MultiPicker({
   noResultText?: string;
   /** Liste için erişilebilir ad (ör. "Ek kategoriler"). */
   label: string;
+  /** list: dikey onay kutuları. chips: yan yana seçilebilir etiketler. */
+  layout?: "list" | "chips";
+  /** Seçenek kataloğu kapalı başlar; seçilenler her zaman görünür. */
+  collapsible?: boolean;
 }) {
   const listId = useId();
   const [query, setQuery] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const selected = useMemo(() => new Set(value), [value]);
   const byValue = useMemo(() => new Map(options.map((option) => [option.value, option])), [options]);
   const full = max != null && value.length >= max;
   const term = query.trim().toLocaleLowerCase("tr-TR");
+  const showCatalog = !collapsible || catalogOpen;
 
   const shown = options.filter((option) => {
     if (onlySelected && !selected.has(option.value)) return false;
@@ -98,6 +106,71 @@ export function MultiPicker({
         )}
       </div>
 
+      {collapsible ? (
+        <button
+          type="button"
+          aria-expanded={catalogOpen}
+          aria-controls={listId}
+          onClick={() => setCatalogOpen((open) => !open)}
+          className="flex h-8 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-2.5 text-left text-[13px] text-fg hover:border-border-strong"
+        >
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <IconChevronRight className={cn("size-3.5 shrink-0 text-fg-muted transition-transform", catalogOpen && "rotate-90")} />
+            <span className="truncate">{catalogOpen ? "Etiket listesini kapat" : "Etiket listesini aç"}</span>
+          </span>
+          <span className="shrink-0 tabular-nums text-fg-muted">{options.length.toLocaleString("tr-TR")}</span>
+        </button>
+      ) : null}
+
+      {showCatalog && layout === "chips" ? (
+        <div className="grid min-w-0 gap-2">
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            aria-label={`${label} içinde ara`}
+            aria-controls={listId}
+            icon={<IconSearch />}
+            wrapperClassName="min-w-0"
+          />
+          <div
+            id={listId}
+            role="group"
+            aria-label={label}
+            className="flex max-h-36 min-w-0 flex-wrap content-start gap-1.5 overflow-y-auto overscroll-contain"
+          >
+            {shown.length ? (
+              shown.map((option) => {
+                const checked = selected.has(option.value);
+                const disabled = option.disabled || (!checked && full);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={checked}
+                    disabled={disabled}
+                    title={option.description ?? option.label}
+                    onClick={() => toggle(option.value)}
+                    className={cn(
+                      "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-md px-2.5 text-[13px] disabled:opacity-50",
+                      checked
+                        ? "bg-primary-50 font-medium text-primary-800 ring-1 ring-primary-200"
+                        : "bg-surface text-fg ring-1 ring-border hover:ring-border-strong",
+                    )}
+                  >
+                    <span className="truncate">{option.label}</span>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-0.5 py-2 text-[13px] text-fg-subtle">{onlySelected && !value.length ? emptyText : noResultText}</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {showCatalog && layout === "list" ? (
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input
           type="search"
@@ -116,7 +189,9 @@ export function MultiPicker({
           className="shrink-0 text-fg-muted select-none"
         />
       </div>
+      ) : null}
 
+      {showCatalog && layout === "list" ? (
       <ul id={listId} role="group" aria-label={label} className="max-h-60 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain rounded-md border border-border bg-surface p-1">
         {shown.length ? (
           shown.map((option) => {
@@ -145,14 +220,17 @@ export function MultiPicker({
           <li className="px-2 py-6 text-center text-[13px] text-fg-subtle">{onlySelected && !value.length ? emptyText : noResultText}</li>
         )}
       </ul>
+      ) : null}
 
-      <p className="flex flex-wrap justify-between gap-2 px-0.5 text-xs text-fg-subtle" aria-live="polite">
-        <span>{term ? `${shown.length.toLocaleString("tr-TR")} sonuç` : `${options.length.toLocaleString("tr-TR")} seçenek`}</span>
-        <span className={full ? "font-medium text-warning" : undefined}>
-          {value.length.toLocaleString("tr-TR")}
-          {max != null ? ` / ${max}` : ""} seçili{full ? " · sınıra ulaşıldı" : ""}
-        </span>
-      </p>
+      {showCatalog ? (
+        <p className="flex flex-wrap justify-between gap-2 px-0.5 text-xs text-fg-subtle" aria-live="polite">
+          <span>{term ? `${shown.length.toLocaleString("tr-TR")} sonuç` : `${options.length.toLocaleString("tr-TR")} seçenek`}</span>
+          <span className={full ? "font-medium text-warning" : undefined}>
+            {value.length.toLocaleString("tr-TR")}
+            {max != null ? ` / ${max}` : ""} seçili{full ? " · sınıra ulaşıldı" : ""}
+          </span>
+        </p>
+      ) : null}
     </div>
   );
 }
