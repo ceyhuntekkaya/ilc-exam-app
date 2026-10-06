@@ -7,6 +7,7 @@ import {
   filtersToQuery,
   useAssignmentScope,
 } from "@/src/features/assignments/assignmentScope";
+import { GradingAiPrompts, aiPromptQueryKey } from "@/src/features/assignments/GradingAiPrompts";
 import { GradingPrerequisites, prerequisiteQueryKey } from "@/src/features/assignments/GradingPrerequisites";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
@@ -54,7 +55,7 @@ type MediaTranscript = {
 };
 
 type Lane = "audio" | "text" | "video" | "image";
-type Mode = "ai" | "manual" | "prerequisites";
+type Mode = "ai" | "manual" | "prerequisites" | "prompt";
 
 const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
   audio: {
@@ -342,6 +343,14 @@ export function GradingSection({
         `/companies/${companyId}/exam-versions/${examVersionId}/grading-prerequisites`,
       ),
   });
+  const aiPrompts = useQuery({
+    queryKey: aiPromptQueryKey(companyId, examVersionId),
+    enabled: Boolean(examVersionId),
+    queryFn: () =>
+      customInstance<{ data: { items: unknown[] } }>(
+        `/companies/${companyId}/exam-versions/${examVersionId}/ai-prompts`,
+      ),
+  });
 
   useEffect(() => {
     if (!examVersionId || !prerequisites.isSuccess) return;
@@ -573,7 +582,7 @@ export function GradingSection({
   const header = (
     <PageHeader
       title="Değerlendirme"
-      description="Sınavı seçin. Sesli yanıt ve açık uçlu sorulardaki materyal metinleri Ön Koşullar sekmesindedir. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
+      description="Sınavı seçin. Açık uçlu ve sesli cevap sorularının modele gidecek metni AI metni sekmesindedir. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
       back={board ? undefined : { href: filterKey ? `${hrefs.assignments}?${filterKey}` : hrefs.assignments, label: "Atamalar" }}
       actions={
         <Button type="button" onClick={() => setConfirmPublish(true)} disabled={queueIds.length === 0 || !query.isSuccess || contextMismatch}>
@@ -658,10 +667,17 @@ export function GradingSection({
                   label: "Ön Koşullar",
                   count: prerequisites.isSuccess ? prerequisites.data?.data.missingCount : undefined,
                 },
+                {
+                  id: "prompt",
+                  label: "AI metni",
+                  count: aiPrompts.isSuccess ? aiPrompts.data?.data.items.length : undefined,
+                },
               ]}
             />
             {mode === "prerequisites" ? (
               <GradingPrerequisites companyId={companyId} examVersionId={examVersionId} />
+            ) : mode === "prompt" ? (
+              <GradingAiPrompts companyId={companyId} examVersionId={examVersionId} />
             ) : board && scope.ready && scope.rosterQ.isLoading ? (
               <Skeleton className="h-48 rounded-xl" />
             ) : answerWaiting ? (
