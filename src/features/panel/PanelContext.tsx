@@ -101,9 +101,11 @@ export function useOpsHref() {
       role === "STAFF"
         ? `${basePath}/exams/assignments/${assignmentId}/monitor`
         : `${root}/assignments/${assignmentId}/monitor`,
+    /** Menüdeki değerlendirme: filtre sınav ve şubeyi seçer, adres atama kimliği taşımaz. */
+    gradingBoard: role === "STAFF" ? `${basePath}/grading` : `${root}/assignments`,
     grading: (assignmentId: string) =>
       role === "STAFF"
-        ? `${basePath}/exams/assignments/${assignmentId}/grading`
+        ? `${basePath}/grading`
         : `${root}/assignments/${assignmentId}/grading`,
     assign: (grantId: string) =>
       role === "STAFF" ? `${basePath}/exams/${grantId}/assign` : `${root}/assignments/new?grantId=${grantId}`,

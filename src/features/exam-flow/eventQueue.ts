@@ -27,14 +27,20 @@ export function readQueue(applicationId: string): QueuedEvent[] {
   }
 }
 
-export function clearQueue(applicationId: string) {
-  localStorage.removeItem(key(applicationId));
+/** Yalnızca gönderilen kayıtları siler. Bekleyen yeni olay (tam ekran çıkışı) kuyrukta kalır. */
+export function clearQueued(applicationId: string, ids: string[]) {
+  if (ids.length === 0) return;
+  const drop = new Set(ids);
+  const rest = readQueue(applicationId).filter((event) => !drop.has(event.clientEventId));
+  if (rest.length === 0) localStorage.removeItem(key(applicationId));
+  else localStorage.setItem(key(applicationId), JSON.stringify(rest));
 }
 
 /** Page hide cannot set headers on sendBeacon; keepalive fetch carries the session token. */
 export function flushEventsKeepalive(applicationId: string, token: string) {
   const events = readQueue(applicationId);
   if (events.length === 0) return;
+  const sent = events.map((event) => event.clientEventId);
   void fetch(`/api/backend/applications/${applicationId}/heartbeat`, {
     method: "POST",
     headers: {
@@ -46,6 +52,6 @@ export function flushEventsKeepalive(applicationId: string, token: string) {
     keepalive: true,
     credentials: "include",
   }).then((response) => {
-    if (response.ok) clearQueue(applicationId);
+    if (response.ok) clearQueued(applicationId, sent);
   }).catch(() => undefined);
 }

@@ -1,7 +1,16 @@
 "use client";
 
 import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } from "@/src/features/exam-flow/api";
-import { clearQueue, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
+import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
+import { FullscreenGate } from "@/src/features/exam-flow/FullscreenGate";
+import {
+  enterExamFullscreen,
+  exitExamFullscreen,
+  holdExamMedia,
+  isExamFullscreen,
+  lockExamEscape,
+  releaseExamMediaHold,
+} from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { clearSession, readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
 import { usePathname, useRouter } from "next/navigation";
@@ -23,8 +32,12 @@ type FlowContextValue = {
   error: string | null;
   conflict: boolean;
   held: boolean;
+  /** Get Ready sonrası tam ekrandan çıkıldı. Sayaç da bu yüzden durur. */
+  fullscreenBlocked: boolean;
   reload: () => void;
   applyState: (next: ExamState) => void;
+  /** Tıklamanın içinde tam ekran ister. Söz verilmeden önce çağrılmalı. */
+  engageFullscreen: () => Promise<void>;
   takeOver: () => Promise<void>;
   /** Biten denemeden çık, yeni deneme için hoş geldin ekranına dön (giriş hakkı varsa). */
   startOver: () => void;
@@ -51,7 +64,15 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const linkDownRef = useRef(false);
   const seenFocusLoss = useRef<number | null>(null);
   const [focusWarning, setFocusWarning] = useState<number | null>(null);
+  const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
+  const fullscreenBlockedRef = useRef(false);
+  const enterPromiseRef = useRef<Promise<void> | null>(null);
   const lastNav = useRef<{ to: string; at: number; count: number }>({ to: "", at: 0, count: 0 });
+  const needsFullscreen = state != null && state.stage !== "WELCOME" && state.stage !== "FINISHED";
+  const shouldBlockFullscreen = needsFullscreen && !isExamFullscreen();
+  if (fullscreenBlocked !== shouldBlockFullscreen) {
+    setFullscreenBlocked(shouldBlockFullscreen);
+  }
 
   /**
    * Aşamaya uygun adrese tek seferlik yönlendirme. Her router.replace sunucuya bir istek demek; bu yüzden:
@@ -223,24 +244,70 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
   }, [state?.proctoring, state?.stage]);
 
+  const engageFullscreen = useCallback(() => {
+    const pending = enterExamFullscreen().then(() => {
+      const blocked = !isExamFullscreen();
+      fullscreenBlockedRef.current = blocked;
+      setFullscreenBlocked(blocked);
+      if (!blocked) {
+        releaseExamMediaHold();
+        void lockExamEscape();
+      }
+    });
+    enterPromiseRef.current = pending;
+    void pending.finally(() => {
+      if (enterPromiseRef.current === pending) enterPromiseRef.current = null;
+    });
+    return pending;
+  }, []);
+
   useEffect(() => {
-    if (state?.stage !== "IN_SECTION" || !state.proctoring.requireFullscreen) return;
-    const node = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
-    const request = node.requestFullscreen?.bind(node) ?? node.webkitRequestFullscreen?.bind(node);
-    if (request) void Promise.resolve(request()).catch(() => undefined);
-    const onExit = () => {
-      const doc = document as Document & { webkitFullscreenElement?: Element | null };
-      if (document.fullscreenElement || doc.webkitFullscreenElement) return;
-      const session = readSession(recipientId);
-      if (session) enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
+    fullscreenBlockedRef.current = shouldBlockFullscreen;
+  }, [shouldBlockFullscreen]);
+
+  useEffect(() => {
+    if (!needsFullscreen) return;
+    const wasOn = { current: isExamFullscreen() };
+    if (wasOn.current) void lockExamEscape();
+    else holdExamMedia();
+    const onChange = () => {
+      const on = isExamFullscreen();
+      if (wasOn.current && !on) {
+        const session = readSession(recipientId);
+        if (session) {
+          enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
+          flushEventsKeepalive(session.applicationId, session.sessionToken);
+        }
+      }
+      wasOn.current = on;
+      fullscreenBlockedRef.current = !on;
+      setFullscreenBlocked(!on);
+      if (on) {
+        releaseExamMediaHold();
+        void lockExamEscape();
+      } else {
+        holdExamMedia();
+      }
     };
-    document.addEventListener("fullscreenchange", onExit);
-    document.addEventListener("webkitfullscreenchange", onExit);
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
     return () => {
-      document.removeEventListener("fullscreenchange", onExit);
-      document.removeEventListener("webkitfullscreenchange", onExit);
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
     };
-  }, [recipientId, state?.currentSectionId, state?.proctoring.requireFullscreen, state?.stage]);
+  }, [needsFullscreen, recipientId, state?.applicationId]);
+
+  useEffect(() => {
+    if (needsFullscreen || enterPromiseRef.current) return;
+    releaseExamMediaHold();
+    if (isExamFullscreen()) void exitExamFullscreen();
+  }, [needsFullscreen]);
+
+  useEffect(() => {
+    return () => {
+      void exitExamFullscreen();
+    };
+  }, []);
 
   useEffect(() => {
     if (!state || state.stage !== "IN_SECTION") return;
@@ -254,14 +321,14 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
     const tick = async () => {
       if (stopped) return;
-      if (document.hidden || !navigator.onLine) {
+      if (document.hidden || !navigator.onLine || fullscreenBlockedRef.current) {
         schedule(1000);
         return;
       }
       const events = readQueue(session.applicationId);
       try {
         const next = await heartbeat(session.applicationId, session.sessionToken, events);
-        clearQueue(session.applicationId);
+        clearQueued(session.applicationId, events.map((event) => event.clientEventId));
         linkDownRef.current = false;
         failureDelay = 1000;
         heldRef.current = document.hidden || !navigator.onLine;
@@ -304,14 +371,30 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   }, [recipientId]);
 
   const value = useMemo<FlowContextValue>(
-    () => ({ recipientId, state, loading, error, conflict, held, reload: () => void load(), applyState, takeOver, startOver }),
-    [applyState, conflict, error, held, load, loading, recipientId, startOver, state, takeOver],
+    () => ({
+      recipientId,
+      state,
+      loading,
+      error,
+      conflict,
+      held,
+      fullscreenBlocked,
+      reload: () => void load(),
+      applyState,
+      engageFullscreen,
+      takeOver,
+      startOver,
+    }),
+    [applyState, conflict, engageFullscreen, error, fullscreenBlocked, held, load, loading, recipientId, startOver, state, takeOver],
   );
 
   return (
     <FlowContext.Provider value={value}>
-      {children}
-      {focusWarning != null ? (
+      <div className={fullscreenBlocked ? "invisible flex min-h-0 flex-1 flex-col" : "contents"} aria-hidden={fullscreenBlocked || undefined}>
+        {children}
+      </div>
+      {fullscreenBlocked ? <FullscreenGate onResume={engageFullscreen} /> : null}
+      {focusWarning != null && !fullscreenBlocked ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
             <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">You left the test screen</h2>

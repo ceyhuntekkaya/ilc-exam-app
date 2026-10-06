@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePlayerPreview } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
+import { isExamMediaHeld } from "@/src/features/exam-flow/fullscreen";
 import { claimMedia, markHeard, releaseMedia, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import { cn } from "@/src/lib/utils/cn";
 import { shortId, type PlaybackPolicy } from "@/src/features/exam-player/types";
@@ -158,7 +159,13 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
   }
 
   const events = {
-    onPlay: () => setPlaying(true),
+    onPlay: (e: React.SyntheticEvent<HTMLMediaElement>) => {
+      if (!preview && isExamMediaHeld()) {
+        e.currentTarget.pause();
+        return;
+      }
+      setPlaying(true);
+    },
     onEnded: () => {
       setPlaying(false);
       setProgress(1);
@@ -167,6 +174,8 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
     },
     onPause: (e: React.SyntheticEvent<HTMLMediaElement>) => {
       const el = e.currentTarget;
+      // Tam ekran kapısı medyayı dondurdu: kendiliğinden devam ettirme, hak da düşmesin.
+      if (!preview && (el.dataset.examHold === "1" || isExamMediaHeld())) return;
       // Öğrenci: medya tuşu / kulaklık düğmesiyle duraklatılamaz → kaldığı yerden sürer.
       if (!preview && mounted.current && !el.ended) {
         el.play().catch(() => {

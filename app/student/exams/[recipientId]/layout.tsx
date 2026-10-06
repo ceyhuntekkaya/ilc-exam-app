@@ -20,7 +20,7 @@ export default function ExamAttemptLayout({ children }: { children: ReactNode })
 }
 
 function FlowChrome({ children }: { children: ReactNode }) {
-  const { loading, error, conflict, takeOver, reload, state, recipientId } = useExamFlow();
+  const { loading, error, conflict, takeOver, reload, state, recipientId, engageFullscreen } = useExamFlow();
   const pathname = usePathname();
   const inQuestion = /\/sections\/[^/]+$/.test(pathname);
   const wrap = (node: ReactNode) => (inQuestion ? <div className="student-container py-6">{node}</div> : node);
@@ -35,7 +35,14 @@ function FlowChrome({ children }: { children: ReactNode }) {
         <p className="mt-2 text-base text-neutral-700">
           Your test is open in another tab or on another device. If you continue here, the other screen will close.
         </p>
-        <KidButton size="lg" className="mt-6" onClick={() => void takeOver()}>
+        <KidButton
+          size="lg"
+          className="mt-6"
+          onClick={() => {
+            void engageFullscreen().catch(() => undefined);
+            void takeOver();
+          }}
+        >
           Continue here
         </KidButton>
       </section>,

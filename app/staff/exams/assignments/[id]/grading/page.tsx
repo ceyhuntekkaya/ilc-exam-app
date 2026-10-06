@@ -1,10 +1,23 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { GradingSection } from "@/src/features/assignments/GradingSection";
-import { StaffPage } from "@/src/features/staff/StaffPage";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 
+function RedirectToGrading() {
+  const router = useRouter();
+  const params = useSearchParams();
+  useEffect(() => {
+    const qs = params.toString();
+    router.replace(qs ? `/staff/grading?${qs}` : "/staff/grading");
+  }, [params, router]);
+  return <div className="h-40 animate-pulse rounded-xl bg-neutral-100" />;
+}
+
+/** Eski atama adresi. Değerlendirme artık menüdeki filtre sayfasında. */
 export default function Page() {
-  const { id } = useParams<{ id: string }>();
-  return <StaffPage bare>{(companyId) => <GradingSection companyId={companyId} assignmentId={id} />}</StaffPage>;
+  return (
+    <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-neutral-100" />}>
+      <RedirectToGrading />
+    </Suspense>
+  );
 }

@@ -20,12 +20,13 @@ type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; par
 
 export default function SectionQuestionPage() {
   const params = useParams<{ recipientId: string; sectionId: string }>();
-  const { state, applyState, held } = useExamFlow();
-  const remaining = useExamClock(held, state?.clock ?? null);
+  const { state, applyState, held, fullscreenBlocked } = useExamFlow();
+  const timerHeld = held || fullscreenBlocked;
+  const remaining = useExamClock(timerHeld, state?.clock ?? null);
   // Sınavın geneli için ayrı sayaç (bölüm süresi yok sayılır).
   const clock = state?.clock ?? null;
   const examOnlyClock = useMemo(() => (clock ? { ...clock, sectionRemainingMs: null } : null), [clock]);
-  const examLeft = useExamClock(held, examOnlyClock);
+  const examLeft = useExamClock(timerHeld, examOnlyClock);
   // Ses/video çalarken geçiş kilitli; kaydedilmemiş yazı varken geçişte sorulur.
   const guard = usePlayerGuard();
   const mediaBusy = guard.activeMedia != null;

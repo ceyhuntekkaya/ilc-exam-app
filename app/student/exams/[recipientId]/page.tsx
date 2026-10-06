@@ -2,6 +2,7 @@
 
 import { ExamApiError, previewAssignment, sha256Hex, startAttempt } from "@/src/features/exam-flow/api";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
+import { exitExamFullscreen } from "@/src/features/exam-flow/fullscreen";
 import { formatDuration, formatWhen } from "@/src/features/exam-flow/format";
 import type { AssignmentPreview } from "@/src/features/exam-flow/schema";
 import { writeSession } from "@/src/features/exam-flow/session";
@@ -15,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 const STATEMENT = "I read the instructions. I agree to the test rules.";
 
 export default function ExamWelcomePage() {
-  const { recipientId, state, applyState } = useExamFlow();
+  const { recipientId, state, applyState, engageFullscreen } = useExamFlow();
   const [preview, setPreview] = useState<AssignmentPreview | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +40,17 @@ export default function ExamWelcomePage() {
 
   async function accept() {
     if (!preview) return;
+    // requestFullscreen bu tıklamanın içinde, ilk await'ten önce çağrılmalı.
+    const fullscreen = engageFullscreen();
     setBusy(true);
     setError(null);
+    try {
+      await fullscreen;
+    } catch {
+      setError("Full screen is required to start the test. Please allow it and try again.");
+      setBusy(false);
+      return;
+    }
     try {
       const digest = await sha256Hex(preview.welcomeHtml || "");
       const started = await startAttempt(recipientId, {
@@ -50,8 +60,10 @@ export default function ExamWelcomePage() {
         welcomeHtmlSha256: digest,
       });
       writeSession(recipientId, { applicationId: started.applicationId, sessionToken: started.sessionToken });
+      if (started.state.stage === "WELCOME" || started.state.stage === "FINISHED") void exitExamFullscreen();
       applyState(started.state);
     } catch (err) {
+      void exitExamFullscreen();
       setError(err instanceof ExamApiError ? err.message : "The test did not start. Please try again.");
     } finally {
       setBusy(false);

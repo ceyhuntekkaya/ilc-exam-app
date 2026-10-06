@@ -11,8 +11,8 @@ import { IconArrowRight, IconCheck, IconClock, IconFlag, IconLock } from "@/src/
 import { useState } from "react";
 
 export default function SectionListPage() {
-  const { recipientId, state, applyState, held } = useExamFlow();
-  const remaining = useExamClock(held, state?.clock ?? null);
+  const { recipientId, state, applyState, held, fullscreenBlocked } = useExamFlow();
+  const remaining = useExamClock(held || fullscreenBlocked, state?.clock ?? null);
   const [pending, setPending] = useState<string | null>(null);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [error, setError] = useState<string | null>(null);
