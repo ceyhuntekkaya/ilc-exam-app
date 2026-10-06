@@ -12,7 +12,8 @@ export type CompanySection =
   | "grants"
   | "assignments"
   | "reports"
-  | "report-cards";
+  | "report-cards"
+  | "ai";
 
 const SECTIONS: { group: string; section: CompanySection; label: string }[] = [
   { group: "Genel", section: "overview", label: "Kurum bilgileri" },
@@ -27,6 +28,7 @@ const SECTIONS: { group: string; section: CompanySection; label: string }[] = [
   { group: "Sınavlar", section: "assignments", label: "Sınav atamaları" },
   { group: "Raporlar", section: "reports", label: "Uygulama" },
   { group: "Raporlar", section: "report-cards", label: "Karneler" },
+  { group: "AI", section: "ai", label: "Ayarlar" },
 ];
 
 export function companyDetailHref(companyId: string, section: CompanySection = "overview") {

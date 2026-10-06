@@ -183,22 +183,19 @@ export function useAssignmentScope(companyId: string) {
   });
 
   const rosterRows = rosterQ.data?.data ?? [];
-  const gradingId = useMemo(() => {
-    const counts = new Map<string, number>();
+  /** Bu şubede sınavı bitirmiş (yayınlanmış dahil) öğrencilerin atamaları. Sıra şube listesiyle aynı. */
+  const gradingIds = useMemo(() => {
+    const ids: string[] = [];
+    const seen = new Set<string>();
     for (const row of rosterRows) {
-      if (row.phase !== "FINISHED" || !row.assignmentId) continue;
-      counts.set(row.assignmentId, (counts.get(row.assignmentId) ?? 0) + 1);
+      if ((row.phase !== "FINISHED" && row.phase !== "EVALUATED") || !row.assignmentId) continue;
+      if (seen.has(row.assignmentId)) continue;
+      seen.add(row.assignmentId);
+      ids.push(row.assignmentId);
     }
-    let best: string | null = null;
-    let bestCount = 0;
-    for (const [id, count] of counts) {
-      if (count > bestCount) {
-        best = id;
-        bestCount = count;
-      }
-    }
-    return best;
+    return ids;
   }, [rosterRows]);
+  const gradingId = gradingIds[0] ?? null;
 
   const listError = institutesQ.error ?? yearsQ.error ?? gradesQ.error ?? branchesQ.error ?? assignmentsQ.error ?? grantsQ.error;
   const listLoading =
@@ -237,6 +234,7 @@ export function useAssignmentScope(companyId: string) {
     grants,
     rosterQ,
     rosterRows,
+    gradingIds,
     gradingId,
     listError,
     listLoading,

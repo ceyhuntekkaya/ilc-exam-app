@@ -27,7 +27,7 @@ import {
 } from "@/src/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Item = {
   answerId: string;
@@ -39,9 +39,17 @@ type Item = {
   interactionType: string;
   answer: Record<string, unknown>;
   mediaIds?: string[] | null;
+  transcripts?: MediaTranscript[] | null;
   feedback?: string | null;
   finalScore?: number | null;
   scored: boolean;
+};
+
+type MediaTranscript = {
+  mediaId: string;
+  transcript?: string | null;
+  status?: string | null;
+  error?: string | null;
 };
 
 type Lane = "audio" | "text" | "video" | "image";
@@ -50,7 +58,7 @@ type Mode = "ai" | "manual";
 const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
   audio: {
     title: "Sesler",
-    hint: "Konuşma kaydı. Metne çevirme sonra bağlanacak.",
+    hint: "Konuşma kaydı. Sesi Tanımla, kayıtları sırayla metne çevirir.",
     empty: "Ses kaydı yok",
   },
   text: {
@@ -127,10 +135,14 @@ function AnswerBody({
   item,
   companyId,
   lane,
+  transcripts,
+  activeMediaId,
 }: {
   item: Item;
   companyId: string;
   lane: Lane;
+  transcripts: Record<string, MediaTranscript>;
+  activeMediaId: string | null;
 }) {
   const ids = mediaIdsOf(item);
   if (lane === "text") {
@@ -150,7 +162,27 @@ function AnswerBody({
       {ids.map((mediaId) => {
         const src = mediaSrc(companyId, item.applicationId, mediaId);
         if (lane === "audio") {
-          return <audio key={mediaId} controls preload="none" src={src} className="w-full" />;
+          const transcript = transcripts[mediaId];
+          const listening = activeMediaId === mediaId;
+          return (
+            <div key={mediaId} className="grid gap-2">
+              <audio controls preload="none" src={src} className="w-full" />
+              {listening ? <p className="text-sm text-fg-muted">Dinleniyor…</p> : null}
+              {!listening && transcript?.status === "READY" ? (
+                <div className="rounded-lg bg-bg px-3.5 py-3">
+                  <p className="mb-1 text-xs font-medium text-fg-subtle">Metin</p>
+                  <p className="text-sm whitespace-pre-wrap text-fg">
+                    {transcript.transcript?.trim() ? transcript.transcript : "Sesten metin çıkmadı."}
+                  </p>
+                </div>
+              ) : null}
+              {!listening && transcript?.status === "FAILED" ? (
+                <p role="alert" className="text-sm text-danger">
+                  {transcript.error || "Metne çevrilemedi"}
+                </p>
+              ) : null}
+            </div>
+          );
         }
         if (lane === "video") {
           return (
@@ -226,7 +258,7 @@ export function GradingSection({
   assignmentId,
 }: {
   companyId: string;
-  /** Verilmezse kuyruk, seçilen sınav ve şubenin atamasından gelir (`/staff/grading`). */
+  /** Verilmezse kuyruk, seçilen sınav ve şubede bitirmiş her öğrencinin atamasından gelir (`/staff/grading`). */
   assignmentId?: string;
 }) {
   const board = !assignmentId;
@@ -235,7 +267,10 @@ export function GradingSection({
   const scope = useAssignmentScope(companyId);
   const seeded = useRef(false);
   const lastTarget = useRef("");
-  const activeId = assignmentId ?? (scope.ready ? scope.gradingId : null);
+  const queueIds = useMemo(
+    () => (assignmentId ? [assignmentId] : scope.ready ? scope.gradingIds : []),
+    [assignmentId, scope.ready, scope.gradingIds],
+  );
 
   useEffect(() => {
     if (!assignmentId || seeded.current || scope.query || scope.listLoading) return;
@@ -262,9 +297,24 @@ export function GradingSection({
   }, [scope.ready, scope.gradingId, assignmentId, filterKey, hrefs, router]);
 
   const query = useQuery({
-    queryKey: ["grading", companyId, activeId],
-    enabled: Boolean(activeId),
-    queryFn: () => customInstance<{ data: Item[] }>(`/companies/${companyId}/assignments/${activeId}/grading`),
+    queryKey: ["grading", companyId, queueIds],
+    enabled: queueIds.length > 0,
+    queryFn: async () => {
+      const batches = await Promise.all(
+        queueIds.map((id) => customInstance<{ data: Item[] }>(`/companies/${companyId}/assignments/${id}/grading`)),
+      );
+      const seen = new Set<string>();
+      const data: Item[] = [];
+      for (const batch of batches) {
+        for (const item of batch.data ?? []) {
+          if (seen.has(item.answerId)) continue;
+          seen.add(item.answerId);
+          data.push(item);
+        }
+      }
+      data.sort((a, b) => (a.studentName ?? "").localeCompare(b.studentName ?? "", "tr"));
+      return { data };
+    },
   });
   const rows = query.data?.data ?? [];
   const [score, setScore] = useState<Record<string, string>>({});
@@ -274,6 +324,9 @@ export function GradingSection({
   const [filter, setFilter] = useState<string | null>("pending");
   const [mode, setMode] = useState<Mode>("ai");
   const [confirmPublish, setConfirmPublish] = useState(false);
+  const [transcriptOverrides, setTranscriptOverrides] = useState<Record<string, MediaTranscript>>({});
+  const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
+  const [transcriptProgress, setTranscriptProgress] = useState<{ index: number; total: number } | null>(null);
   const review = useReview();
   const publish = usePublish();
 
@@ -302,6 +355,53 @@ export function GradingSection({
   const rightLane: Lane = mode === "ai" ? "text" : "image";
   const leftItems = visible.filter((item) => laneOf(item.interactionType) === leftLane);
   const rightItems = visible.filter((item) => laneOf(item.interactionType) === rightLane);
+  const serverTranscripts = useMemo(() => {
+    const map: Record<string, MediaTranscript> = {};
+    for (const item of query.data?.data ?? []) {
+      for (const transcript of item.transcripts ?? []) {
+        if (transcript.mediaId) map[transcript.mediaId] = transcript;
+      }
+    }
+    return map;
+  }, [query.data]);
+  const transcripts = { ...serverTranscripts, ...transcriptOverrides };
+
+  async function identifyAudio() {
+    const jobs = leftItems.flatMap((item) =>
+      mediaIdsOf(item).map((mediaId) => ({ applicationId: item.applicationId, mediaId })),
+    );
+    if (jobs.length === 0 || activeMediaId) return;
+    setTranscriptProgress({ index: 0, total: jobs.length });
+    try {
+      for (let index = 0; index < jobs.length; index += 1) {
+        const job = jobs[index];
+        setTranscriptProgress({ index: index + 1, total: jobs.length });
+        setActiveMediaId(job.mediaId);
+        try {
+          const result = await customInstance<{ data: MediaTranscript }>(
+            `/companies/${companyId}/applications/${job.applicationId}/media/${job.mediaId}/transcript`,
+            { method: "POST" },
+          );
+          if (result.data?.mediaId) {
+            setTranscriptOverrides((current) => ({ ...current, [result.data.mediaId]: result.data }));
+          }
+        } catch (err) {
+          const message = errorMessage(err, "Metne çevrilemedi");
+          setTranscriptOverrides((current) => ({
+            ...current,
+            [job.mediaId]: { mediaId: job.mediaId, status: "FAILED", error: message },
+          }));
+          if (message.includes("STT adresi")) {
+            notify.error(message);
+            break;
+          }
+        }
+      }
+    } finally {
+      setActiveMediaId(null);
+      setTranscriptProgress(null);
+    }
+  }
 
   async function save(item: Item) {
     const raw = score[item.answerId] ?? (item.finalScore != null ? String(item.finalScore) : "");
@@ -330,9 +430,11 @@ export function GradingSection({
   }
 
   async function publishResults() {
-    if (!activeId) return;
+    if (queueIds.length === 0) return;
     try {
-      await publish.mutateAsync({ id: activeId });
+      for (const id of queueIds) {
+        await publish.mutateAsync({ id });
+      }
       notify.success("Sonuçlar yayınlandı");
       setConfirmPublish(false);
     } catch (err) {
@@ -375,7 +477,13 @@ export function GradingSection({
             </Badge>
           </div>
         </header>
-        <AnswerBody item={item} companyId={companyId} lane={lane} />
+        <AnswerBody
+          item={item}
+          companyId={companyId}
+          lane={lane}
+          transcripts={transcripts}
+          activeMediaId={activeMediaId}
+        />
         <Field label="Puan" required>
           <Input
             type="number"
@@ -404,8 +512,28 @@ export function GradingSection({
 
   function renderColumn(lane: Lane, items: Item[]) {
     const copy = LANE_COPY[lane];
+    const identifying = transcriptProgress != null;
     return (
       <section className="grid min-w-0 content-start gap-3">
+        {lane === "audio" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              className="min-h-11 w-full sm:w-auto"
+              disabled={items.length === 0 || identifying || query.isLoading}
+              onClick={() => void identifyAudio()}
+            >
+              {identifying && transcriptProgress
+                ? `Tanımlanıyor ${transcriptProgress.index}/${transcriptProgress.total}`
+                : "Sesi Tanımla"}
+            </Button>
+            {identifying ? (
+              <p className="text-xs text-fg-muted" aria-live="polite">
+                Sesler sırayla metne çevriliyor.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <header className="min-w-0">
           <h3 className="text-sm font-semibold text-fg">
             {copy.title}
@@ -430,7 +558,7 @@ export function GradingSection({
       description="Sınav ve şubeyi seçin. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
       back={board ? undefined : { href: filterKey ? `${hrefs.assignments}?${filterKey}` : hrefs.assignments, label: "Atamalar" }}
       actions={
-        <Button type="button" onClick={() => setConfirmPublish(true)} disabled={!activeId || !query.isSuccess || contextMismatch}>
+        <Button type="button" onClick={() => setConfirmPublish(true)} disabled={queueIds.length === 0 || !query.isSuccess || contextMismatch}>
           Sonuçları yayınla
         </Button>
       }
@@ -451,9 +579,11 @@ export function GradingSection({
       ? { title: "Sınavı seçin", description: "Cevaplar, sınav ve şube seçilince o şubeye ait olarak listelenir." }
       : !scope.ready
         ? { title: "Şubeyi seçin", description: "Seviye ve şube seçilince bu sınavın o şubedeki cevapları açılır." }
-        : !scope.gradingId
-          ? { title: "Bu şubede değerlendirilecek cevap yok", description: "Seçilen sınavı bu şubede bitirmiş öğrenci bulunmuyor." }
-          : null
+        : scope.rosterQ.isLoading
+          ? null
+          : !scope.gradingId
+            ? { title: "Bu şubede değerlendirilecek cevap yok", description: "Seçilen sınavı bu şubede bitirmiş öğrenci bulunmuyor." }
+            : null
     : contextMismatch && scope.ready && !scope.gradingId
       ? { title: "Bu şubede puanlanacak cevap yok", description: "Tamamlanmış sınavı olan başka bir şube seçin." }
       : contextMismatch
@@ -472,7 +602,9 @@ export function GradingSection({
         />
       )}
 
-      {scope.listLoading ? null : waiting ? (
+      {scope.listLoading || (board && scope.ready && scope.rosterQ.isLoading) ? (
+        <Skeleton className="h-48 rounded-xl" />
+      ) : waiting ? (
         <EmptyState tone="neutral" title={waiting.title} description={waiting.description} />
       ) : (
         <section className="min-w-0 rounded-xl border border-border bg-surface shadow-sm">
@@ -499,10 +631,10 @@ export function GradingSection({
             />
             {mode === "ai" ? (
               <p className="text-xs text-fg-muted">
-                Sesler önce metne çevrilecek, metinler dil modeliyle puanlanacak. Bağlantı henüz yok; puanı şimdilik siz girin.
+                Sesler Sesi Tanımla ile metne çevrilir. Metinlerin dil modeliyle puanlanması sonra bağlanacak. Puanı şimdilik siz girin.
               </p>
             ) : null}
-            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4">
               {renderColumn(leftLane, leftItems)}
               {renderColumn(rightLane, rightItems)}
             </div>
