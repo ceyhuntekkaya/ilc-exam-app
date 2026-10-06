@@ -6,7 +6,7 @@ import { epBlankInline } from "@/src/features/exam-player/styles";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
-import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
+import { SaveStatus, useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 type BlankInput = {
   blankId: string;
@@ -55,7 +55,7 @@ export function ShortAnswerView({
   });
 
   const [touched, setTouched] = useState(false);
-  useAnswerSync(itemId, { answers }, !preview && !disabled && touched);
+  const saveStatus = useAnswerSync(itemId, { answers }, !preview && !disabled && touched);
 
   function setBlank(id: string, value: string, meta?: BlankInput) {
     setTouched(true);
@@ -132,6 +132,7 @@ export function ShortAnswerView({
             {renderBlank(b.blankId)}
           </label>
         ))}
+        <SaveStatus status={saveStatus} />
         {acceptedBanner}
       </div>
     );
@@ -148,6 +149,7 @@ export function ShortAnswerView({
           ),
         )}
       </div>
+      <SaveStatus status={saveStatus} />
       {acceptedBanner}
     </div>
   );

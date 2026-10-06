@@ -11,6 +11,10 @@ export type ExamUploadResult = {
 export type ExamSessionContextValue = {
   applicationId: string;
   sessionToken: string;
+  /** Sunucu ve taslaklar bir kez okundu; başka tarayıcıda kayıtlar bu andan sonra görünür. */
+  hydrated: boolean;
+  /** Taslak değişince artar; soru ekranı sunucudan gelen cevabı alsın. */
+  answersRevision: number;
   /** itemId = question_part.id */
   uploadMedia: (itemId: string, file: File, durationMs?: number | null) => Promise<ExamUploadResult>;
   saveAnswer?: (itemId: string, answer: Record<string, unknown>) => void;

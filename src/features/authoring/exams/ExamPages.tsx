@@ -1,6 +1,5 @@
 "use client";
 
-import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
 
 import {
@@ -14,7 +13,8 @@ import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { QuestionPreviewLoader } from "@/src/features/authoring/questions/QuestionPreviewLoader";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
-import { useContentBasePath } from "@/src/features/panel/PanelContext";
+import { LicensedExamsSection } from "@/src/features/assignments/LicensedExamsSection";
+import { useCan, useContentBasePath, usePanelCompanyId, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
   Badge,
   Button,
@@ -110,7 +110,13 @@ function questionPointsTotal(exam: ExamDetail) {
 
 export function ExamListPage() {
   const canCreate = useCan(Perm.examCreate);
+  const canReadExams = useCan(Perm.examRead);
+  const canReview = useCan(Perm.contentReviewManage, Perm.questionEditOwn, Perm.questionEditAll);
+  const canGrants = useCan(Perm.assignmentManage, Perm.examGrantManage);
+  const role = usePanelRole();
+  const companyId = usePanelCompanyId();
   const basePath = useContentBasePath("exams");
+  const reviewPath = useContentBasePath("review");
   const router = useRouter();
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<ExamListItem[]>([]);
@@ -118,6 +124,10 @@ export function ExamListPage() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    if (!canReadExams) {
+      setLoading(false);
+      return;
+    }
     if (!tenant) return;
     setLoading(true);
     try {
@@ -128,7 +138,7 @@ export function ExamListPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenant]);
+  }, [tenant, canReadExams]);
 
   useEffect(() => {
     void load();
@@ -184,35 +194,71 @@ export function ExamListPage() {
     [basePath],
   );
 
+  const showLicensed = role === "STAFF" && Boolean(companyId) && canGrants;
+  const showReview = role === "STAFF" && canReview;
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Sınavlar"
-        description="Sınav oluşturucu ve yayın kontrolü."
-        count={rows.length}
-        actions={canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : undefined}
-      />
-      <div className="rounded-xl border border-border bg-surface shadow-sm">
-        {error ? (
-          <div className="p-4">
-            <ErrorState title="Sınavlar alınamadı" message={error} onRetry={() => void load()} compact />
-          </div>
-        ) : (
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            getRowId={(r) => r.id}
-            loading={loading}
-            embedded
-            onRowClick={({ row }) => router.push(`${basePath}/${row.id}`)}
-            emptyState={{
-              title: "Henüz sınav yok",
-              description: "Hazır formattan veya boş şablondan başlayın.",
-              action: canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : undefined,
-            }}
+    <div className="space-y-8">
+      {canReadExams ? (
+        <div className="space-y-4">
+          <PageHeader
+            title="Sınavlar"
+            description="Sınav oluşturucu ve yayın kontrolü."
+            count={rows.length}
+            actions={
+              canCreate || showReview ? (
+                <>
+                  {showReview ? (
+                    <ButtonLink href={`${reviewPath}?type=Sınav`} variant="secondary">
+                      İnceleme kuyruğu
+                    </ButtonLink>
+                  ) : null}
+                  {canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : null}
+                </>
+              ) : undefined
+            }
           />
-        )}
-      </div>
+          <div className="rounded-xl border border-border bg-surface shadow-sm">
+            {error ? (
+              <div className="p-4">
+                <ErrorState title="Sınavlar alınamadı" message={error} onRetry={() => void load()} compact />
+              </div>
+            ) : (
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                getRowId={(r) => r.id}
+                loading={loading}
+                embedded
+                onRowClick={({ row }) => router.push(`${basePath}/${row.id}`)}
+                emptyState={{
+                  title: "Henüz sınav yok",
+                  description: "Hazır formattan veya boş şablondan başlayın.",
+                  action: canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : undefined,
+                }}
+              />
+            )}
+          </div>
+        </div>
+      ) : showLicensed ? (
+        <PageHeader
+          title="Sınavlar"
+          description="Kurumunuza tanınan sınav hakları. Bir sınavı sınıfa ya da öğrenciye atamak için Atama aç’ı kullanın."
+        />
+      ) : null}
+      {showLicensed && companyId ? (
+        <section id="lisansli" className="scroll-mt-24 space-y-3">
+          {canReadExams ? (
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-fg">Lisanslı sınavlar</h2>
+              <p className="mt-1 max-w-2xl text-sm text-fg-muted">
+                Kurumunuza tanınan sınav hakları. Bir sınavı sınıfa ya da öğrenciye atamak için Atama aç’ı kullanın.
+              </p>
+            </div>
+          ) : null}
+          <LicensedExamsSection companyId={companyId} />
+        </section>
+      ) : null}
     </div>
   );
 }

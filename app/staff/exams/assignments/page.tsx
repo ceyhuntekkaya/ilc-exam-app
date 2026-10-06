@@ -1,15 +1,15 @@
 "use client";
 
-import { AssignmentListSection } from "@/src/features/assignments/AssignmentListSection";
+import { AssignmentRosterSection } from "@/src/features/assignments/AssignmentRosterSection";
 import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
   return (
     <StaffPage
       title="Atamalar"
-      description="Sınıflara ve öğrencilere açılan sınavlar. Açık atamayı canlı izleyin, biten atamayı değerlendirin."
+      description="Sezonun ataması olan sınavını, seviyeyi ve şubeyi seçin. Şubedeki öğrencilerin durumu aşağıda listelenir."
     >
-      {(companyId) => <AssignmentListSection companyId={companyId} />}
+      {(companyId) => <AssignmentRosterSection companyId={companyId} />}
     </StaffPage>
   );
 }

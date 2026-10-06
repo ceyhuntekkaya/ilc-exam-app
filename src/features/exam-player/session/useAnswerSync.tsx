@@ -3,6 +3,8 @@
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { useEffect, useRef, useState } from "react";
 
+export type AnswerSaveStatus = "idle" | "saving" | "saved";
+
 /**
  * Seçim değişince cevabı kısa bir gecikmeyle (yazarken her tuşta istek atmasın) oturuma yazar. Önizlemede no-op.
  * Bileşen kapanırken (öğrenci hemen Sonraki'ye bastı) bekleyen cevap atılmaz, hemen gönderilir.
@@ -11,17 +13,20 @@ export function useAnswerSync(
   itemId: string | undefined,
   payload: Record<string, unknown> | null,
   enabled: boolean,
-) {
+): AnswerSaveStatus {
   const session = useExamSession();
   const json = JSON.stringify(payload);
   const pending = useRef<(() => void) | null>(null);
+  const [status, setStatus] = useState<AnswerSaveStatus>("idle");
 
   useEffect(() => {
     if (!enabled || !itemId || !payload || !session?.saveAnswer) return;
     const save = session.saveAnswer;
+    setStatus("saving");
     const send = () => {
       pending.current = null;
       save(itemId, payload);
+      setStatus("saved");
     };
     pending.current = send;
     const handle = window.setTimeout(send, 400);
@@ -32,6 +37,16 @@ export function useAnswerSync(
 
   // Kapanışta bekleyen kaydı gönder.
   useEffect(() => () => pending.current?.(), []);
+  return status;
+}
+
+export function SaveStatus({ status }: { status: AnswerSaveStatus }) {
+  if (status === "idle") return null;
+  return (
+    <span className="text-xs text-exam-slate-500">
+      {status === "saving" ? "Kaydediliyor…" : "Kaydedildi"}
+    </span>
+  );
 }
 
 /**
@@ -40,6 +55,11 @@ export function useAnswerSync(
  */
 export function useSavedAnswer(itemId: string | undefined, preview?: boolean): Record<string, unknown> | undefined {
   const session = useExamSession();
-  const [saved] = useState(() => (preview || !itemId ? undefined : session?.getAnswer?.(itemId)));
+  const revision = session?.answersRevision ?? 0;
+  const [saved, setSaved] = useState(() => (preview || !itemId ? undefined : session?.getAnswer?.(itemId)));
+  useEffect(() => {
+    if (preview || !itemId) return;
+    setSaved((current) => current ?? session?.getAnswer?.(itemId));
+  }, [itemId, preview, revision, session]);
   return saved;
 }

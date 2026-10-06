@@ -95,7 +95,7 @@ export function useOpsHref() {
   const root =
     role === "STAFF" ? `${basePath}/exams` : `${basePath}/companies/${companyId ?? ""}`;
   return {
-    licensed: role === "STAFF" ? `${basePath}/exams` : `${root}/grants`,
+    licensed: role === "STAFF" ? `${basePath}/content/exams#lisansli` : `${root}/grants`,
     assignments: role === "STAFF" ? `${basePath}/exams/assignments` : `${root}/assignments`,
     monitor: (assignmentId: string) =>
       role === "STAFF"

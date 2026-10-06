@@ -5,6 +5,7 @@ import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProv
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
 import { QuestionView } from "@/src/features/exam-player";
+import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { LiveExamSessionProvider } from "@/src/features/exam-player/session/LiveExamSessionProvider";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
 import { readSession } from "@/src/features/exam-flow/session";
@@ -12,7 +13,7 @@ import { KidButton, KidDialog, KidLoading, KidNotice } from "@/src/features/stud
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowLeft, IconArrowRight, IconClock, IconFlag, IconPause } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; parts: QuestionViewModel["parts"] } };
 
@@ -109,14 +110,21 @@ export default function SectionQuestionPage() {
         parts: item.question.parts ?? [],
       }
     : null;
-  const isAnswered = (entry?: Item) =>
-    entry?.examQuestionId ? state.answeredItemIds.includes(entry.examQuestionId) || localAnswered.has(entry.examQuestionId) : false;
+  const isAnswered = (entry?: Item) => {
+    if (!entry) return false;
+    if (entry.examQuestionId && (state.answeredItemIds.includes(entry.examQuestionId) || localAnswered.has(entry.examQuestionId))) {
+      return true;
+    }
+    return (entry.question.parts ?? []).some(
+      (part) => state.answeredItemIds.includes(part.id) || localAnswered.has(part.id),
+    );
+  };
   // Kayıt part kimliğiyle gelir (gecikmeli kayıt soru değiştikten sonra da düşebilir); hangi soruya ait olduğu buradan bulunur.
-  function markAnswered(partId: string) {
+  const markAnswered = useCallback((partId: string) => {
     const owner = items.find((entry) => entry.question.parts?.some((part) => part.id === partId))?.examQuestionId;
     if (!owner) return;
     setLocalAnswered((prev) => (prev.has(owner) ? prev : new Set(prev).add(owner)));
-  }
+  }, [items]);
   const answered = isAnswered(item);
   const last = index >= items.length - 1;
   const canNext = section.allowSkip || answered || last;
@@ -144,6 +152,7 @@ export default function SectionQuestionPage() {
 
   return (
     <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken} onSaved={markAnswered}>
+      <RestoreAnsweredMarks items={items} onPart={markAnswered} />
       <div className="relative flex min-h-dvh flex-1 flex-col">
         {/* İnce üst çubuk (48px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
         <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
@@ -322,6 +331,25 @@ export default function SectionQuestionPage() {
       </div>
     </LiveExamSessionProvider>
   );
+}
+
+function RestoreAnsweredMarks({
+  items,
+  onPart,
+}: {
+  items: Item[];
+  onPart: (partId: string) => void;
+}) {
+  const session = useExamSession();
+  useEffect(() => {
+    if (!session?.hydrated) return;
+    for (const entry of items) {
+      for (const part of entry.question.parts ?? []) {
+        if (session.getAnswer?.(part.id)) onPart(part.id);
+      }
+    }
+  }, [items, onPart, session]);
+  return null;
 }
 
 /** Süre sınırı olmayan bölümde "geçen süre" (bağlantı beklenirken durur). */

@@ -1,6 +1,5 @@
 "use client";
 
-import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
 
 import { authoringApi, type QuestionSummary } from "@/src/features/authoring/shared/client";
@@ -8,7 +7,7 @@ import { SKILL_LABEL } from "@/src/features/authoring/questions/QuestionEditor";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
-import { useContentBasePath } from "@/src/features/panel/PanelContext";
+import { useCan, useContentBasePath, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
   Button,
   ButtonLink,
@@ -26,7 +25,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function QuestionBankPage() {
   const canCreate = useCan(Perm.questionCreate);
+  const canReview = useCan(Perm.contentReviewManage, Perm.questionEditOwn, Perm.questionEditAll);
+  const role = usePanelRole();
   const basePath = useContentBasePath("questions");
+  const reviewPath = useContentBasePath("review");
   const router = useRouter();
   const { tenant, loading: tenantLoading } = useAuthoringTenant();
   const [rows, setRows] = useState<QuestionSummary[]>([]);
@@ -159,14 +161,23 @@ export function QuestionBankPage() {
         description="Bağımsız sorular ve setler. Kaydedilen her soru bankaya düşer."
         count={rows.length}
         actions={
-          canCreate ? (
+          canCreate || (role === "STAFF" && canReview) ? (
           <>
-            <ButtonLink href={`${basePath}/new`} variant="secondary">
-              Tip seçerek başla
-            </ButtonLink>
-            <Button onClick={() => void create()} disabled={creating || !tenant}>
-              {creating ? "Oluşturuluyor…" : "Hızlı soru"}
-            </Button>
+            {role === "STAFF" && canReview ? (
+              <ButtonLink href={`${reviewPath}?type=Soru`} variant="secondary">
+                İnceleme kuyruğu
+              </ButtonLink>
+            ) : null}
+            {canCreate ? (
+              <ButtonLink href={`${basePath}/new`} variant="secondary">
+                Tip seçerek başla
+              </ButtonLink>
+            ) : null}
+            {canCreate ? (
+              <Button onClick={() => void create()} disabled={creating || !tenant}>
+                {creating ? "Oluşturuluyor…" : "Hızlı soru"}
+              </Button>
+            ) : null}
           </>
           ) : undefined
         }

@@ -49,6 +49,7 @@ type RubricRow = {
   name: string;
   skill: string;
   currentVersionId?: string | null;
+  ownerOrgId?: string;
 };
 
 type RubricDetail = {
@@ -61,6 +62,7 @@ type RubricDetail = {
   status: string;
   definition?: { items?: unknown[] };
   maxRawScore?: number;
+  ownerOrgId?: string;
 };
 
 const TARGET_TOTAL = 100;
@@ -246,8 +248,9 @@ export function RubricsPage() {
 
   const total = useMemo(() => totalMax(items), [items]);
   const totalOk = Math.abs(total - TARGET_TOTAL) < 0.001;
-  const editable = detail?.status === "DRAFT";
-  const canApprove = detail?.status === "DRAFT" || detail?.status === "IN_REVIEW";
+  const headquarters = Boolean(detail?.ownerOrgId && tenant?.id && detail.ownerOrgId !== tenant.id);
+  const editable = detail?.status === "DRAFT" && !headquarters;
+  const canApprove = !headquarters && (detail?.status === "DRAFT" || detail?.status === "IN_REVIEW");
 
   const load = useCallback(async () => {
     if (!tenant) return;
@@ -397,7 +400,7 @@ export function RubricsPage() {
     <div className="space-y-5">
       <PageHeader
         title="Rubrik grupları"
-        description="Yazma ve konuşma gibi açık uçlu cevapları puanlamak için ölçütler. Her grup tam 100 puan üzerinden kurulur; onaylanınca soru editöründe seçilebilir."
+        description="Yazma ve konuşma gibi açık uçlu cevapları puanlamak için ölçütler. Her grup tam 100 puan üzerinden kurulur; onaylanınca soru editöründe seçilebilir. Genel merkez rubrikleri listede görünür, değiştirilemez."
         count={rows.length}
         actions={
           <Button variant={showCreate ? "ghost" : "primary"} onClick={() => setShowCreate((v) => !v)}>
@@ -458,6 +461,9 @@ export function RubricsPage() {
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1">
                         <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] text-fg-muted">{SKILL_TR[r.skill] ?? r.skill}</span>
+                        {r.ownerOrgId && tenant?.id && r.ownerOrgId !== tenant.id ? (
+                          <span className="text-[10.5px] font-medium text-fg-subtle">Genel merkez</span>
+                        ) : null}
                         {r.currentVersionId ? <span className="text-[10.5px] font-semibold text-success">✓ Onaylı</span> : <span className="text-[10.5px] text-fg-subtle">Taslak</span>}
                       </span>
                     </button>
@@ -481,21 +487,35 @@ export function RubricsPage() {
             footer={
               <>
                 <span className="text-xs text-fg-subtle sm:mr-auto">
-                  {editable ? (totalOk ? "Toplam 100 — onaylanabilir." : `Onay için toplam tam ${TARGET_TOTAL} olmalı.`) : "Onaylı sürüm salt okunur."}
+                  {headquarters
+                    ? "Genel merkez rubriği salt okunur."
+                    : editable
+                      ? totalOk
+                        ? "Toplam 100 — onaylanabilir."
+                        : `Onay için toplam tam ${TARGET_TOTAL} olmalı.`
+                      : "Onaylı sürüm salt okunur."}
                 </span>
-                <Button variant="secondary" disabled={!editable || busy || !dirty} onClick={() => void saveDef()}>
-                  Maddeleri kaydet
-                </Button>
-                <Button
-                  disabled={!canApprove || busy || !totalOk}
-                  onClick={() => confirm("Rubrik onaylansın mı? Onaylanan sürüm soru editöründe seçilebilir ve artık düzenlenemez.") && void approve()}
-                >
-                  Onayla
-                </Button>
+                {headquarters ? null : (
+                  <>
+                    <Button variant="secondary" disabled={!editable || busy || !dirty} onClick={() => void saveDef()}>
+                      Maddeleri kaydet
+                    </Button>
+                    <Button
+                      disabled={!canApprove || busy || !totalOk}
+                      onClick={() => confirm("Rubrik onaylansın mı? Onaylanan sürüm soru editöründe seçilebilir ve artık düzenlenemez.") && void approve()}
+                    >
+                      Onayla
+                    </Button>
+                  </>
+                )}
               </>
             }
           >
-            {!editable ? (
+            {headquarters ? (
+              <p className="rounded-lg bg-neutral-50 px-3.5 py-2.5 text-[13px] text-fg-muted ring-1 ring-border ring-inset">
+                Bu rubrik genel merkeze ait. Görüntüleyebilirsiniz; değiştiremezsiniz.
+              </p>
+            ) : !editable ? (
               <p className="rounded-lg bg-info-bg px-3.5 py-2.5 text-[13px] text-info">
                 Bu sürüm {detail.status === "IN_REVIEW" ? "incelemede" : "onaylı"}; maddeler değiştirilemez. Değişiklik için yeni sürüm gerekir.
               </p>

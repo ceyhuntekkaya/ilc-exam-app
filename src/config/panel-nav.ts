@@ -6,6 +6,8 @@ export type PanelNavItem = {
   description?: string;
   /** Bu izinlerden herhangi biri yeterli. Boşsa herkese görünür. */
   perms?: string[];
+  /** Menüde gösterme; rota yetki kontrolü için durur. */
+  hidden?: boolean;
 };
 
 export type PanelNavGroup = {
@@ -74,7 +76,13 @@ export function contentNavItems(prefix: "/admin" | "/staff"): PanelNavItem[] {
     href: `${prefix}/content/${item.slug}`,
     label: item.label,
     description: item.description,
-    perms: prefix === "/staff" ? item.perms : undefined,
+    perms:
+      prefix === "/staff"
+        ? item.slug === "exams"
+          ? [...item.perms, Perm.assignmentManage, Perm.examGrantManage]
+          : item.perms
+        : undefined,
+    hidden: prefix === "/staff" && item.slug === "review",
   }));
 }
 
@@ -93,9 +101,11 @@ export function adminNavGroups(): PanelNavGroup[] {
 }
 
 export function staffNavGroups(): PanelNavGroup[] {
+  const content = contentNavItems("/staff");
+  const settings = content.find((item) => item.href.endsWith("/content/settings"));
   return [
     { label: "Genel", items: [{ href: "/staff", label: "Panel" }] },
-    { label: "İçerik", items: contentNavItems("/staff") },
+    { label: "İçerik", items: content.filter((item) => item.href !== settings?.href) },
     {
       label: "Sınav Uygulama",
       items: [
@@ -104,6 +114,7 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Lisanslı Sınavlar",
           description: "Kuruma tanınan sınav hakları",
           perms: [Perm.assignmentManage, Perm.examGrantManage],
+          hidden: true,
         },
         {
           href: "/staff/exams/assignments",
@@ -156,6 +167,7 @@ export function staffNavGroups(): PanelNavGroup[] {
     {
       label: "Kurum",
       items: [
+        ...(settings ? [settings] : []),
         {
           href: "/staff/company",
           label: "Kurum Ayarları",
@@ -182,7 +194,7 @@ export function visibleNav(
   return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => hasAnyPermission(permissions, item.perms)),
+      items: group.items.filter((item) => !item.hidden && hasAnyPermission(permissions, item.perms)),
     }))
     .filter((group) => group.items.length > 0);
 }

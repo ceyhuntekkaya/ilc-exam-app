@@ -16,7 +16,7 @@ import {
 } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { TargetRequestType } from "@/src/api/generated/models";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
-import { useOpsHref } from "@/src/features/panel/PanelContext";
+import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
   Button,
   EmptyState,
@@ -53,6 +53,15 @@ const TARGET_HINT: Record<TargetRequestType, string> = {
   [TargetRequestType.STUDENT]: "Tek öğrenci (telafi, ek oturum).",
 };
 
+function LockedChoice({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-neutral-50 px-3 py-2.5">
+      <p className="text-xs font-medium text-fg-subtle">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-fg">{value}</p>
+    </div>
+  );
+}
+
 function formatDateTime(value: string) {
   return value ? new Date(value).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" }) : "—";
 }
@@ -60,6 +69,7 @@ function formatDateTime(value: string) {
 export function AssignWizard({ companyId, grantId }: { companyId: string; grantId: string }) {
   const router = useRouter();
   const hrefs = useOpsHref();
+  const role = usePanelRole();
   const grantsQ = useListGrants({ companyId });
   const grant = (grantsQ.data?.data ?? []).find((row) => row.id === grantId) ?? null;
   const institutes = useInstitutes(companyId).data?.data ?? [];
@@ -85,7 +95,10 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
 
-  const season = yearId || grant?.academicYearId || "";
+  const lockedInstitute = institutes.length === 1 ? institutes[0] : null;
+  const lockedYear = years.length === 1 ? years[0] : null;
+  const instituteValue = lockedInstitute?.id ?? instituteId;
+  const season = lockedYear?.id ?? (yearId || grant?.academicYearId || "");
 
   const studentName = useMemo(() => {
     const map = new Map<string, string>();
@@ -101,12 +114,12 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       : targetType === TargetRequestType.STUDENT
         ? students.map((student) => ({ id: student.id, name: studentName.get(student.id ?? "") }))
         : // Sınıf listesi seçilen kampüsle sınırlı (kampüssüz kayıtlar her zaman görünür).
-          branches.filter((row) => !row.instituteId || row.instituteId === instituteId);
+          branches.filter((row) => !row.instituteId || row.instituteId === instituteValue);
 
   const rangeError = from && until && until < from ? "Kapanış, açılıştan önce olamaz." : null;
   const attemptsError = !Number.isFinite(attempts) || attempts < 1 ? "En az 1 deneme hakkı olmalı." : null;
   const stepValid =
-    step === 1 ? Boolean(instituteId && season) : step === 2 ? Boolean(targetId) : step === 3 ? !rangeError && !attemptsError : true;
+    step === 1 ? Boolean(instituteValue && season) : step === 2 ? Boolean(targetId) : step === 3 ? !rangeError && !attemptsError : true;
 
   async function prepare() {
     if (!grant?.examVersionId || !grant.id || !season) return;
@@ -116,7 +129,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       const created = await create.mutateAsync({
         data: {
           companyId,
-          instituteId,
+          instituteId: instituteValue,
           examVersionId: grant.examVersionId,
           examGrantId: grant.id,
           academicYearId: season,
@@ -156,7 +169,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
     }
   }
 
-  const back = { href: hrefs.licensed, label: "Lisanslı sınavlar" };
+  const back = { href: hrefs.licensed, label: role === "STAFF" ? "Sınavlar" : "Lisanslı sınavlar" };
 
   if (grantsQ.isError) {
     return (
@@ -184,7 +197,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
     );
   }
 
-  const instituteName = institutes.find((row) => row.id === instituteId)?.name ?? "—";
+  const instituteName = institutes.find((row) => row.id === instituteValue)?.name ?? "—";
   const yearName = years.find((row) => row.id === season)?.name ?? "—";
   const targetName = targets.find((row) => row.id === targetId)?.name ?? "—";
 
@@ -262,32 +275,40 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       >
         {step === 1 ? (
           <div className="grid gap-4 @min-[28rem]/form:grid-cols-2">
-            <Field label="Kampüs" required>
-              <Select
-                value={instituteId}
-                onChange={(e) => {
-                  setInstituteId(e.target.value);
-                  setTargetId("");
-                }}
-              >
-                <option value="">Seçin</option>
-                {institutes.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Sezon" required hint={grant.academicYearId ? "Lisansın sezonu varsayılan olarak seçili." : undefined}>
-              <Select value={season} onChange={(e) => setYearId(e.target.value)}>
-                <option value="">Seçin</option>
-                {years.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {lockedInstitute ? (
+              <LockedChoice label="Kampüs" value={lockedInstitute.name ?? "—"} />
+            ) : (
+              <Field label="Kampüs" required>
+                <Select
+                  value={instituteId}
+                  onChange={(e) => {
+                    setInstituteId(e.target.value);
+                    setTargetId("");
+                  }}
+                >
+                  <option value="">Seçin</option>
+                  {institutes.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+            {lockedYear ? (
+              <LockedChoice label="Sezon" value={lockedYear.name ?? "—"} />
+            ) : (
+              <Field label="Sezon" required hint={grant.academicYearId ? "Lisansın sezonu varsayılan olarak seçili." : undefined}>
+                <Select value={season} onChange={(e) => setYearId(e.target.value)}>
+                  <option value="">Seçin</option>
+                  {years.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
           </div>
         ) : null}
 
@@ -391,7 +412,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         <dl className="divide-y divide-border text-[13px]">
           {[
             { k: "Sınav", v: grant.examTitle ?? "—" },
-            { k: "Kampüs", v: instituteId ? instituteName : "—" },
+            { k: "Kampüs", v: instituteValue ? instituteName : "—" },
             { k: "Sezon", v: season ? yearName : "—" },
             { k: TARGET_LABEL[targetType], v: targetId ? targetName : "—" },
             { k: "Açılış", v: from ? formatDateTime(from) : "Hemen" },

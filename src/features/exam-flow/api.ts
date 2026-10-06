@@ -120,6 +120,33 @@ export function putPosition(applicationId: string, token: string, sectionId: str
   });
 }
 
+export type SavedAnswer = {
+  itemId: string;
+  answerJson: Record<string, unknown>;
+  seq: number;
+};
+
+export async function listSavedAnswers(applicationId: string, token: string): Promise<SavedAnswer[]> {
+  try {
+    const response = await customInstance<{ data: unknown }>(`/applications/${applicationId}/answers`, {
+      headers: sessionHeaders(token),
+    });
+    if (!Array.isArray(response.data)) return [];
+    return response.data.flatMap((row) => {
+      if (!row || typeof row !== "object") return [];
+      const item = row as { itemId?: unknown; answerJson?: unknown; seq?: unknown };
+      if (typeof item.itemId !== "string" || !item.answerJson || typeof item.answerJson !== "object") return [];
+      return [{
+        itemId: item.itemId,
+        answerJson: item.answerJson as Record<string, unknown>,
+        seq: typeof item.seq === "number" ? item.seq : 0,
+      }];
+    });
+  } catch (err) {
+    throw asExamError(err);
+  }
+}
+
 export function sectionContent(applicationId: string, token: string, sectionId: string) {
   return customInstance<{ data: { items?: unknown[] } }>(
     `/applications/${applicationId}/sections/${sectionId}/content`,

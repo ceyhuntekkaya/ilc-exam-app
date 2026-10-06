@@ -467,7 +467,7 @@ export const authoringApi = {
     }),
   listReviews: (status?: string) =>
     authoringFetch<ReviewItem[]>(`/authoring/reviews${status ? `?status=${status}` : ""}`),
-  listTags: () => authoringFetch<Array<{ id: string; name: string }>>("/authoring/tags"),
+  listTags: () => authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string }>>("/authoring/tags"),
   createTag: (name: string) =>
     authoringFetch<{ id: string; name: string }>("/authoring/tags", {
       method: "POST",
@@ -498,6 +498,7 @@ export const authoringApi = {
         skill?: string | null;
         cefrLevel?: string | null;
         gradeLevel?: number | null;
+        ownerOrgId?: string;
       }>
     >("/authoring/outcomes"),
   createOutcome: (body: {
@@ -515,7 +516,7 @@ export const authoringApi = {
   deleteOutcome: (id: string) => authoringFetch<void>(`/authoring/outcomes/${id}`, { method: "DELETE" }),
   listRubrics: () =>
     authoringFetch<
-      Array<{ id: string; code: string; name: string; skill: string; currentVersionId?: string | null }>
+      Array<{ id: string; code: string; name: string; skill: string; currentVersionId?: string | null; ownerOrgId?: string }>
     >("/authoring/rubrics"),
   getRubric: (id: string) =>
     authoringFetch<{
@@ -528,6 +529,7 @@ export const authoringApi = {
       status: string;
       definition?: unknown;
       maxRawScore?: number;
+      ownerOrgId?: string;
     }>(`/authoring/rubrics/${id}`),
   createRubric: (body: Record<string, unknown>) =>
     authoringFetch("/authoring/rubrics", { method: "POST", body: JSON.stringify(body) }),

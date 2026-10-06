@@ -107,7 +107,7 @@ export default function StaffDashboardPage() {
       icon: ICON.calendar,
     },
     can.grants && {
-      href: "/staff/exams",
+      href: "/staff/content/exams#lisansli",
       label: "Lisanslı sınav",
       value: grants?.length,
       hint: "Kuruma tanınan sınavlar",

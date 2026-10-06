@@ -35,6 +35,7 @@ import {
   IconX,
 } from "@/src/ui";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const KIND_LABEL: Record<string, string> = { IMAGE: "Görsel", AUDIO: "Ses", VIDEO: "Video" };
@@ -283,12 +284,13 @@ function timeAgo(iso: string) {
 export function ReviewQueuePage() {
   const questionBasePath = useContentBasePath("questions");
   const examBasePath = useContentBasePath("exams");
+  const requestedType = useSearchParams().get("type");
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<ReviewItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [type, setType] = useState("");
+  const [type, setType] = useState(requestedType === "Soru" || requestedType === "Sınav" ? requestedType : "");
 
   const load = useCallback(async () => {
     if (!tenant) return;
@@ -873,6 +875,7 @@ type OutcomeRow = {
   skill?: string | null;
   cefrLevel?: string | null;
   gradeLevel?: number | null;
+  ownerOrgId?: string;
 };
 
 type AgeBandRow = { id: string; code: string; label: string; sortOrder: number; ownerOrgId: string };
@@ -890,7 +893,7 @@ const emptyOutcome = {
 
 export function SettingsDictionariesPage() {
   const { tenant } = useAuthoringTenant();
-  const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
+  const [tags, setTags] = useState<Array<{ id: string; name: string; ownerOrgId?: string }>>([]);
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
   const [ageBands, setAgeBands] = useState<AgeBandRow[]>([]);
   const [tagName, setTagName] = useState("");
@@ -1100,7 +1103,7 @@ export function SettingsDictionariesPage() {
     <div className="space-y-5">
       <PageHeader
         title="İçerik ayarları"
-        description="Soru yazarken kullanılan sözlükler: etiketler, yaş bantları ve kazanımlar. Ayrıca toplu soru içe aktarma."
+        description="Soru yazarken kullanılan sözlükler: etiketler, yaş bantları ve kazanımlar. Genel merkez kayıtları da listelenir; onlar değiştirilemez. Kurum kendi kaydını ekleyebilir."
       />
       {error ? <ErrorState title="Ayarlar yüklenemedi" message={error} onRetry={() => void load().catch((e) => setError(errorMessage(e, "Yüklenemedi")))} compact /> : null}
 
@@ -1122,7 +1125,7 @@ export function SettingsDictionariesPage() {
       {section === "tags" ? (
         <FormCard
           title="Etiketler"
-          description="Konu, tema ya da kaynak etiketleri (ör. aile, hayvanlar, Unit 3). Soru sınıflandırmasında seçilir; soru bankasında filtrelenir."
+          description="Konu, tema ya da kaynak etiketleri (ör. aile, hayvanlar, Unit 3). Soru sınıflandırmasında seçilir; soru bankasında filtrelenir. Genel merkez etiketleri salt okunur."
         >
           <FormGroup title="Yeni etiket">
             <form
@@ -1173,25 +1176,31 @@ export function SettingsDictionariesPage() {
                 ) : (
                   <li key={tag.id} className="group flex items-center gap-0.5 rounded-full bg-neutral-100 py-1 pr-1 pl-3 text-[13px] text-fg ring-1 ring-border">
                     {tag.name}
-                    <button
-                      type="button"
-                      aria-label={`${tag.name} etiketini düzenle`}
-                      className="ml-1 grid size-6 place-items-center rounded-full text-fg-subtle hover:bg-surface hover:text-primary"
-                      onClick={() => {
-                        setEditingTagId(tag.id);
-                        setEditingTagName(tag.name);
-                      }}
-                    >
-                      <IconEdit className="size-3.5" aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${tag.name} etiketini sil`}
-                      className="grid size-6 place-items-center rounded-full text-fg-subtle hover:bg-danger-bg hover:text-danger"
-                      onClick={() => setPendingDelete({ kind: "tag", id: tag.id, label: tag.name })}
-                    >
-                      <IconTrash className="size-3.5" aria-hidden />
-                    </button>
+                    {tag.ownerOrgId && tag.ownerOrgId !== tenant?.id ? (
+                      <span className="ml-1 rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-fg-subtle">Genel merkez</span>
+                    ) : (
+                      <span className="inline-flex items-center">
+                        <button
+                          type="button"
+                          aria-label={`${tag.name} etiketini düzenle`}
+                          className="ml-1 grid size-11 place-items-center rounded-full text-fg-subtle hover:bg-surface hover:text-primary"
+                          onClick={() => {
+                            setEditingTagId(tag.id);
+                            setEditingTagName(tag.name);
+                          }}
+                        >
+                          <IconEdit className="size-3.5" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`${tag.name} etiketini sil`}
+                          className="grid size-11 place-items-center rounded-full text-fg-subtle hover:bg-danger-bg hover:text-danger"
+                          onClick={() => setPendingDelete({ kind: "tag", id: tag.id, label: tag.name })}
+                        >
+                          <IconTrash className="size-3.5" aria-hidden />
+                        </button>
+                      </span>
+                    )}
                   </li>
                 ),
               )}
@@ -1203,7 +1212,7 @@ export function SettingsDictionariesPage() {
       {section === "ages" ? (
         <FormCard
           title="Yaş bantları"
-          description="Soru sınıflandırmasındaki “Yaş bandı” listesi; sıra numarasına göre dizilir. Kurum kendi bandını tanımlamazsa HQ varsayılanları kullanılır (düzenlenemez)."
+          description="Soru sınıflandırmasındaki “Yaş bandı” listesi; sıra numarasına göre dizilir. Genel merkez bantları her zaman görünür ve değiştirilemez. Kurum kendi bandını ekleyebilir."
         >
           <FormGroup title="Yeni yaş bandı">
             <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,7rem)_auto]">
@@ -1254,7 +1263,7 @@ export function SettingsDictionariesPage() {
                         <td className="px-3 py-2 font-mono text-xs">{band.code}</td>
                         <td className="px-3 py-2 font-medium text-fg">{band.label}</td>
                         <td className="px-3 py-2">
-                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${owned ? "bg-primary-50 text-primary" : "bg-neutral-100 text-fg-subtle"}`}>{owned ? "Kurum" : "HQ varsayılanı"}</span>
+                          <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${owned ? "bg-primary-50 text-primary" : "bg-neutral-100 text-fg-subtle"}`}>{owned ? "Kurum" : "Genel merkez"}</span>
                         </td>
                         <td className="px-3 py-2">
                           {owned ? (
@@ -1281,7 +1290,7 @@ export function SettingsDictionariesPage() {
       {section === "outcomes" ? (
         <FormCard
           title="Kazanımlar (öğrenme çıktıları)"
-          description="Soru editörünün Cevap ve puanlama adımında seçilir; karne ve kazanım raporları bu kayıtlarla hesaplanır. Kod ve çerçeve oluşturulduktan sonra değiştirilemez."
+          description="Soru editörünün Cevap ve puanlama adımında seçilir; karne ve kazanım raporları bu kayıtlarla hesaplanır. Kod ve çerçeve oluşturulduktan sonra değiştirilemez. Genel merkez kazanımları salt okunur."
           aside={
             <Button size="sm" variant={showOutcomeForm ? "ghost" : "primary"} onClick={() => setShowOutcomeForm((v) => !v)}>
               {showOutcomeForm ? "Formu kapat" : "+ Yeni kazanım"}
@@ -1331,12 +1340,16 @@ export function SettingsDictionariesPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] text-fg">{outcome.description}</p>
                         <p className="mt-1 flex flex-wrap gap-1.5 text-[11px]">
+                          {outcome.ownerOrgId && outcome.ownerOrgId !== tenant?.id ? (
+                            <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-medium text-fg-subtle">Genel merkez</span>
+                          ) : null}
                           {outcome.framework ? <span className="rounded bg-primary-50 px-1.5 py-0.5 font-medium text-primary">{outcome.framework}</span> : null}
                           {outcome.skill ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-fg-muted">{SKILL_LABEL[outcome.skill as keyof typeof SKILL_LABEL] ?? outcome.skill}</span> : null}
                           {outcome.cefrLevel ? <span className="rounded bg-(--accent-plum-bg) px-1.5 py-0.5 font-mono font-semibold text-(--accent-plum)">{outcome.cefrLevel}</span> : null}
                           {outcome.gradeLevel != null ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-fg-muted">MEB {outcome.gradeLevel}. sınıf</span> : null}
                         </p>
                       </div>
+                      {outcome.ownerOrgId && outcome.ownerOrgId !== tenant?.id ? null : (
                       <span className="flex shrink-0 gap-0.5">
                         <Button
                           size="sm"
@@ -1361,6 +1374,7 @@ export function SettingsDictionariesPage() {
                           <IconTrash className="size-3.5" aria-hidden />
                         </Button>
                       </span>
+                      )}
                     </div>
                   )}
                 </li>

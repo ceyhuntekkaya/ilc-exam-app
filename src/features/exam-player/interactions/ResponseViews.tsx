@@ -1,12 +1,12 @@
 "use client";
 
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
-import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
+import { SaveStatus, useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epCta, epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
 import { type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function ManualAnswerHints({
   answerKey,
@@ -68,7 +68,7 @@ export function OpenEndedView({
   const saved = useSavedAnswer(itemId, preview);
   const [text, setText] = useState(() => (saved?.text as string | undefined) ?? "");
   const [touched, setTouched] = useState(false);
-  useAnswerSync(itemId, { text }, !preview && !disabled && touched);
+  const saveStatus = useAnswerSync(itemId, { text }, !preview && !disabled && touched);
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   const over = maxWords != null && words > maxWords;
 
@@ -98,11 +98,14 @@ export function OpenEndedView({
         )}
         placeholder="Cevabınızı yazın…"
       />
-      <p className={cn("text-xs", over ? "text-rose-600" : "text-exam-slate-500")}>
-        {words} kelime
-        {minWords != null ? ` (min ${minWords})` : ""}
-        {maxWords != null ? ` / ${maxWords}` : ""}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className={cn("text-xs", over ? "text-rose-600" : "text-exam-slate-500")}>
+          {words} kelime
+          {minWords != null ? ` (min ${minWords})` : ""}
+          {maxWords != null ? ` / ${maxWords}` : ""}
+        </p>
+        <SaveStatus status={saveStatus} />
+      </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
     </div>
   );
@@ -129,6 +132,7 @@ function useMediaUpload(itemId: string | undefined) {
       if (session && itemId) {
         const result = await session.uploadMedia(itemId, file, durationMs);
         setMediaId(result.mediaId);
+        session.saveAnswer?.(itemId, { mediaId: result.mediaId });
         return result.mediaId;
       }
       setMediaId(null);
@@ -142,6 +146,50 @@ function useMediaUpload(itemId: string | undefined) {
   }
 
   return { session, busy, error, mediaId, localUrl, fileName, upload, setError };
+}
+
+function recorderMime(kind: "audio" | "video") {
+  const list =
+    kind === "video"
+      ? ["video/webm;codecs=vp8,opus", "video/webm"]
+      : ["audio/webm;codecs=opus", "audio/webm"];
+  return list.find((type) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
+async function startBrowserRecording(
+  kind: "audio" | "video",
+  liveEl: HTMLVideoElement | null,
+  onFile: (file: File) => void,
+  onError: (message: string) => void,
+): Promise<{ stop: () => void } | null> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(
+      kind === "video" ? { audio: true, video: true } : { audio: true },
+    );
+    if (liveEl) {
+      liveEl.srcObject = stream;
+      void liveEl.play();
+    }
+    const mime = recorderMime(kind);
+    const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+    recorder.onstop = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      if (liveEl) liveEl.srcObject = null;
+      const type = recorder.mimeType || (kind === "video" ? "video/webm" : "audio/webm");
+      const blob = new Blob(chunks, { type });
+      const ext = type.includes("mp4") ? "mp4" : "webm";
+      onFile(new File([blob], `${kind}-${Date.now()}.${ext}`, { type }));
+    };
+    recorder.start();
+    return { stop: () => recorder.state !== "inactive" && recorder.stop() };
+  } catch {
+    onError(kind === "video" ? "Kamera ve mikrofon izni gerekli" : "Mikrofon erişimi gerekli");
+    return null;
+  }
 }
 
 export function AudioResponseView({
@@ -162,41 +210,44 @@ export function AudioResponseView({
   const maxDur = interaction.maxDurationSec as number | null | undefined;
   const [attempts, setAttempts] = useState(0);
   const [recording, setRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const stopRef = useRef<(() => void) | null>(null);
+  const timerRef = useRef(0);
   const { busy, error, mediaId, localUrl, fileName, upload, setError } = useMediaUpload(itemId);
 
   async function startRecording() {
     setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        const file = new File([blob], `recording-${Date.now()}.webm`, {
-          type: blob.type || "audio/webm",
-        });
+    const handle = await startBrowserRecording(
+      "audio",
+      null,
+      (file) => {
         void upload(file, maxDur != null ? maxDur * 1000 : null)
           .then(() => setAttempts((a) => a + 1))
           .catch(() => undefined);
-      };
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-    } catch {
-      setError("Mikrofon erişimi gerekli");
+      },
+      setError,
+    );
+    if (!handle) return;
+    stopRef.current = handle.stop;
+    setRecording(true);
+    if (maxDur != null && maxDur > 0) {
+      timerRef.current = window.setTimeout(stopRecording, maxDur * 1000);
     }
   }
 
   function stopRecording() {
-    mediaRecorderRef.current?.stop();
+    window.clearTimeout(timerRef.current);
+    stopRef.current?.();
+    stopRef.current = null;
     setRecording(false);
   }
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(timerRef.current);
+      stopRef.current?.();
+    },
+    [],
+  );
 
   const attemptsExhausted = !preview && attempts >= maxAttempts;
 
@@ -249,44 +300,112 @@ export function VideoResponseView({
 }) {
   const uploadAllowed = !!interaction.uploadAllowed;
   const maxAttempts = preview ? Number.POSITIVE_INFINITY : (interaction.maxAttempts as number) || 1;
+  const prep = interaction.prepTimeSec as number | null | undefined;
+  const maxDur = interaction.maxDurationSec as number | null | undefined;
   const [attempts, setAttempts] = useState(0);
+  const [recording, setRecording] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { busy, error, mediaId, localUrl, fileName, upload } = useMediaUpload(itemId);
+  const liveRef = useRef<HTMLVideoElement>(null);
+  const stopRef = useRef<(() => void) | null>(null);
+  const timerRef = useRef(0);
+  const { busy, error, mediaId, localUrl, fileName, upload, setError } = useMediaUpload(itemId);
   const attemptsExhausted = !preview && attempts >= maxAttempts;
+
+  async function startRecording() {
+    setError(null);
+    const handle = await startBrowserRecording(
+      "video",
+      liveRef.current,
+      (file) => {
+        void upload(file, maxDur != null ? maxDur * 1000 : null)
+          .then(() => setAttempts((a) => a + 1))
+          .catch(() => undefined);
+      },
+      setError,
+    );
+    if (!handle) return;
+    stopRef.current = handle.stop;
+    setRecording(true);
+    if (maxDur != null && maxDur > 0) {
+      timerRef.current = window.setTimeout(stopRecording, maxDur * 1000);
+    }
+  }
+
+  function stopRecording() {
+    window.clearTimeout(timerRef.current);
+    stopRef.current?.();
+    stopRef.current = null;
+    setRecording(false);
+  }
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(timerRef.current);
+      stopRef.current?.();
+    },
+    [],
+  );
 
   return (
     <div className="space-y-3">
       <div className="space-y-3 rounded-xl border border-exam-slate-200 bg-exam-slate-50 p-4 text-center">
-        {uploadAllowed ? (
-          <>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="video/*"
-              className="hidden"
-              disabled={disabled || busy}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f) return;
-                void upload(f)
-                  .then(() => setAttempts((a) => a + 1))
-                  .catch(() => undefined);
-              }}
-            />
-            <button
-              type="button"
-              disabled={disabled || busy || attemptsExhausted}
-              onClick={() => inputRef.current?.click()}
-              className={epCta}
-            >
-              {busy ? "Yükleniyor…" : "Video yükle"}
-            </button>
-          </>
-        ) : (
-          <p className="text-sm text-exam-slate-500">Bu soruda dosya yükleme kapalı.</p>
-        )}
-        {localUrl ? (
+        {prep != null ? <p className="text-sm text-exam-slate-500">Hazırlık: {prep} sn</p> : null}
+        {maxDur != null ? <p className="text-sm text-exam-slate-500">Kayıt limiti: {maxDur} sn</p> : null}
+        <video
+          ref={liveRef}
+          muted
+          playsInline
+          className={cn(
+            "mx-auto max-h-56 w-full rounded-lg border border-exam-slate-200 bg-black",
+            recording ? "block" : "hidden",
+          )}
+        />
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={disabled || busy || attemptsExhausted}
+            onClick={() => {
+              if (!recording) void startRecording();
+              else stopRecording();
+            }}
+            className={cn(
+              recording ? epRecordStop : epRecordStart,
+              (disabled || attemptsExhausted || busy) && "opacity-50",
+            )}
+          >
+            {recording ? "Kaydı bitir" : mediaId || fileName ? "Yeniden kaydet" : "Video kaydet"}
+          </button>
+          {uploadAllowed ? (
+            <>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                disabled={disabled || busy || recording}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  void upload(f)
+                    .then(() => setAttempts((a) => a + 1))
+                    .catch(() => undefined);
+                }}
+              />
+              <button
+                type="button"
+                disabled={disabled || busy || attemptsExhausted || recording}
+                onClick={() => inputRef.current?.click()}
+                className={epCta}
+              >
+                {busy ? "Yükleniyor…" : "Video yükle"}
+              </button>
+            </>
+          ) : (
+            <p className="w-full text-xs text-exam-slate-500">Hazır dosya yüklenemez. Kamerayla kaydedin.</p>
+          )}
+        </div>
+        {localUrl && !recording ? (
           <video
             controls
             src={localUrl}
@@ -297,8 +416,8 @@ export function VideoResponseView({
         {error ? <p className="text-sm text-rose-600">{error}</p> : null}
         <p className="text-xs text-exam-slate-500">
           {preview
-            ? "Önizleme · sınırsız"
-            : `Deneme ${attempts} / ${maxAttempts}${
+            ? `Önizleme · sınırsız deneme${busy ? " · Yükleniyor…" : ""}`
+            : `Deneme ${attempts} / ${maxAttempts}${busy ? " · Yükleniyor…" : ""}${
                 mediaId ? " · Sunucuya kaydedildi" : !itemId ? " · Önizleme (oturum yok)" : ""
               }`}
         </p>
