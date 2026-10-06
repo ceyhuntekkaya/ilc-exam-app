@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/src/components/auth-provider";
+import { hasAnyPermission } from "@/src/lib/permissions";
 import type { SessionUserType } from "@/src/lib/auth-constants";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
@@ -107,4 +108,11 @@ export function useOpsHref() {
     assign: (grantId: string) =>
       role === "STAFF" ? `${basePath}/exams/${grantId}/assign` : `${root}/assignments/new?grantId=${grantId}`,
   };
+}
+
+/** Eylem yetkisi: Super Admin her şeyi yapar; personelde izinlerden biri yeterli. Yetkisiz düğme gösterilmez (403 yerine). */
+export function useCan(...perms: string[]): boolean {
+  const { role } = usePanel();
+  const { user } = useAuth();
+  return role === "SUPER_ADMIN" || hasAnyPermission(user?.permissions, perms);
 }

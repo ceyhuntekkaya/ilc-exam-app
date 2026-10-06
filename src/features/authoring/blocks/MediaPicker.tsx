@@ -11,6 +11,7 @@ import {
   notify,
   IconX,
   IconUpload,
+  EmptyState,
 } from "@/src/ui";
 import { useCallback, useEffect, useId, useState } from "react";
 
@@ -280,9 +281,7 @@ export function MediaPicker({
                   ))}
                 </div>
               ) : rows.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-[13px] text-fg-subtle">
-                  Kütüphanede {kindLabel.toLocaleLowerCase("tr-TR")} yok. Yukarıdan dosya yükleyin.
-                </p>
+                <EmptyState compact title={`Kütüphanede ${kindLabel.toLocaleLowerCase("tr-TR")} yok`} description="Yukarıdan dosya yükleyin; yüklenen dosya burada seçilebilir hâle gelir." />
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rows.map((m) => {

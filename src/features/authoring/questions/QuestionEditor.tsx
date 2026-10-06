@@ -541,7 +541,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     .map((r) => ({ id: r.currentVersionId as string, label: `${r.name} · ${r.skill ?? ""}` }));
 
   return (
-    <div className="space-y-4">
+    <div className="@container space-y-4">
       <PageHeader
         title={q.code}
         description={`Sürüm ${q.versionNo} · ${q.parts.length} part · ${template?.label ?? selectedPart?.interactionType ?? "Tip seçilmedi"}`}
@@ -589,11 +589,11 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         </ol>
       </nav>
 
-      <div className="grid items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(26rem,38rem)]">
-      <div className="min-w-0 space-y-6">
+      <div className="grid items-start gap-6 @min-[60rem]:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)] @min-[90rem]:grid-cols-[minmax(0,1fr)_minmax(26rem,38rem)]">
+      <div className="@container/form min-w-0 space-y-6">
         {openPanel === 0 ? (
           <FormCard title="Soru tipi" description="Seçili part'ın etkileşim tipi. Tip değişirse part içeriği sıfırlanır.">
-            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2.5 @min-[28rem]/form:grid-cols-2 @min-[52rem]/form:grid-cols-3">
               {TEMPLATE_REGISTRY.map((t) => (
                 <button
                   key={t.type}
@@ -639,7 +639,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               }
             >
               <FormGroup title="Seviye ve beceri">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 @min-[28rem]/form:grid-cols-2 @min-[46rem]/form:grid-cols-4">
                 <Field label="CEFR seviyesi">
                   <Select value={cefr} disabled={!editable} onChange={(e) => setCefr(e.target.value)}>
                     <option value="">—</option>
@@ -682,7 +682,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               </div>
               </FormGroup>
               <FormGroup title="Süre ve güvenlik" hint="Süreler saniye cinsindendir; boş bırakılırsa sınav ayarı geçerlidir.">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 @min-[28rem]/form:grid-cols-3">
                 <Field label="Tahmini süre">
                   <Input suffix="sn" type="number" min={0} inputMode="numeric" placeholder="ör. 60" value={estimatedTimeSec} disabled={!editable} onChange={(e) => setEstimatedTimeSec(e.target.value)} />
                 </Field>
@@ -724,7 +724,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               }
             >
               <BlockHtmlField label="Yönerge" value={instruction} onChange={setInstruction} disabled={!editable} />
-              <div className="grid items-start gap-4 md:grid-cols-2">
+              <div className="grid items-start gap-4 @min-[36rem]/form:grid-cols-2">
                 <div className="min-w-0 space-y-2">
                   <MediaPicker
                     kind="AUDIO"
@@ -966,7 +966,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   ) : null}
                   {openPanel === 4 ? (
                     <>
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <div className="grid gap-3 @min-[28rem]/form:grid-cols-2 @min-[52rem]/form:grid-cols-4">
                         <Field label="Beceri">
                           <Select
                             value={partDraft.skill}
@@ -1177,7 +1177,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 </Button>
               </div>
               </div>
-              <div className="mt-2 grid items-start gap-5 border-t border-border pt-4 lg:grid-cols-3">
+              <div className="mt-2 grid items-start gap-5 border-t border-border pt-4 @min-[46rem]/form:grid-cols-3">
                 <div className="min-w-0 space-y-1">
                   <p className="text-[13px] font-semibold text-fg">
                     Eksikler{" "}
@@ -1284,7 +1284,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
           ) : null}
 
       </div>
-      <aside aria-label="Öğrenci önizlemesi" className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm 2xl:sticky 2xl:top-20 2xl:max-h-[calc(100dvh-6rem)] 2xl:overflow-y-auto">
+      <aside aria-label="Öğrenci önizlemesi" className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm @min-[60rem]:sticky @min-[60rem]:top-20 @min-[60rem]:max-h-[calc(100dvh-6rem)] @min-[60rem]:overflow-y-auto">
         <QuestionPreviewShell
           model={previewModel}
           rubricParts={previewRubricParts}

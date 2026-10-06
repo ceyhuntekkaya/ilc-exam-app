@@ -164,12 +164,15 @@ body {
 }
 
 [data-input-variant="storefront"]:focus-visible,
-[data-input-variant="admin"]:focus-visible {
+[data-input-variant="admin"]:focus-visible,
+[data-input-variant="staff"]:focus-visible {
   outline: none;
 }
 
 [data-input-variant="admin"]::-webkit-search-cancel-button,
-[data-input-variant="admin"]::-webkit-search-decoration {
+[data-input-variant="admin"]::-webkit-search-decoration,
+[data-input-variant="staff"]::-webkit-search-cancel-button,
+[data-input-variant="staff"]::-webkit-search-decoration {
   appearance: none;
 }
 

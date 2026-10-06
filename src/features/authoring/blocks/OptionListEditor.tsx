@@ -11,6 +11,7 @@ import {
   IconArrowDown,
   IconArrowUp,
   IconX,
+  EmptyState,
 } from "@/src/ui";
 import type { ReactNode } from "react";
 
@@ -135,9 +136,7 @@ export function OptionListEditor({
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[13px] text-fg-subtle">
-          Henüz seçenek yok. Aşağıdan ekleyin.
-        </p>
+        <EmptyState compact title="Henüz seçenek yok" description="Öğrencinin seçeceği cevapları aşağıdaki düğmeyle ekleyin ve doğru olanı işaretleyin." />
       ) : (
         <ol className="grid gap-2">
           {rows.map((o, i) => {

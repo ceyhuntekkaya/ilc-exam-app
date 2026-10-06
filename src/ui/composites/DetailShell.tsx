@@ -53,7 +53,8 @@ export function DetailShell({
             </h2>
           </header>
         ) : null}
-        <div className="p-4 sm:p-5">{children}</div>
+        {/* İçteki tablo kartı gölgesiz: bölüm kartının içinde ikinci bir "yüzen" kart olmasın. */}
+        <div className="p-4 sm:p-5 [&_[data-section-table]]:shadow-none">{children}</div>
       </section>
     </div>
   );

@@ -1,8 +1,15 @@
 "use client";
 
-import { StaffBound } from "@/src/features/panel/StaffBound";
 import { RolesSection } from "@/src/features/org/RolesSection";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  return <StaffBound>{(companyId) => <RolesSection companyId={companyId} />}</StaffBound>;
+  return (
+    <StaffPage
+      title="Roller ve yetkiler"
+      description="Kurumdaki rol şablonları. Personele rol Personel sayfasından atanır."
+    >
+      {(companyId) => <RolesSection companyId={companyId} />}
+    </StaffPage>
+  );
 }

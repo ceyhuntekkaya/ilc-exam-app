@@ -39,19 +39,20 @@ export function SubscriptionSection({ companyId }: { companyId: string }) {
   }
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
-  if (isLoading) return <SectionTable flush loading empty="" columns={["Dönem", { label: "Max öğrenci", align: "right" }, "Durum", ""]} rows={[]} />;
+  if (isLoading) return <SectionTable loading empty="" columns={["Dönem", { label: "Max öğrenci", align: "right" }, "Durum", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
-      {role === "SUPER_ADMIN" ? (
-        <SectionToolbar count={rows.length} noun="üyelik">
-          <Button size="sm" onClick={() => setOpen(true)}>
-            Yeni üyelik
-          </Button>
-        </SectionToolbar>
-      ) : null}
       <SectionTable
-        flush
+        toolbar={
+          <SectionToolbar count={rows.length} noun="üyelik">
+            {role === "SUPER_ADMIN" ? (
+              <Button size="sm" onClick={() => setOpen(true)}>
+                Yeni üyelik
+              </Button>
+            ) : null}
+          </SectionToolbar>
+        }
         empty="Üyelik yok"
         emptyHint="Bu kurum için henüz abonelik tanımlanmamış."
         columns={["Dönem", { label: "Max öğrenci", align: "right" }, "Durum", ""]}

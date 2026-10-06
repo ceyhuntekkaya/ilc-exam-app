@@ -2,14 +2,16 @@
 
 # Proje notları
 
-## Admin paneli (`/admin/**`) tasarımı
+## Admin ve staff paneli (`/admin/**`, `/staff/**`) tasarımı
 
 - Kaynak belge: `docs/super-admin-tasarim.md`. Tüm tasarım adımları tek belgede: `docs/admin-redesign.md` (tarih, neden, değişen dosyalar, sonraki adımlar). **Her değişiklikten sonra bu belgenin sonuna yeni bölüm ekle ve günlüğü güncelle; ayrı dosya açma.**
-- Tema: `src/styles/admin-theme.css` — "sınav kâğıdı + mürekkep". Paletler `[data-panel="admin"]` kapsamında yeniden tanımlanır (primary = mürekkep mavisi, neutral = soğuk kâğıt grisi, secondary = fosforlu kalem, `--accent-teal|marker|plum|red` + `-bg`). Staff/öğrenci/landing etkilenmez.
+- Tema: `src/styles/admin-theme.css` — "sınav kâğıdı + mürekkep". Paletler `[data-panel="admin"]` ve `[data-panel="staff"]` kapsamında yeniden tanımlanır (primary = mürekkep mavisi, neutral = soğuk kâğıt grisi, secondary = fosforlu kalem, `--accent-teal|marker|plum|red` + `-bg`). Öğrenci/landing etkilenmez.
+- Staff: kabuk `PanelChrome panel="staff"` (StaffShell); sayfa `StaffPage` (PageHeader + bölüm kartı, `bare` = kendi başlığını çizen ekran). UiVariant `staff` kalır (44px dokunma hedefi); admin kuralları staff sayfalarında da geçerli.
 - Ham hex yazma; tokenları kullan (`bg-primary-600`, `text-fg-muted`, `bg-(--accent-teal-bg)`).
-- Layout: header ve `main#main` `panel-container` kullanır: **tam genişlik, max-width/ortalama yok**, iki yanda sabit boşluk (16 / 24 / 32px: mobil / sm / lg). Sayfa içinde `mx-auto` ile ortalama yapma; dar form gerekiyorsa sola yaslı `max-w-3xl`.
+- Layout: header ve `main#main` `panel-container` kullanır: **tam genişlik, max-width/ortalama yok**, iki yanda sabit boşluk (16 / 24 / 32px: mobil / sm / lg). Sayfa içinde `mx-auto` ile ortalama ya da `max-w-*` daraltma yapma; az alanlı form/sihirbaz tam genişlik + sağda bağlamsal panel (özet/yardım/önizleme), kırılma `@container` ile.
 - Sayfa başlığı `PageHeader` ile; admin'de serif (`font-display`) otomatik.
 - Liste kartlarında durum filtresi için `FilterTabs` (`@/src/ui`) kullan; elle buton sekmesi yazma.
+- Tablolu bölüm: `SectionTable tabs={FilterTabs} toolbar={SectionToolbar}` tek kart; araç çubuğunu ayrı satır yapma. Boş durum `EmptyState` (primary=ilk kayıt+eylem, neutral=filtre boş, warning=önkoşul eksik; kart içinde `embedded`, dar alanda `compact`), elle kesik çizgili metin yazma.
 - Durumlar: yükleme `SectionTable loading` / `DataGrid loading` (gri kutu yok); hata `<ErrorState error={error} onRetry={() => void refetch()} />`; geri alınamayan işlem `ConfirmDialog`; işlem sütunu sağa yaslı; tek seferlik gizli değer `SecretNotice`. Ayrıntı: `docs/admin-redesign.md` › 03.
 - Formlar: alanları `FormGroup` ile grupla (sütun sayısı alan sayısını bölsün); `MultiPicker` `Field` içine sarılmaz; kaydet butonu `FormCard footer`; enum hep Türkçe etiketle.
 - Alanın yanında buton (Ekle/Kaydet) varsa: satır `items-start` + `<FieldAction><Button/></FieldAction>`. `items-end` ya da sabit `pt-[..]` kullanma (ipucu/hata satırı hizayı kaydırır).
@@ -66,3 +68,12 @@
 - 2026-10-06 — 05 eki 6: boşluk seçici listesi portal (kırpılma yok); geçen süre sessionStorage ile yenilemede korunuyor.
 - 2026-10-06 — `student-redesign.md` › 06: review — hızlı geçişte cevap kaybı ve 5 sn Next kilidi giderildi; kenar düğmeleri içerik kenarında; ana sayfa lg tek sütun, küçük telefon adım etiketleri.
 - 2026-10-06 — 06 eki: tablet alt çubukta Back/Next/Finish eşit genişlik ve aynı kabartma.
+- 2026-10-06 — `admin-redesign.md` › 15: staff paneli admin kabuğu/temasına alındı (PanelChrome, StaffPage), ana sayfa metrikleri, atama sihirbazı adımları, değerlendirme (onaylı yayın, filtre), izleme öğrenci adları, atama filtresi, öğrenci/personel araması, staff NumberInput.
+- 2026-10-06 — `admin-redesign.md` › 16: staff ikinci review — Sınıflar sonsuz yükleme, kampüs/seviye/öğrenci/personel düzenleme, öğrenci sınıf kaydı, onaylı parola sıfırlama/sezon aktifleştirme, rol yönetimi, rapor sınav adları, içerikte `useCan` yetki kontrolü.
+- 2026-10-06 — 16 eki: soru editörü önizlemesi container query ile içerik ≥ 60rem'de sağda (staff/admin), form ızgaraları sütun genişliğine göre.
+- 2026-10-06 — `admin-redesign.md` › 17: SectionTable tek kart (sekme + araç çubuğu + tablo), yeni EmptyState (tonlu zemin, ikon rozeti, neutral/warning tonları, embedded/compact), Formatlar örnek iskeletli boş durum, editör içi boş metinler.
+- 2026-10-06 — `admin-redesign.md` › 18: yeni sınav ve atama sihirbazı tam genişlik + yapışkan canlı özet paneli (max-w-3xl kaldırıldı), iç ızgaralar container query.
+- 2026-10-06 — 18 eki: /staff/company sekmeleri kurulum adım kartları (sayı, ✓, eksik adım otomatik seçili), sınıf sayacı yenileme, hizalar.
+- 2026-10-06 — 18 eki 2: Select genişlik sınıfları sarmalayıcıya (araç çubuğunda düğmenin alt satıra kayması giderildi).
+- 2026-10-06 — 18 eki 3: tablo araç çubuğu her panelde sıkı ölçü (32px), sayaç + kontroller tek satır aynı hizada.
+- 2026-10-06 — 18 eki 4: araç çubuğu sayacında sayı–ad boşluğu (flex içinde yutuluyordu), tek satır.

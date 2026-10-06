@@ -13,6 +13,7 @@ import {
   IconArrowDown,
   IconArrowUp,
   IconX,
+  EmptyState,
 } from "@/src/ui";
 
 export type ContentBlock =
@@ -171,9 +172,7 @@ export function ContentBlockList({
       </div>
 
       {blocks.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-3 py-5 text-center text-[13px] text-fg-subtle">
-          Henüz blok yok. Aşağıdan bir blok türü seçerek başlayın.
-        </p>
+        <EmptyState compact title="Henüz içerik bloğu yok" description="Metin, görsel ya da ses bloğu ekleyerek soru içeriğini oluşturun. Aşağıdan bir blok türü seçin." />
       ) : (
         <ol className="grid gap-2.5">
           {blocks.map((b, i) => {

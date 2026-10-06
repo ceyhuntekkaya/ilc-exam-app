@@ -439,7 +439,7 @@ export function RubricsPage() {
             <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ad veya kod ara" aria-label="Rubrik ara" />
           </div>
           {shownRows.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[13px] text-fg-subtle">{rows.length ? "Eşleşen grup yok." : "Henüz rubrik grubu yok."}</p>
+            <EmptyState embedded compact tone={rows.length ? "neutral" : "primary"} title={rows.length ? "Eşleşen grup yok" : "Henüz rubrik grubu yok"} description={rows.length ? "Aramayı değiştirin." : "Yazma ve konuşma soruları rubrikle puanlanır. Yukarıdan ilk grubu oluşturun."} />
           ) : (
             <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
               {shownRows.map((r) => {
@@ -564,8 +564,9 @@ export function RubricsPage() {
             ) : null}
           </FormCard>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-surface p-6">
+          <div>
             <EmptyState
+              tone="neutral"
               title="Bir rubrik grubu seçin"
               description="Soldaki listeden bir grubu açın ya da “Yeni rubrik grubu” ile oluşturun. Onaylı gruplar soru editörünün Cevap ve puanlama adımında seçilir."
             />

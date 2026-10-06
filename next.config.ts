@@ -28,6 +28,9 @@ process.env.NEXT_PUBLIC_API_URL = apiPublicUrl;
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Dev'de sol alttaki "N" göstergesi panel sidebar'ının altını kapatıyordu. Derleme/çalışma hataları
+  // yine tam ekran overlay olarak gösterilir; production'da gösterge zaten yoktur.
+  devIndicators: false,
   env: {
     NEXT_PUBLIC_API_URL: apiPublicUrl,
   },

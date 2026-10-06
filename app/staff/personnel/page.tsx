@@ -1,8 +1,15 @@
 "use client";
 
-import { StaffBound } from "@/src/features/panel/StaffBound";
 import { StaffSection } from "@/src/features/org/StaffSection";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  return <StaffBound>{(companyId) => <StaffSection companyId={companyId} />}</StaffBound>;
+  return (
+    <StaffPage
+      title="Personel"
+      description="Kurum kullanıcıları. Yeni personel ekleyin, rol atayın ya da parolasını sıfırlayın."
+    >
+      {(companyId) => <StaffSection companyId={companyId} />}
+    </StaffPage>
+  );
 }

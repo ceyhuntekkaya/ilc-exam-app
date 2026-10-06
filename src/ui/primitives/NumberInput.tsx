@@ -5,7 +5,7 @@ import { IconChevronDown, IconChevronUp } from "@/src/ui/icons";
 import { type ComponentPropsWithRef, type FocusEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 /**
- * Admin sayısal alanı — `Input type="number"` admin varyantında bunu çizer (sayfalarda değişiklik gerekmez).
+ * Panel sayısal alanı — `Input type="number"` admin ve staff varyantında bunu çizer (sayfalarda değişiklik gerekmez).
  *
  * Değer sözleşmesi DEĞİŞMEZ: alan hâlâ native `<input type="number">`; onChange/onBlur aynı olay nesnesiyle,
  * `e.target.value` string olarak gelir → çağıranlar `Number(...)` ile backend'e aynı biçimde gönderir.
@@ -23,6 +23,8 @@ type Props = Omit<ComponentPropsWithRef<"input">, "type"> & {
   suffix?: string;
   baseClassName: string;
   stateClassName: string;
+  /** Staff (tablet): adım düğmeleri daha geniş — dokunma hedefi. */
+  touch?: boolean;
 };
 
 function setNativeValue(node: HTMLInputElement, value: string) {
@@ -50,7 +52,7 @@ function decimals(step: string | number | undefined) {
   return s.includes(".") ? s.split(".")[1].length : 0;
 }
 
-export function NumberInput({ ref, suffix, invalid, baseClassName, stateClassName, className, min, max, step, disabled, readOnly, onKeyDown, onBlur, onWheel, ...props }: Props) {
+export function NumberInput({ ref, suffix, invalid, touch = false, baseClassName, stateClassName, className, min, max, step, disabled, readOnly, onKeyDown, onBlur, onWheel, ...props }: Props) {
   const minN = min === undefined || min === "" ? undefined : Number(min);
   const maxN = max === undefined || max === "" ? undefined : Number(max);
   const stepN = step === undefined || step === "any" ? 1 : Number(step) || 1;
@@ -121,17 +123,17 @@ export function NumberInput({ ref, suffix, invalid, baseClassName, stateClassNam
           baseClassName,
           stateClassName,
           "numeric [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-          suffix ? "pr-14" : "pr-8",
+          touch ? (suffix ? "pr-[4.5rem]" : "pr-11") : suffix ? "pr-14" : "pr-8",
           withoutWidth(className),
         )}
       />
       {suffix ? (
-        <span aria-hidden className="pointer-events-none absolute inset-y-0 right-7 flex items-center pr-1.5 text-xs text-fg-subtle">
+        <span aria-hidden className={cn("pointer-events-none absolute inset-y-0 flex items-center pr-1.5 text-fg-subtle", touch ? "right-9 text-sm" : "right-7 text-xs")}>
           {suffix}
         </span>
       ) : null}
       {inactive ? null : (
-        <span className="absolute inset-y-px right-px flex w-6 flex-col overflow-hidden rounded-r-[5px] border-l border-border opacity-70 transition-opacity group-focus-within/num:opacity-100 group-hover/num:opacity-100">
+        <span className={cn("absolute inset-y-px right-px flex flex-col", touch ? "w-9" : "w-6", " overflow-hidden rounded-r-[5px] border-l border-border opacity-70 transition-opacity group-focus-within/num:opacity-100 group-hover/num:opacity-100")}>
           <button
             type="button"
             tabIndex={-1}
