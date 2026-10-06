@@ -4,6 +4,7 @@ import { customInstance } from "@/src/api/mutator";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { Badge, Button, ErrorState, PageHeader, Skeleton } from "@/src/ui";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 
 type WatchQuestion = {
   label: string;
@@ -34,6 +35,13 @@ type WatchView = {
   sections: WatchSection[];
 };
 
+/** İzleme geri linki yalnızca atama listesine ve filtre query'sine döner. */
+export function rosterReturnHref(from: string | null, fallback: string) {
+  if (!from || from.includes("://") || from.includes("\\") || from.startsWith("//")) return fallback;
+  if (from !== fallback && !from.startsWith(`${fallback}?`)) return fallback;
+  return from;
+}
+
 function formatStamp(value?: string | null) {
   if (!value) return "";
   return new Date(value).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
@@ -45,6 +53,7 @@ function formatStamp(value?: string | null) {
  */
 export function StudentWatchSection({ assignmentId, studentId }: { assignmentId: string; studentId: string }) {
   const hrefs = useOpsHref();
+  const backHref = rosterReturnHref(useSearchParams().get("from"), hrefs.assignments);
   const query = useQuery({
     queryKey: ["assignment-watch", assignmentId, studentId],
     queryFn: () =>
@@ -62,7 +71,7 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
           ? `${view.examTitle}. Bu öğrencinin yaptığı ve yapmadığı yerler. Cevap metni görünmez.`
           : "Bu öğrencinin yaptığı ve yapmadığı yerler. Cevap metni görünmez."
       }
-      back={{ href: hrefs.assignments, label: "Atamalar" }}
+      back={{ href: backHref, label: "Atamalar" }}
       actions={
         <Button type="button" variant="secondary" loading={query.isFetching} onClick={() => void query.refetch()}>
           Güncelle

@@ -11,6 +11,11 @@ import {
   SettingsDictionariesPage,
 } from "@/src/features/authoring/shared/LibraryPages";
 import { useParams } from "next/navigation";
+import { Suspense } from "react";
+
+function SearchParamsFallback() {
+  return <div className="h-40 animate-pulse rounded-xl bg-neutral-100" />;
+}
 
 export function QuestionBankRoute() {
   return <QuestionBankPage />;
@@ -35,11 +40,19 @@ export function ExamNewRoute() {
 
 export function ExamBuilderRoute() {
   const { id } = useParams<{ id: string }>();
-  return <ExamBuilderPage examId={id} />;
+  return (
+    <Suspense fallback={<SearchParamsFallback />}>
+      <ExamBuilderPage examId={id} />
+    </Suspense>
+  );
 }
 
 export function ReviewQueueRoute() {
-  return <ReviewQueuePage />;
+  return (
+    <Suspense fallback={<SearchParamsFallback />}>
+      <ReviewQueuePage />
+    </Suspense>
+  );
 }
 
 export function MediaLibraryRoute() {

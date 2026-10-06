@@ -4,9 +4,10 @@ import { useBranches, useGrades, useInstitutes, useYears } from "@/src/api/gener
 import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import { customInstance } from "@/src/api/mutator";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
-import { Badge, ButtonLink, ErrorState, Field, SectionTable, SectionToolbar, Select, Skeleton } from "@/src/ui";
+import { Badge, ButtonLink, ErrorState, Field, FormCard, SectionTable, SectionToolbar, Select, Skeleton } from "@/src/ui";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 type Phase = "NONE" | "ASSIGNED" | "IN_PROGRESS" | "FINISHED" | "EVALUATED" | "ABSENT";
 
@@ -18,6 +19,8 @@ type RosterRow = {
   recipientId?: string | null;
   phase: Phase;
 };
+
+const COLUMNS = ["Öğrenci", "Durum", "Tarih", ""];
 
 const PHASE: Record<Exclude<Phase, "NONE">, { label: string; tone: "neutral" | "info" | "warning" | "success" | "danger" }> = {
   ASSIGNED: { label: "Atandı", tone: "neutral" },
@@ -40,12 +43,45 @@ function formatWindow(from?: string | null, until?: string | null) {
   return `${start ?? "Hemen"} → ${end ?? "Kapatılana kadar"}`;
 }
 
+type RosterFilters = {
+  instituteId: string;
+  yearId: string;
+  examVersionId: string;
+  gradeId: string;
+  branchId: string;
+};
+
+const FILTER_KEYS = ["instituteId", "yearId", "examVersionId", "gradeId", "branchId"] as const;
+
+function filtersFromQuery(query: string): RosterFilters {
+  const params = new URLSearchParams(query);
+  return {
+    instituteId: params.get("instituteId") ?? "",
+    yearId: params.get("yearId") ?? "",
+    examVersionId: params.get("examVersionId") ?? "",
+    gradeId: params.get("gradeId") ?? "",
+    branchId: params.get("branchId") ?? "",
+  };
+}
+
+function filtersToQuery(filters: RosterFilters) {
+  const params = new URLSearchParams();
+  for (const key of FILTER_KEYS) {
+    if (filters[key]) params.set(key, filters[key]);
+  }
+  return params;
+}
+
 /**
  * Atama listesi: kampüs ve sezon yalnızca birden fazlaysa seçilir.
  * Sınav (o sezonda ataması olanlar) → seviye → sınıf, ardından şubedeki tüm öğrenciler.
  */
 export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const hrefs = useOpsHref();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
   const institutesQ = useInstitutes(companyId);
   const yearsQ = useYears(companyId);
   const gradesQ = useGrades(companyId);
@@ -53,11 +89,22 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const assignmentsQ = useListAssignments({ companyId });
   const grantsQ = useListGrants({ companyId });
 
-  const [instituteId, setInstituteId] = useState("");
-  const [yearId, setYearId] = useState("");
-  const [examVersionId, setExamVersionId] = useState("");
-  const [gradeId, setGradeId] = useState("");
-  const [branchId, setBranchId] = useState("");
+  const [filters, setFilters] = useState<RosterFilters>(() => filtersFromQuery(query));
+  const { instituteId, yearId, examVersionId, gradeId, branchId } = filters;
+
+  useEffect(() => {
+    setFilters((current) => {
+      const next = filtersFromQuery(query);
+      return FILTER_KEYS.every((key) => current[key] === next[key]) ? current : next;
+    });
+  }, [query]);
+
+  function writeFilters(next: RosterFilters) {
+    setFilters(next);
+    const qs = filtersToQuery(next).toString();
+    if (qs === query) return;
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
 
   const institutes = useMemo(() => institutesQ.data?.data ?? [], [institutesQ.data]);
   const years = useMemo(() => yearsQ.data?.data ?? [], [yearsQ.data]);
@@ -195,127 +242,153 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
     );
   }
 
-  if (listLoading) {
-    return <Skeleton className="h-24 rounded-xl" />;
-  }
-
   const ready = Boolean(campusId && seasonId && examValue && branchValue);
+  const listQuery = filtersToQuery(filters).toString();
+  const returnTo = listQuery ? `${pathname}?${listQuery}` : pathname;
+  const waiting =
+    campusId && seasonId && exams.length === 0
+      ? { title: "Bu sezonda ataması olan sınav yok", hint: "Başka bir sezon seçin ya da lisanslı sınavlardan yeni bir atama açın." }
+      : examValue && gradeValue && branchOptions.length === 0
+        ? { title: "Bu seviyede şube yok", hint: "Başka bir seviye seçin." }
+        : { title: "Öğrenciler burada listelenir", hint: "Sınav, seviye ve şubeyi seçince şubedeki öğrencilerin durumu görünür." };
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-end gap-3 md:flex-nowrap">
-        {showCampus ? (
-          <div className="min-w-[calc(50%-0.375rem)] flex-1 md:min-w-0">
-            <Field label="Kampüs" required>
+      <FormCard title="Filtre" description="Sınav, seviye ve şubeyi seçin. Liste seçime göre dolar.">
+        {listLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-16 rounded-lg" />
+            <Skeleton className="h-16 rounded-lg" />
+            <Skeleton className="h-16 rounded-lg" />
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {showCampus ? (
+              <Field label="Kampüs" required>
+                <Select
+                  value={campusId}
+                  onChange={(e) =>
+                    writeFilters({
+                      instituteId: e.target.value,
+                      yearId: "",
+                      examVersionId: "",
+                      gradeId: "",
+                      branchId: "",
+                    })
+                  }
+                >
+                  <option value="">Seçin</option>
+                  {institutes.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            ) : null}
+            {showSeason ? (
+              <Field label="Sezon" required>
+                <Select
+                  value={seasonId}
+                  onChange={(e) =>
+                    writeFilters({
+                      instituteId: campusId,
+                      yearId: e.target.value,
+                      examVersionId: "",
+                      gradeId: "",
+                      branchId: "",
+                    })
+                  }
+                >
+                  <option value="">Seçin</option>
+                  {seasonOptions.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            ) : null}
+            <Field label="Sınav" required>
               <Select
-                value={campusId}
-                onChange={(e) => {
-                  setInstituteId(e.target.value);
-                  setYearId("");
-                  setExamVersionId("");
-                  setGradeId("");
-                  setBranchId("");
-                }}
+                value={examValue}
+                disabled={!campusId || !seasonId || exams.length === 0}
+                onChange={(e) =>
+                  writeFilters({
+                    instituteId: campusId,
+                    yearId: seasonId,
+                    examVersionId: e.target.value,
+                    gradeId: "",
+                    branchId: "",
+                  })
+                }
               >
                 <option value="">Seçin</option>
-                {institutes.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
+                {exams.map((exam) => (
+                  <option key={exam.id} value={exam.id}>
+                    {exam.title}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Seviye" required>
+              <Select
+                value={gradeValue}
+                disabled={!examValue || gradeOptions.length === 0}
+                onChange={(e) =>
+                  writeFilters({
+                    instituteId: campusId,
+                    yearId: seasonId,
+                    examVersionId,
+                    gradeId: e.target.value,
+                    branchId: "",
+                  })
+                }
+              >
+                <option value="">Seçin</option>
+                {gradeOptions.map((grade) => (
+                  <option key={grade.id} value={grade.id}>
+                    {grade.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Şube" required>
+              <Select
+                value={branchValue}
+                disabled={!gradeValue || branchOptions.length === 0}
+                onChange={(e) =>
+                  writeFilters({
+                    instituteId: campusId,
+                    yearId: seasonId,
+                    examVersionId,
+                    gradeId,
+                    branchId: e.target.value,
+                  })
+                }
+              >
+                <option value="">Seçin</option>
+                {branchOptions.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
                   </option>
                 ))}
               </Select>
             </Field>
           </div>
-        ) : null}
-        {showSeason ? (
-          <div className="min-w-[calc(50%-0.375rem)] flex-1 md:min-w-0">
-            <Field label="Sezon" required>
-              <Select
-                value={seasonId}
-                onChange={(e) => {
-                  setYearId(e.target.value);
-                  setExamVersionId("");
-                  setGradeId("");
-                  setBranchId("");
-                }}
-              >
-                <option value="">Seçin</option>
-                {seasonOptions.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-        ) : null}
-        <div className="min-w-[calc(50%-0.375rem)] flex-1 md:min-w-0">
-          <Field label="Sınav" required>
-            <Select
-              value={examValue}
-              disabled={!campusId || !seasonId || exams.length === 0}
-              onChange={(e) => {
-                setExamVersionId(e.target.value);
-                setGradeId("");
-                setBranchId("");
-              }}
-            >
-              <option value="">Seçin</option>
-              {exams.map((exam) => (
-                <option key={exam.id} value={exam.id}>
-                  {exam.title}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        <div className="min-w-[calc(50%-0.375rem)] flex-1 md:min-w-0">
-          <Field label="Seviye" required>
-            <Select
-              value={gradeValue}
-              disabled={!examValue || gradeOptions.length === 0}
-              onChange={(e) => {
-                setGradeId(e.target.value);
-                setBranchId("");
-              }}
-            >
-              <option value="">Seçin</option>
-              {gradeOptions.map((grade) => (
-                <option key={grade.id} value={grade.id}>
-                  {grade.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-        <div className="min-w-[calc(50%-0.375rem)] flex-1 md:min-w-0">
-          <Field label="Şube" required>
-            <Select value={branchValue} disabled={!gradeValue || branchOptions.length === 0} onChange={(e) => setBranchId(e.target.value)}>
-              <option value="">Seçin</option>
-              {branchOptions.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
-      </div>
+        )}
+      </FormCard>
 
-      {!ready ? (
-        <p className="text-sm text-fg-muted">
-          {campusId && seasonId && exams.length === 0
-            ? "Bu sezonda ataması olan sınav yok."
-            : examValue && gradeValue && branchOptions.length === 0
-              ? "Bu seviyede şube yok."
-              : "Sınav, seviye ve şubeyi seçince öğrenciler burada listelenir."}
-        </p>
+      {listLoading ? (
+        <SectionTable loading columns={COLUMNS} rows={[]} empty="" />
+      ) : !ready ? (
+        <SectionTable columns={COLUMNS} rows={[]} empty={waiting.title} emptyHint={waiting.hint} emptyTone="neutral" />
       ) : rosterQ.isError ? (
         <ErrorState error={rosterQ.error} onRetry={() => void rosterQ.refetch()} compact />
       ) : (
         <SectionTable
           loading={rosterQ.isLoading}
-          columns={["Öğrenci", "Durum", "Tarih", ""]}
+          columns={COLUMNS}
           empty="Bu şubede öğrenci yok"
           emptyHint="Seçilen kampüs, sezon ve şubede aktif kaydı olan öğrenci bulunmuyor."
           emptyTone="neutral"
@@ -354,7 +427,7 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
               row.phase === "IN_PROGRESS" && row.assignmentId ? (
                 <div key="a" className="flex justify-end">
                   <ButtonLink
-                    href={`${hrefs.monitor(row.assignmentId)}?studentId=${encodeURIComponent(row.studentId)}`}
+                    href={`${hrefs.monitor(row.assignmentId)}?studentId=${encodeURIComponent(row.studentId)}&from=${encodeURIComponent(returnTo)}`}
                     variant="secondary"
                     size="sm"
                   >
