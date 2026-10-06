@@ -1,7 +1,8 @@
 /*
   Super Admin teması — "sınav kâğıdı + mürekkep".
-  Kapsam: yalnız `[data-panel="admin"]` (PanelChrome kökü). Staff, öğrenci,
-  landing bu dosyadan etkilenmez.
+  Kapsam: `[data-panel="admin"]` ve `[data-panel="staff"]` (PanelChrome kökü).
+  Super Admin ve okul personeli aynı ürün dilini paylaşır; öğrenci ve landing
+  bu dosyadan etkilenmez.
 
   Nasıl çalışır: Tailwind v4 utility'leri (`bg-primary-600`) değeri
   `var(--color-primary-600)` üzerinden okur. Ölçekleri bu kapsamda yeniden
@@ -16,7 +17,7 @@
   Semantik (success/warning/danger/info) mevcut ölçeklerden gelir.
 */
 
-[data-panel][data-panel="admin"] {
+[data-panel]:is([data-panel="admin"], [data-panel="staff"]) {
   /* — Mürekkep mavisi — */
   --color-primary-50: #f0f3ff;
   --color-primary-100: #e1e7fe;
@@ -102,13 +103,13 @@
 }
 
 @media (width >= 40rem) {
-  [data-panel][data-panel="admin"] {
+  [data-panel]:is([data-panel="admin"], [data-panel="staff"]) {
     --gutter: 1.5rem;
   }
 }
 
 @media (width >= 64rem) {
-  [data-panel][data-panel="admin"] {
+  [data-panel]:is([data-panel="admin"], [data-panel="staff"]) {
     --gutter: 2rem;
   }
 }
@@ -119,7 +120,7 @@
 }
 
 /* Sayfa başlıkları: akademik serif, admin'e özgü kimlik. */
-[data-panel][data-panel="admin"] header.mb-6 h1 {
+[data-panel]:is([data-panel="admin"], [data-panel="staff"]) header.mb-6 h1 {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
@@ -128,11 +129,11 @@
 }
 
 /* Kart gölgesi: yumuşak, iki katmanlı. */
-[data-panel][data-panel="admin"] .shadow-sm {
+[data-panel]:is([data-panel="admin"], [data-panel="staff"]) .shadow-sm {
   box-shadow: var(--shadow);
 }
 
-[data-panel][data-panel="admin"] ::selection {
+[data-panel]:is([data-panel="admin"], [data-panel="staff"]) ::selection {
   background: var(--color-secondary-200);
   color: var(--color-neutral-950);
 }

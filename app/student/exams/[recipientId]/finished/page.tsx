@@ -8,15 +8,16 @@ import { IconCheck, IconClock, IconHome } from "@/src/ui/icons";
 export default function FinishedPage() {
   const { state } = useExamFlow();
   if (!state) return null;
+  const proctor = state.finishedReason === "PROCTOR_LIMIT";
   const timeUp = state.finishedReason === "EXAM_TIME_UP" || state.finishedReason === "WINDOW_CLOSED";
-  const automatic = timeUp || state.finishedReason === "PROCTOR_LIMIT";
-  const title = state.finishedReason === "PROCTOR_LIMIT"
+  const automatic = timeUp || proctor;
+  const title = proctor
     ? "Sınav güvenlik nedeniyle bitti"
     : timeUp
       ? "Süre doldu"
       : "Tebrikler, sınavını bitirdin!";
-  const line = state.finishedReason === "PROCTOR_LIMIT"
-    ? "Odak kaybı sınırı aşıldı. Sınav güvenlik kuralı gereği otomatik teslim edildi."
+  const line = proctor
+    ? "Sınav ekranından çok kez ayrıldığın için sınavın otomatik olarak teslim edildi. Verdiğin cevaplar kaydedildi."
     : state.finishedReason === "EXAM_TIME_UP"
       ? "Süre bittiği için sınavın otomatik olarak teslim edildi. Verdiğin cevaplar kaydedildi."
       : state.finishedReason === "WINDOW_CLOSED"

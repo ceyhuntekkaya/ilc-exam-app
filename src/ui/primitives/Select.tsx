@@ -427,8 +427,15 @@ function ListboxSelect({
     return separated ? [<li key={`${option.value}-sep`} role="presentation" aria-hidden className="mx-1 my-1 h-px bg-border" />, row] : [row];
   });
 
+  // Genişlik/yerleşim sınıfları (w-*, sm:w-52, max-w-*, flex-1…) sarmalayıcıya gider: aksi hâlde sarmalayıcı
+  // her zaman w-full kalır ve araç çubuğunda yanındaki düğmeyi alt satıra iter. Görünüm sınıfları düğmede kalır.
+  const tokens = (className ?? "").split(/s+/).filter(Boolean);
+  const isLayout = (token: string) => /^(?:[a-z0-9-]+:)*(?:w-|min-w-|max-w-|flex-|basis-|grow|shrink|self-|col-span|order-)/.test(token);
+  const layoutClass = tokens.filter(isLayout);
+  const triggerClass = tokens.filter((token) => !isLayout(token)).join(" ");
+
   return (
-    <div ref={root} className="relative w-full">
+    <div ref={root} className={cn("relative", layoutClass.some((t) => /^(?:[a-z0-9-]+:)*w-/.test(t)) ? null : "w-full", layoutClass.join(" "))}>
       {/* Form gönderimi ve doğrulama için; görünmez, odak almaz. */}
       <select
         ref={native}
@@ -471,7 +478,9 @@ function ListboxSelect({
           invalid ? v.invalid : v.valid,
           "relative flex items-center justify-between gap-2 text-left",
           placeholder && !invalid && !inlineLabel ? t.placeholder : null,
-          className,
+          // Düğme her zaman sarmalayıcıyı doldurur.
+          "w-full",
+          triggerClass,
         )}
       >
         {inlineLabel ? (

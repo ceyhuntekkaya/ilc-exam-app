@@ -1,22 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getStaffQueryKey,
   useAddScope,
   useCreateStaff,
+  useDeleteScope,
+  useInstitutes,
   useResetPassword,
   useRoles,
   useStaff,
+  useUpdateStaff,
 } from "@/src/api/generated/admin-companies/admin-companies";
+import type { StaffDto } from "@/src/api/generated/models";
+import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { userStatusLabel } from "@/src/features/admin/labels";
 import {
   Badge,
   Button,
+  ConfirmDialog,
   ErrorState,
   Field,
   FormDialog,
+  IconSearch,
+  IconX,
   Input,
   PasswordInput,
   SectionTable,
@@ -27,72 +35,141 @@ import {
   notify,
 } from "@/src/ui";
 
+const COLUMNS = ["Ad", "Kullanıcı adı", "Roller", "Durum", ""];
+type Status = "ACTIVE" | "PASSIVE" | "LOCKED";
+
+function fullName(r?: StaffDto | null) {
+  return `${r?.firstName ?? ""} ${r?.lastName ?? ""}`.trim() || r?.username || "Personel";
+}
+
 export function StaffSection({ companyId }: { companyId: string }) {
   const id = companyId;
   const { data, isLoading, isError, error, refetch } = useStaff(id);
-  const rolesQ = useRoles(id);
-  const rows = data?.data ?? [];
-  const roles = rolesQ.data?.data ?? [];
+  const roles = useRoles(id).data?.data ?? [];
+  const institutesData = useInstitutes(id).data;
+  const instituteName = useMemo(
+    () => Object.fromEntries((institutesData?.data ?? []).map((i) => [i.id!, i.name ?? ""])),
+    [institutesData],
+  );
+  const all = data?.data ?? [];
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLocaleLowerCase("tr-TR");
+  const rows = needle
+    ? all.filter((r) => [r.firstName, r.lastName, r.username, r.email].filter(Boolean).join(" ").toLocaleLowerCase("tr-TR").includes(needle))
+    : all;
   const create = useCreateStaff();
+  const update = useUpdateStaff();
   const addScope = useAddScope();
+  const deleteScope = useDeleteScope();
   const resetPassword = useResetPassword();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [scopeFor, setScopeFor] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [editing, setEditing] = useState<StaffDto | null>(null);
+  const [scopeForId, setScopeForId] = useState<string | null>(null);
+  const [resetFor, setResetFor] = useState<StaffDto | null>(null);
+  const [secret, setSecret] = useState<{ name: string; value: string } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // Rol penceresi güncel listeden okunur: rol eklenip kaldırıldıkça yenilenir.
+  const scopeFor = all.find((r) => r.id === scopeForId) ?? null;
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
-  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "Kullanıcı", "Durum", "Roller", ""]} rows={[]} />;
+
+  const openNew = () => {
+    setFormError(null);
+    setOpen(true);
+  };
 
   return (
     <div className="grid gap-4">
-      {tempPassword ? (
-        <SecretNotice label="Geçici parola" value={tempPassword} onDismiss={() => setTempPassword(null)} />
+      {secret ? (
+        <SecretNotice label={`${secret.name} için geçici parola`} value={secret.value} onDismiss={() => setSecret(null)} />
       ) : null}
-      <SectionToolbar count={rows.length} noun="personel">
-        <Button size="sm" onClick={() => setOpen(true)}>
-          Personel ekle
-        </Button>
-      </SectionToolbar>
       <SectionTable
-        flush
-        empty="Personel yok"
-        columns={["Ad", "Kullanıcı", "Durum", "Roller", ""]}
+        toolbar={
+          <SectionToolbar count={rows.length} noun="personel" loading={isLoading}>
+            <Input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              icon={<IconSearch className="size-4" />}
+              placeholder="Ad, kullanıcı adı, e-posta…"
+              aria-label="Personel ara"
+              wrapperClassName="w-full sm:w-72"
+            />
+            <Button size="sm" onClick={openNew}>
+              Personel ekle
+            </Button>
+          </SectionToolbar>
+        }
+        loading={isLoading}
+        empty={needle ? "Eşleşen personel yok" : "Henüz personel yok"}
+        emptyHint={needle ? "Farklı bir arama deneyin." : "Öğretmen ve yöneticileri ekleyin, ardından rol atayın."}
+        emptyTone={needle ? "neutral" : "primary"}
+        emptyAction={needle ? undefined : <Button onClick={openNew}>Personel ekle</Button>}
+        columns={COLUMNS}
         rows={rows.map((r) => [
-          `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim(),
-          r.username,
-          <Badge key="s" tone={r.status === "ACTIVE" ? "success" : "warning"} dot>
+          <div key="n" className="min-w-0">
+            <p className="font-medium text-fg">{fullName(r)}</p>
+            {r.email ? <p className="truncate text-xs text-fg-subtle">{r.email}</p> : null}
+          </div>,
+          <span key="u" className="font-mono text-[13px]">{r.username}</span>,
+          (r.scopes ?? []).length ? (
+            <div key="r" className="flex flex-wrap gap-1">
+              {(r.scopes ?? []).map((s) => (
+                <Badge key={s.id} tone="neutral">
+                  {`${s.roleName ?? "Rol"}${s.instituteId && instituteName[s.instituteId] ? ` · ${instituteName[s.instituteId]}` : ""}`}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <span key="r" className="text-warning">Rol yok</span>
+          ),
+          <Badge key="s" tone={r.status === "ACTIVE" ? "success" : r.status === "LOCKED" ? "danger" : "warning"} dot>
             {userStatusLabel(r.status)}
           </Badge>,
-          (r.scopes ?? []).map((s) => s.roleName).filter(Boolean).join(", ") || "—",
           <div key="a" className="flex justify-end gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setScopeFor(r.id!)}>
-              Rol
+            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setScopeForId(r.id!); }}>
+              Roller
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={async () => {
-                try {
-                  const res = await resetPassword.mutateAsync({ id, uid: r.id! });
-                  setTempPassword(res.data.temporaryPassword ?? null);
-                  notify.success("Parola sıfırlandı");
-                } catch (err) {
-                  notify.error(errorMessage(err, "Parola sıfırlanamadı"));
-                }
-              }}
-            >
-              Parola
+            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setEditing(r); }}>
+              Düzenle
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setResetFor(r)}>
+              Parola sıfırla
             </Button>
           </div>,
         ])}
+      />
+
+      <ConfirmDialog
+        open={resetFor !== null}
+        onClose={() => setResetFor(null)}
+        title="Parola sıfırlansın mı?"
+        tone="danger"
+        confirmLabel="Sıfırla"
+        pending={resetPassword.isPending}
+        description={`${fullName(resetFor)} kişisinin mevcut parolası hemen geçersiz olur. Yeni geçici parola bir kez gösterilir; kişiye güvenli bir kanaldan iletin.`}
+        onConfirm={async () => {
+          if (!resetFor?.id) return;
+          try {
+            const res = await resetPassword.mutateAsync({ id, uid: resetFor.id });
+            const value = res.data.temporaryPassword;
+            if (value) setSecret({ name: fullName(resetFor), value });
+            notify.success("Parola sıfırlandı");
+            setResetFor(null);
+          } catch (err) {
+            notify.error(errorMessage(err, "Parola sıfırlanamadı"));
+          }
+        }}
       />
 
       <FormDialog
         open={open}
         onClose={() => setOpen(false)}
         title="Personel ekle"
+        description="Ekledikten sonra Roller'den yetki verin; rolü olmayan personel menüde hiçbir ekran görmez."
         submitLabel="Ekle"
         pending={create.isPending}
         error={formError}
@@ -102,14 +179,14 @@ export function StaffSection({ companyId }: { companyId: string }) {
             await create.mutateAsync({
               id,
               data: {
-                username: String(fd.get("username") || ""),
+                username: String(fd.get("username") || "").trim(),
                 password: String(fd.get("password") || "") || undefined,
-                firstName: String(fd.get("firstName") || ""),
-                lastName: String(fd.get("lastName") || ""),
-                email: String(fd.get("email") || "") || undefined,
+                firstName: String(fd.get("firstName") || "").trim(),
+                lastName: String(fd.get("lastName") || "").trim(),
+                email: String(fd.get("email") || "").trim() || undefined,
               },
             });
-            await queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
+            await invalidate();
             setOpen(false);
             notify.success("Personel eklendi");
           } catch (err) {
@@ -119,61 +196,174 @@ export function StaffSection({ companyId }: { companyId: string }) {
           }
         }}
       >
-        <Field label="Kullanıcı adı" required>
-          <Input name="username" required />
-        </Field>
-        <Field label="Parola" hint="Boş bırakılırsa sistem üretir">
-          <PasswordInput name="password" />
-        </Field>
-        <Field label="Ad" required>
-          <Input name="firstName" required />
-        </Field>
-        <Field label="Soyad" required>
-          <Input name="lastName" required />
-        </Field>
-        <Field label="E-posta">
-          <Input name="email" type="email" />
-        </Field>
+        <FormGroup title="Kişi">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Ad" required>
+              <Input name="firstName" required />
+            </Field>
+            <Field label="Soyad" required>
+              <Input name="lastName" required />
+            </Field>
+          </div>
+          <Field label="E-posta">
+            <Input name="email" type="email" />
+          </Field>
+        </FormGroup>
+        <FormGroup title="Giriş">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Kullanıcı adı" required>
+              <Input name="username" required autoComplete="off" />
+            </Field>
+            <Field label="Parola" hint="Boş bırakılırsa sistem üretir.">
+              <PasswordInput name="password" autoComplete="new-password" />
+            </Field>
+          </div>
+        </FormGroup>
       </FormDialog>
 
       <FormDialog
-        open={!!scopeFor}
-        onClose={() => setScopeFor(null)}
-        title="Rol / kapsam ata"
-        submitLabel="Ata"
-        pending={addScope.isPending}
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Personeli düzenle"
+        description={editing ? `Kullanıcı adı: ${editing.username ?? "—"}` : undefined}
+        submitLabel="Kaydet"
+        pending={update.isPending}
         error={formError}
         onSubmit={async (fd) => {
-          if (!scopeFor) return;
+          if (!editing?.id) return;
           setFormError(null);
           try {
-            await addScope.mutateAsync({
+            await update.mutateAsync({
               id,
-              uid: scopeFor,
-              data: { roleId: String(fd.get("roleId") || "") },
+              uid: editing.id,
+              data: {
+                firstName: String(fd.get("firstName") || "").trim(),
+                lastName: String(fd.get("lastName") || "").trim(),
+                email: String(fd.get("email") || "").trim() || undefined,
+                phone: String(fd.get("phone") || "").trim() || undefined,
+                status: String(fd.get("status") || "ACTIVE") as Status,
+              },
             });
-            await queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
-            setScopeFor(null);
-            notify.success("Rol atandı");
+            await invalidate();
+            setEditing(null);
+            notify.success("Personel güncellendi");
           } catch (err) {
-            const message = errorMessage(err, "Rol atanamadı");
+            const message = errorMessage(err, "Personel güncellenemedi");
             setFormError(message);
             notify.error(message);
           }
         }}
       >
-        <Field label="Rol" required>
-          <Select name="roleId" required>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Ad" required>
+            <Input name="firstName" required defaultValue={editing?.firstName ?? ""} />
+          </Field>
+          <Field label="Soyad" required>
+            <Input name="lastName" required defaultValue={editing?.lastName ?? ""} />
+          </Field>
+          <Field label="E-posta">
+            <Input name="email" type="email" defaultValue={editing?.email ?? ""} />
+          </Field>
+          <Field label="Telefon">
+            <Input name="phone" type="tel" defaultValue={editing?.phone ?? ""} />
+          </Field>
+        </div>
+        <Field label="Durum" hint="Pasif ya da kilitli personel panele giriş yapamaz.">
+          <Select name="status" defaultValue={editing?.status ?? "ACTIVE"}>
+            <option value="ACTIVE">Aktif</option>
+            <option value="PASSIVE">Pasif</option>
+            <option value="LOCKED">Kilitli</option>
           </Select>
         </Field>
-        <p className="text-[13px] text-fg-muted">
-          Boş kapsam = kurum geneli (HQ). Kampüs/seviye kısıtı sonra eklenebilir.
-        </p>
+      </FormDialog>
+
+      <FormDialog
+        open={scopeFor !== null}
+        onClose={() => setScopeForId(null)}
+        title={`Roller · ${fullName(scopeFor)}`}
+        description="Rol, personelin göreceği ekranları ve yapabileceği işlemleri belirler. Kampüs seçilmezse kurum genelinde geçerlidir."
+        submitLabel="Rol ekle"
+        pending={addScope.isPending}
+        error={formError}
+        onSubmit={async (fd) => {
+          if (!scopeFor?.id) return;
+          setFormError(null);
+          try {
+            await addScope.mutateAsync({
+              id,
+              uid: scopeFor.id,
+              data: {
+                roleId: String(fd.get("roleId") || ""),
+                instituteId: String(fd.get("instituteId") || "") || undefined,
+              },
+            });
+            await invalidate();
+            notify.success("Rol eklendi");
+          } catch (err) {
+            const message = errorMessage(err, "Rol eklenemedi");
+            setFormError(message);
+            notify.error(message);
+          }
+        }}
+      >
+        <div className="grid gap-2">
+          <p className="text-[13px] font-semibold text-fg">Mevcut roller</p>
+          {(scopeFor?.scopes ?? []).length === 0 ? (
+            <p className="rounded-md bg-warning-bg px-3 py-2 text-[13px] text-warning">Henüz rol yok — personel hiçbir ekranı göremez.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {(scopeFor?.scopes ?? []).map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <span className="min-w-0 text-sm">
+                    <span className="font-medium text-fg">{s.roleName ?? "Rol"}</span>
+                    <span className="text-fg-subtle"> · {s.instituteId ? (instituteName[s.instituteId] ?? "Kampüs") : "Kurum geneli"}</span>
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`${s.roleName ?? "Rol"} rolünü kaldır`}
+                    disabled={deleteScope.isPending}
+                    onClick={async () => {
+                      if (!scopeFor?.id || !s.id) return;
+                      try {
+                        await deleteScope.mutateAsync({ id, uid: scopeFor.id, sid: s.id });
+                        await invalidate();
+                        notify.success("Rol kaldırıldı");
+                      } catch (err) {
+                        notify.error(errorMessage(err, "Rol kaldırılamadı"));
+                      }
+                    }}
+                  >
+                    <IconX className="size-4" aria-hidden />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+          <Field label="Yeni rol" required hint={roles.length === 0 ? "Kurumda tanımlı rol yok." : undefined}>
+            <Select name="roleId" required defaultValue="">
+              <option value="">Seçin</option>
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Kapsam">
+            <Select name="instituteId" defaultValue="">
+              <option value="">Kurum geneli</option>
+              {(institutesData?.data ?? []).map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
       </FormDialog>
     </div>
   );

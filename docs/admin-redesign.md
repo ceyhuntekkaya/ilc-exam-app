@@ -18,6 +18,10 @@
 - [12 — Tarih ve tarih-saat alanları](#adim-12)
 - [13 — Açılır paneller: kırpılma ve katman sorunu (Select, takvim)](#adim-13)
 - [14 — Genel review (commit öncesi)](#adim-14)
+- [15 — Staff paneline entegrasyon](#adim-15)
+- [16 — Staff paneli ikinci review](#adim-16)
+- [17 — Tablo kartı bütünlüğü ve boş durum tasarımı](#adim-17)
+- [18 — Sihirbazlar: tam genişlik + canlı özet](#adim-18)
 
 ---
 
@@ -758,3 +762,212 @@ Yeni açılır panel (menü, popover, öneri listesi) yazılırsa `useFloatingPa
 - ESLint: 15 `set-state-in-effect`, 4 `refs` (DataGrid), birkaç `exhaustive-deps` — hepsi değişiklik öncesi koddan; build'i engellemiyor.
 - `app/api/backend` proxy'sine eklenen `ilc_access_token` çerezi geçici canlı API bağlantısı içindir; gerçek backend env'i gelince kaldırılabilir.
 - İnceleme kuyruğunda sınav `targetType`'ının `EXAM…` ile başladığı varsayımı; Formatlar'da ad/açıklama düzenleme ve silme backend ucu bekliyor.
+
+---
+
+<a id="adim-15"></a>
+
+## 15 — Staff paneline entegrasyon
+
+**Tarih:** 2026-10-06 · **Kapsam:** `/staff/**` + paylaşılan bölümler (`src/features/org`, `src/features/assignments`) · **Önceki:** [14](#adim-14)
+
+### Analiz (staff paneli, değişiklik öncesi)
+
+| # | Bulgu | Etki |
+|---|---|---|
+| 1 | `StaffShell` ayrı ve eski kabuk: `data-panel=""`, `#f3f0ea` bej zemin, `ilc-*` renkleri, `max-w-6xl mx-auto` ortalama | Admin'deki palet, mürekkep sidebar, breadcrumb ve tam genişlik konteyner (01, 05) staff'a hiç yansımıyordu |
+| 2 | Paylaşılan içerik ekranları (soru bankası, sınav kurucu, kütüphane) staff'ta admin tokenları olmadan çiziliyordu | Aynı ekran iki panelde farklı renk/yoğunlukta |
+| 3 | Staff sayfalarında **başlık yok** — bölüm bileşeni doğrudan gri zemine basılıyordu (admin'de `CompanyDetailFrame` başlığı veriyordu) | Kullanıcı hangi sayfada olduğunu yalnız menüden anlıyordu; tablolar kartsız |
+| 4 | Ana sayfa: tek beyaz kutu + bağlantı listesi, yükleme = gri kutu | Hiçbir durum bilgisi yok (açık atama, öğrenci sayısı) |
+| 5 | Atama sihirbazı: adım göstergesi yok, Türkçe olmayan/teknik etiketler ("Şube", "Kim"), sayı alanı native, son adımda özet yok, `ilc-navy` başlık | Öğretmen nerede olduğunu, neyi açtığını göremiyordu |
+| 6 | Değerlendirme: cevap ham `JSON.stringify`, tip kodu (`ESSAY`), puan serbest metin, **"Sonuçları yayınla" onaysız**, yükleme/hata durumu yok (effect içi fetch) | Geri alınamayan yayın tek tıkla; puanlanacak metin okunmuyordu |
+| 7 | Canlı izleme: öğrenci sütununda UUID, başlık/geri dönüş yok | Öğretmen öğrenciyi tanıyamıyordu |
+| 8 | Atamalar: durum filtresi ve sayı yok, pencere `toLocaleString` uzun metin | Çok atamada arama zor |
+| 9 | Öğrenci/Personel listelerinde arama yok | 300+ öğrencide kişi bulunamıyor |
+| 10 | Kurum ayarları sekmeleri elle yazılmış `slate-100` buton şeridi; "yakında" ve "erişim yok" ekranları `ilc-*` | Ortak bileşen ve tokenların dışında |
+| 11 | `NumberInput` yalnız `admin` varyantında | Staff'taki sayı alanlarında tekerlek kazası/min-max koruması yoktu |
+
+### Çözüm
+
+#### Kabuk ve tema
+
+- **`PanelChrome`** genelleştirildi: `panel` (`admin` | `staff`), `homeHref`, `roleLabel`, `navLoading` (koyu sidebar'da iskelet). Staff menü öğelerine ikonlar (takvim, kalem, kupa, grafik, kep, ekip, kalkan).
+- **`StaffShell`** artık `PanelChrome` kullanır (`data-panel="staff"`). Yetki kontrolü aynı; yetkisiz sayfa `EmptyState` + "Panele dön"; ilk yükleme iskeleti.
+- **`admin-theme.css`** seçicileri `[data-panel]:is([data-panel="admin"], [data-panel="staff"])` → palet, semantik tokenlar, `--accent-*`, gutter, serif `PageHeader`, gölge, seçim rengi staff'ta da geçerli.
+- `UiVariant` staff'ta **`staff`** kalır: kontroller tablet için en az 44px. Admin'e özel kompakt ölçüler (h-8, `whitespace-nowrap` buton) bilerek taşınmadı.
+- **`NumberInput`** staff'ta da otomatik (`Input type="number"`); `touch` ile adım düğmeleri 36px genişlik. `globals.css`: staff input'larında native arama "x"i ve odak outline'ı admin gibi gizli (yerine halka + temizle düğmesi).
+
+#### Sayfa çerçevesi
+
+- **`StaffPage`** (`src/features/staff/StaffPage.tsx`, `StaffBound` yerine): `PageHeader` + beyaz bölüm kartı; kurum kimliği yoksa açıklamalı `EmptyState`. `bare` → kendi başlığını çizen ekranlar (sihirbaz, izleme, değerlendirme).
+- Tüm staff sayfalarına başlık + "bu sayfa ne işe yarar" açıklaması eklendi.
+- `SectionTable` zemini `bg-surface` (kart dışında da okunur).
+
+#### Ekranlar
+
+| Ekran | Değişiklik |
+|---|---|
+| **Panel** `/staff` | Admin Özet dili: tarihli selamlama, yetkiye göre metrik kartları (açık atama, lisanslı sınav, öğrenci, personel — yalnız yetkili sorgu atılır), menü gruplarına göre kısayol kartları |
+| **Lisanslı sınavlar** | Başlık + açıklama, kart içinde tablo |
+| **Atamalar / Değerlendirme** | `FilterTabs` (Tümü/Açık/Taslak/Kapalı + sayılar), `SectionToolbar` + "Yeni atama", kısa pencere biçimi ("Hemen → Kapatılana kadar"), Değerlendirme menüsünde birincil eylem "Değerlendir" |
+| **Atama sihirbazı** | 08'deki sihirbaz deseni: 4 adımlı çubuk, `FormCard` footer (Geri / Devam / Önizle / Atamayı aç), adım doğrulaması, hedef türü açıklamalı kartlar (Seviye/Sınıf/Öğrenci), sınıflar seçilen kampüse göre süzülür, tarih aralığı + deneme hakkı doğrulaması, `suffix="hak"`, son adımda `DefinitionList` özet + öğrenci listesi, lisans yok/yükleme/hata durumları |
+| **Değerlendirme** | `useQuery` (yükleme iskeleti, `ErrorState` + tekrar dene), Bekleyen/Puanlanan/Tümü filtresi, Türkçe tip etiketi (`TEMPLATE_REGISTRY`), okunur cevap metni, puan `NumberInput` (`step 0.5`, "puan"), durum rozeti, **yayın `ConfirmDialog`** (puanlanmamış cevap sayısını uyarır) |
+| **Canlı izleme** | Başlık + Atamalar'a dönüş, öğrenci adı (UUID yerine) |
+| **Öğrenciler / Personel** | Arama (ad, numara, kullanıcı adı), aramaya göre boş durum |
+| **Kurum ayarları** | Ortak `Tabs` |
+| **Sınav sonuçları** | `PageHeader` + `EmptyState` + "Raporlara git" |
+
+Paylaşılan bölümler admin kurum detayında da aynı iyileştirmeleri alır (sihirbaz, değerlendirme, izleme, atamalar, öğrenci/personel araması).
+
+### Doğrulama
+
+- `tsc --noEmit` temiz; değişen dosyalarda eslint hatası yok (BranchesSection'daki eski 2 `exhaustive-deps` uyarısı duruyor).
+- Rotalar dev sunucuda derleniyor (oturumsuz 307 → giriş). **Tarayıcıda oturum açılarak görsel kontrol yapılmadı.**
+
+### Sonraki adımlar
+
+- [ ] Rol/yetki düzenleme ekranı (şu an yalnız liste)
+- [ ] Sınav sonuçları ekranı
+- [ ] Değerlendirmede rubrik kriterlerine göre puanlama (şu an tek "Genel" kriter)
+- [ ] Monitor için öğrenci adının API'den gelmesi (şu an öğrenci listesiyle eşleştiriliyor)
+
+---
+
+<a id="adim-16"></a>
+
+## 16 — Staff paneli ikinci review
+
+**Tarih:** 2026-10-06 · **Kapsam:** `/staff/**` tüm sayfalar (paylaşılan bölümler admin kurum detayına da yansır) · **Önceki:** [15](#adim-15)
+
+### Bulunan hatalar / eksikler
+
+| # | Ekran | Sorun | Çözüm |
+|---|---|---|---|
+| 1 | Kurum ayarları › Sınıflar | **Sezon yokken sonsuz iskelet** (sorgu hiç başlamıyor); `items-end` hizası; kampüs/seviye yokken boş seçimli form | Eksik önkoşulu söyleyen `EmptyState`; sezon + kampüs filtresi toolbar'da; sayı; "Seçin" seçeneği, tek kampüste otomatik seçim; pasif seviyeler gizli; doğal sıralama |
+| 2 | Kampüsler / Seviyeler | Düzenleme yoktu; boş durumda eylem yok; seviyeler sırasız | `Düzenle` (ad, kod / ad, sıra, durum), açıklamalı boş durum + "İlk … ekle", sıraya göre liste, yeni seviyede sıra önerisi |
+| 3 | Sezonlar | Ham ISO tarih, onaysız "Aktifleştir", aralık yalnız gönderimde kontrol | TR tarih, en yeni üstte, aktifleştirme `ConfirmDialog`, bitişte anlık hata + `min` |
+| 4 | Öğrenciler | Sınıf seçilemiyordu (API `branchId` destekliyor), "Kayıtlar" yalnız sayı, düzenleme/durum yok | Sınıf sütunu (aktif sezon sınıf · seviye), `FilterTabs` (Aktif/Pasif/Kilitli), `FormGroup` Kimlik/Kayıt, zincirli sezon→kampüs→seviye→sınıf, `Düzenle` (ad, durum) |
+| 5 | Personel | **Parola sıfırlama onaysız**; rol eklenebiliyor ama görülüp kaldırılamıyordu; düzenleme yok | Sıfırlama `ConfirmDialog` + kişi adıyla `SecretNotice`; Roller penceresi (mevcut roller + kapsam + kaldır + kampüs kapsamlı ekleme); "Rol yok" uyarısı; `Düzenle` |
+| 6 | Raporlar | Satırda **sınav adı yoktu** | Sınav adı + kampüs + pencere, tamamlama çubuğu, durum filtresi, genel oran, "Ayrıntı" → canlı izleme |
+| 7 | Roller | Tek sütun liste | Sayı + rol başına personel sayısı ve kişiler |
+| 8 | Lisanslı sınavlar | Staff için yanlış boş mesajı, "∞" | Staff'a uygun boş metin, "Sınırsız / Süresiz", TR tarih, "Atama aç" belirgin |
+| 9 | İçerik (soru/sınav/format) | **Yetki kontrolü yoktu**: okuma yetkili personel "Yeni sınav / Hızlı soru / Yeni format" görüp 403 alıyordu | `useCan(...perms)` (`PanelContext`); düğmeler yetkiye bağlı |
+
+### Kurallar (eklenen)
+
+- Liste bölümü: `SectionToolbar loading` + `SectionTable loading` aynı ağaçta; boş durumda açıklama + birincil eylem.
+- Bağımlı veri eksikse sonsuz yükleme değil, neyin eksik olduğunu söyleyen boş durum.
+- Kimliği geçersiz kılan / görünürlüğü değiştiren işlem (parola sıfırla, sezon aktifleştir, sonuç yayınla) onaylı.
+- Yetki gerektiren oluşturma düğmesi `useCan` ile gizlenir.
+
+### Doğrulama
+
+- `tsc --noEmit` temiz; değişen dosyalarda eslint temiz. `src/features/authoring`'deki 16 eslint hatası (effect içi setState) önceden vardı, sayı değişmedi.
+- **Tarayıcıda oturum açılarak görsel kontrol yapılmadı.**
+
+### Ek — Soru editörü: önizleme yerleşimi içerik genişliğine bağlandı
+
+- **Sorun:** Öğrenci önizlemesi yalnız `2xl` (ekran ≥ 1536px) iken sağa geçiyordu. Yerleşim içerik alanına değil ekrana bakıyordu; 1366–1520px ekranlarda ve yakınlaştırmada önizleme formun altına düşüyordu. Staff'ta (44px kontroller) bu daha sık görülüyordu.
+- **Çözüm (`QuestionEditor.tsx`):** Sayfa kökü `@container`. İçerik ≥ 60rem → form + yapışkan önizleme yan yana (`22–32rem`); ≥ 90rem → `26–38rem`. Form sütunu `@container/form`: içindeki alan ızgaraları (tip kartları, kimlik/sınıflandırma, puanlama satırları) ekran yerine sütun genişliğine göre bölünür; önizleme sağdayken dar sütunda sıkışmaz.
+- Admin ve staff aynı bileşeni kullanır; ikisinde de geçerli.
+- **Kural:** Yan panelli düzenlerde kırılma noktası viewport (`2xl:`) değil container (`@container` + `@min-[..]:`).
+
+---
+
+<a id="adim-17"></a>
+
+## 17 — Tablo kartı bütünlüğü ve boş durum tasarımı
+
+**Tarih:** 2026-10-06 · **Kapsam:** `src/ui` (SectionTable, EmptyState, DataGrid, DetailShell) → admin + staff tüm tablolu sayfalar · **Önceki:** [16](#adim-16)
+
+### Analiz
+
+| # | Sorun | Etki |
+|---|---|---|
+| 1 | `SectionTable` sayfalarında filtre sekmeleri, sayı/arama/"Ekle" şeridi ve tablo **üç ayrı yüzen parça**ydı (aralarında boşluk, farklı zemin). DataGrid'de ise hepsi tek kartta | "Ekle" düğmesi tabloya ait görünmüyor; iki tablo dili |
+| 2 | Staff'ta `StaffPage` beyaz kartı + içinde tablonun halkası → kart içinde kart | Gereksiz çerçeve, sıkışık görünüm |
+| 3 | `EmptyState`: kesik çizgili gri çerçeve, 40px gri ikon, 13px soluk metin | Sayfa "yüklenmemiş/bozuk" gibi; "henüz kayıt yok, şunu yap" mesajı zayıf |
+| 4 | Boş durumda çoğu yerde eylem yok; arama sonucu boş ile gerçekten boş aynı görünüyor | Kullanıcı ne yapacağını bilmiyor |
+| 5 | Editörlerde (blok, seçenek, medya seçici, bölüm, etiket, kazanım, rubrik) elle yazılmış kesik çizgili `<p>` boş metinleri | Tutarsız dil |
+
+### Çözüm
+
+- **`SectionTable`** artık her zaman tek kart: `tabs` (FilterTabs) → `toolbar` (SectionToolbar: sayı · arama · eylemler, hafif zeminli şerit) → tablo / iskelet / boş durum. Yeni prop'lar: `tabs`, `toolbar`, `emptyTone`, `emptyIcon`. `flush` artık etkisiz (geriye uyum). İlk/son hücre kart kenarıyla hizalı (`sm:first:pl-4`).
+- **`SectionToolbar`** dar ekranda dikey: sayı üstte, arama + düğmeler altta tam genişlik.
+- Tüm bölümler (Kampüs, Sezon, Seviye, Sınıf, Öğrenci, Personel, Rol, Rapor, Üyelik, Atama, Lisanslı sınav) bu yapıya taşındı.
+- **`StaffPage`** dış kartı kaldırıldı (tablo kendi kartında). **`DetailShell`** içindeki tablo kartı gölgesiz (`[data-section-table]`).
+- **`EmptyState`** yeniden: tonlu gradyan zemin (`primary` / `neutral` / `warning`), katmanlı ikon rozeti (eğik arka kart), 16px başlık, açıklama `ReactNode`, `action` + `secondaryAction`, `embedded` (kart içinde çerçevesiz), `compact`.
+  - `primary`: gerçekten boş, ilk kaydı oluştur (eylemli).
+  - `neutral`: arama/filtre sonucu boş (eylemsiz, "filtreyi değiştirin").
+  - `warning`: önkoşul eksik (ör. Sınıflar: önce sezon/kampüs/seviye).
+- **DataGrid** boş durumu `EmptyState embedded` kullanır (arama boş → neutral).
+- **Formatlar** boş durumu: açıklama + örnek iskelet kartı (Cambridge YLE Starters: bölüm · part · soru) + "İlk formatı oluştur"; yetkisi olmayana not. Uydurma "örnek iskeletle başlayın" ifadesi kaldırıldı.
+- Medya, rubrik listesi/seçimi, etiket, kazanım, içerik bloğu, seçenek, medya seçici, sınav bölümleri boş metinleri `EmptyState` (compact) oldu.
+
+### Kurallar
+
+- Tablolu bölüm: `<SectionTable tabs={<FilterTabs/>} toolbar={<SectionToolbar>…</SectionToolbar>} …/>` — sekme/araç çubuğunu tablonun dışına ayrı satır olarak koyma.
+- Boş durumda: gerçekten boşsa açıklama + birincil eylem; filtre/arama boşsa `neutral` ve eylemsiz; önkoşul eksikse `warning` ve neyin eksik olduğu.
+- Elle kesik çizgili boş metin yazma; `EmptyState compact`.
+
+### Doğrulama
+
+- `tsc --noEmit` temiz. Değişen dosyalarda yeni eslint hatası yok (DataGrid ref, Toaster, MediaPicker'daki effect hataları önceden vardı).
+- **Tarayıcıda görsel kontrol yapılmadı.**
+
+---
+
+<a id="adim-18"></a>
+
+## 18 — Sihirbazlar: dar sütun yerine tam genişlik + canlı özet
+
+**Tarih:** 2026-10-06 · **Kapsam:** Yeni sınav sihirbazı (`/admin|staff/content/exams/new`, `ExamPages.tsx`), atama sihirbazı (`AssignWizard.tsx`) · **Önceki:** [17](#adim-17)
+
+### Analiz
+
+- İki sihirbaz da `max-w-3xl` (768px) ile sınırlı ve sola yaslıydı (05'teki "dar form → sola yaslı max-w-3xl" kuralı). Geniş ekranda sayfa ~8/12 sütun kaplıyor, sağda büyük boş alan kalıyordu; başlık/adım çubuğu ile form arasında görsel kopukluk vardı.
+- Aynı 768px içinde "Hedef kitle" satırı `sm:grid-cols-4` (viewport'a göre) → her alan ~170px; staff'ta 44px alanlarla sıkışık. Izgaralar kabın değil ekranın genişliğine bakıyordu.
+- Girilen değerlerin özeti yalnız son adımda görünüyordu.
+
+### Çözüm
+
+- Sayfa kökü `@container`, tam genişlik. İçerik ≥ 60rem → `form | özet` iki sütun (`19rem`, ≥ 80rem'de `22rem`); dar alanda özet formun altına iner.
+- **Canlı özet paneli** (yapışkan): Yeni sınavda başlık, kod, amaç, seviye, yaş, puan/süre, başlangıç; atamada sınav, kampüs, sezon, hedef, açılış/kapanış, deneme hakkı. Son adımdaki tekrar eden özet kaldırıldı.
+- Form kartı `@container/form`: iç ızgaralar sütun genişliğine göre (`@min-[28rem]/form:grid-cols-2`, hedef kitle `@min-[46rem]/form:grid-cols-4`, başlangıç kartları `@min-[36rem]/form:grid-cols-3`).
+
+### Kural (05'in güncellemesi)
+
+- Sayfa düzeyinde `max-w-*` ile daraltma yok. Az alanlı form/sihirbaz: tam genişlik + sağda bağlamsal panel (özet, yardım, önizleme). Yan panelli düzende kırılma noktası container query.
+
+### Doğrulama
+
+- `tsc --noEmit` temiz; ExamPages'teki 4 eslint hatası (effect içi setState) önceden vardı. Tarayıcıda görsel kontrol yapılmadı.
+
+### Ek — Kurum ayarları (`/staff/company`) yerleşimi
+
+- **Sorun:** Bölüm sekmeleri tam genişlik gri hap şeridiydi (içinde sola yığılmış 4 küçük düğme); altındaki tablo kartıyla farklı görsel dil, farklı aralık (`mt-4` vs başlık `mb-6`). Sekmeler bilgi taşımıyordu (sayı, sıra, eksik adım). Sınıf eklenince toplam sayaç yenilenmiyordu; sezon seçeneği etiketi iki ayrı metin düğümüydü.
+- **Çözüm (`StructureSection.tsx`):** Sekmeler sihirbaz adım kartı dilinde 4 kart (`grid-cols-2 lg:grid-cols-4`): sıra numarası / tamamsa ✓, ad, kayıt sayısı rozeti (0 ise uyarı tonu, "Henüz eklenmedi"), kısa açıklama. İlk açılışta kurulumun eksik ilk adımı seçili gelir. Sekme ↔ tablo kartı aralığı `gap-4`. ARIA: `tablist` / `tab` / `tabpanel` bağlı.
+- `BranchesSection`: geçersiz kılma `getBranchesQueryKey(id)` önekiyle (sezon listesi + sayaç birlikte); sezon seçeneği tek metin.
+- Sayfa açıklaması kurulum sırasını söyler.
+
+### Ek 2 — Araç çubuğunda Select kayması
+
+- **Belirti:** Sınıflar araç çubuğunda sezon seçimi ve "Sınıf ekle" alt alta düşüyor, "1 sınıf" sayacı iki satırlık yüksekliğin ortasında kalıyordu.
+- **Kök neden:** `Select` (liste kutusu) sarmalayıcısı sabit `relative w-full`; verilen `className` (`sm:w-52`) yalnız içteki düğmeye uygulanıyordu. Sarmalayıcı satırı doldurup komşu düğmeyi alt satıra itiyordu.
+- **Çözüm (`Select.tsx`):** Yerleşim sınıfları (`w-*`, `min-w-*`, `max-w-*`, `flex-*`, `basis-*`, `grow/shrink`, `self-*`, `col-span-*`, `order-*`; varyant önekleriyle) sarmalayıcıya, görünüm sınıfları düğmeye gider. Genişlik verilmezse sarmalayıcı eskisi gibi `w-full`; düğme her zaman sarmalayıcıyı doldurur. Diğer kullanımlar etkilenmez.
+
+### Ek 3 — Araç çubuğu ölçüsü ve tek satır hizası
+
+- **Belirti:** Staff'ta araç çubuğu kontrolleri 44px (seçim kutusu, `sm` düğme `min-h-11`), sayaç 13px metin → şerit ~64px, kontroller "iri", sayaç havada. Admin'de de düğme `sm` 28px, arama/seçim 32px → 4px uyumsuzluk.
+- **Çözüm (`SectionTable.tsx`):**
+  - Araç çubuğu şeridi `UiVariantProvider variant="admin"`: her panelde aynı sıkı ölçü (FormDialog / ConfirmDialog ile aynı yaklaşım). Şerit `py-2`, toplam ~49px.
+  - `SectionToolbar`: tek satır `flex-wrap items-center`; sayaç `mr-auto h-8` (kontrollerle aynı çizgi); eylem grubu `sm:flex-nowrap`, dar ekranda tam genişlik alt satır.
+  - Doğrudan düğme/bağlantılar `h-8 px-3 text-[13px]` → arama (32px) ve seçimle (32px) birebir aynı yükseklik.
+  - Sayaç `<p>` içinde iskelet (`div`) geçersiz iç içe yerleşimdi → `div`.
+- **Bilinçli ödün:** Staff'ta araç çubuğu kontrolleri 44px yerine 32px (tablet). Satır içi eylemler ve formlar 44px kalır.
+
+### Ek 4 — Sayaç metni boşluğu
+
+- **Belirti:** Araç çubuğunda "1öğrenci" bitişik ya da "1" / "öğrenci" alt alta.
+- **Kök neden:** Ek 3te sayaç kabı `flex` yapıldı; içindeki sayı `<span>` ve " öğrenci" metni ayrı flex öğesi oldu, aradaki boşluk yutuldu, dar alanda kırıldı.
+- **Çözüm:** Sayı + ad tek `inline-flex gap-1 whitespace-nowrap` öğe. Kural: flex kapta metin + `<span>` karıştırma; ya tek sarmalayıcı ya `gap`.

@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/src/ui/composites/EmptyState";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Input } from "@/src/ui/primitives/Input";
@@ -358,18 +359,23 @@ export function DataGrid<T extends object>({
       )}
 
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-          <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary-50 text-primary-600 ring-8 ring-primary-50/50">
-            <Icon d={DATABASE} className="size-6" />
-          </div>
-          <h3 className="text-base font-semibold text-fg">
-            {rows.length > 0 ? "Aramanızla eşleşen kayıt bulunamadı" : (emptyState?.title ?? "Kayıt bulunmamaktadır")}
-          </h3>
-          <p className="mt-1 max-w-sm text-sm text-fg-muted">
-            {rows.length > 0 ? "Lütfen farklı bir arama terimi deneyiniz." : (emptyState?.description ?? "Kayıt oluştuğunda burada listelenecektir.")}
-          </p>
-          {emptyState?.action ? <div className="mt-5">{emptyState.action}</div> : null}
-        </div>
+        rows.length > 0 ? (
+          <EmptyState
+            embedded
+            tone="neutral"
+            icon={<Icon d={DATABASE} className="size-6" />}
+            title="Aramanızla eşleşen kayıt yok"
+            description="Farklı bir arama terimi deneyin ya da filtreyi temizleyin."
+          />
+        ) : (
+          <EmptyState
+            embedded
+            icon={<Icon d={DATABASE} className="size-6" />}
+            title={emptyState?.title ?? "Henüz kayıt yok"}
+            description={emptyState?.description ?? "Kayıt oluştuğunda burada listelenecek."}
+            action={emptyState?.action}
+          />
+        )
       ) : isMobile ? (
         // Mobil: her satır bir kart; ilk sütun başlık, kalanlar etiket–değer satırları.
         <ul className="divide-y divide-border">

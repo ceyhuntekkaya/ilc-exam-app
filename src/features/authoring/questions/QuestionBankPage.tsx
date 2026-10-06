@@ -1,5 +1,8 @@
 "use client";
 
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
+
 import { authoringApi, type QuestionSummary } from "@/src/features/authoring/shared/client";
 import { SKILL_LABEL } from "@/src/features/authoring/questions/QuestionEditor";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
@@ -22,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function QuestionBankPage() {
+  const canCreate = useCan(Perm.questionCreate);
   const basePath = useContentBasePath("questions");
   const router = useRouter();
   const { tenant, loading: tenantLoading } = useAuthoringTenant();
@@ -155,6 +159,7 @@ export function QuestionBankPage() {
         description="Bağımsız sorular ve setler. Kaydedilen her soru bankaya düşer."
         count={rows.length}
         actions={
+          canCreate ? (
           <>
             <ButtonLink href={`${basePath}/new`} variant="secondary">
               Tip seçerek başla
@@ -163,6 +168,7 @@ export function QuestionBankPage() {
               {creating ? "Oluşturuluyor…" : "Hızlı soru"}
             </Button>
           </>
+          ) : undefined
         }
       />
       <div className="rounded-xl border border-border bg-surface shadow-sm">

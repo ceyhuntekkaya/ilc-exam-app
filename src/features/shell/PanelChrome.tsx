@@ -30,12 +30,26 @@ const ICONS: Record<string, string> = {
   media: "M4 6h16v12H4zM4 15l4-4 4 4 3-3 5 5M15.5 9.5h.01",
   rubric: "M5 4h14v16H5zM9 8h6M9 12h6M9 16h3",
   format: "M4 5h7v6H4zM13 5h7v3h-7zM13 10h7v9h-7zM4 13h7v6H4z",
+  calendar: "M5 6h14v14H5zM5 10h14M9 3v4M15 3v4M9 14h2v2H9z",
+  grading: "M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4",
+  results: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3",
+  chart: "M4 20h16M7 16v-5M12 16V7M17 16v-8",
+  students: "M3 9l9-4 9 4-9 4-9-4ZM7 11v4c0 1.5 2.2 3 5 3s5-1.5 5-3v-4M21 9v5",
+  team: "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 19c0-3 2.7-5 6-5s6 2 6 5M16 5.5a3 3 0 0 1 0 5.5M18 14c2 .6 3 2.3 3 5",
+  shield: "M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3ZM9 12l2 2 4-4",
 };
 
 function iconFor(href: string): string {
-  if (href === "/admin") return ICONS.home;
+  if (href === "/admin" || href === "/staff") return ICONS.home;
   if (href.includes("compan")) return ICONS.building;
-  if (href === "/admin/exams") return ICONS.key;
+  if (href === "/admin/exams" || href === "/staff/exams") return ICONS.key;
+  if (href.endsWith("/assignments")) return ICONS.calendar;
+  if (href.endsWith("/grading")) return ICONS.grading;
+  if (href.endsWith("/results")) return ICONS.results;
+  if (href.endsWith("/reports")) return ICONS.chart;
+  if (href.endsWith("/students")) return ICONS.students;
+  if (href.endsWith("/personnel")) return ICONS.team;
+  if (href.endsWith("/roles")) return ICONS.shield;
   if (href.includes("/questions")) return ICONS.questions;
   if (href.includes("/content/exams")) return ICONS.exam;
   if (href.includes("/review")) return ICONS.review;
@@ -47,7 +61,7 @@ function iconFor(href: string): string {
 }
 
 function isActive(pathname: string, href: string) {
-  if (href === "/admin") return pathname === href;
+  if (href === "/admin" || href === "/staff") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -70,14 +84,27 @@ function initials(displayName?: string | null, email?: string | null, username?:
   return `${parts[0]?.[0] ?? "A"}${parts[1]?.[0] ?? ""}`.toLocaleUpperCase("tr-TR");
 }
 
+/**
+ * Admin ve staff panelinin ortak kabuğu: mürekkep sidebar, breadcrumb'lı header, `panel-container` main.
+ * `panel` → `data-panel`; tema (admin-theme.css) iki panelde aynıdır.
+ */
 export function PanelChrome({
   title,
   groups,
   children,
+  panel = "admin",
+  homeHref = "/admin",
+  roleLabel = "Süper yönetici",
+  navLoading = false,
 }: {
   title: string;
   groups: NavGroup[];
   children: ReactNode;
+  panel?: "admin" | "staff";
+  homeHref?: string;
+  roleLabel?: string;
+  /** Yetkiler gelene kadar menü iskeleti (staff menüsü yetkiye göre süzülür). */
+  navLoading?: boolean;
 }) {
   const pathname = usePathname();
   const { user, signOut, loading } = useAuth();
@@ -107,18 +134,16 @@ export function PanelChrome({
     };
   }, [open, close]);
 
-  const roleLabel = "Süper yönetici";
   const userName = loading
     ? "…"
-    : user?.displayName || user?.email || user?.username || "Admin";
-  const homeHref = "/admin";
+    : user?.displayName || user?.email || user?.username || (panel === "staff" ? "Personel" : "Admin");
   const current = groups
     .flatMap((group) => group.items.map((item) => ({ group: group.label, item })))
     .filter(({ item }) => isActive(pathname, item.href))
     .sort((a, b) => b.item.href.length - a.item.href.length)[0];
 
   return (
-    <div data-panel="admin" className="min-h-dvh overflow-x-clip bg-bg text-fg">
+    <div data-panel={panel} className="min-h-dvh overflow-x-clip bg-bg text-fg">
       <div
         className={cn(
           "fixed inset-0 z-40 bg-neutral-950/50 backdrop-blur-sm transition-opacity lg:hidden",
@@ -153,7 +178,8 @@ export function PanelChrome({
           </button>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:var(--color-neutral-600)_transparent] [scrollbar-width:thin]">
-          {groups.map((group, index) => (
+          {navLoading ? <NavSkeleton /> : null}
+          {navLoading ? null : groups.map((group, index) => (
             <div key={group.label} className={index === 0 ? "" : "mt-5"}>
               <p className="mb-1.5 px-3 text-[11px] font-semibold tracking-wider text-(--sidebar-fg-muted)">{group.label.toLocaleUpperCase("tr-TR")}</p>
               <ul className="space-y-0.5">
@@ -260,6 +286,20 @@ export function PanelChrome({
           {children}
         </main>
       </div>
+    </div>
+  );
+}
+
+function NavSkeleton() {
+  return (
+    <div className="space-y-5" aria-hidden="true">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="space-y-1.5">
+          <div className="mx-3 h-2.5 w-20 rounded bg-white/8" />
+          <div className="h-9 rounded-lg bg-white/4" />
+          <div className="h-9 rounded-lg bg-white/4" />
+        </div>
+      ))}
     </div>
   );
 }

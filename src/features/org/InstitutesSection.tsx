@@ -7,7 +7,9 @@ import {
   useCreateInstitute,
   useDeleteInstitute,
   useInstitutes,
+  useUpdateInstitute,
 } from "@/src/api/generated/admin-companies/admin-companies";
+import type { InstituteDto } from "@/src/api/generated/models";
 import {
   Badge,
   Button,
@@ -22,40 +24,65 @@ import {
   notify,
 } from "@/src/ui";
 
+const COLUMNS = ["Ad", "Kod", "Durum", ""];
+
 export function InstitutesSection({ companyId }: { companyId: string }) {
   const id = companyId;
   const { data, isLoading, isError, error, refetch } = useInstitutes(id);
   const rows = data?.data ?? [];
   const create = useCreateInstitute();
+  const update = useUpdateInstitute();
   const remove = useDeleteInstitute();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  // null: kapalı, "new": yeni kampüs, kayıt: düzenleme.
+  const [editing, setEditing] = useState<InstituteDto | "new" | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name?: string } | null>(null);
+  const current = editing && editing !== "new" ? editing : null;
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
-  if (isLoading) return <SectionTable flush loading empty="" columns={["Ad", "Kod", "Durum", ""]} rows={[]} />;
+
+  const openNew = () => {
+    setFormError(null);
+    setEditing("new");
+  };
 
   return (
     <div className="grid gap-4">
-      <SectionToolbar count={rows.length} noun="kampüs">
-        <Button size="sm" onClick={() => setOpen(true)}>
-          Kampüs ekle
-        </Button>
-      </SectionToolbar>
       <SectionTable
-        flush
-        empty="Kampüs yok"
-        columns={["Ad", "Kod", "Durum", ""]}
+        toolbar={
+          <SectionToolbar count={rows.length} noun="kampüs" loading={isLoading}>
+            <Button size="sm" onClick={openNew}>
+              Kampüs ekle
+            </Button>
+          </SectionToolbar>
+        }
+        loading={isLoading}
+        empty="Henüz kampüs yok"
+        emptyHint="Sınıflar, öğrenci kayıtları ve atamalar bir kampüse bağlanır. İlk kampüsü ekleyerek başlayın."
+        emptyAction={<Button onClick={openNew}>İlk kampüsü ekle</Button>}
+        columns={COLUMNS}
         rows={rows.map((r) => [
           r.name,
-          r.code || "—",
+          r.code ? <span key="c" className="font-mono text-[13px]">{r.code}</span> : "—",
           <Badge key="s" tone={r.status === "ACTIVE" ? "success" : "neutral"} dot>
             {r.status === "ACTIVE" ? "Aktif" : "Pasif"}
           </Badge>,
-          <Button key="d" size="sm" variant="danger" onClick={() => setPendingDelete({ id: r.id!, name: r.name })}>
-            Sil
-          </Button>,
+          <div key="a" className="flex justify-end gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setFormError(null);
+                setEditing(r);
+              }}
+            >
+              Düzenle
+            </Button>
+            <Button size="sm" variant="ghost" className="text-danger" onClick={() => setPendingDelete({ id: r.id!, name: r.name })}>
+              Sil
+            </Button>
+          </div>,
         ])}
       />
       <ConfirmDialog
@@ -79,34 +106,33 @@ export function InstitutesSection({ companyId }: { companyId: string }) {
         }}
       />
       <FormDialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Kampüs ekle"
-        submitLabel="Ekle"
-        pending={create.isPending}
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={current ? "Kampüsü düzenle" : "Kampüs ekle"}
+        submitLabel={current ? "Kaydet" : "Ekle"}
+        pending={create.isPending || update.isPending}
         error={formError}
         onSubmit={async (fd) => {
           setFormError(null);
+          const body = { name: String(fd.get("name") || "").trim(), code: String(fd.get("code") || "").trim() || undefined };
           try {
-            await create.mutateAsync({
-              id,
-              data: { name: String(fd.get("name") || ""), code: String(fd.get("code") || "") || undefined },
-            });
+            if (current?.id) await update.mutateAsync({ id, iid: current.id, data: body });
+            else await create.mutateAsync({ id, data: body });
             await queryClient.invalidateQueries({ queryKey: getInstitutesQueryKey(id) });
-            setOpen(false);
-            notify.success("Kampüs eklendi");
+            setEditing(null);
+            notify.success(current ? "Kampüs güncellendi" : "Kampüs eklendi");
           } catch (err) {
-            const message = errorMessage(err, "Kampüs eklenemedi");
+            const message = errorMessage(err, current ? "Kampüs güncellenemedi" : "Kampüs eklenemedi");
             setFormError(message);
             notify.error(message);
           }
         }}
       >
         <Field label="Ad" required>
-          <Input name="name" required />
+          <Input name="name" required defaultValue={current?.name ?? ""} placeholder="Merkez Kampüs" />
         </Field>
-        <Field label="Kod">
-          <Input name="code" />
+        <Field label="Kod" hint="Kısa tanıtıcı; raporlarda ve dışa aktarımda görünür.">
+          <Input name="code" defaultValue={current?.code ?? ""} placeholder="MRKZ" />
         </Field>
       </FormDialog>
     </div>

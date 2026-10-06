@@ -1,5 +1,8 @@
 "use client";
 
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
+
 import { authoringApi, type MediaItem, type ReviewItem } from "@/src/features/authoring/shared/client";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
@@ -152,8 +155,11 @@ export function MediaLibraryPage() {
               </div>
             ) : shown.length === 0 ? (
               <EmptyState
-                title={rows.length ? "Sonuç yok" : "Kütüphane boş"}
-                description={rows.length ? "Filtreyi ya da aramayı değiştirin." : "Sağdaki panelden ilk dosyanızı yükleyin."}
+                embedded
+                tone={rows.length ? "neutral" : "primary"}
+                icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v12H4zM4 15l4-4 4 4 3-3 5 5M15.5 9.5h.01" /></svg>}
+                title={rows.length ? "Eşleşen dosya yok" : "Medya kütüphanesi boş"}
+                description={rows.length ? "Tür filtresini ya da aramayı değiştirin." : "Görsel, ses ve video dosyaları sorularda tekrar kullanılır. Sağdaki panelden türü seçip ilk dosyanızı yükleyin."}
               />
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
@@ -442,6 +448,7 @@ const STARTER_SKELETON: SkeletonDef = {
 };
 
 export function FormatsPage() {
+  const canManage = useCan(Perm.examFormatManage);
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<FormatRow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -477,9 +484,11 @@ export function FormatsPage() {
         description="Tekrar kullanılabilir sınav iskeletleri: bölümler, alt bölümler ve her birinde kaç soru olacağı. Yeni sınav sihirbazında “Formattan” seçeneğiyle seçilir; sınav bu iskeletle oluşturulur, sorular sonra atanır."
         count={loaded ? rows.length : undefined}
         actions={
-          <Button onClick={() => { setCreating(true); setSelectedId(null); }} disabled={!tenant}>
-            + Yeni format
-          </Button>
+          canManage ? (
+            <Button onClick={() => { setCreating(true); setSelectedId(null); }} disabled={!tenant}>
+              + Yeni format
+            </Button>
+          ) : undefined
         }
       />
       {error ? (
@@ -491,9 +500,31 @@ export function FormatsPage() {
         </div>
       ) : rows.length === 0 && !creating ? (
         <EmptyState
-          title="Henüz format yok"
-          description="Format, sık kullandığınız sınav yapısını şablon olarak saklar (ör. Cambridge YLE: Okuma 2 part + Dinleme 1 part). Sıfırdan oluşturun ya da örnek iskeletle başlayın."
-          action={<Button onClick={() => setCreating(true)}>+ Yeni format</Button>}
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}><path strokeLinecap="round" strokeLinejoin="round" d="M4 5h7v6H4zM13 5h7v3h-7zM13 10h7v9h-7zM4 13h7v6H4z" /></svg>}
+          title="Henüz sınav formatı yok"
+          description={
+            <>
+              <p>Format, sık kullandığınız sınav yapısını şablon olarak saklar. Yeni sınav sihirbazında “Formattan” seçilince bölümler, süreler ve soru sayıları hazır gelir.</p>
+              {/* Örnek iskelet: formatın ne olduğunu tek bakışta gösterir. */}
+              <div className="mx-auto mt-4 w-full max-w-sm rounded-lg border border-border bg-surface p-3 text-left shadow-sm">
+                <p className="mb-2 text-[11px] font-semibold tracking-wide text-fg-subtle">ÖRNEK · CAMBRIDGE YLE STARTERS</p>
+                <ul className="grid gap-1.5 text-[13px]">
+                  {[
+                    { name: "Dinleme", parts: "4 part", q: "20 soru" },
+                    { name: "Okuma ve yazma", parts: "5 part", q: "25 soru" },
+                    { name: "Konuşma", parts: "4 part", q: "Rubrik" },
+                  ].map((row) => (
+                    <li key={row.name} className="flex items-center justify-between gap-2 rounded-md bg-neutral-50 px-2.5 py-1.5">
+                      <span className="font-medium text-fg">{row.name}</span>
+                      <span className="text-xs text-fg-subtle">{row.parts} · {row.q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          }
+          action={canManage ? <Button onClick={() => setCreating(true)}>+ İlk formatı oluştur</Button> : undefined}
+          secondaryAction={canManage ? undefined : <p className="text-[13px] text-fg-subtle">Format oluşturma yetkiniz yok.</p>}
         />
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
@@ -1121,7 +1152,7 @@ export function SettingsDictionariesPage() {
             </div>
           </div>
           {shownTags.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">{tags.length ? "Aramayla eşleşen etiket yok." : "Henüz etiket yok."}</p>
+            <EmptyState compact tone={tags.length ? "neutral" : "primary"} title={tags.length ? "Eşleşen etiket yok" : "Henüz etiket yok"} description={tags.length ? "Aramayı değiştirin." : "Soruları gruplamak için yukarıdan ilk etiketi ekleyin."} />
           ) : (
             <ul className="flex flex-wrap gap-2">
               {shownTags.map((tag) =>
@@ -1280,7 +1311,7 @@ export function SettingsDictionariesPage() {
             </div>
           </div>
           {shownOutcomes.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">{outcomes.length ? "Filtreye uyan kazanım yok." : "Henüz kazanım yok."}</p>
+            <EmptyState compact tone={outcomes.length ? "neutral" : "primary"} title={outcomes.length ? "Filtreye uyan kazanım yok" : "Henüz kazanım yok"} description={outcomes.length ? "Filtreyi ya da aramayı değiştirin." : "Kazanımlar soruların hangi öğrenme çıktısını ölçtüğünü gösterir. Yukarıdan ilk kazanımı ekleyin."} />
           ) : (
             <ul className="divide-y divide-border rounded-lg ring-1 ring-border">
               {shownOutcomes.map((outcome) => (

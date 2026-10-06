@@ -240,3 +240,15 @@ Gözden geçirilip sorun bulunmayanlar: hazırlık (mobilde aside altta, `lg` ya
 ### 06 eki — tablet alt çubuk düğmeleri
 
 Back / Next / Finish farklı genişlikteydi ("Finish section" uzun) ve yalnız Next/Finish'te 3px kabartma gölgesi vardı; numaralar ortadan kayıyor, Back alçak ve sönük duruyordu. Artık `FOOTER_BTN`: tablette (sm–lg) üçü de 7.5rem eşit genişlik, 44px yükseklik; Back'e de aynı kabartma (açık mavi) eklendi; Finish etiketi her yerde "Finish" (ekran okuyucuya "Finish section"). Telefonda Back/Next 44px kare ikon (`FOOTER_ICON`). Not: `cn` sınıf birleştirmiyor; KidButton'ın `px-4`ünü ezmek için `!` kullanıldı.
+
+## 07 — Cihaz kontrolü (mikrofon/kamera) yeniden yazıldı (2026-10-06)
+
+Dosya: `app/student/exams/[recipientId]/checks/page.tsx`.
+
+Sorunlar: kayıt sabit 5/6 sn `setTimeout` ile çalışıyordu — durdurma/vazgeç yoktu, geri sayım yoktu, öğrenci hazırlanmadan kayıt başlıyordu; sayfadan çıkınca kayıt ve yükleme sürüyor, unmount sonrası setState oluyordu; `NotFoundError` / `NotReadableError` (cihaz yok / başka uygulamada açık) tek "Kayıt alınamadı" mesajına düşüyordu; HTTP veya MediaRecorder yoksa çöküyordu; canlı video `ref` callback'i her render'da `srcObject` atıyordu; mikrofon ölçeri kartı her karede yeniden çiziyordu; webm kayıtlarında süre `Infinity` olduğundan oynatıcı çubuğu bozuktu; blob URL'leri serbest bırakılmıyordu.
+
+Çözüm: aşamalar `idle → requesting → countdown (3-2-1) → recording → uploading → review`. Canlı önizleme (ayna) geri sayımda da görünür; kayıtta kalan saniye + ilerleme çubuğu, "Bitir" (en az 1,5 sn sonra) ve her aşamada "Vazgeç". Her deneme numaralı (`runRef`); vazgeç/unmount eski sonuçları yok sayar ve izleri kapatır (kamera ışığı söner). Hata adları ayrı Türkçe mesajlara çevrildi, çok kısa kayıt reddedilir, `fixInfiniteDuration` ile oynatıcı süresi düzeltilir, ölçer DOM'a doğrudan yazar.
+
+### 07 eki — cihaz kartı sabit sahne
+
+Aşama değiştikçe kart yüksekliği zıplıyordu ("Mikrofon açılıyor…" tek satır metin, kayıt ölçer, inceleme oynatıcı hep farklı boyda). Artık kart: başlık → tek satırlık durum satırı (`min-h-6`, `aria-live`) → **sahne** (kamera `aspect-video`, mikrofon `h-44`) → düğmeler (`mt-auto`, iki kart yan yana eşit boy). Sahne içinde: adım listesi (numara rozetleri) / izin bekleme (cihaz ikonu + yavaş dönen halka + "İzin ver"e bas) / geri sayım (kamerada görüntü üstünde büyük rakam, mikrofonda büyük rakam + ölçer) / kayıt (kalan sn rozeti, alt kenarda ilerleme şeridi) / hazırlanıyor / inceleme (video sahneyi doldurur, ses oynatıcısı ortada).

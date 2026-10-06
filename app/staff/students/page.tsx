@@ -1,8 +1,15 @@
 "use client";
 
-import { StaffBound } from "@/src/features/panel/StaffBound";
 import { StudentsSection } from "@/src/features/org/StudentsSection";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  return <StaffBound>{(companyId) => <StudentsSection companyId={companyId} />}</StaffBound>;
+  return (
+    <StaffPage
+      title="Öğrenciler"
+      description="Öğrenci hesapları ve sınıf kayıtları."
+    >
+      {(companyId) => <StudentsSection companyId={companyId} />}
+    </StaffPage>
+  );
 }

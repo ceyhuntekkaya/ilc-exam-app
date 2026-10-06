@@ -1,8 +1,10 @@
 "use client";
 
 import { close, finishRemaining, useMonitor } from "@/src/api/generated/assignment-controller/assignment-controller";
-import { Badge, Button, ConfirmDialog, ErrorState, SectionTable, errorMessage, notify } from "@/src/ui";
-import { useState } from "react";
+import { useStudents } from "@/src/api/generated/admin-companies/admin-companies";
+import { useOpsHref, usePanelCompanyId } from "@/src/features/panel/PanelContext";
+import { Badge, Button, ConfirmDialog, ErrorState, PageHeader, SectionTable, errorMessage, notify } from "@/src/ui";
+import { useMemo, useState } from "react";
 
 const REFRESH_MS = 15000;
 
@@ -44,6 +46,17 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
   const updatedAt = query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : null;
   const [confirm, setConfirm] = useState<"close" | "finish" | null>(null);
   const [pending, setPending] = useState(false);
+  const hrefs = useOpsHref();
+  const companyId = usePanelCompanyId();
+  const studentsQ = useStudents(companyId ?? "", { query: { enabled: Boolean(companyId) } });
+  // Tabloda kimlik yerine ad; liste gelmezse kimlik gösterilir.
+  const studentName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of studentsQ.data?.data ?? []) {
+      if (s.id) map.set(s.id, `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim());
+    }
+    return map;
+  }, [studentsQ.data]);
 
   async function runConfirmed() {
     if (!confirm) return;
@@ -60,8 +73,21 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
     }
   }
 
+  const header = (
+    <PageHeader
+      title="Canlı izleme"
+      description="Öğrencilerin sınav durumu 15 saniyede bir kendiliğinden yenilenir."
+      back={{ href: hrefs.assignments, label: "Atamalar" }}
+    />
+  );
+
   if (query.isError && !loaded) {
-    return <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />;
+    return (
+      <div>
+        {header}
+        <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />
+      </div>
+    );
   }
 
   const counts = rows.reduce(
@@ -76,6 +102,8 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
   );
 
   return (
+    <div>
+      {header}
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <dl className="flex flex-wrap gap-2 text-[13px]">
@@ -109,7 +137,6 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
       </div>
 
       <SectionTable
-        flush
         loading={!loaded}
         empty="Henüz katılımcı yok"
         emptyHint="Öğrenciler sınava girdikçe burada anlık görünür."
@@ -117,7 +144,11 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
         rows={rows.map((row) => {
           const s = statusOf(row.status);
           return [
-            <span key="n" className="font-mono text-[13px]">{row.studentId ?? "—"}</span>,
+            studentName.get(row.studentId ?? "") ? (
+              <span key="n" className="font-medium">{studentName.get(row.studentId ?? "")}</span>
+            ) : (
+              <span key="n" className="font-mono text-[13px]">{row.studentId ?? "—"}</span>
+            ),
             <span key="s" className="inline-flex flex-wrap items-center gap-1">
               <Badge tone={s.tone} dot>
                 {s.label}
@@ -149,6 +180,7 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
         pending={pending}
         onConfirm={() => void runConfirmed()}
       />
+    </div>
     </div>
   );
 }

@@ -155,8 +155,8 @@ export function Input({ className, invalid, id, variant: variantProp, icon, trai
       />
     );
   }
-  // Sayı: admin'de native spinner yerine adım düğmeli, sınır kontrollü alan (değer sözleşmesi aynı).
-  if (props.type === "number" && variant === "admin" && !inlineLabel) {
+  // Sayı: admin ve staff panelinde native spinner yerine adım düğmeli, sınır kontrollü alan (değer sözleşmesi aynı).
+  if (props.type === "number" && (variant === "admin" || variant === "staff") && !inlineLabel) {
     const { type: _type, ...numberProps } = props;
     void _type;
     return (
@@ -167,6 +167,7 @@ export function Input({ className, invalid, id, variant: variantProp, icon, trai
         data-input-variant={variant}
         invalid={isInvalid}
         suffix={suffix}
+        touch={variant === "staff"}
         baseClassName={cn(styles.base, styles.radius)}
         stateClassName={isInvalid ? styles.invalid : styles.valid}
         className={className}

@@ -1,8 +1,15 @@
 "use client";
 
 import { AssignmentListSection } from "@/src/features/assignments/AssignmentListSection";
-import { StaffBound } from "@/src/features/panel/StaffBound";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  return <StaffBound>{(companyId) => <AssignmentListSection companyId={companyId} />}</StaffBound>;
+  return (
+    <StaffPage
+      title="Atamalar"
+      description="Sınıflara ve öğrencilere açılan sınavlar. Açık atamayı canlı izleyin, biten atamayı değerlendirin."
+    >
+      {(companyId) => <AssignmentListSection companyId={companyId} />}
+    </StaffPage>
+  );
 }

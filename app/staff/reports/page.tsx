@@ -1,8 +1,15 @@
 "use client";
 
-import { StaffBound } from "@/src/features/panel/StaffBound";
 import { ReportsSection } from "@/src/features/org/ReportsSection";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  return <StaffBound>{(companyId) => <ReportsSection companyId={companyId} />}</StaffBound>;
+  return (
+    <StaffPage
+      title="Raporlar"
+      description="Atama bazında katılım özeti: kaç öğrenciye atandı, kaçı tamamladı, kaçı girmedi."
+    >
+      {(companyId) => <ReportsSection companyId={companyId} />}
+    </StaffPage>
+  );
 }

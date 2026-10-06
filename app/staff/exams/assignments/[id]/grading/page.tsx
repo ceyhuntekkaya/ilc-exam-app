@@ -2,9 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { GradingSection } from "@/src/features/assignments/GradingSection";
-import { StaffBound } from "@/src/features/panel/StaffBound";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
   const { id } = useParams<{ id: string }>();
-  return <StaffBound>{(companyId) => <GradingSection companyId={companyId} assignmentId={id} />}</StaffBound>;
+  return <StaffPage bare>{(companyId) => <GradingSection companyId={companyId} assignmentId={id} />}</StaffPage>;
 }

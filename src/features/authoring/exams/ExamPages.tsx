@@ -1,5 +1,8 @@
 "use client";
 
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
+
 import {
   authoringApi,
   type ExamDetail,
@@ -35,6 +38,7 @@ import {
   IconArrowUp,
   IconX,
   IconPlus,
+  EmptyState,
 } from "@/src/ui";
 import { ExamGrantsTab, ExamPreviewTab } from "@/src/features/authoring/exams/ExamExtraTabs";
 import { HoverPreview } from "@/src/ui/composites/HoverPreview";
@@ -105,6 +109,7 @@ function questionPointsTotal(exam: ExamDetail) {
 }
 
 export function ExamListPage() {
+  const canCreate = useCan(Perm.examCreate);
   const basePath = useContentBasePath("exams");
   const router = useRouter();
   const { tenant } = useAuthoringTenant();
@@ -185,7 +190,7 @@ export function ExamListPage() {
         title="Sınavlar"
         description="Sınav oluşturucu ve yayın kontrolü."
         count={rows.length}
-        actions={<ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink>}
+        actions={canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : undefined}
       />
       <div className="rounded-xl border border-border bg-surface shadow-sm">
         {error ? (
@@ -203,7 +208,7 @@ export function ExamListPage() {
             emptyState={{
               title: "Henüz sınav yok",
               description: "Hazır formattan veya boş şablondan başlayın.",
-              action: <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink>,
+              action: canCreate ? <ButtonLink href={`${basePath}/new`}>Yeni sınav</ButtonLink> : undefined,
             }}
           />
         )}
@@ -309,7 +314,7 @@ export function ExamWizardPage() {
   const minutes = durationSeconds === "" ? "" : String(Number(durationSeconds) / 60);
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="@container space-y-5">
       <PageHeader
         title="Yeni sınav"
         description="Üç adımda sınavın kimliğini, başlangıç noktasını ve öğrenciye görünen giriş metnini belirleyin. Bölüm ve soruları sonraki ekranda eklersiniz."
@@ -355,7 +360,9 @@ export function ExamWizardPage() {
         </div>
       ) : null}
 
+      <div className="grid items-start gap-5 @min-[60rem]:grid-cols-[minmax(0,1fr)_19rem] @min-[80rem]:grid-cols-[minmax(0,1fr)_22rem]">
       <FormCard
+        className="@container/form"
         title={WIZARD_STEPS[step - 1].title}
         description={WIZARD_STEPS[step - 1].hint}
         footer={
@@ -378,7 +385,7 @@ export function ExamWizardPage() {
         {step === 1 ? (
           <>
             <FormGroup title="Kimlik">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+              <div className="grid gap-3 @min-[30rem]/form:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                 <Field
                   label="Sınav kodu"
                   hint={existingWithCode ? undefined : "Boş bırakılırsa otomatik üretilir."}
@@ -392,7 +399,7 @@ export function ExamWizardPage() {
               </div>
             </FormGroup>
             <FormGroup title="Sınav amacı" hint="Sonuç raporunun biçimini ve puan bantlarının yorumunu belirler.">
-              <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Sınav amacı">
+              <div className="grid gap-2 @min-[28rem]/form:grid-cols-2" role="radiogroup" aria-label="Sınav amacı">
                 {PURPOSES.map((p) => (
                   <button
                     key={p.value}
@@ -411,7 +418,7 @@ export function ExamWizardPage() {
               </div>
             </FormGroup>
             <FormGroup title="Hedef kitle">
-              <div className="grid gap-3 sm:grid-cols-4">
+              <div className="grid gap-3 @min-[28rem]/form:grid-cols-2 @min-[46rem]/form:grid-cols-4">
                 <Field label="En düşük seviye" error={levelError}>
                   <Select value={minLevel} onChange={(e) => setMinLevel(e.target.value)}>{CEFR.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
                 </Field>
@@ -427,7 +434,7 @@ export function ExamWizardPage() {
               </div>
             </FormGroup>
             <FormGroup title="Puan ve süre">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 @min-[28rem]/form:grid-cols-2">
                 <Field label="Toplam puan" hint="Soru puanlarının toplamı yayından önce buna eşit olmalı.">
                   <Input type="number" min={1} value={totalPoints} onChange={(e) => setTotalPoints(e.target.value)} />
                 </Field>
@@ -448,7 +455,7 @@ export function ExamWizardPage() {
 
         {step === 2 ? (
           <>
-            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Başlangıç noktası">
+            <div className="grid gap-2 @min-[36rem]/form:grid-cols-3" role="radiogroup" aria-label="Başlangıç noktası">
               {START_MODES.map((m) => (
                 <button
                   key={m.value}
@@ -492,17 +499,34 @@ export function ExamWizardPage() {
             <Field label="Sınav açıklaması" hint="Katalogda ve lisans ekranında görünür. HTML desteklenir.">
               <Textarea rows={4} value={descriptionHtml} onChange={(e) => setDescriptionHtml(e.target.value)} />
             </Field>
-            <dl className="grid gap-x-6 gap-y-1.5 rounded-lg bg-neutral-50 p-3 text-[13px] ring-1 ring-border ring-inset sm:grid-cols-2">
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Başlık</dt><dd className="truncate font-medium text-fg">{title || "—"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Kod</dt><dd className="font-mono text-fg">{code || "otomatik"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Amaç</dt><dd className="text-fg">{PURPOSES.find((p) => p.value === purpose)?.label}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Seviye</dt><dd className="font-mono text-fg">{minLevel}–{maxLevel}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Puan / süre</dt><dd className="text-fg">{totalPoints} puan · {minutes ? `${minutes} dk` : "süresiz"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-fg-subtle">Başlangıç</dt><dd className="text-fg">{START_MODES.find((m) => m.value === mode)?.label}</dd></div>
-            </dl>
           </>
         ) : null}
       </FormCard>
+
+      {/* Canlı özet: girilen değerler her adımda görünür; dar alanda formun altına iner. */}
+      <aside aria-label="Sınav özeti" className="rounded-xl border border-border bg-surface shadow-sm @min-[60rem]:sticky @min-[60rem]:top-20">
+        <header className="border-b border-border px-4 py-3">
+          <h2 className="text-[15px] font-semibold text-fg">Sınav özeti</h2>
+          <p className="text-xs text-fg-subtle">Oluşturunca sınav kurucuya geçersiniz.</p>
+        </header>
+        <dl className="divide-y divide-border text-[13px]">
+          {[
+            { k: "Başlık", v: title || "—" },
+            { k: "Kod", v: code || "otomatik", mono: true },
+            { k: "Amaç", v: PURPOSES.find((p) => p.value === purpose)?.label ?? "—" },
+            { k: "Seviye", v: `${minLevel}–${maxLevel}`, mono: true },
+            { k: "Yaş", v: minAge || maxAge ? `${minAge || "?"}–${maxAge || "?"}` : "—" },
+            { k: "Puan / süre", v: `${totalPoints || "—"} puan · ${minutes ? `${minutes} dk` : "süresiz"}` },
+            { k: "Başlangıç", v: START_MODES.find((m) => m.value === mode)?.label ?? "—" },
+          ].map((row) => (
+            <div key={row.k} className="flex items-baseline justify-between gap-3 px-4 py-2">
+              <dt className="shrink-0 text-fg-subtle">{row.k}</dt>
+              <dd className={`min-w-0 truncate text-right font-medium text-fg ${row.mono ? "font-mono" : ""}`}>{row.v}</dd>
+            </div>
+          ))}
+        </dl>
+      </aside>
+      </div>
     </div>
   );
 }
@@ -1575,7 +1599,7 @@ function QuestionAssignPanel({
         </div>
         <div className="space-y-5 p-4">
           {exam.sections.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-8 text-center text-[13px] text-fg-subtle">Henüz bölüm yok. Yapı sekmesinden bölüm ekleyin.</p>
+            <EmptyState compact title="Henüz bölüm yok" description="Önce Yapı sekmesinden bölüm (ör. Dinleme, Okuma) ekleyin; sorular bölümlere atanır." />
           ) : (
             exam.sections.map((section, si) => (
               <div key={section.id} className="space-y-2">
