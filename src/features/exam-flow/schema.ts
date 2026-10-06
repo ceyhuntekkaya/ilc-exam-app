@@ -1,22 +1,25 @@
 import { z } from "zod";
 
+const absentString = z.string().nullish();
+const absentNumber = z.number().nullish();
+
 export const clockSchema = z.object({
-  examRemainingMs: z.number().nullable(),
-  sectionRemainingMs: z.number().nullable(),
+  examRemainingMs: absentNumber,
+  sectionRemainingMs: absentNumber,
   running: z.boolean(),
   serverNow: z.string(),
-  timeWarningSeconds: z.number().optional(),
+  timeWarningSeconds: absentNumber,
 });
 
 export const sectionStateSchema = z.object({
   sectionId: z.string(),
   title: z.string(),
   questionCount: z.number(),
-  durationMs: z.number().nullable(),
-  remainingMs: z.number().nullable(),
+  durationMs: absentNumber,
+  remainingMs: absentNumber,
   status: z.string(),
   canEnter: z.boolean(),
-  lockReason: z.string().nullable(),
+  lockReason: absentString,
   allowBack: z.boolean(),
   allowSkip: z.boolean(),
   allowFlag: z.boolean(),
@@ -28,15 +31,15 @@ export const examStateSchema = z.object({
   applicationId: z.string(),
   stage: z.enum(["WELCOME", "DEVICE_CHECK", "SECTION_LIST", "IN_SECTION", "FINISHED"]),
   status: z.string(),
-  finishedReason: z.string().nullable(),
-  acknowledgementAt: z.string().nullable(),
+  finishedReason: absentString,
+  acknowledgementAt: absentString,
   requiresMicrophone: z.boolean(),
   requiresCamera: z.boolean(),
   checksPassed: z.array(z.string()),
   sections: z.array(sectionStateSchema),
   clock: clockSchema,
-  currentSectionId: z.string().nullable(),
-  currentItemId: z.string().nullable(),
+  currentSectionId: absentString,
+  currentItemId: absentString,
   answeredItemIds: z.array(z.string()),
   canFinish: z.boolean(),
 });
@@ -44,9 +47,9 @@ export const examStateSchema = z.object({
 export const attemptSummarySchema = z.object({
   attemptNo: z.number(),
   status: z.string(),
-  startedAt: z.string().nullable(),
-  finishedAt: z.string().nullable(),
-  finishedReason: z.string().nullable(),
+  startedAt: absentString,
+  finishedAt: absentString,
+  finishedReason: absentString,
 });
 
 export const assignmentCardSchema = z.object({
@@ -54,28 +57,28 @@ export const assignmentCardSchema = z.object({
   assignmentId: z.string(),
   examTitle: z.string(),
   status: z.string(),
-  availableFrom: z.string().nullable(),
-  availableUntil: z.string().nullable(),
+  availableFrom: absentString,
+  availableUntil: absentString,
   attemptsTotal: z.number(),
   attemptsUsed: z.number(),
   attemptsLeft: z.number(),
-  totalPoints: z.number().nullable(),
-  durationSeconds: z.number().nullable(),
-  timingMode: z.string().nullable(),
+  totalPoints: absentNumber,
+  durationSeconds: absentNumber,
+  timingMode: absentString,
   sectionCount: z.number(),
   questionCount: z.number(),
   attempts: z.array(attemptSummarySchema),
-  activeApplicationId: z.string().nullable(),
+  activeApplicationId: absentString,
   cta: z.enum(["START", "RESUME", "NONE"]),
-  blockedReason: z.string().nullable(),
+  blockedReason: absentString,
 });
 
 export const sectionPreviewSchema = z.object({
   sectionId: z.string(),
   title: z.string(),
   questionCount: z.number(),
-  durationSeconds: z.number().nullable(),
-  status: z.string().nullable(),
+  durationSeconds: absentNumber,
+  status: absentString,
 });
 
 export const assignmentPreviewSchema = z.object({
@@ -83,7 +86,7 @@ export const assignmentPreviewSchema = z.object({
   welcomeHtml: z.string(),
   welcomeHtmlSha256: z.string(),
   sections: z.array(sectionPreviewSchema),
-  acknowledgementAt: z.string().nullable(),
+  acknowledgementAt: absentString,
 });
 
 export const startResultSchema = z.object({

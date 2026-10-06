@@ -37,7 +37,9 @@ async function parse<T>(path: string, schema: ZodType<T>, init?: RequestInit): P
     const response = await customInstance<{ data: unknown }>(path, init);
     const result = schema.safeParse(response.data);
     if (!result.success) {
-      throw new ExamApiError("Sınav durumu okunamadı. Sayfayı yenileyin.");
+      const issue = result.error.issues[0];
+      const where = issue?.path.length ? issue.path.join(".") : "yanıt";
+      throw new ExamApiError(`Sınav durumu okunamadı (${where}). Sayfayı yenileyin.`);
     }
     return result.data;
   } catch (err) {
