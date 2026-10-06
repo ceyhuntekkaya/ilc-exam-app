@@ -252,3 +252,176 @@ Sorunlar: kayıt sabit 5/6 sn `setTimeout` ile çalışıyordu — durdurma/vazg
 ### 07 eki — cihaz kartı sabit sahne
 
 Aşama değiştikçe kart yüksekliği zıplıyordu ("Mikrofon açılıyor…" tek satır metin, kayıt ölçer, inceleme oynatıcı hep farklı boyda). Artık kart: başlık → tek satırlık durum satırı (`min-h-6`, `aria-live`) → **sahne** (kamera `aspect-video`, mikrofon `h-44`) → düğmeler (`mt-auto`, iki kart yan yana eşit boy). Sahne içinde: adım listesi (numara rozetleri) / izin bekleme (cihaz ikonu + yavaş dönen halka + "İzin ver"e bas) / geri sayım (kamerada görüntü üstünde büyük rakam, mikrofonda büyük rakam + ölçer) / kayıt (kalan sn rozeti, alt kenarda ilerleme şeridi) / hazırlanıyor / inceleme (video sahneyi doldurur, ses oynatıcısı ortada).
+
+## 08 — PLAN: Sınav ekranı UX revizyonu (2026-10-06, onay bekliyor)
+
+Hedef kitle ilkokul–ortaokul (7–14), öncelik tablet (dokunmatik), sonra web ve mobil. Soru alanı `exam-player` admin önizlemesiyle ortak: her değişiklik iki tarafa da yansır; önizlemede (`preview`) dinleme limiti/kilit uygulanmaz, doğru cevap gösterimi bozulmaz.
+
+### Ön bulgular (koddan)
+- Sürükle-bırak native HTML5 DnD (`onDragStart/onDragOver`) — **iPad/Android tablette dokunmayla çalışmaz**; yalnız tıkla-seç yolu var ve görünür değil. Kaymaların ana kaynağı bu.
+- `QuestionView` içinde Türkçe metinler var ("Yönerge yok", "Henüz part yok", Placeholder "Görsel/Ses"). Ana sayfa, hazırlık, bölüm listesi, bitti ekranı, status.ts tamamen Türkçe.
+- Yönerge sesi (`instructionAudio`) veri modelinde ve oynatıcıda var (ikon), ama dikkat çekmiyor / bazı soru tiplerinde boş geliyor olabilir — doğrulanacak.
+- Galeri `columns` destekliyor; video/ses bloklar ve seçenekler tek sütun.
+- Writing `textarea` ve görsel/video yükleme `ResponseViews.tsx` içinde.
+- Giriş hakkı (`attemptsLeft`) ana sayfada gösteriliyor; yeniden giriş akışı bitti ekranına düşüyor.
+
+### Faz A — Altyapı (diğer her şeyin temeli)
+A1. **Ortak etkileşim katmanı** `interactions/dnd.ts`: Pointer Events tabanlı sürükle-bırak (fare + dokunma + kalem), sürüklenen öğenin "hayaleti", bırakma alanı vurgusu, `touch-action: none`, kaydırma ile çakışmaz. Klavye/tıkla-seç yolu korunur (tıkla → seçili → hedefe tıkla). Grouping, Matching, Ordering, FillBlanks, Hotspot-drag aynı katmanı kullanır.
+A2. **Ortak "geri alma" modeli**: yerleştirilen her öğede × düğmesi + öğeye tıklayınca havuza dönüş (tüm formatlarda aynı davranış), alt kısımda "Start over / Reset" (onaylı, KidDialog). Bugünkü tutarsızlık (bazısında dönüyor, bazısında dönmüyor) kalkar.
+A3. **Medya kilidi** `MediaContext`: bir oynatıcı çalarken global `mediaBusy`; diğer ses/video başlatılamaz, Back/Next/Finish/bölüm değişimi kilitli ("Wait for the audio to end"). Önizlemede kilit yok. Çalarken duraklat/geri sar yok (seekable=false varsayılanı öğrenci tarafında), bitene kadar sürer; hak sayısı kadar çalınır (zaten var, sertleştirilecek: yenilemede hak sessionStorage'da korunur).
+A4. **Format etiketi** üst-sol: her part başında "Format rozeti + 1 satır nasıl yapılır" (`FORMAT_HELP` sözlüğü, A1–A2 İngilizce): örn. *Drag and drop* — "Drag each word to a box. Tap × to take it back." Admin önizlemesinde de görünür (öğretmen de anlar).
+
+### Faz B — Format bazında
+B1. **Çoktan seçmeli / görsel seçmeli**: tüm kart tıklanabilir (sadece küçük daire değil), min 44–56px, seçili halde kalın çerçeve + ✓ rozeti + renk (yalnız renk değil). Sadece görsel seçenekler → yan yana ızgara (2 sütun tablet/mobil, 3–4 geniş), eşit kare kart.
+B2. **Görsel/video blokları ve gruplu görsel alanlar**: video ve görseller `@container` ile 2 sütun; çalan video/ses kartı odak çerçevesi alır, diğerleri soluklaşır ve kilitli.
+B3. **Dinleme düğmesi**: oynatırken "Listening…" durumu (dalga + ilerleme, düğme devre dışı), kalan hak noktaları; bitince "Done" / "No more plays". Ses bitmeden eşleştirme/cevap alanı başlamaz (opsiyonel kural: mainAudio en az bir kez dinlenmeden cevap alanı "Listen first" kilidi — **karar gerekli**).
+B4. **Yönerge sesi**: mavi yönerge bandında görünür "🔊 Listen" düğmesi; `instructionAudio` varsa kullan, yoksa gizle (TTS üretimi bu kapsam dışı — **karar gerekli**).
+B5. **Boşluk doldurma (kelime havuzlu)**: boşluk = kesik çizgili, hafif renkli "tap here" yuvası + küçük ok/el ikonu, odaklı boşluk belirgin; seçilen kelime yuvada çip, × ile geri. Açılır seçici portal'da kalır, tasarımı tema ile uyumlu.
+B6. **Açık uçlu boşluk doldurma**: tıklanınca oluşan çirkin kutu yerine satır içi alt çizgili input, odakta yumuşak halka (exam-player paleti), genişlik içeriğe göre büyür.
+B7. **Eşleştirme**: iki sütun kart (sol hedef, sağ seçenek), eşleşen çiftler aynı renk/numara rozeti, çizgi yok (tablette kaymaz). Görsel eşleştirmede havuz görselleri büyük (incelemek için), hedef yuvaya yerleşince küçük küçük önizleme; havuz altta, hedefler üstte.
+B8. **Gruplama / sıralama**: sütunlar sabit min-yükseklik (bırakınca zıplama yok), sıralamada yuvalar numaralı; görsel öğelerde havuzda büyük, sütunda küçük.
+B9. **Görsel/video yükleme**: yüklendikten sonra input gizli, düzgün önizleme (oran korunur) + çöp kutusu ikonu → onay → kaldır, yükleme alanı tekrar açılır. Yükleniyor/hata durumu.
+B10. **Writing (textarea)**: otomatik kaydetme yok; "Save answer" düğmesi, durum "Saved ✓ / Not saved yet" ve kelime sayısı. Kaydedilmemişken Next/Back'te KidDialog uyarısı ("Save your answer?" Save / Leave). Not: bugünkü genel autosave yalnız bu format için kapatılır.
+
+### Faz C — Sınav kabuğu
+C1. **Süre**: süre limiti varsa geri sayım (Time left), yoksa sayaç gizli (geçen süre gösterilmez) — **karar: hiç mi gösterme, yoksa "Time spent" kalsın mı?** Varsayılan: gizle.
+C2. **Giriş hakkı**: hak varken "Start again" doğrudan yeni deneme açar (bitti ekranına düşmez); bitti ekranında kalan hak varsa "Try again (2 left)" düğmesi, yoksa açık mesaj. Backend'in yeni attempt açma uç noktası kontrol edilecek.
+C3. **Tamamen İngilizce öğrenci paneli**: ana sayfa, hazırlık, cihaz kontrolü, bölümler, bitti, sonuçlar, status.ts, giriş ekranı, hata/yükleme metinleri — A1–A2 dil seviyesi, kısa cümle. exam-player içindeki Türkçe kalıntılar İngilizce (admin önizleme bandı Türkçe kalır, yalnız `preview`te).
+C4. Duyarlılık: tablet dikey/yatay, 375px telefon, masaüstü; dokunma hedefi ≥44px; sürüklemede sayfa kaydırması kilidi.
+
+### Uygulama sırası
+A1+A2 → B7/B8/B5 (sürükle-bırak formatları) → A3+B3+B2 → B1 → B6 → B9/B10 → A4 → C2 → C3 → C1/C4 → review + build. Her faz sonunda bu belgeye bölüm + CLAUDE.md günlüğü.
+
+### Kararlar (2026-10-06)
+1. Sürükle-bırak: `@dnd-kit` eklenecek.
+2. Ana ses: yalnız çalarken kilit (geçiş/diğer medya); cevaplama serbest.
+3. Yönerge sesi: yalnız kayıtlı `instructionAudio`; yoksa düğme yok (TTS yok).
+4. Süre limiti yoksa sayaç gizli; limit varsa geri sayım.
+
+## 09 — Sınav ekranı UX revizyonu uygulandı (2026-10-06)
+
+08'deki planın uygulaması. Soru alanı değişiklikleri `exam-player` içinde → admin/staff "Öğrenci önizlemesi" de aynı görünür; önizlemede kilitler (dinleme hakkı, medya kilidi, kaydet uyarısı) çalışmaz.
+
+**Altyapı**
+- `@dnd-kit/core` + `@dnd-kit/sortable` eklendi. `dnd/PlaceBoard.tsx`: `PlaceBoard` (sürükle **veya** dokun-seç → kutuya dokun), `DragItem` (havuzda büyük, kutuda küçük; kutudaki karta dokununca havuza döner, × rozeti), `DropZone` (boş / hazır / üstünde / dolu durumları, `inline` = metin içi boşluk), `DragPool` (duruma göre yönlendirme metni, havuza geri sürükleme), `StartOver` (iki adımlı onay), `EmptySlot`. Sürüklenen kartın yeri soluk kalır (kayma yok), sürüklenen kopya body'ye portal (kırpılmaz). Dokunmada 120 ms basılı tutunca sürükleme başlar; hızlı kaydırma sayfayı kaydırır. Eski `usePickAndPlace` (HTML5 DnD, tablette çalışmıyordu) silindi.
+- `session/playerGuard.ts`: aynı anda tek medya (`claimMedia/releaseMedia`), kaydedilmemiş cevaplar (`setUnsaved`, `saveAllUnsaved`). Sınav sayfası `usePlayerGuard` ile okur.
+- `FormatHint`: her sorunun sol üstünde tür rozeti + A1–A2 tek cümle "ne yapacağım". Tüm bölümler aynı türdeyse bir kez en üstte.
+
+**Medya**
+- Ses kartı: büyük oynat düğmesi, çalarken "Listening… Please listen to the end." + dalga + ilerleme; öğrencide duraklatma/ileri sarma yok, hak noktaları ("2 plays left"). Yönerge sesi mavi bandın yanında "Listen" düğmesi (yalnız kayıtlı ses varsa).
+- Video: öğrencide kendi oynat katmanı, sonuna kadar oynar, hak sayısı, çalarken kart çerçeveli ve ekrana kaydırılır; bekleyen diğer medya soluk ve kilitli. Önizlemede yerel denetimler.
+- Ses/video çalarken sınav sayfasında Back/Next/Finish/soru numaraları/Break kilitli ("Please wait. Listen or watch to the end.").
+- Arka arkaya gelen video/görsel blokları 2 sütun; galeri dar alanda en fazla 2 sütun.
+
+**Formatlar**
+- Çoktan seçmeli / çoklu seçim: kartın tamamı dokunma alanı (`role=radio/checkbox`), seçili = kalın çerçeve + ✓ işaret (+ görselde "Chosen"); görsel seçenekler 2–4 sütun ızgara, video 2 sütun; ses/video oynatma seçimi tetiklemez. Çoklu seçimde "Choose 2. Chosen: 1 / 2".
+- Doğru/Yanlış: ✓ + kalın çerçeve, `aria-pressed`.
+- Eşleştirme: numaralı satır (sol) + kutu (sağ), cevap havuzu altta (görseller büyük ızgara), kutuda küçük önizleme.
+- Gruplama: grup sütunları (başlık + sayaç, sabit min yükseklik), havuz altta.
+- Sıralama: `@dnd-kit/sortable` (diğer kartlar yer açar) + her kartta yukarı/aşağı düğmeleri; "Start over" ilk sıraya döner.
+- Boşluk doldurma (seçmeli): numaralı, kesik çerçeveli "Choose ▾" yuvası; liste başlığı "Gap 2 · Choose a word", "Empty this gap". Kelime havuzlu: metin içi bırakma yuvaları + havuz.
+- Açık uçlu boşluk: numaralı değil, "Write here" yer tutuculu kutu; boşken kesik mavi, doluyken düz; yazdıkça genişler.
+- Görsel üstü seçme: seçilen yer ✓, bölgeler gizli olsa da seçim görünür. Görsel üstü yerleştirme: PlaceBoard.
+- Writing: otomatik kaydetme kaldırıldı → "Save answer" + "Not saved yet / Saved". Kaydedilmemişken geçişte KidDialog "Save your answer?" (Save and go / Stay here); süre bitince bekleyen metin kaydedilir.
+- Görsel/video yükleme: büyük yükleme alanı → önizleme kartı + "Remove" (onaylı); kaldırınca yükleme alanı geri gelir. Yüklenen dosyalar cevap olarak (`{ mediaIds }`) kaydedilir: soru "cevaplandı" sayılır, kaldırma da yansır, soruya dönünce önizleme geri yüklenir.
+
+**Sınav akışı**
+- Giriş hakkı: biten denemenin oturumu okununca bitti ekranına atıyordu. Artık durum `FINISHED` ve hak varsa oturum temizlenir, hoş geldin ekranı yeni deneme (kutu yeniden işaretlenir, "Start again", "Try 2 of 3") gösterir. Bitti ekranında hak varsa "Try again (N tries left)".
+- Süre: sınır varsa geri sayım, yoksa sayaç yok (soru ekranı ve bölüm listesi). Geçen süre sayacı kaldırıldı.
+- Öğrenci paneli tamamen İngilizce (A1–A2): giriş, ana sayfa, hazırlık, cihaz kontrolü, bölümler, soru ekranı, bitti, durum etiketleri, tarih biçimi (en-GB), hata metinleri; kabukta `lang="en"`. Admin önizleme bandı/doğru cevap notları Türkçe kalır.
+
+**Kontrol**: `tsc` temiz, `next build` temiz; lint'te yalnız önceden var olan PreviewRubricPanel hatası + iki eski uyarı.
+
+**Sonraki adımlar**: gerçek tablette (iPad/Android) sürükleme hissi ve 120 ms gecikme ayarı; görsel/video kaldırmanın değerlendirme ekranına yansıması (backend `mediaIds` okuyor mu) doğrulanmalı; uzun metinli sürükle-bırakta otomatik kaydırma testi.
+
+## 10 — 09'un review'u: hatalar ve eksikler (2026-10-06)
+
+**Sınav güvenliği**
+- Dinleme hakkı soru değişince / sayfa yenilenince sıfırlanıyordu → hak sınav oturumunda (`sessionStorage`, uygulama + medya kimliği) saklanır. Konuşma kaydı ve video yükleme deneme sayısı da aynı şekilde (`useAttempts`).
+- Hızlı çift dokunuş iki hak düşürebiliyordu → hak, oynatma başlarken hemen düşer; çalınamazsa geri verilir.
+- Medya tuşu / kulaklık düğmesiyle öğrenci sesi duraklatıp kilidi açabiliyordu → öğrencide duraklatma olursa ses kaldığı yerden sürer (bileşen kapanmışsa sürmez).
+- `QuestionView` soru değişince yeniden kurulmuyordu (ana ses / yönerge sesi önceki sorunun oynatıcısını kullanabiliyordu) → soru kimliğiyle `key`.
+- Konuşma kaydı: süre sınırında kendiliğinden durur; sunucuya gerçek süre gider (önce sınır süresi gidiyordu); kayıt sürerken soru geçişi ve diğer medya kilitli; soru kapanırsa mikrofon kapatılır.
+
+**Görünüm (sınıf çakışmaları)** — `cn` birleştirmez (tailwind-merge yok); aynı özelliğe iki sınıf verilince sonucu CSS sırası belirliyordu.
+- `DropZone` varyantlı: `box | pool | overlay` + `correct`; renk/kenarlık bileşen içinde tek seçilir, `className` yalnız yerleşim. `DragItem` `compact`. `DragPool` `listClassName` varsayılanın yerine geçer (`POOL_IMAGE_GRID`); flex+grid çakışması giderildi.
+- Kart seçiliyken havuz da hedef gibi parlıyordu (dokununca bir şey olmuyordu) → havuz yalnız sürüklerken hedef.
+- Ses kartı/düğmeleri, açık uçlu boşluk, Writing kutusu: durum sınıfları tek dal.
+- Görsel üstü yerleştirmede çokgen alan tüm görseli kaplıyordu (bırakma her yerde o alana düşüyordu) → sınırlayıcı dikdörtgen.
+
+**Kullanılabilirlik**
+- Sıralama: kartlar zaten doğru sıradaysa cevap hiç kaydedilmiyordu (atlama kapalıysa Next açılmıyordu) → "Keep this order".
+- Tek seçimde `radiogroup` rolü; "Start over" onayı dar ekranda satır kırar; havuz sürüklerken "Drop it here to take it back" der.
+- Kullanılmayan `epChip`, `epDrop`, `epCta` silindi; son Türkçe kalıntılar (yükleme hatası, şema hatası) İngilizce.
+
+**Kontrol**: `tsc` ve `next build` temiz. Lint: yalnız önceden var olan `PreviewRubricPanel` hatası ve iki eski bağımlılık uyarısı.
+
+**Hâlâ cihazda doğrulanmalı**: iPad/Android'de 120 ms sürükleme gecikmesi ve kaydırma; iOS'ta medya tuşuyla duraklatma sonrası otomatik devam; değerlendirme ekranının `{ mediaIds }` / `{ mediaId }` cevaplarını okuması (backend).
+
+
+## 11 — Backend uyumu, iOS/tablet ve dokunuş güvenilirliği (2026-10-06)
+
+**Backend sözleşmesi** (`openapi/openapi.json` › `AnswerRequest { answerJson, mediaId?, seq }`)
+- Medya cevapları (konuşma, video, görsel) artık üst düzey `mediaId` ile de gönderilir (`saveAnswer(itemId, answer, mediaId)`; kuyruk bunu taşır). `answerJson` içinde `{ mediaId }` / `{ mediaIds }` kalır (ekrana geri yükleme için).
+- Diğer formatların cevap anahtarları değişmedi: `optionId, optionIds, answers, choiceIds, pairs, order, groupOf, regionIds, zoneOf, text`.
+- Not: değerlendirme ekranı (`GradingSection`) cevabı ham metin/JSON gösteriyor; medya cevapları orada yalnız kimlik olarak görünür. Oynatılabilir önizleme staff tarafında ayrı iş. Görsel kaldırıldığında üst düzey `mediaId` boş gönderilir; backend'in eski bağı silip silmediği doğrulanmalı.
+
+**Dokunuş güvenilirliği**
+- dnd-kit dokunmada 120 ms basılı tutunca sürüklemeyi başlatıyor ve başladıktan sonra tıklamayı yutuyor (kaynakta doğrulandı) → yavaş dokunan çocuğun "seç" dokunuşu kayboluyordu. Hareketsiz (< 8 px) biten sürükleme artık dokunuş: havuzdaki kart seçilir / seçim kalkar; kutudaki kart havuza döner, elde başka kart varsa o kart bu kutuya (`DragItem zone`).
+
+**iOS / tablet**
+- Sürüklenebilir kartlarda `-webkit-touch-callout: none` (basılı tutunca sistem menüsü / görsel önizlemesi açılmaz); görseller `draggable=false`.
+- Sürüklenen kopya panel köküne portal (`overlayRoot`): öğrenci fontu/teması korunur, kırpılmaz.
+- Konuşma kaydı uzantısı türden: iOS `audio/mp4` → `.m4a`, Chrome/Android `.webm`.
+- Video kapak karesi `#t=0.1` (iOS Safari metadata ile kare çizmiyordu, siyah kutu).
+- Dokunma hedefleri ≥ 44 px: sıralama okları, Start over / Remove ve onay düğmeleri, "Keep this order"; kutudaki kart en az 40 px.
+- Ekran okuyucu yönergesi dokun-seç yoluna göre (`DND_A11Y`); dnd-kit'in varsayılan "boşlukla kaldır" metni kaldırıldı (klavye sürükleyici yok).
+- Yazı alanları 16 px (iOS odakta yakınlaştırmasın): açık uçlu boşluk ve Writing kutusu.
+- Container query (iOS 16+) kullanan ızgaralar eski iOS'ta tek sütuna düşer (bozulmaz).
+
+**Temizlik**: `PreviewRubricPanel` effect içi senkron setState lint hatası giderildi (önceden vardı). exam-player lint temiz; `tsc` ve `next build` temiz. Kalan iki uyarı (bölüm sayfası `resumeItemId`, ExamFlowProvider `state`) bilinçli bağımlılık eksiltmeleri, önceden var.
+
+
+## 12 — Önce izle/dinle kilidi, video/görsel kartlar yan yana (2026-10-06)
+
+Sorun (ekran görüntüsü, gruplama): video kartları izlenmeden taşınabiliyordu; videolar alt alta tam genişlikte, çok yer kaplıyor ve taşımak zor.
+
+- **Önce izle / dinle**: ses/video seçenekli kart, medya en az bir kez sonuna kadar oynatılmadan taşınamaz ve seçilemez. Kartın altında kilit uyarısı: "Watch the video to the end first." / "Listen to the end first."; kartın içindeki oynat düğmesi çalışır. Kapsam: gruplama, eşleştirme, görsel üstüne yerleştirme (`OptionDragItem`), sıralama (satır sürükleme + oklar), çoktan seçmeli/çoklu seçim (`OptionButton`). Önizlemede kilit yok.
+- "İzlendi" bilgisi `playerGuard` › `markHeard / useHeard` (oturumda saklanır: soruya geri dönünce / yenilemede yeniden izletmez). Medya sonuna kadar oynayınca ya da hakkı bitince (yarıda kesilse bile) işaretlenir; böylece hakkı biten kart kilitli kalmaz.
+- **Yan yana**: havuzda video kartları 2 sütun (`POOL_VIDEO_GRID`, çok dar alanda tek), görseller 2–4 sütun; dizilim `poolListClass(format)` ile tek yerden. Çoktan seçmelide video 2 sütun (`@xs`). Sıralamada görsel/video kartları kutu ızgarası (video 2 sütun); önceden dikey sıralamada video yalnız ikon çiziliyordu (izlenemiyordu).
+- Kutuya yerleşen video kartı küçük kapak karesiyle görünür (`VideoThumb`), hangi video olduğu anlaşılır.
+
+
+## 13 — Sürüklenen kart imleçten kopuyordu (2026-10-06)
+
+- Neden: dnd-kit `DragOverlay` kutusunu kaynak kartın genişlik/yükseklik ve sol üst köşesiyle konumlar (`PositionedOverlay`: `width, height, top, left` = kaynak). İçeride küçük kopya (`size="sm"`) çizildiği için kopya kutunun sol üst köşesinde kalıyor; büyük video/görsel kartı ortasından tutulunca kopya imlecin çok üstünde/solunda görünüyordu.
+- Çözüm: `OVERLAY_STYLE` (`width/height: auto`, dnd-kit kullanıcı stilini en son uygular) + `followPointer` modifier: farede kopyanın ortası imlecin altında, dokunmada kopya parmağın 16px üstünde (parmak kartı kapatmasın). Kopya genişliği `w-max`, en fazla 18–20rem / %80 ekran. Hem `PlaceBoard` hem sıralama (`OrderingView`) kullanır.
+
+
+## 14 — Yerleşen görsel kutuyu doldurur (puzzle) (2026-10-06)
+
+- `DragItem fill` + `OptionContent size="fill"`: kutuya yerleşen görsel/video kartı kabını tamamen kaplar (`object-cover`, altta yazı şeridi, köşede beyaz × rozeti); küçük ikon/küçük resim yerine tam görsel.
+- Görsel üstüne yerleştirme: parça alanı tamamen kaplar (birden fazla parça yan yana paylaşır, elips alanda köşeler kırpılır).
+- Gruplama: görseller grubun içinde kare tam görsel kutucuklar (2–3 sütun, grup kendi `@container`ı).
+- Eşleştirme: eşleşen görsel 128–144px yüksek kutuyu doldurur.
+- `MediaImageSlot` artık className verilince `object-contain` zorlamaz (cover/contain çağıran seçer; sınıf çakışması giderildi).
+
+
+## 15 — Boşluklar düz metin gibi (2026-10-06)
+
+- Sorun: seçilen kelime numaralı, çerçeveli "Choose ▾" kutusunda kalın yazılıyordu; cümle akışı bozuluyor, metin rahat okunmuyordu. Kelime HTML'inde `<p>` varsa satır içinde blok gibi kırılıyordu.
+- Yeni (eski düz hâlden ilham): boşluk cümlenin parçası, yalnız alt çizgi. Boş = kesik mavi çizgi + açık mavi zemin + küçük numara + ok (dokunulacağı belli); dolu = düz koyu çizgi, kelime normal metin boyunda ve yarı kalın, numara gizli; açıkken mavi zemin. `gapClass` (seçmeli), `DropZone variant="gap"` + `DragItem plain` (kelime havuzu, küçük × yanında), `InlineWord` (p/div satır içi).
+- Açık uçlu boşluk (`epBlankInline`) aynı alt çizgili görünüm; satır aralığı 2.4.
+
+
+## 16 — Boşluk hizası ve okunaklı noktalar (2026-10-06)
+
+- Sorun (ekran görüntüsü): boş boşluktaki numara dairesi ve kesik çizgi metnin taban çizgisinden aşağı kayıyordu (`inline-flex` + `items-baseline` + `self-center`); numara anlaşılmıyordu.
+- Eski tasarım temel alındı: boş boşlukta numara yok, okunaklı "•••" (mavi, kalın, aralıklı); sıra numarası yalnız ekran okuyucuda ("Gap 2"). Hafif iyileştirme: mavi kesik alt çizgi, açık zemin, küçük ok.
+- Hizalama: boşluk, kelime havuzu yuvası ve yerleşen kelime `inline-block` + `align-baseline` + `leading-normal` + `whitespace-nowrap` → metnin taban çizgisine oturur, ok `align-middle`.
+
+
+## 17 — Boşluk zemini şeffaf, yalnız dolu boşluk altı çizili (2026-10-06)
+
+- Eski tasarıma dönüş: boşluğun zemini hep şeffaf (boş/dolu/açık). Boş = yalnız "•••" + küçük ok, çizgi yok. Dolu = kelime boşluğu doldurur, metin altı çizili (`underline decoration-2 underline-offset-4`, koyu; liste açıkken mavi).
+- Kelime havuzu yuvası da şeffaf; yalnız sürüklerken / kelime seçiliyken bırakılacak yer hafif mavi yanar (nereye bırakılacağı belli olsun). Yerleşen kelime aynı altı çizili düz metin.

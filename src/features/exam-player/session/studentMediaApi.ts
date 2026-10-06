@@ -52,7 +52,7 @@ export async function uploadApplicationMedia(
     const message =
       body && typeof body === "object" && body !== null && "error" in body
         ? String((body as { error: string }).error)
-        : res.statusText || "Yükleme başarısız";
+        : res.statusText || "Upload failed";
     throw new Error(message);
   }
 

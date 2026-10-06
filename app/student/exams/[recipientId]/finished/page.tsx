@@ -1,28 +1,40 @@
 "use client";
 
+import { previewAssignment } from "@/src/features/exam-flow/api";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { sectionTone } from "@/src/features/student/status";
-import { KidButtonLink, StatusPill } from "@/src/features/student/ui";
-import { IconCheck, IconClock, IconHome } from "@/src/ui/icons";
+import { KidButton, KidButtonLink, StatusPill } from "@/src/features/student/ui";
+import { IconCheck, IconClock, IconHome, IconRefresh } from "@/src/ui/icons";
+import { useEffect, useState } from "react";
 
 export default function FinishedPage() {
-  const { state } = useExamFlow();
+  const { state, recipientId, startOver } = useExamFlow();
+  // Kalan giriş hakkı: varsa "Try again" ile yeni deneme (hoş geldin ekranı) açılır.
+  const [attempts, setAttempts] = useState<{ left: number; total: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    previewAssignment(recipientId)
+      .then((preview) => {
+        if (!cancelled) setAttempts({ left: preview.assignment.attemptsLeft, total: preview.assignment.attemptsTotal });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [recipientId]);
+
   if (!state) return null;
   const proctor = state.finishedReason === "PROCTOR_LIMIT";
   const timeUp = state.finishedReason === "EXAM_TIME_UP" || state.finishedReason === "WINDOW_CLOSED";
   const automatic = timeUp || proctor;
-  const title = proctor
-    ? "Sınav güvenlik nedeniyle bitti"
-    : timeUp
-      ? "Süre doldu"
-      : "Tebrikler, sınavını bitirdin!";
+  const title = proctor ? "Your test was stopped" : timeUp ? "Time is up" : "Well done! You finished the test!";
   const line = proctor
-    ? "Sınav ekranından çok kez ayrıldığın için sınavın otomatik olarak teslim edildi. Verdiğin cevaplar kaydedildi."
+    ? "You left the test screen too many times, so your test was sent. Your answers are saved."
     : state.finishedReason === "EXAM_TIME_UP"
-      ? "Süre bittiği için sınavın otomatik olarak teslim edildi. Verdiğin cevaplar kaydedildi."
+      ? "The time finished, so your test was sent. Your answers are saved."
       : state.finishedReason === "WINDOW_CLOSED"
-        ? "Sınavın açık olduğu zaman doldu. Verdiğin cevaplar kaydedildi."
-        : "Cevapların öğretmenine ulaştı. Sonuçların hazır olunca ana sayfanda göreceksin.";
+        ? "The test is now closed. Your answers are saved."
+        : "Your answers went to your teacher. You will see your results on your home page.";
 
   return (
     <section className="mx-auto max-w-2xl space-y-6 text-center">
@@ -42,17 +54,25 @@ export default function FinishedPage() {
             <li key={section.sectionId} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
               <span className="font-kid text-base font-bold text-neutral-900">{section.title}</span>
               <span className="flex items-center gap-3 text-neutral-600">
-                {section.questionCount} soru
+                {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}
                 <StatusPill tone={tone.tone}>{tone.label}</StatusPill>
               </span>
             </li>
           );
         })}
       </ul>
-      <KidButtonLink href="/student" size="lg">
-        <IconHome aria-hidden />
-        Ana sayfaya dön
-      </KidButtonLink>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <KidButtonLink href="/student" size="lg" variant={attempts?.left ? "soft" : "primary"}>
+          <IconHome aria-hidden />
+          Go to home page
+        </KidButtonLink>
+        {attempts?.left ? (
+          <KidButton size="lg" onClick={startOver}>
+            <IconRefresh aria-hidden />
+            Try again ({attempts.left} {attempts.left === 1 ? "try" : "tries"} left)
+          </KidButton>
+        ) : null}
+      </div>
     </section>
   );
 }

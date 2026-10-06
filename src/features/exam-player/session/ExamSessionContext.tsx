@@ -13,7 +13,8 @@ export type ExamSessionContextValue = {
   sessionToken: string;
   /** itemId = question_part.id */
   uploadMedia: (itemId: string, file: File, durationMs?: number | null) => Promise<ExamUploadResult>;
-  saveAnswer?: (itemId: string, answer: Record<string, unknown>) => void;
+  /** mediaId: cevabın bağlı olduğu yüklenen medya (API AnswerRequest.mediaId; konuşma/video/görsel cevapları). */
+  saveAnswer?: (itemId: string, answer: Record<string, unknown>, mediaId?: string | null) => void;
   /** Bu oturumda daha önce verilen cevap (soruya geri dönünce ekranda yeniden gösterilir). */
   getAnswer?: (itemId: string) => Record<string, unknown> | undefined;
 };

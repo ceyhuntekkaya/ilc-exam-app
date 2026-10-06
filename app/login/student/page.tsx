@@ -24,7 +24,7 @@ export default function StudentLoginPage() {
       });
       const payload = result.data;
       if (!payload.accessToken || !payload.userType) {
-        throw new Error("Beklenmeyen yanıt");
+        throw new Error("Unexpected response");
       }
       await establishSession(
         payload.accessToken,
@@ -32,12 +32,12 @@ export default function StudentLoginPage() {
         payload.refreshToken,
       );
     } catch {
-      setError("Giriş yapılamadı. Kullanıcı adını kontrol edip tekrar dene; olmazsa öğretmenine sor.");
+      setError("We could not log you in. Check your username and try again. If it does not work, ask your teacher.");
     }
   }
 
   return (
-    <div data-panel="student" className={`${studentFontClass} relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden bg-primary-600 px-4 py-10`}>
+    <div data-panel="student" lang="en" className={`${studentFontClass} relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden bg-primary-600 px-4 py-10`}>
       {/* Gökyüzü süsleri: güneş + bulutlar. */}
       <span aria-hidden className="absolute -top-16 -right-16 size-64 rounded-full bg-secondary-400" />
       <span aria-hidden className="absolute top-24 left-[8%] h-14 w-40 rounded-full bg-white/15" />
@@ -49,14 +49,14 @@ export default function StudentLoginPage() {
           <span aria-hidden className="grid size-10 place-items-center rounded-xl bg-white font-kid text-base font-bold text-primary-700 shadow-[0_3px_0_var(--color-primary-800)]">
             ILC
           </span>
-          <span className="font-kid text-xl font-bold">Sınavlarım</span>
+          <span className="font-kid text-xl font-bold">My tests</span>
         </div>
         <form onSubmit={onSubmit} className="rounded-4xl bg-white p-6 shadow-[0_8px_0_var(--color-primary-800)] sm:p-8">
-          <h1 className="text-2xl font-bold text-neutral-900">Hoş geldin!</h1>
-          <p className="mt-1 text-base text-neutral-700">Öğretmeninin verdiği kullanıcı adını yaz.</p>
+          <h1 className="text-2xl font-bold text-neutral-900">Welcome!</h1>
+          <p className="mt-1 text-base text-neutral-700">Write the username from your teacher.</p>
 
           <label htmlFor="username" className="mt-6 block text-base font-semibold text-neutral-900">
-            Kullanıcı adın
+            Your username
           </label>
           <div className="relative mt-2">
             <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-neutral-400" />
@@ -69,7 +69,7 @@ export default function StudentLoginPage() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              placeholder="ör. ayse.kaya"
+              placeholder="e.g. ayse.kaya"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               aria-invalid={error ? true : undefined}
@@ -86,14 +86,14 @@ export default function StudentLoginPage() {
           ) : null}
 
           <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${kidButtonClass({ size: "lg", full: true })} mt-6`}>
-            {loginMutation.isPending ? "Giriş yapılıyor…" : "Giriş yap"}
+            {loginMutation.isPending ? "Logging in…" : "Log in"}
             {loginMutation.isPending ? null : <IconArrowRight aria-hidden />}
           </button>
         </form>
         <p className="mt-6 text-center text-white">
-          Öğretmen ya da okul personeli misin?{" "}
+          Are you a teacher or school staff?{" "}
           <Link href="/login" className="font-semibold text-white underline underline-offset-4">
-            Personel girişi
+            Staff login
           </Link>
         </p>
       </div>

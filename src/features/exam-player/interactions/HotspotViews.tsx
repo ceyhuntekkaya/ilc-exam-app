@@ -1,11 +1,11 @@
 "use client";
 
-import { HtmlInline } from "@/src/features/exam-player/html";
-import { OptionContent } from "@/src/features/exam-player/interactions/OptionChip";
+import { IconCheck } from "@/src/ui/icons";
+import { OptionContent, OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
 import { MediaImageSlot } from "@/src/features/exam-player/media/MediaContext";
-import { dragPayload, dropPayload, usePickAndPlace } from "@/src/features/exam-player/dnd/usePickAndPlace";
-import { epChip } from "@/src/features/exam-player/styles";
-import type { OptionFormat, PlayerOption, Region, Shape } from "@/src/features/exam-player/types";
+import { DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+
+import { htmlOf, type OptionFormat, type PlayerOption, type Region, type Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useState, type CSSProperties, type MouseEvent } from "react";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
@@ -36,6 +36,25 @@ function shapeStyle(shape: Shape): CSSProperties {
     width: "100%",
     height: "100%",
     clipPath: `polygon(${pts})`,
+  };
+}
+
+/**
+ * Yerleştirme alanı kutusu: çokgen için sınırlayıcı dikdörtgen (clip-path ile tüm görseli kaplarsa
+ * sürükle-bırak çarpışması her yerde o alanı bulur). Dikdörtgen/elips shapeStyle ile aynı.
+ */
+function zoneBoxStyle(shape: Shape): CSSProperties {
+  if (shape.kind !== "POLYGON" || !shape.points.length) return shapeStyle(shape);
+  const xs = shape.points.map((p) => p.x);
+  const ys = shape.points.map((p) => p.y);
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  return {
+    left: `${left * 100}%`,
+    top: `${top * 100}%`,
+    width: `${(Math.max(...xs) - left) * 100}%`,
+    height: `${(Math.max(...ys) - top) * 100}%`,
+    borderRadius: "0.5rem",
   };
 }
 
@@ -110,47 +129,57 @@ export function HotspotSelectView({
     if (hit) toggleRegion(hit.id);
   }
 
+  // Bölgeler gizli olsa da öğrencinin seçtiği yer işaretli görünür (✓).
+  const visible = showRegions ? regions : regions.filter((r) => selected.includes(r.id));
+
   return (
     <div className="space-y-2">
       <div
-        className="relative mx-auto w-full max-w-xl cursor-crosshair overflow-hidden rounded-lg border border-exam-slate-200"
+        className="relative mx-auto w-full max-w-2xl cursor-pointer overflow-hidden rounded-xl border-2 border-exam-slate-200"
         onClick={onImageClick}
       >
-        <MediaImageSlot mediaId={mediaId} className="max-h-none rounded-none" />
-        {showRegions
-          ? regions.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                disabled={disabled}
-                aria-label={r.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleRegion(r.id);
-                }}
-                className={cn(
-                  "absolute border-2 transition",
-                  preview && correctIds.has(r.id)
-                    ? "border-emerald-500 bg-emerald-500/40"
-                    : selected.includes(r.id)
-                      ? "border-exam-sky-500 bg-exam-sky-500/35"
-                      : "border-white/80 bg-black/10 hover:bg-exam-sky-500/15",
-                )}
-                style={shapeStyle(r.shape)}
-              />
-            ))
-          : null}
+        <MediaImageSlot mediaId={mediaId} className="block w-full" />
+        {visible.map((r, index) => {
+          const isSelected = selected.includes(r.id);
+          const isCorrect = preview && correctIds.has(r.id);
+          return (
+            <button
+              key={r.id}
+              type="button"
+              disabled={disabled}
+              aria-pressed={isSelected}
+              aria-label={`${htmlOf(r.label) || `Place ${index + 1}`}${isSelected ? ", chosen" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleRegion(r.id);
+              }}
+              className={cn(
+                "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-exam-sky-200",
+                isCorrect
+                  ? "border-emerald-500 bg-emerald-500/35"
+                  : isSelected
+                    ? "border-exam-navy-600 bg-exam-sky-500/35"
+                    : "border-dashed border-white bg-black/10 hover:bg-exam-sky-500/20",
+              )}
+              style={shapeStyle(r.shape)}
+            >
+              {isSelected || isCorrect ? (
+                <span className="grid size-7 place-items-center rounded-full bg-exam-navy-700 text-white shadow" aria-hidden>
+                  <IconCheck className="size-4" strokeWidth={3} />
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
       {preview && correctIds.size > 0 ? (
-        <p className="text-center text-xs font-medium text-emerald-700">
-          Doğru bölgeler: {[...correctIds].join(", ")}
-        </p>
-      ) : selected.length ? (
-        <p className="text-center text-xs text-exam-slate-500">
-          Seçili: {selected.join(", ")}
-        </p>
+        <p className="text-center text-xs font-medium text-emerald-700">Doğru bölgeler: {[...correctIds].join(", ")}</p>
       ) : (
-        <p className="text-center text-xs text-exam-slate-500">Görsel üzerinde bölge seçin</p>
+        <p className="text-center text-sm font-semibold text-exam-slate-500" aria-live="polite">
+          {selected.length
+            ? `You chose ${selected.length} ${selected.length === 1 ? "place" : "places"}. Tap again to remove.`
+            : "Tap the correct place on the picture."}
+        </p>
       )}
     </div>
   );
@@ -174,107 +203,99 @@ export function HotspotPlaceView({
   const format = (interaction.draggableFormat as OptionFormat) || "TEXT";
   const draggables = (interaction.draggables as PlayerOption[]) || [];
   const capacity = interaction.zoneCapacity as number | null | undefined;
-  const correctZoneOf = preview
-    ? ((answerKey?.zoneOf as Record<string, string>) || {})
-    : {};
+  const tiles = format === "IMAGE" || format === "VIDEO";
+  const correctZoneOf = preview ? ((answerKey?.zoneOf as Record<string, string>) || {}) : {};
   const saved = useSavedAnswer(itemId, preview);
   const [zoneOf, setZoneOf] = useState<Record<string, string | null>>(() =>
     preview ? { ...correctZoneOf } : { ...((saved?.zoneOf as Record<string, string>) ?? {}) },
   );
   const [touched, setTouched] = useState(false);
   useAnswerSync(itemId, { zoneOf }, !preview && !disabled && touched);
-  const { pickedId, pick, clear } = usePickAndPlace();
 
   const unplaced = draggables.filter((d) => !zoneOf[d.id]);
+  const countIn = (zoneId: string) => Object.values(zoneOf).filter((z) => z === zoneId).length;
 
   function place(dragId: string, zoneId: string | null) {
     setTouched(true);
     setZoneOf((prev) => {
       if (zoneId && capacity != null) {
         const count = Object.values(prev).filter((z) => z === zoneId).length;
-        const already = prev[dragId] === zoneId;
-        if (!already && count >= capacity) return prev;
+        if (prev[dragId] !== zoneId && count >= capacity) return prev;
       }
       return { ...prev, [dragId]: zoneId };
     });
-    clear();
   }
 
   return (
-    <div className="space-y-4">
-      <div className="relative mx-auto w-full max-w-xl overflow-hidden rounded-lg border border-exam-slate-200">
-        <MediaImageSlot mediaId={mediaId} className="max-h-none rounded-none" />
-        {zones.map((z) => {
-          const members = draggables.filter((d) => zoneOf[d.id] === z.id);
-          return (
-            <div
-              key={z.id}
-              className={cn(
-                "absolute flex flex-wrap content-start gap-1 overflow-auto border-2 border-dashed p-1",
-                preview && members.some((m) => correctZoneOf[m.id] === z.id)
-                  ? "border-emerald-500 bg-emerald-500/25"
-                  : pickedId
-                    ? "border-exam-sky-400 bg-exam-sky-500/20"
-                    : "border-white/70 bg-black/5",
-              )}
-              style={shapeStyle(z.shape)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const id = dropPayload(e);
-                if (id) place(id, z.id);
-              }}
-              onClick={() => {
-                if (pickedId) place(pickedId, z.id);
-              }}
-            >
-              {members.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  disabled={disabled}
-                  draggable={!disabled}
-                  onDragStart={(e) => {
-                    e.stopPropagation();
-                    dragPayload(e, m.id);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    pick(m.id);
-                  }}
-                  className="rounded bg-white/95 px-1.5 py-0.5 text-xs shadow"
-                >
-                  <OptionContent option={m} format={format} />
-                </button>
-              ))}
-              {!members.length ? (
-                <span className="text-[10px] text-white drop-shadow">
-                  <HtmlInline value={z.label} fallback={z.id} />
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+    <PlaceBoard
+      disabled={disabled}
+      onPlace={place}
+      overlay={(id) => {
+        const d = draggables.find((x) => x.id === id);
+        return d ? <OptionContent option={d} format={format} size="sm" /> : null;
+      }}
+    >
+      <div className="@container space-y-4">
+        <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-xl border-2 border-exam-slate-200">
+          <MediaImageSlot mediaId={mediaId} className="block w-full" />
+          {zones.map((z, index) => {
+            const members = draggables.filter((d) => zoneOf[d.id] === z.id);
+            return (
+              <DropZone
+                key={z.id}
+                id={z.id}
+                full={capacity != null && countIn(z.id) >= capacity}
+                filled={members.length > 0}
+                label={htmlOf(z.label) || `place ${index + 1}`}
+                variant="overlay"
+                correct={!!preview && members.some((m) => correctZoneOf[m.id] === z.id)}
+                style={zoneBoxStyle(z.shape)}
+                className={
+                  tiles && members.length
+                    ? // Görsel parça alanı tamamen kaplar (puzzle); birden fazla parça yan yana paylaşır. Elips alanda köşeler kırpılır.
+                      "absolute grid grid-flow-col auto-cols-fr overflow-hidden p-0"
+                    : "absolute flex flex-wrap content-center items-center justify-center gap-1 overflow-visible p-1"
+                }
+              >
+                {members.map((m) =>
+                  tiles ? (
+                    <DragItem key={m.id} id={m.id} placed fill zone={z.id} label={htmlOf(m.text) || "Card"} className="size-full">
+                      <OptionContent option={m} format={format} size="fill" />
+                    </DragItem>
+                  ) : (
+                    <DragItem key={m.id} id={m.id} placed zone={z.id} label={htmlOf(m.text) || "Card"} compact className="max-w-full">
+                      <OptionContent option={m} format={format} size="sm" />
+                    </DragItem>
+                  ),
+                )}
+                {!members.length ? (
+                  <span className="grid size-6 place-items-center rounded-full bg-exam-sky-600 text-xs font-bold text-white shadow" aria-hidden>
+                    {index + 1}
+                  </span>
+                ) : null}
+              </DropZone>
+            );
+          })}
+        </div>
 
-      <div className="flex flex-wrap gap-2 rounded-lg border border-exam-slate-200 bg-exam-slate-50 p-3">
-        <p className="w-full text-xs font-medium text-exam-slate-500">Sürüklenebilir öğeler</p>
-        {unplaced.map((d) => (
-          <button
-            key={d.id}
-            type="button"
-            disabled={disabled}
-            draggable={!disabled}
-            onDragStart={(e) => dragPayload(e, d.id)}
-            onClick={() => pick(d.id)}
-            className={cn(epChip.base, pickedId === d.id ? epChip.picked : epChip.idle)}
-          >
-            <OptionContent option={d} format={format} />
-          </button>
-        ))}
-        {!unplaced.length ? (
-          <span className="text-xs text-exam-slate-400">Hepsi yerleştirildi</span>
-        ) : null}
+        <DragPool
+          hint="Drag each card to the correct place on the picture. Or tap a card, then tap a place."
+          pickedHint="Now tap a place on the picture."
+          isEmpty={unplaced.length === 0}
+          listClassName={poolListClass(format)}
+          footer={
+            unplaced.length < draggables.length ? (
+              <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+                <StartOver disabled={disabled} onReset={() => { setTouched(true); setZoneOf({}); }} />
+              </div>
+            ) : null
+          }
+        >
+          {unplaced.map((d) => (
+            <OptionDragItem key={d.id} id={d.id} option={d} format={format} label={htmlOf(d.text) || "Card"} />
+          ))}
+        </DragPool>
       </div>
-    </div>
+    </PlaceBoard>
   );
 }

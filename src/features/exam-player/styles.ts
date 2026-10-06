@@ -14,23 +14,11 @@ export const epOption = {
   markerCorrect: "bg-emerald-600 text-white",
 } as const;
 
-export const epChip = {
-  base: "min-h-11 rounded-lg border px-3 py-2 text-sm transition-all duration-150",
-  idle: "border-exam-slate-200 bg-white text-exam-slate-700 hover:border-exam-navy-200 hover:bg-exam-navy-50/60",
-  picked: "border-exam-sky-400 bg-exam-sky-50 text-exam-sky-800 ring-2 ring-exam-sky-200",
-} as const;
-
-export const epDrop = {
-  idle: "rounded-lg border-2 border-dashed border-exam-slate-200 bg-exam-slate-50",
-  ready: "rounded-lg border-2 border-dashed border-exam-sky-300 bg-exam-sky-50",
-  filled: "rounded-lg border-2 border-dashed border-exam-navy-300 bg-exam-navy-50",
-} as const;
-
 export const epInput =
-  "rounded-lg border border-exam-slate-200 bg-white px-4 py-3 text-sm text-exam-slate-800 outline-none focus:border-exam-sky-400 focus:ring-2 focus:ring-exam-sky-100";
+  "rounded-lg border border-exam-slate-200 bg-white px-4 py-3 text-exam-slate-800 outline-none focus:border-exam-sky-400 focus:ring-2 focus:ring-exam-sky-100";
 
 export const epBlankInline =
-  "inline-block min-h-8 min-w-[5rem] max-w-[12.5rem] border-0 border-b border-exam-slate-300 bg-transparent px-0 py-0.5 text-sm font-bold text-exam-slate-800 outline-none focus:border-exam-slate-500";
+  "inline-block h-9 max-w-full rounded-t-md border-0 border-b-2 px-1.5 align-baseline text-[length:inherit] font-semibold outline-none transition-colors placeholder:text-sm placeholder:font-normal placeholder:text-exam-sky-600/70 focus:border-solid focus:border-exam-sky-600 focus:bg-exam-sky-100 disabled:opacity-60";
 
 export const epSelect =
   "w-full min-h-11 rounded-lg border border-exam-slate-200 bg-white px-3 py-2 text-sm text-exam-slate-700 outline-none focus:border-exam-sky-400 focus:ring-2 focus:ring-exam-sky-100";
@@ -39,9 +27,6 @@ export const epCard = "rounded-lg border border-exam-slate-200 bg-white";
 
 export const epInstructionBanner =
   "rounded border border-dashed border-exam-sky-750 bg-exam-sky-100 px-4 py-3 text-lg leading-snug text-exam-sky-750";
-
-export const epCta =
-  "rounded bg-exam-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-exam-sky-700 disabled:pointer-events-none disabled:opacity-50";
 
 export const epRecordStart =
   "rounded-full bg-exam-gold-400 px-6 py-3 text-sm font-bold text-exam-navy-900 hover:brightness-95 disabled:opacity-50";

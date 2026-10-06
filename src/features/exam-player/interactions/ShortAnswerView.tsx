@@ -35,6 +35,10 @@ export function ShortAnswerView({
   const limitMode = (interaction.limitMode as string) || "HARD";
   const textHtml = htmlOf(interaction.text as HtmlValue);
   const segments = useMemo(() => splitBlankHtml(textHtml), [textHtml]);
+  const gapNumbers = useMemo(() => {
+    let n = 0;
+    return segments.map((seg) => (seg.kind === "blank" ? ++n : 0));
+  }, [segments]);
   const accepted = useMemo(() => {
     if (!preview) return {} as Record<string, string[]>;
     return (answerKey?.acceptedAnswers as Record<string, string[]>) || {};
@@ -70,7 +74,7 @@ export function ShortAnswerView({
     return s.trim() ? s.trim().split(/\s+/).length : 0;
   }
 
-  const renderBlank = (id: string, key?: string | number) => {
+  const renderBlank = (id: string, gapNo: number, key?: string | number) => {
     const meta = blankMap.get(id);
     const value = answers[id] ?? "";
     const words = wordCount(value);
@@ -81,24 +85,34 @@ export function ShortAnswerView({
     const hasAccepted = preview && (accepted[id]?.length ?? 0) > 0;
 
     return (
-      <span key={key ?? id} className="mx-1 inline-flex flex-col align-baseline">
+      <span key={key ?? id} className="mx-0.5 inline-flex flex-col align-middle leading-tight">
         <input
           type="text"
           disabled={disabled}
           value={value}
+          autoComplete="off"
+          autoCapitalize="off"
           maxLength={limitMode === "HARD" && meta?.maxChars != null ? meta.maxChars : undefined}
           onChange={(e) => setBlank(id, e.target.value, meta)}
+          placeholder="Write here"
+          // Genişlik yazılana göre büyür (en az 8, en çok 24 karakter).
+          style={{ width: `${Math.min(24, Math.max(8, value.length + 2))}ch` }}
           className={cn(
             epBlankInline,
-            softWarn && "border-rose-400 text-rose-700",
-            hasAccepted && "border-emerald-500 text-emerald-800",
+            hasAccepted
+              ? "border-solid border-emerald-500 bg-emerald-50 text-emerald-800"
+              : softWarn
+                ? "border-solid border-rose-500 bg-rose-50 text-rose-700"
+                : value
+                  ? "border-solid border-exam-navy-500 bg-transparent text-exam-navy-900"
+                  : "border-dashed border-exam-sky-400 bg-exam-sky-50 text-exam-navy-900",
           )}
-          aria-label={`Boşluk ${id}`}
+          aria-label={`Gap ${gapNo}`}
         />
         {meta?.maxWords != null || meta?.minWords != null ? (
-          <span className="text-[10px] text-exam-slate-500">
+          <span className={cn("mt-0.5 text-[11px] font-semibold", softWarn ? "text-rose-600" : "text-exam-slate-500")}>
             {words}
-            {meta.maxWords != null ? ` / ${meta.maxWords}` : ""} kelime
+            {meta.maxWords != null ? ` / ${meta.maxWords}` : ""} {words === 1 ? "word" : "words"}
           </span>
         ) : null}
       </span>
@@ -128,8 +142,8 @@ export function ShortAnswerView({
         ) : null}
         {blanks.map((b) => (
           <label key={b.blankId} className="block space-y-1">
-            <span className="text-xs text-exam-slate-500">{b.blankId}</span>
-            {renderBlank(b.blankId)}
+            <span className="text-sm font-semibold text-exam-slate-500">Answer {blanks.indexOf(b) + 1}</span>
+            {renderBlank(b.blankId, blanks.indexOf(b) + 1)}
           </label>
         ))}
         {acceptedBanner}
@@ -139,12 +153,12 @@ export function ShortAnswerView({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-exam-slate-200 bg-white px-4 py-3 text-sm leading-loose text-exam-slate-800">
+      <div className="text-base leading-[2.4] text-exam-slate-800">
         {segments.map((seg, i) =>
           seg.kind === "text" ? (
             <span key={i} className="prose-section" dangerouslySetInnerHTML={{ __html: seg.html }} />
           ) : (
-            renderBlank(seg.id, i)
+            renderBlank(seg.id, gapNumbers[i], i)
           ),
         )}
       </div>

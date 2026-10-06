@@ -116,7 +116,7 @@ export function InteractionRenderer({
     default:
       return (
         <p className="text-sm italic text-exam-slate-400">
-          Bilinmeyen şablon: <code>{type}</code>
+          Unknown question type: <code>{type}</code>
         </p>
       );
   }

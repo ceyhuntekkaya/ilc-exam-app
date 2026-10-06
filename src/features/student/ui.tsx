@@ -104,7 +104,7 @@ export function InfoTile({ icon, label, value, tone = "sky" }: { icon: ReactNode
   );
 }
 
-export function KidLoading({ label = "Yükleniyor…", rows = 2 }: { label?: string; rows?: number }) {
+export function KidLoading({ label = "Loading…", rows = 2 }: { label?: string; rows?: number }) {
   return (
     <div role="status" aria-live="polite" className="space-y-3">
       <span className="sr-only">{label}</span>
@@ -119,7 +119,7 @@ export function KidLoading({ label = "Yükleniyor…", rows = 2 }: { label?: str
   );
 }
 
-export function KidError({ title = "Bir sorun oldu", message, onRetry, retryLabel = "Tekrar dene" }: { title?: string; message: string; onRetry?: () => void; retryLabel?: string }) {
+export function KidError({ title = "Something went wrong", message, onRetry, retryLabel = "Try again" }: { title?: string; message: string; onRetry?: () => void; retryLabel?: string }) {
   return (
     <div role="alert" className="flex flex-col gap-4 rounded-3xl bg-(--kid-coral-bg) p-5 sm:flex-row sm:items-center">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white text-(--kid-coral) [&>svg]:size-5">
@@ -157,8 +157,8 @@ export function KidDialog({
   title,
   body,
   confirmLabel,
-  cancelLabel = "Vazgeç",
-  busyLabel = "Bekle…",
+  cancelLabel = "Cancel",
+  busyLabel = "Please wait…",
   tone = "primary",
   icon,
   busy = false,

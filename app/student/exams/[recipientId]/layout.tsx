@@ -31,22 +31,22 @@ function FlowChrome({ children }: { children: ReactNode }) {
         <span className="mx-auto grid size-12 place-items-center rounded-xl bg-(--kid-sun-bg) text-(--kid-sun) [&>svg]:size-6">
           <IconMonitor aria-hidden />
         </span>
-        <h1 className="mt-4 text-xl font-bold text-neutral-900">Bu sınav başka bir yerde açık</h1>
+        <h1 className="mt-4 text-xl font-bold text-neutral-900">This test is open on another screen</h1>
         <p className="mt-2 text-base text-neutral-700">
-          Sınavın başka bir sekmede ya da cihazda açık görünüyor. Burada devam edersen öteki ekran kapanır.
+          Your test is open in another tab or on another device. If you continue here, the other screen will close.
         </p>
         <KidButton size="lg" className="mt-6" onClick={() => void takeOver()}>
-          Burada devam et
+          Continue here
         </KidButton>
       </section>,
     );
   }
   const target = state ? stageHref(recipientId, state.stage, state.currentSectionId) : `/student/exams/${recipientId}`;
   if (loading || pathname !== target) {
-    return wrap(<KidLoading label="Sınavın hazırlanıyor…" />);
+    return wrap(<KidLoading label="Getting your test ready…" />);
   }
   if (error) {
-    return wrap(<KidError title="Sınav açılamadı" message={error} onRetry={reload} />);
+    return wrap(<KidError title="The test did not open" message={error} onRetry={reload} />);
   }
   if (inQuestion) return children;
   return (
@@ -62,16 +62,16 @@ function ExamSteps() {
   const { state } = useExamFlow();
   const needsCheck = Boolean(state?.requiresMicrophone || state?.requiresCamera);
   const steps: { key: string; label: string; short?: string }[] = [
-    { key: "WELCOME", label: "Hazırlık" },
-    ...(needsCheck ? [{ key: "DEVICE_CHECK", label: "Cihaz kontrolü", short: "Cihaz" }] : []),
-    { key: "SECTION_LIST", label: "Bölümler" },
-    { key: "FINISHED", label: "Bitti" },
+    { key: "WELCOME", label: "Get ready" },
+    ...(needsCheck ? [{ key: "DEVICE_CHECK", label: "Device check", short: "Device" }] : []),
+    { key: "SECTION_LIST", label: "Parts" },
+    { key: "FINISHED", label: "Done" },
   ];
   const stage = state?.stage === "IN_SECTION" ? "SECTION_LIST" : state?.stage ?? "WELCOME";
   const current = Math.max(0, steps.findIndex((step) => step.key === stage));
 
   return (
-    <nav aria-label="Sınav adımları" className="rounded-xl bg-white px-3 ring-1 ring-neutral-200 sm:px-4">
+    <nav aria-label="Test steps" className="rounded-xl bg-white px-3 ring-1 ring-neutral-200 sm:px-4">
       {/* Tek satır, ~44px: [● Hazırlık] ——— [● Bölümler] ——— [● Bitti]. Çizgiler ayrı esnek öğe; konumlandırma yok, üst üste binmez. */}
       <ol className="flex h-11 items-center">
         {steps.map((step, index) => {
@@ -110,7 +110,7 @@ class ExamErrorBoundary extends Component<{ children: ReactNode }, { message: st
   state = { message: null as string | null };
 
   static getDerivedStateFromError(error: Error) {
-    return { message: error.message || "Beklenmeyen bir hata oluştu" };
+    return { message: error.message || "Something went wrong" };
   }
 
   render() {
@@ -129,10 +129,10 @@ function CrashNotice() {
   return (
     <div className={inQuestion ? "student-container py-6" : undefined}>
       <KidError
-        title="Sayfanın yenilenmesi gerekiyor"
-        message="Sayfayı yenileyince sınavına kaldığın yerden devam edebilirsin."
+        title="Please refresh the page"
+        message="After you refresh, you can continue your test from where you stopped."
         onRetry={() => window.location.reload()}
-        retryLabel="Sayfayı yenile"
+        retryLabel="Refresh the page"
       />
     </div>
   );

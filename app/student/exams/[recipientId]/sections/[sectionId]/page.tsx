@@ -6,11 +6,12 @@ import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
 import { QuestionView } from "@/src/features/exam-player";
 import { LiveExamSessionProvider } from "@/src/features/exam-player/session/LiveExamSessionProvider";
+import { resetPlayerGuard, saveAllUnsaved, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
 import { readSession } from "@/src/features/exam-flow/session";
 import { KidButton, KidDialog, KidLoading, KidNotice } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
-import { IconArrowLeft, IconArrowRight, IconClock, IconFlag, IconPause } from "@/src/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconFlag, IconPause, IconVolume } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,8 +25,11 @@ export default function SectionQuestionPage() {
   const clock = state?.clock ?? null;
   const examOnlyClock = useMemo(() => (clock ? { ...clock, sectionRemainingMs: null } : null), [clock]);
   const examLeft = useExamClock(held, examOnlyClock);
-  const elapsedApp = readSession(params.recipientId)?.applicationId;
-  const elapsed = useElapsed(held, elapsedApp ? `${elapsedApp}:${params.sectionId}` : null);
+  // Ses/video çalarken geçiş kilitli; kaydedilmemiş yazı varken geçişte sorulur.
+  const guard = usePlayerGuard();
+  const mediaBusy = guard.activeMedia != null;
+  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
+  useEffect(() => () => resetPlayerGuard(), []);
   const [items, setItems] = useState<Item[]>([]);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +70,8 @@ export default function SectionQuestionPage() {
     if (Date.now() - zeroSentAt.current < 5000) return;
     const current = readSession(params.recipientId);
     if (!current) return;
+    // Süre bitti: kaydedilmemiş yazı kaybolmasın.
+    saveAllUnsaved();
     zeroSentAt.current = Date.now();
     postState(`/applications/${current.applicationId}/heartbeat`, current.sessionToken, { events: [] })
       .then(applyState)
@@ -119,9 +125,19 @@ export default function SectionQuestionPage() {
   }
   const answered = isAnswered(item);
   const last = index >= items.length - 1;
-  const canNext = section.allowSkip || answered || last;
+  const canNext = !mediaBusy && (section.allowSkip || answered || last);
+  /** Geçiş: medya çalarken yok; kaydedilmemiş yazı varsa önce sor. */
+  function go(action: () => void) {
+    if (mediaBusy) return;
+    if (guard.unsaved.size) {
+      setPendingNav(() => action);
+      return;
+    }
+    action();
+  }
+  const goTo = (target: number) => go(() => setIndex(Math.max(0, Math.min(items.length - 1, target))));
   const unanswered = items.filter((entry) => !isAnswered(entry)).length;
-  const canJump = (target: number) => target !== index && (target < index ? section.allowBack : section.allowSkip);
+  const canJump = (target: number) => !mediaBusy && target !== index && (target < index ? section.allowBack : section.allowSkip);
 
   const warnMs = (state.clock.timeWarningSeconds ?? 300) * 1000;
   const timeTone = remaining == null ? "calm" : remaining <= 60_000 ? "critical" : remaining <= warnMs ? "warn" : "calm";
@@ -159,27 +175,31 @@ export default function SectionQuestionPage() {
                   Test {formatClock(examLeft)}
                 </p>
               ) : null}
-              <p
-                className={cn(
-                  "numeric flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold [&>svg]:size-4",
-                  timeTone === "calm" && "bg-primary-50 text-primary-800",
-                  timeTone === "warn" && "bg-(--kid-sun-bg) text-(--kid-sun)",
-                  timeTone === "critical" && "bg-(--kid-coral-bg) text-(--kid-coral) ring-1 ring-(--kid-coral)",
-                )}
-                role="timer"
-                aria-label={remaining != null ? `Time left ${formatClock(remaining)}` : `Time spent ${formatClock(elapsed)}`}
-              >
-                <IconClock aria-hidden />
-                <span className="hidden text-xs font-semibold opacity-80 sm:inline">{remaining != null ? "Time left" : "Time"}</span>
-                {formatClock(remaining ?? elapsed)}
-                {timeTone !== "calm" ? <span className="hidden font-semibold sm:inline">· hurry up</span> : null}
-              </p>
+              {/* Süre sınırı varsa geri sayım; yoksa sayaç hiç gösterilmez (çocuk acele etmesin). */}
+              {remaining != null ? (
+                <p
+                  className={cn(
+                    "numeric flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold [&>svg]:size-4",
+                    timeTone === "calm" && "bg-primary-50 text-primary-800",
+                    timeTone === "warn" && "bg-(--kid-sun-bg) text-(--kid-sun)",
+                    timeTone === "critical" && "bg-(--kid-coral-bg) text-(--kid-coral) ring-1 ring-(--kid-coral)",
+                  )}
+                  role="timer"
+                  aria-label={`Time left ${formatClock(remaining)}`}
+                >
+                  <IconClock aria-hidden />
+                  <span className="hidden text-xs font-semibold opacity-80 sm:inline">Time left</span>
+                  {formatClock(remaining)}
+                  {timeTone !== "calm" ? <span className="hidden font-semibold sm:inline">· hurry up</span> : null}
+                </p>
+              ) : null}
               {section.allowReturnAfterLeave ? (
                 <button
                   type="button"
-                  onClick={() => setConfirm("leave")}
+                  onClick={() => go(() => setConfirm("leave"))}
+                  disabled={mediaBusy}
                   aria-label="Take a break"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 [&>svg]:size-4"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 [&>svg]:size-4"
                 >
                   <IconPause aria-hidden />
                   <span className="hidden sm:inline">Break</span>
@@ -206,7 +226,7 @@ export default function SectionQuestionPage() {
           {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
           <div className={cn("w-full overflow-hidden rounded-lg border border-exam-slate-200 bg-white shadow-sm", held && "pointer-events-none blur-sm")}>
             <div className="px-4 py-4 sm:px-6">
-              {model ? <QuestionView model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+              {model ? <QuestionView key={item?.examQuestionId ?? index} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
             </div>
           </div>
           {error ? <div className="mt-3"><KidNotice tone="coral">{error}</KidNotice></div> : null}
@@ -214,12 +234,21 @@ export default function SectionQuestionPage() {
 
         {/* Alt çubuk: solda Önceki, ortada soru takibi, sağda Sonraki / Bitir. */}
         <footer className="pb-safe sticky bottom-0 z-30 border-t border-neutral-200 bg-white/95 pt-2 backdrop-blur">
-          {!canNext ? <p className="student-container pb-1.5 text-center text-xs font-semibold text-(--kid-sun)">Answer this question to continue.</p> : null}
+          {mediaBusy ? (
+            <p className="student-container flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-primary-700 [&>svg]:size-4" aria-live="polite">
+              <IconVolume aria-hidden />
+              Please wait. Finish listening, watching or recording first.
+            </p>
+          ) : !canNext ? (
+            <p className="student-container pb-1.5 text-center text-xs font-semibold text-(--kid-sun)">
+              {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
+            </p>
+          ) : null}
           <div className="student-container flex items-center gap-2 sm:gap-3">
             <KidButton
               variant="soft"
-              disabled={!section.allowBack || index === 0}
-              onClick={() => setIndex((value) => Math.max(0, value - 1))}
+              disabled={!section.allowBack || index === 0 || mediaBusy}
+              onClick={() => goTo(index - 1)}
               className={cn(FOOTER_BTN, FOOTER_ICON, "shadow-[0_3px_0_var(--color-primary-200)]", !section.allowBack && "invisible")}
               aria-label="Previous question"
             >
@@ -237,7 +266,7 @@ export default function SectionQuestionPage() {
                       <button
                         type="button"
                         disabled={!canJump(position)}
-                        onClick={() => setIndex(position)}
+                        onClick={() => goTo(position)}
                         aria-current={current ? "step" : undefined}
                         aria-label={`Question ${position + 1}${done ? ", answered" : ", not answered"}`}
                         className={cn(
@@ -257,12 +286,12 @@ export default function SectionQuestionPage() {
             </nav>
 
             {last ? (
-              <KidButton variant="sun" className={cn(FOOTER_BTN, "px-3!")} onClick={() => setConfirm("complete")} disabled={!items.length} aria-label="Finish section">
+              <KidButton variant="sun" className={cn(FOOTER_BTN, "px-3!")} onClick={() => go(() => setConfirm("complete"))} disabled={!items.length || mediaBusy} aria-label="Finish section">
                 <IconFlag aria-hidden />
                 <span>Finish</span>
               </KidButton>
             ) : (
-              <KidButton className={cn(FOOTER_BTN, FOOTER_ICON)} disabled={!canNext} onClick={() => setIndex((value) => Math.min(items.length - 1, value + 1))} aria-label="Next question">
+              <KidButton className={cn(FOOTER_BTN, FOOTER_ICON)} disabled={!canNext} onClick={() => goTo(index + 1)} aria-label="Next question">
                 <span className="hidden sm:inline">Next</span>
                 <IconArrowRight aria-hidden />
               </KidButton>
@@ -275,12 +304,12 @@ export default function SectionQuestionPage() {
           <div className="pointer-events-none fixed inset-x-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
             <div className="student-container flex items-center justify-between">
             {section.allowBack ? (
-              <SideNav side="left" label="Back" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))} />
+              <SideNav side="left" label="Back" disabled={index === 0 || mediaBusy} onClick={() => goTo(index - 1)} />
             ) : null}
             {last ? (
-              <SideNav side="right" label="Finish" tone="sun" onClick={() => setConfirm("complete")} />
+              <SideNav side="right" label="Finish" tone="sun" disabled={mediaBusy} onClick={() => go(() => setConfirm("complete"))} />
             ) : (
-              <SideNav side="right" label="Next" disabled={!canNext} onClick={() => setIndex((value) => Math.min(items.length - 1, value + 1))} />
+              <SideNav side="right" label="Next" disabled={!canNext} onClick={() => goTo(index + 1)} />
             )}
               {section.allowBack ? null : <span />}
             </div>
@@ -288,6 +317,23 @@ export default function SectionQuestionPage() {
         ) : null}
 
         <ReconnectOverlay show={held} />
+        {pendingNav ? (
+          <KidDialog
+            title="Save your answer?"
+            icon={<IconCheck />}
+            tone="sun"
+            body="You wrote something new but you did not save it. Save it before you go."
+            confirmLabel="Save and go"
+            cancelLabel="Stay here"
+            onConfirm={() => {
+              saveAllUnsaved();
+              const next = pendingNav;
+              setPendingNav(null);
+              next();
+            }}
+            onCancel={() => setPendingNav(null)}
+          />
+        ) : null}
         {confirm === "complete" ? (
           <KidDialog
             title="Finish this section?"
@@ -322,43 +368,6 @@ export default function SectionQuestionPage() {
       </div>
     </LiveExamSessionProvider>
   );
-}
-
-/** Süre sınırı olmayan bölümde "geçen süre" (bağlantı beklenirken durur). */
-/**
- * Süre sınırı olmayan bölümde "geçen süre". Backend saatinde geçen süre alanı yok; bu yüzden sekme oturumunda
- * (sessionStorage, uygulama + bölüm anahtarı) tutulur: sayfa yenilenince sıfırlanmaz, bağlantı beklenirken durur.
- */
-function useElapsed(held: boolean, key: string | null) {
-  const storageKey = key ? `ilc-elapsed:${key}` : null;
-  const [elapsed, setElapsed] = useState(() => readElapsed(storageKey));
-  useEffect(() => {
-    if (held) return;
-    const timer = window.setInterval(() => {
-      setElapsed((value) => {
-        const next = value + 1000;
-        if (storageKey) {
-          try {
-            sessionStorage.setItem(storageKey, String(next));
-          } catch {
-            // depolama kapalıysa sayaç yalnız bu sayfa açıkken sayar
-          }
-        }
-        return next;
-      });
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [held, storageKey]);
-  return elapsed;
-}
-
-function readElapsed(storageKey: string | null) {
-  if (!storageKey || typeof window === "undefined") return 0;
-  try {
-    return Number(sessionStorage.getItem(storageKey)) || 0;
-  } catch {
-    return 0;
-  }
 }
 
 /** Kenar gezinme düğmesi (lg+): yuvarlak ok + altında etiket, sayfa ortasında sabit. */

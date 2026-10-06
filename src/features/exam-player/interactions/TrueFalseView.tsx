@@ -4,6 +4,7 @@ import { HtmlInline } from "@/src/features/exam-player/html";
 import { epOption } from "@/src/features/exam-player/styles";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
+import { IconCheck } from "@/src/ui/icons";
 import { useMemo, useState } from "react";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
@@ -93,15 +94,21 @@ export function TrueFalseView({
                     key={c.value}
                     type="button"
                     disabled={disabled}
+                    aria-pressed={active}
                     onClick={() => {
                       setTouched(true);
                       setAnswers((prev) => ({ ...prev, [s.id]: c.value }));
                     }}
                     className={cn(
-                      "min-h-11 min-w-[5.5rem] rounded-lg border px-3 py-2 text-sm transition-all duration-150",
-                      isCorrect ? epOption.correct : active ? epOption.selected : epOption.idle,
+                      "inline-flex min-h-11 min-w-[6rem] items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-[15px] font-semibold transition-all duration-150",
+                      isCorrect
+                        ? epOption.correct
+                        : active
+                          ? "border-exam-navy-500 bg-exam-navy-50 text-exam-navy-900 shadow-[0_0_0_3px_var(--color-exam-navy-100)]"
+                          : epOption.idle,
                     )}
                   >
+                    {active ? <IconCheck className="size-4" strokeWidth={3} aria-hidden /> : null}
                     {htmlOf(c.label) ? (
                       <span dangerouslySetInnerHTML={{ __html: htmlOf(c.label) }} />
                     ) : (

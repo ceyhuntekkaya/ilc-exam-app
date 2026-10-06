@@ -12,7 +12,7 @@ import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconLayers, IconQue
 import { RichText } from "@/src/ui/composites/RichText";
 import { useCallback, useEffect, useState } from "react";
 
-const STATEMENT = "Yönergeyi okudum ve sınav kurallarını kabul ediyorum.";
+const STATEMENT = "I read the instructions. I agree to the test rules.";
 
 export default function ExamWelcomePage() {
   const { recipientId, state, applyState } = useExamFlow();
@@ -25,7 +25,7 @@ export default function ExamWelcomePage() {
   const fetchPreview = useCallback(() => {
     previewAssignment(recipientId)
       .then(setPreview)
-      .catch((err: unknown) => setLoadError(err instanceof ExamApiError ? err.message : "Sınav bilgisi alınamadı"));
+      .catch((err: unknown) => setLoadError(err instanceof ExamApiError ? err.message : "We could not load the test."));
   }, [recipientId]);
 
   useEffect(() => {
@@ -52,51 +52,53 @@ export default function ExamWelcomePage() {
       writeSession(recipientId, { applicationId: started.applicationId, sessionToken: started.sessionToken });
       applyState(started.state);
     } catch (err) {
-      setError(err instanceof ExamApiError ? err.message : "Sınav başlatılamadı");
+      setError(err instanceof ExamApiError ? err.message : "The test did not start. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
-  if (loadError) return <KidError title="Sınav bilgisi alınamadı" message={loadError} onRetry={retry} />;
-  if (!preview) return <KidLoading label="Sınav bilgisi yükleniyor…" />;
+  if (loadError) return <KidError title="We could not load the test" message={loadError} onRetry={retry} />;
+  if (!preview) return <KidLoading label="Loading the test…" />;
 
   const card = preview.assignment;
-  const acceptedAt = state?.acknowledgementAt ?? preview.acknowledgementAt;
+  // Onay yalnız süren denemeye aittir; yeni denemede (state yok) kutu yeniden işaretlenir.
+  const acceptedAt = state ? (state.acknowledgementAt ?? preview.acknowledgementAt) : null;
+  const isRetry = card.attemptsUsed > 0;
   const questionCount = preview.sections.reduce((sum, section) => sum + section.questionCount, 0) || card.questionCount;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
       <div className="space-y-6">
         <header>
-          <p className="font-semibold text-primary-700">Sınava hazırlan</p>
+          <p className="font-semibold text-primary-700">{isRetry ? `Try ${card.attemptsUsed + 1} of ${card.attemptsTotal}` : "Get ready for the test"}</p>
           <h1 className="mt-1 text-2xl font-bold text-neutral-900">{card.examTitle}</h1>
           {card.availableUntil ? (
             <p className="mt-2 flex items-center gap-1.5 text-neutral-600 [&>svg]:size-4">
               <IconCalendar aria-hidden />
-              {friendlyWhen(card.availableUntil)} saatine kadar açık
+              Open until {friendlyWhen(card.availableUntil)}
             </p>
           ) : null}
         </header>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <InfoTile icon={<IconClock />} label="Süre" value={card.timingMode === "UNTIMED" ? "Süresiz" : formatDuration(card.durationSeconds)} />
-          <InfoTile icon={<IconLayers />} label="Bölüm" value={preview.sections.length || card.sectionCount} tone="grape" />
-          <InfoTile icon={<IconQuestion />} label="Soru" value={questionCount} tone="sun" />
+          <InfoTile icon={<IconClock />} label="Time" value={card.timingMode === "UNTIMED" ? "No limit" : formatDuration(card.durationSeconds)} />
+          <InfoTile icon={<IconLayers />} label="Parts" value={preview.sections.length || card.sectionCount} tone="grape" />
+          <InfoTile icon={<IconQuestion />} label="Questions" value={questionCount} tone="sun" />
         </div>
 
         <KidCard>
-          <h2 className="text-base font-bold text-neutral-900">Yönerge</h2>
+          <h2 className="text-base font-bold text-neutral-900">Instructions</h2>
           {preview.welcomeHtml ? (
             <RichText value={preview.welcomeHtml} className="mt-3 text-base leading-relaxed text-neutral-800" />
           ) : (
-            <p className="mt-3 text-base text-neutral-700">Soruları dikkatlice oku ve sana en doğru gelen cevabı seç. Başarılar!</p>
+            <p className="mt-3 text-base text-neutral-700">Read each question carefully and choose the best answer. Good luck!</p>
           )}
         </KidCard>
 
         {preview.sections.length ? (
           <section aria-labelledby="bolumler" className="space-y-3">
-            <h2 id="bolumler" className="text-base font-bold text-neutral-900">Sınavdaki bölümler</h2>
+            <h2 id="bolumler" className="text-base font-bold text-neutral-900">Parts of the test</h2>
             <ol className="grid gap-3 sm:grid-cols-2">
               {preview.sections.map((section, index) => (
                 <li key={section.sectionId} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
@@ -104,7 +106,7 @@ export default function ExamWelcomePage() {
                   <div className="min-w-0">
                     <p className="font-kid text-base font-bold text-neutral-900">{section.title}</p>
                     <p className="text-neutral-600">
-                      {section.questionCount} soru{section.durationSeconds ? ` · ${formatDuration(section.durationSeconds)}` : ""}
+                      {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}{section.durationSeconds ? ` · ${formatDuration(section.durationSeconds)}` : ""}
                     </p>
                   </div>
                 </li>
@@ -117,9 +119,9 @@ export default function ExamWelcomePage() {
       {/* Onay + başlat: geniş ekranda sağda sabit, mobilde en altta. */}
       <aside className="lg:sticky lg:top-24">
         <KidCard className="space-y-5">
-          <h2 className="text-base font-bold text-neutral-900">Hazır mısın?</h2>
+          <h2 className="text-base font-bold text-neutral-900">Are you ready?</h2>
           <ul className="space-y-2 text-neutral-700">
-            {["Bölüme girince süren başlar.", "Bölüm listesindeyken süre durur.", "Cevapların otomatik kaydedilir."].map((line) => (
+            {["The timer starts when you open a part.", "On the parts page, the timer stops.", "Your answers are saved. For writing, tap Save answer."].map((line) => (
               <li key={line} className="flex items-start gap-2 [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:shrink-0">
                 <IconCheck aria-hidden className="text-(--kid-mint)" />
                 {line}
@@ -127,7 +129,7 @@ export default function ExamWelcomePage() {
             ))}
           </ul>
           {acceptedAt ? (
-            <p className="rounded-2xl bg-(--kid-mint-bg) px-4 py-3 font-medium text-(--kid-mint)">Kuralları {formatWhen(acceptedAt)} tarihinde onayladın.</p>
+            <p className="rounded-2xl bg-(--kid-mint-bg) px-4 py-3 font-medium text-(--kid-mint)">You agreed to the rules on {formatWhen(acceptedAt)}.</p>
           ) : (
             <label
               className={cn(
@@ -142,11 +144,11 @@ export default function ExamWelcomePage() {
           {error ? <p role="alert" className="rounded-2xl bg-(--kid-coral-bg) px-4 py-3 font-medium text-(--kid-coral)">{error}</p> : null}
           {!acceptedAt ? (
             <KidButton size="lg" full disabled={!ack || busy} onClick={() => void accept()}>
-              {busy ? "Hazırlanıyor…" : "Hazırım, başlayalım"}
+              {busy ? "Getting ready…" : isRetry ? "Start again" : "I am ready. Start!"}
               {busy ? null : <IconArrowRight aria-hidden />}
             </KidButton>
           ) : null}
-          {!acceptedAt && !ack ? <p className="text-center text-sm text-neutral-600">Başlamak için yukarıdaki kutuyu işaretle.</p> : null}
+          {!acceptedAt && !ack ? <p className="text-center text-sm text-neutral-600">Tick the box above to start.</p> : null}
         </KidCard>
       </aside>
     </div>

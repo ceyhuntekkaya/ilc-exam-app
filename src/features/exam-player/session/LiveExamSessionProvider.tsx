@@ -8,7 +8,7 @@ import {
 import { uploadApplicationMedia } from "@/src/features/exam-player/session/studentMediaApi";
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 
-type Pending = { itemId: string; answer: Record<string, unknown>; seq: number };
+type Pending = { itemId: string; answer: Record<string, unknown>; seq: number; mediaId?: string | null };
 
 /** Canlı sınav oturumu — cevapları artan seq ile kaydeder, kopunca kuyruğu yeniden dener. */
 export function LiveExamSessionProvider({
@@ -43,7 +43,7 @@ export function LiveExamSessionProvider({
             "Content-Type": "application/json",
             "X-Session-Token": sessionToken,
           },
-          body: JSON.stringify({ answerJson: next.answer, seq: next.seq }),
+          body: JSON.stringify({ answerJson: next.answer, seq: next.seq, ...(next.mediaId ? { mediaId: next.mediaId } : {}) }),
         });
         queue.current.shift();
         sessionStorage.setItem(storageKey(applicationId), JSON.stringify(queue.current));
@@ -81,12 +81,12 @@ export function LiveExamSessionProvider({
       uploadMedia: (itemId, file, durationMs) =>
         uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs),
       getAnswer: (itemId) => readDrafts(applicationId)[itemId],
-      saveAnswer: (itemId, answer) => {
+      saveAnswer: (itemId, answer, mediaId) => {
         onSavedRef.current?.(itemId);
         writeDraft(applicationId, itemId, answer);
         seq.current += 1;
         queue.current = queue.current.filter((item) => item.itemId !== itemId);
-        queue.current.push({ itemId, answer, seq: seq.current });
+        queue.current.push({ itemId, answer, seq: seq.current, mediaId: mediaId ?? null });
         sessionStorage.setItem(storageKey(applicationId), JSON.stringify(queue.current));
         void flush();
       },

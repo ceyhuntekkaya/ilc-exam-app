@@ -30,7 +30,7 @@ export default function DeviceCheckPage() {
     try {
       applyState(await postState(`/applications/${session.applicationId}/checks/complete`, session.sessionToken));
     } catch (err) {
-      setError(err instanceof ExamApiError ? err.message : "Kontrol tamamlanamadı");
+      setError(err instanceof ExamApiError ? err.message : "The check did not finish. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -42,27 +42,27 @@ export default function DeviceCheckPage() {
   return (
     <section className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-neutral-900">Cihazını deneyelim</h1>
+        <h1 className="text-2xl font-bold text-neutral-900">Let us check your device</h1>
         <p className="mt-2 max-w-2xl text-base text-neutral-700">
-          Sınavda {state.requiresCamera && state.requiresMicrophone ? "mikrofonun ve kameran" : state.requiresCamera ? "kameran" : "mikrofonun"} kullanılacak.
-          Kısa bir deneme kaydı al, sonra dinle ya da izle. Her şey yolundaysa bölümlere geçebilirsin.
+          In this test, you will use your {state.requiresCamera && state.requiresMicrophone ? "microphone and camera" : state.requiresCamera ? "camera" : "microphone"}.
+          Make a short test recording. Then listen or watch. If it is OK, you can go to the parts.
         </p>
       </header>
       <div className="grid gap-4 md:grid-cols-2">
         {state.requiresMicrophone ? (
-          <DeviceCard recipientId={recipientId} title="Mikrofon" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />
+          <DeviceCard recipientId={recipientId} title="Microphone" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />
         ) : null}
         {state.requiresCamera ? (
-          <DeviceCard recipientId={recipientId} title="Kamera" kind="CAMERA" mimeTypes={VIDEO_TYPES} passed={camOk} onPassed={applyState} />
+          <DeviceCard recipientId={recipientId} title="Camera" kind="CAMERA" mimeTypes={VIDEO_TYPES} passed={camOk} onPassed={applyState} />
         ) : null}
       </div>
       {error ? <KidNotice tone="coral">{error}</KidNotice> : null}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <KidButton size="lg" disabled={!micOk || !camOk || busy} onClick={() => void finish()} className="w-full sm:w-auto">
-          {busy ? "Kaydediliyor…" : "Bölümlere geç"}
+          {busy ? "Saving…" : "Go to the parts"}
           {busy ? null : <IconArrowRight aria-hidden />}
         </KidButton>
-        {!micOk || !camOk ? <p className="text-neutral-600">Önce yukarıdaki kontrolleri tamamla.</p> : null}
+        {!micOk || !camOk ? <p className="text-neutral-600">First, finish the checks above.</p> : null}
       </div>
     </section>
   );
@@ -73,22 +73,22 @@ type Phase = "idle" | "requesting" | "countdown" | "recording" | "uploading" | "
 
 /** getUserMedia / MediaRecorder hatalarını çocuğa anlaşılır mesaja çevirir. */
 function mediaErrorMessage(err: unknown, kind: Kind): { denied: boolean; message: string } {
-  const device = kind === "CAMERA" ? "Kamera" : "Mikrofon";
+  const device = kind === "CAMERA" ? "Camera" : "Microphone";
   const name = err instanceof DOMException ? err.name : "";
   if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
     return {
       denied: true,
-      message: `${device} izni kapalı. Adres çubuğundaki kilit simgesine dokun, ${kind === "CAMERA" ? "kameraya" : "mikrofona"} izin ver ve yeniden dene. Takılırsan öğretmenine haber ver.`,
+      message: `${device} is not allowed. Tap the lock icon next to the web address, allow the ${kind === "CAMERA" ? "camera" : "microphone"}, and try again. If you need help, tell your teacher.`,
     };
   }
   if (name === "NotFoundError" || name === "DevicesNotFoundError" || name === "OverconstrainedError") {
-    return { denied: false, message: kind === "CAMERA" ? "Kamera ya da mikrofon bulunamadı. Takılı olduğundan emin ol ve yeniden dene." : "Mikrofon bulunamadı. Takılı olduğundan emin ol ve yeniden dene." };
+    return { denied: false, message: kind === "CAMERA" ? "We cannot find a camera or microphone. Check that it is plugged in and try again." : "We cannot find a microphone. Check that it is plugged in and try again." };
   }
   if (name === "NotReadableError" || name === "TrackStartError" || name === "AbortError") {
-    return { denied: false, message: `${device} başka bir uygulamada açık olabilir. O uygulamayı kapat ve yeniden dene.` };
+    return { denied: false, message: `Another app may be using the ${device.toLowerCase()}. Close that app and try again.` };
   }
   if (err instanceof ExamApiError) return { denied: false, message: err.message };
-  return { denied: false, message: "Kayıt alınamadı. Yeniden dene; olmazsa öğretmenine haber ver." };
+  return { denied: false, message: "We could not record. Try again. If it does not work, tell your teacher." };
 }
 
 function DeviceCard({
@@ -177,7 +177,7 @@ function DeviceCard({
     setElapsed(0);
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Bu tarayıcı kayıt almayı desteklemiyor. Chrome, Edge ya da Safari'nin güncel sürümünü kullan.");
+      setError("This browser cannot record. Please use a new version of Chrome, Edge or Safari.");
       return;
     }
 
@@ -272,7 +272,7 @@ function DeviceCard({
 
   async function upload(run: number, blob: Blob, duration: number) {
     if (duration < MIN_RECORD_MS || blob.size === 0) {
-      setError("Kayıt çok kısa oldu. Yeniden dene.");
+      setError("The recording is too short. Try again.");
       setPhase("idle");
       setBusy(false);
       return;
@@ -280,7 +280,7 @@ function DeviceCard({
     setPhase("uploading");
     try {
       const session = readSession(recipientId);
-      if (!session) throw new ExamApiError("Oturum bulunamadı. Sayfayı yenile.");
+      if (!session) throw new ExamApiError("We lost your session. Please refresh the page.");
       const id = await uploadCheck(session.applicationId, session.sessionToken, kind, blob, Math.min(20000, duration));
       if (run !== runRef.current) return;
       setMediaId(id);
@@ -288,7 +288,7 @@ function DeviceCard({
       setPhase("review");
     } catch (err) {
       if (run !== runRef.current) return;
-      setError(err instanceof ExamApiError ? err.message : "Kayıt gönderilemedi. İnternet bağlantını kontrol et ve yeniden dene.");
+      setError(err instanceof ExamApiError ? err.message : "We could not send the recording. Check your internet and try again.");
       setPhase("idle");
     } finally {
       if (run === runRef.current) setBusy(false);
@@ -299,7 +299,7 @@ function DeviceCard({
     const session = readSession(recipientId);
     if (!session || !mediaId) return;
     if (result === "PASSED" && !played) {
-      setError(kind === "CAMERA" ? "Önce videonu izle." : "Önce kaydını dinle.");
+      setError(kind === "CAMERA" ? "First, watch your video." : "First, listen to your recording.");
       return;
     }
     setBusy(true);
@@ -329,17 +329,17 @@ function DeviceCard({
   const active = phase === "requesting" || phase === "countdown" || phase === "recording";
   const secondsLeft = Math.max(0, Math.ceil(limit - elapsed / 1000));
   const canStopEarly = phase === "recording" && elapsed >= MIN_RECORD_MS;
-  const device = kind === "CAMERA" ? "Kamera" : "Mikrofon";
+  const device = kind === "CAMERA" ? "Camera" : "Microphone";
   const statusText = {
-    idle: "Hazır olunca başlat",
-    denied: `${device} izni gerekiyor`,
-    requesting: `${device} açılıyor…`,
-    countdown: `Hazır ol… ${count}`,
-    recording: kind === "CAMERA" ? "Kaydediliyor · el salla!" : "Kaydediliyor · şimdi konuş!",
-    uploading: "Kaydın hazırlanıyor…",
+    idle: "Start when you are ready",
+    denied: `We need your ${device.toLowerCase()}`,
+    requesting: `Opening the ${device.toLowerCase()}…`,
+    countdown: `Get ready… ${count}`,
+    recording: kind === "CAMERA" ? "Recording · wave your hand!" : "Recording · speak now!",
+    uploading: "Getting your recording ready…",
     review: played
-      ? (kind === "CAMERA" ? "Kendini gördün ve sesini duydun mu?" : "Sesini duydun mu?")
-      : (kind === "CAMERA" ? "Videonu izle" : "Kaydını dinle"),
+      ? (kind === "CAMERA" ? "Can you see yourself and hear your voice?" : "Can you hear your voice?")
+      : (kind === "CAMERA" ? "Watch your video" : "Listen to your recording"),
   }[phase];
   const statusTone = phase === "recording" ? "text-(--kid-coral)" : phase === "denied" ? "text-(--kid-coral)" : phase === "idle" ? "text-neutral-700" : "text-primary-700";
   const stageBg = kind === "CAMERA" && (phase === "countdown" || phase === "recording" || phase === "review") ? "bg-black" : "bg-(--kid-sky-bg)";
@@ -353,7 +353,7 @@ function DeviceCard({
           </span>
           {title}
         </h2>
-        {passed ? <StatusPill tone="mint">Tamam</StatusPill> : null}
+        {passed ? <StatusPill tone="mint">OK</StatusPill> : null}
       </div>
 
       {!passed ? (
@@ -373,9 +373,9 @@ function DeviceCard({
             {(phase === "idle" || phase === "denied") ? (
               <ol className="absolute inset-0 flex flex-col justify-center gap-2 p-4 text-[15px] text-neutral-700 sm:p-5">
                 {[
-                  "Düğmeye bas, 3'ten geriye sayalım.",
-                  kind === "CAMERA" ? `Kameraya bak ve el salla (${limit} sn).` : `“Bir, iki, üç” diye yüksek sesle say (${limit} sn).`,
-                  kind === "CAMERA" ? "Kaydını izle." : "Kaydını dinle.",
+                  "Tap the button. We count 3, 2, 1.",
+                  kind === "CAMERA" ? `Look at the camera and wave (${limit} seconds).` : `Say “one, two, three” out loud (${limit} seconds).`,
+                  kind === "CAMERA" ? "Watch your recording." : "Listen to your recording.",
                 ].map((step, index) => (
                   <li key={step} className="flex items-center gap-3">
                     <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-primary-700 ring-1 ring-primary-200">{index + 1}</span>
@@ -393,8 +393,8 @@ function DeviceCard({
                 </span>
                 <p className="max-w-xs text-[15px] text-neutral-700">
                   {phase === "requesting"
-                    ? <>Tarayıcı izin isterse <strong className="font-semibold text-neutral-900">“İzin ver”</strong>e bas.</>
-                    : "Birkaç saniye sürebilir."}
+                    ? <>If the browser asks, tap <strong className="font-semibold text-neutral-900">“Allow”</strong>.</>
+                    : "This can take a few seconds."}
                 </p>
               </div>
             ) : null}
@@ -450,11 +450,11 @@ function DeviceCard({
             <>
               <KidButton disabled={busy} onClick={() => void confirm("PASSED")} full>
                 <IconCheck aria-hidden />
-                {kind === "CAMERA" ? "Evet, gördüm" : "Evet, duydum"}
+                {kind === "CAMERA" ? "Yes, I can see it" : "Yes, I can hear it"}
               </KidButton>
               <KidButton variant="soft" disabled={busy} onClick={() => void confirm("FAILED")} full>
                 <IconRefresh aria-hidden />
-                Hayır, tekrar dene
+                No, try again
               </KidButton>
             </>
           ) : active ? (
@@ -462,18 +462,18 @@ function DeviceCard({
               {phase === "recording" ? (
                 <KidButton disabled={!canStopEarly} onClick={stopRecording} full>
                   <IconCheck aria-hidden />
-                  Bitir
+                  Stop
                 </KidButton>
               ) : null}
               <KidButton variant="soft" onClick={cancel} full>
                 <IconX aria-hidden />
-                Vazgeç
+                Cancel
               </KidButton>
             </>
           ) : (
             <KidButton disabled={busy} onClick={() => void start()} full>
               {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
-              {phase === "uploading" ? "Hazırlanıyor…" : phase === "denied" || error ? "Yeniden dene" : "Denemeyi başlat"}
+              {phase === "uploading" ? "Getting ready…" : phase === "denied" || error ? "Try again" : "Start the check"}
             </KidButton>
           )}
         </div>
@@ -544,7 +544,7 @@ function LevelMeter({ stream }: { stream: MediaStream }) {
   }, [stream]);
 
   return (
-    <div ref={meterRef} className="h-4 overflow-hidden rounded-full bg-neutral-100" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Ses seviyesi">
+    <div ref={meterRef} className="h-4 overflow-hidden rounded-full bg-neutral-100" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Sound level">
       <div ref={barRef} className="h-full w-0 rounded-full bg-(--kid-mint-solid) transition-[width] duration-75" />
     </div>
   );

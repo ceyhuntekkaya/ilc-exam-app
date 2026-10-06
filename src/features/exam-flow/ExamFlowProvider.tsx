@@ -1,9 +1,9 @@
 "use client";
 
-import { ExamApiError, getState, heartbeat, startAttempt } from "@/src/features/exam-flow/api";
+import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } from "@/src/features/exam-flow/api";
 import { clearQueue, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
 import type { ExamState } from "@/src/features/exam-flow/schema";
-import { readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
+import { clearSession, readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -26,13 +26,15 @@ type FlowContextValue = {
   reload: () => void;
   applyState: (next: ExamState) => void;
   takeOver: () => Promise<void>;
+  /** Biten denemeden çık, yeni deneme için hoş geldin ekranına dön (giriş hakkı varsa). */
+  startOver: () => void;
 };
 
 const FlowContext = createContext<FlowContextValue | null>(null);
 
 export function useExamFlow() {
   const value = useContext(FlowContext);
-  if (!value) throw new Error("Sınav akışı hazır değil");
+  if (!value) throw new Error("Exam flow is not ready");
   return value;
 }
 
@@ -86,14 +88,22 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     setError(null);
     try {
       let session = readSession(recipientId);
+      let next: ExamState;
       if (!session) {
         const started = await startAttempt(recipientId, { intent: "RESUME", fingerprint: navigator.userAgent });
         session = { applicationId: started.applicationId, sessionToken: started.sessionToken };
         writeSession(recipientId, session);
-        applyState(started.state);
+        next = started.state;
+      } else {
+        next = await getState(session.applicationId, session.sessionToken);
+      }
+      // Biten deneme + kalan giriş hakkı: bitti ekranına değil, yeni deneme için hoş geldin ekranına.
+      if (next.stage === "FINISHED" && (await hasAttemptsLeft(recipientId))) {
+        clearSession(recipientId);
+        stateRef.current = null;
+        setState(null);
         return;
       }
-      const next = await getState(session.applicationId, session.sessionToken);
       applyState(next);
     } catch (err) {
       const flow = err instanceof ExamApiError ? err : null;
@@ -111,7 +121,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
         applyState(flow.state);
         return;
       }
-      setError(flow?.message || "Sınav durumu alınamadı");
+      setError(flow?.message || "We could not load your test. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -287,9 +297,15 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     setConflict(false);
   }, [applyState, recipientId]);
 
+  const startOver = useCallback(() => {
+    clearSession(recipientId);
+    stateRef.current = null;
+    setState(null);
+  }, [recipientId]);
+
   const value = useMemo<FlowContextValue>(
-    () => ({ recipientId, state, loading, error, conflict, held, reload: () => void load(), applyState, takeOver }),
-    [applyState, conflict, error, held, load, loading, recipientId, state, takeOver],
+    () => ({ recipientId, state, loading, error, conflict, held, reload: () => void load(), applyState, takeOver, startOver }),
+    [applyState, conflict, error, held, load, loading, recipientId, startOver, state, takeOver],
   );
 
   return (
@@ -298,10 +314,10 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       {focusWarning != null ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
-            <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">Sınavdan ayrıldınız</h2>
-            <p className="mt-2 text-sm text-ilc-navy/80">Odak kaybı kaydedildi. Kalan hak: {focusWarning}.</p>
+            <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">You left the test screen</h2>
+            <p className="mt-2 text-sm text-ilc-navy/80">Please stay on the test screen. Chances left: {focusWarning}.</p>
             <button type="button" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white" onClick={() => setFocusWarning(null)}>
-              Sınava dön
+              Back to the test
             </button>
           </div>
         </div>
@@ -353,6 +369,15 @@ export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {
 }
 
 /** Adres çubuğundaki yol (sondaki / olmadan). */
+/** Ödevde kullanılmamış giriş hakkı var mı (bilgi alınamazsa false: mevcut davranış korunur). */
+async function hasAttemptsLeft(recipientId: string) {
+  try {
+    return (await previewAssignment(recipientId)).assignment.attemptsLeft > 0;
+  } catch {
+    return false;
+  }
+}
+
 function currentPath() {
   return typeof window === "undefined" ? "" : window.location.pathname.replace(/\/$/, "");
 }
