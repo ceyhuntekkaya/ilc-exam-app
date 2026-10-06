@@ -1,4 +1,5 @@
 {
+  
     "soundCheckTestAudioUrl": "/sample.mp3",
     "api": {
       "ollamaUrl": "https://chat.genixo.ai",

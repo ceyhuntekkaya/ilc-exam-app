@@ -1,99 +1,132 @@
 "use client";
 
-import { customInstance } from "@/src/api/mutator";
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { ExamApiError, previewAssignment, sha256Hex, startAttempt } from "@/src/features/exam-flow/api";
+import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
+import { formatDuration, formatRange, formatWhen, sectionStatusLabel } from "@/src/features/exam-flow/format";
+import type { AssignmentPreview } from "@/src/features/exam-flow/schema";
+import { writeSession } from "@/src/features/exam-flow/session";
+import { RichText } from "@/src/ui/composites/RichText";
+import { useEffect, useState } from "react";
 
-const CONSENT = "Mikrofon veya kamera gerektiren sınavlarda kayıt, yalnızca değerlendirme için kullanılır.";
+const STATEMENT = "Yönergeyi okudum ve sınav kurallarını kabul ediyorum.";
 
-export default function ExamLobbyPage() {
-  const params = useParams<{ recipientId: string }>();
-  const router = useRouter();
-  const [ack, setAck] = useState(false);
-  const [consent, setConsent] = useState(false);
+export default function ExamWelcomePage() {
+  const { recipientId, state, applyState } = useExamFlow();
+  const [preview, setPreview] = useState<AssignmentPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [conflict, setConflict] = useState(false);
+  const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function enter() {
+  useEffect(() => {
+    previewAssignment(recipientId)
+      .then(setPreview)
+      .catch((err: unknown) => setError(err instanceof ExamApiError ? err.message : "Sınav bilgisi alınamadı"));
+  }, [recipientId]);
+
+  async function accept() {
+    if (!preview) return;
     setBusy(true);
     setError(null);
-    setConflict(false);
     try {
-      if (consent) {
-        await customInstance("/me/consents", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "MEDIA_RECORDING", textVersion: "v1" }),
-        });
-      }
-      const started = await customInstance<{
-        data: { applicationId: string; sessionToken: string };
-      }>(`/recipients/${params.recipientId}/applications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fingerprint: navigator.userAgent }),
+      const digest = await sha256Hex(preview.welcomeHtml || "");
+      const started = await startAttempt(recipientId, {
+        intent: "NEW",
+        fingerprint: navigator.userAgent,
+        statementVersion: "v1",
+        welcomeHtmlSha256: digest,
       });
-      const { applicationId, sessionToken } = started.data;
-      const headers = { "Content-Type": "application/json", "X-Session-Token": sessionToken };
-      await customInstance(`/applications/${applicationId}/instructions/ack`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ instructionVersion: applicationId }),
-      });
-      await customInstance(`/applications/${applicationId}/checks`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ type: "BROWSER", result: "PASSED", deviceLabel: navigator.userAgent }),
-      });
-      await customInstance(`/applications/${applicationId}/start`, { method: "POST", headers });
-      sessionStorage.setItem(
-        `ilc-session:${params.recipientId}`,
-        JSON.stringify({ applicationId, sessionToken }),
-      );
-      router.push(`/student/exams/${params.recipientId}/run`);
+      writeSession(recipientId, { applicationId: started.applicationId, sessionToken: started.sessionToken });
+      applyState(started.state);
     } catch (err) {
-      const status = (err as { status?: number }).status;
-      if (status === 409) setConflict(true);
-      else setError(err instanceof Error ? err.message : "Sınav açılamadı");
+      setError(err instanceof ExamApiError ? err.message : "Sınav başlatılamadı");
     } finally {
       setBusy(false);
     }
   }
 
-  if (conflict) {
-    return (
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-ilc-line">
-        <h2 className="text-xl font-semibold text-ilc-navy">Bu sınav başka bir cihazda açık</h2>
-        <p className="mt-2 text-sm text-ilc-navy/70">
-          Devam etmek için diğer oturumu kapatıp yeniden başlayın.
-        </p>
-      </section>
-    );
-  }
+  const card = preview?.assignment;
+  const acceptedAt = state?.acknowledgementAt ?? preview?.acknowledgementAt;
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl bg-white p-4 shadow-sm ring-1 ring-ilc-line md:p-6">
-      <h2 className="font-[family-name:var(--font-fraunces)] text-xl font-semibold text-ilc-navy">
-        Sınava giriş
+    <section className="space-y-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-ilc-line md:p-6">
+      <h2 className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-ilc-navy">
+        {card?.examTitle ?? "Sınav"}
       </h2>
-      <label className="mt-4 flex min-h-11 items-start gap-3 text-sm text-ilc-navy">
-        <input type="checkbox" className="mt-1 size-5" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-        Yönergeyi okudum ve sınav kurallarını kabul ediyorum.
-      </label>
-      <label className="mt-3 flex min-h-11 items-start gap-3 text-sm text-ilc-navy">
-        <input type="checkbox" className="mt-1 size-5" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-        {CONSENT}
-      </label>
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-      <button
-        type="button"
-        disabled={!ack || busy}
-        onClick={enter}
-        className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white disabled:opacity-50"
-      >
-        {busy ? "Hazırlanıyor" : "Sınava gir"}
-      </button>
+      {card ? (
+        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <Info label="Açık olduğu tarihler" value={formatRange(card.availableFrom, card.availableUntil)} />
+          <Info label="Toplam puan" value={String(card.totalPoints ?? "—")} />
+          <Info label="Süre" value={card.timingMode === "UNTIMED" ? "Süresiz" : formatDuration(card.durationSeconds)} />
+          <Info label="Kalan hak" value={`${card.attemptsLeft} / ${card.attemptsTotal}`} />
+        </dl>
+      ) : null}
+      <div className="rounded-2xl bg-[#f7f4ef] p-4">
+        {preview?.welcomeHtml ? <RichText value={preview.welcomeHtml} className="text-base text-ilc-navy" /> : (
+          <p className="text-sm text-ilc-navy/70">Bu sınav için karşılama metni yok.</p>
+        )}
+      </div>
+      <ul className="grid gap-3 md:hidden">
+        {(preview?.sections ?? []).map((section, index) => (
+          <li key={section.sectionId} className="rounded-2xl bg-[#f7f4ef] px-3 py-3 text-sm">
+            <p className="font-medium text-ilc-navy">{index + 1}. {section.title}</p>
+            <p className="mt-1 text-ilc-navy/80">
+              {section.questionCount} soru · {formatDuration(section.durationSeconds)} · {sectionStatusLabel(section.status)}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden md:block">
+        <table className="w-full text-left text-sm">
+          <thead className="text-ilc-navy/60">
+            <tr>
+              <th className="py-2 pr-3">#</th>
+              <th className="py-2 pr-3">Bölüm</th>
+              <th className="py-2 pr-3">Soru</th>
+              <th className="py-2 pr-3">Süre</th>
+              <th className="py-2">Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(preview?.sections ?? []).map((section, index) => (
+              <tr key={section.sectionId} className="border-t border-ilc-line">
+                <td className="py-3 pr-3">{index + 1}</td>
+                <td className="py-3 pr-3 font-medium text-ilc-navy">{section.title}</td>
+                <td className="py-3 pr-3">{section.questionCount}</td>
+                <td className="py-3 pr-3">{formatDuration(section.durationSeconds)}</td>
+                <td className="py-3">{sectionStatusLabel(section.status)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {acceptedAt ? (
+        <p className="text-sm text-ilc-navy">Onay zamanı: {formatWhen(acceptedAt)}</p>
+      ) : (
+        <label className="flex min-h-11 items-start gap-3 text-sm text-ilc-navy">
+          <input type="checkbox" className="mt-1 size-5" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+          {STATEMENT}
+        </label>
+      )}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {!acceptedAt ? (
+        <button
+          type="button"
+          disabled={!ack || busy || !preview}
+          onClick={() => void accept()}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white disabled:opacity-50 md:w-auto"
+        >
+          {busy ? "Kaydediliyor" : "Devam"}
+        </button>
+      ) : null}
     </section>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#f7f4ef] px-3 py-2">
+      <dt className="text-ilc-navy/60">{label}</dt>
+      <dd className="font-medium text-ilc-navy">{value}</dd>
+    </div>
   );
 }
