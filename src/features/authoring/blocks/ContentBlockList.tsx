@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { asHtmlObj, BlockHtmlField } from "@/src/features/authoring/blocks/BlockHtmlField";
 import { InlineHtmlField } from "@/src/features/authoring/blocks/InlineHtmlField";
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
-import { PlaybackPolicyFields, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
+import { PlaybackPolicyFields, shownPlayback, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
 import { newId } from "@/src/features/authoring/blocks/ids";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import {
@@ -56,7 +57,7 @@ export function normalizeContentBlocks(blocks: ContentBlock[] | unknown[] | null
         type: b.type,
         id: b.id,
         mediaId: b.mediaId ?? null,
-        playback: b.playback ?? null,
+        playback: shownPlayback(b.playback),
       };
     }
     return b;
@@ -89,6 +90,9 @@ export function contentBlocksToWire(blocks: ContentBlock[]): unknown[] {
         })),
       };
     }
+    if (b.type === "AUDIO" || b.type === "VIDEO") {
+      return { type: b.type, id: b.id, mediaId: b.mediaId, playback: shownPlayback(b.playback) };
+    }
     return b;
   });
 }
@@ -105,7 +109,7 @@ function emptyBlock(type: ContentBlock["type"]): ContentBlock {
     case "AUDIO":
       return { type, id, mediaId: null, playback: { maxPlays: 2, autoplay: false, seekable: false } };
     case "VIDEO":
-      return { type, id, mediaId: null, playback: { maxPlays: 1, autoplay: false, seekable: false } };
+      return { type, id, mediaId: null, playback: shownPlayback(null) };
   }
 }
 
@@ -137,6 +141,20 @@ export function ContentBlockList({
   title?: string;
 }) {
   const blocks = value ?? [];
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (disabled) return;
+    if (!blocks.some((b) => (b.type === "AUDIO" || b.type === "VIDEO") && b.playback == null)) return;
+    onChangeRef.current(
+      blocks.map((b) =>
+        (b.type === "AUDIO" || b.type === "VIDEO") && b.playback == null
+          ? { ...b, playback: shownPlayback(null) }
+          : b,
+      ),
+    );
+  }, [blocks, disabled]);
 
   function update(i: number, next: ContentBlock) {
     const copy = [...blocks];

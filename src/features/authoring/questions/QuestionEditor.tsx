@@ -9,7 +9,7 @@ import {
 } from "@/src/features/authoring/blocks/ContentBlockList";
 import { htmlOf } from "@/src/features/exam-player/types";
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
-import { PlaybackPolicyFields, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
+import { PlaybackPolicyFields, withShownPlayback, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
 import { AnswerKeyForm, InteractionForm } from "@/src/features/authoring/templates/InteractionForms";
 import { TEMPLATE_REGISTRY, getTemplate } from "@/src/features/authoring/templates/registry";
 import {
@@ -34,6 +34,7 @@ import {
 } from "@/src/features/exam-player";
 import {
   Button,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   Field,
@@ -74,12 +75,6 @@ export const SKILL_LABEL: Record<Skill, string> = {
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
 
-const SECURITY_LABEL: Record<string, string> = {
-  STANDARD: "Standart",
-  SECURE: "Güvenli",
-  HIGH_STAKES: "Yüksek önemli",
-};
-
 const SCORING_LABEL: Record<string, string> = {
   ALL_OR_NOTHING: "Tam puan / sıfır",
   PARTIAL: "Kısmi puan",
@@ -88,16 +83,6 @@ const SCORING_LABEL: Record<string, string> = {
 };
 
 
-/** Saklanan kod: anasınıfı -2/-1/0, sonra 1–12. sınıf. */
-const MEB_GRADES: Array<{ value: string; label: string }> = [
-  { value: "-2", label: "Anasınıfı 3 Yaş" },
-  { value: "-1", label: "Anasınıfı 4 Yaş" },
-  { value: "0", label: "Anasınıfı 5 Yaş" },
-  ...Array.from({ length: 12 }, (_, i) => ({
-    value: String(i + 1),
-    label: `${i + 1}. Sınıf`,
-  })),
-];
 const PANELS = [
   "Tip",
   "Sınıflandırma",
@@ -182,12 +167,14 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   const [enemies, setEnemies] = useState<string[]>([]);
   const [enemyInput, setEnemyInput] = useState("");
   const [openPanel, setOpenPanel] = useState(1);
+  const [confirm, setConfirm] = useState<null | "revert" | "unpublish" | "republish" | "archive">(null);
+  const [confirming, setConfirming] = useState(false);
   const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
   const [addingPart, setAddingPart] = useState(false);
 
   const [cefr, setCefr] = useState("");
-  const [mebGrade, setMebGrade] = useState("");
   const [ageBand, setAgeBand] = useState("");
+  const [classErrors, setClassErrors] = useState<{ cefr?: string; skill?: string; ageBand?: string }>({});
   const [estimatedTimeSec, setEstimatedTimeSec] = useState("");
   const [timeLimitSec, setTimeLimitSec] = useState("");
   const [securityLevel, setSecurityLevel] = useState("STANDARD");
@@ -228,7 +215,6 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       const data = await authoringApi.getQuestion(versionId);
       setQ(data);
       setCefr(data.cefrLevel ?? "");
-      setMebGrade(data.mebGrade != null ? String(data.mebGrade) : "");
       setAgeBand(data.ageBand ?? "");
       setEstimatedTimeSec(data.estimatedTimeSec != null ? String(data.estimatedTimeSec) : "");
       setTimeLimitSec(data.timeLimitSec != null ? String(data.timeLimitSec) : "");
@@ -367,24 +353,35 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     [previewModel.parts],
   );
 
+  function advancePanel() {
+    setOpenPanel((current) => Math.min(current + 1, PANELS.length - 1));
+  }
+
   async function saveMetadata() {
     if (!q) return;
+    const nextErrors: { cefr?: string; skill?: string; ageBand?: string } = {};
+    if (!cefr) nextErrors.cefr = "CEFR seviyesi seçin.";
+    if (!partDraft?.skill) nextErrors.skill = "Beceri seçin.";
+    if (!ageBand) nextErrors.ageBand = "Yaş bandı seçin.";
+    setClassErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setSaving(true);
     try {
-      let next = await authoringApi.updateMetadata(q.versionId, {
-        cefrLevel: cefr || null,
-        mebGrade: mebGrade === "" ? null : Number(mebGrade),
-        ageBand: ageBand || null,
+      if (selectedPart && partDraft && (selectedPart.skill ?? "") !== partDraft.skill) {
+        await authoringApi.updatePart(q.versionId, selectedPart.id, { skill: partDraft.skill });
+      }
+      const next = await authoringApi.updateMetadata(q.versionId, {
+        cefrLevel: cefr,
+        mebGrade: null,
+        ageBand,
         estimatedTimeSec: estimatedTimeSec === "" ? null : Number(estimatedTimeSec),
         timeLimitSec: timeLimitSec === "" ? null : Number(timeLimitSec),
         securityLevel,
         tagIds,
       });
-      if (selectedPart && partDraft && (selectedPart.skill ?? "") !== partDraft.skill) {
-        next = await authoringApi.updatePart(q.versionId, selectedPart.id, { skill: partDraft.skill });
-      }
       setQ(next);
       notify.success("Kaydedildi");
+      advancePanel();
     } catch (e) {
       const message = errorMessage(e, "Kaydedilemedi");
       setError(message);
@@ -421,6 +418,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       const next = await authoringApi.updateBody(q.versionId, body);
       setQ(next);
       notify.success("Kaydedildi");
+      advancePanel();
     } catch (e) {
       const message = errorMessage(e, "Kaydedilemedi");
       setError(message);
@@ -437,7 +435,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       const next = await authoringApi.updatePart(q.versionId, selectedPart.id, {
         content: {
           stem: contentBlocksToWire(partDraft.stem),
-          interaction: { ...partDraft.interaction, type: selectedPart.interactionType },
+          interaction: withShownPlayback({ ...partDraft.interaction, type: selectedPart.interactionType }),
         },
         skill: partDraft.skill,
         maxScore: Number(partDraft.maxScore || 1),
@@ -449,6 +447,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       });
       setQ(next);
       notify.success("Kaydedildi");
+      advancePanel();
     } catch (e) {
       const message = errorMessage(e, "Part kaydedilemedi");
       setError(message);
@@ -460,7 +459,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
 
   async function changeType(type: string) {
     if (!q || !selectedPart) return;
-    if (!confirm("Tip değişince part içeriği sıfırlanır. Devam?")) return;
+    if (!globalThis.confirm("Tip değişince part içeriği sıfırlanır. Devam?")) return;
     setSaving(true);
     try {
       await authoringApi.removePart(q.versionId, selectedPart.id).catch(() => null);
@@ -640,39 +639,31 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
             >
               <FormGroup title="Seviye ve beceri">
               <div className="grid gap-3 @min-[28rem]/form:grid-cols-2 @min-[46rem]/form:grid-cols-4">
-                <Field label="CEFR seviyesi">
-                  <Select value={cefr} disabled={!editable} onChange={(e) => setCefr(e.target.value)}>
+                <Field label="CEFR seviyesi" required error={classErrors.cefr}>
+                  <Select value={cefr} disabled={!editable} onChange={(e) => { setCefr(e.target.value); setClassErrors((prev) => ({ ...prev, cefr: undefined })); }}>
                     <option value="">—</option>
                     {CEFR.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </Select>
                 </Field>
-                <Field
-                  label="Beceri"
-                >
+                <Field label="Beceri" required error={classErrors.skill}>
                   <Select
                     value={partDraft?.skill ?? ""}
                     disabled={!editable || !partDraft}
-                    onChange={(e) =>
-                      setPartDraft((prev) => (prev ? { ...prev, skill: e.target.value } : prev))
-                    }
+                    onChange={(e) => {
+                      setClassErrors((prev) => ({ ...prev, skill: undefined }));
+                      setPartDraft((prev) => (prev ? { ...prev, skill: e.target.value } : prev));
+                    }}
                   >
+                    <option value="">—</option>
                     {SKILLS.map((s) => (
                       <option key={s} value={s}>{SKILL_LABEL[s]}</option>
                     ))}
                   </Select>
                 </Field>
-                <Field label="MEB sınıfı">
-                  <Select value={mebGrade} disabled={!editable} onChange={(e) => setMebGrade(e.target.value)}>
-                    <option value="">—</option>
-                    {MEB_GRADES.map((g) => (
-                      <option key={g.value} value={g.value}>{g.label}</option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Yaş bandı">
-                  <Select value={ageBand} disabled={!editable} onChange={(e) => setAgeBand(e.target.value)}>
+                <Field label="Yaş bandı" required error={classErrors.ageBand}>
+                  <Select value={ageBand} disabled={!editable} onChange={(e) => { setAgeBand(e.target.value); setClassErrors((prev) => ({ ...prev, ageBand: undefined })); }}>
                     <option value="">—</option>
                     {ageBands.map((a) => (
                       <option key={a.code} value={a.code}>{a.label}</option>
@@ -681,20 +672,13 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 </Field>
               </div>
               </FormGroup>
-              <FormGroup title="Süre ve güvenlik" hint="Süreler saniye cinsindendir; boş bırakılırsa sınav ayarı geçerlidir.">
-              <div className="grid gap-3 @min-[28rem]/form:grid-cols-3">
+              <FormGroup title="Süre" hint="Süreler saniye cinsindendir; boş bırakılırsa sınav ayarı geçerlidir.">
+              <div className="grid gap-3 @min-[28rem]/form:grid-cols-2">
                 <Field label="Tahmini süre">
                   <Input suffix="sn" type="number" min={0} inputMode="numeric" placeholder="ör. 60" value={estimatedTimeSec} disabled={!editable} onChange={(e) => setEstimatedTimeSec(e.target.value)} />
                 </Field>
                 <Field label="Süre limiti">
                   <Input suffix="sn" type="number" min={0} inputMode="numeric" placeholder="Sınırsız" value={timeLimitSec} disabled={!editable} onChange={(e) => setTimeLimitSec(e.target.value)} />
-                </Field>
-                <Field label="Güvenlik düzeyi">
-                  <Select value={securityLevel} disabled={!editable} onChange={(e) => setSecurityLevel(e.target.value)}>
-                    {Object.entries(SECURITY_LABEL).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </Select>
                 </Field>
               </div>
               </FormGroup>
@@ -850,7 +834,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     variant="danger"
                     disabled={!editable}
                     onClick={() =>
-                      confirm(`Part ${selectedPart.position + 1} silinsin mi? İçeriği ve cevap anahtarı kaybolur.`) &&
+                      globalThis.confirm(`Part ${selectedPart.position + 1} silinsin mi? İçeriği ve cevap anahtarı kaybolur.`) &&
                       void notify
                         .run(authoringApi.removePart(q.versionId, selectedPart.id), {
                           success: "Part silindi",
@@ -1080,48 +1064,53 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 <span className="w-full text-xs font-semibold text-fg-subtle sm:w-24">İş akışı</span>
                 <Button variant="secondary" onClick={() => void runValidate(false)}>Eksikleri kontrol et</Button>
                 <Button variant="secondary" onClick={() => void runValidate(true)}>Yayına hazır mı?</Button>
-                <Button
-                  disabled={!editable}
-                  onClick={() =>
-                    void notify
-                      .run(authoringApi.submitQuestion(q.versionId), {
-                        success: "İncelemeye gönderildi",
-                        error: "Gönderilemedi",
-                      })
-                      .then(setQ)
-                      .catch(() => undefined)
-                  }
-                >
-                  İncelemeye gönder
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    void notify
-                      .run(authoringApi.approveQuestion(q.versionId), {
-                        success: "Onaylandı",
-                        error: "Onaylanamadı",
-                      })
-                      .then(setQ)
-                      .catch(() => undefined)
-                  }
-                >
-                  Onayla
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() =>
-                    void notify
-                      .run(authoringApi.returnDraft(q.versionId), {
-                        success: "Taslağa döndürüldü",
-                        error: "İşlem başarısız",
-                      })
-                      .then(setQ)
-                      .catch(() => undefined)
-                  }
-                >
-                  Taslağa döndür
-                </Button>
+                {q.status === "DRAFT" ? (
+                  <Button
+                    disabled={!editable}
+                    onClick={() =>
+                      void notify
+                        .run(authoringApi.submitQuestion(q.versionId), {
+                          success: "İncelemeye gönderildi",
+                          error: "Gönderilemedi",
+                        })
+                        .then(setQ)
+                        .catch(() => undefined)
+                    }
+                  >
+                    İncelemeye gönder
+                  </Button>
+                ) : null}
+                {q.status === "IN_REVIEW" ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      void notify
+                        .run(authoringApi.approveQuestion(q.versionId), {
+                          success: "Onaylandı",
+                          error: "Onaylanamadı",
+                        })
+                        .then(setQ)
+                        .catch(() => undefined)
+                    }
+                  >
+                    Onayla
+                  </Button>
+                ) : null}
+                {q.status === "IN_REVIEW" || q.status === "APPROVED" ? (
+                  <Button variant="ghost" onClick={() => setConfirm("revert")}>
+                    Taslağa döndür
+                  </Button>
+                ) : null}
+                {q.status === "APPROVED" ? (
+                  <Button variant="secondary" onClick={() => setConfirm("unpublish")}>
+                    Yayından kaldır
+                  </Button>
+                ) : null}
+                {q.status === "RETIRED" ? (
+                  <Button onClick={() => setConfirm("republish")}>
+                    Tekrar yayınla
+                  </Button>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
                 <span className="w-full text-xs font-semibold text-fg-subtle sm:w-24">Kopya / sürüm</span>
@@ -1157,22 +1146,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 >
                   Yeni sürüm
                 </Button>
-                <Button
-                  variant="danger"
-                  className="sm:ml-auto"
-                  onClick={() =>
-                    confirm("Soru arşivlensin mi? Arşivlenen soru yeni sınavlara eklenemez.") &&
-                    void notify
-                      .run(authoringApi.archiveQuestion(q.questionId), {
-                        success: "Arşivlendi",
-                        error: "Arşivlenemedi",
-                      })
-                      .then(() => {
-                        router.push(basePath);
-                      })
-                      .catch(() => undefined)
-                  }
-                >
+                <Button variant="danger" className="sm:ml-auto" onClick={() => setConfirm("archive")}>
                   Arşivle
                 </Button>
               </div>
@@ -1284,6 +1258,75 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
           ) : null}
 
       </div>
+      <ConfirmDialog
+        open={confirm != null}
+        pending={confirming}
+        tone={confirm === "republish" ? "primary" : "danger"}
+        title={
+          confirm === "unpublish"
+            ? "Yayından kaldırılsın mı?"
+            : confirm === "republish"
+              ? "Tekrar yayınlansın mı?"
+              : confirm === "archive"
+                ? "Soru arşivlensin mi?"
+                : "Taslağa dönülsün mü?"
+        }
+        description={
+          confirm === "unpublish"
+            ? "Sürüm yeni sınavlara eklenemez. Yayınlanmış sınavlar bu sürümü kullanmaya devam eder. İstediğinizde tekrar yayınlayabilirsiniz."
+            : confirm === "republish"
+              ? "Sürüm yeniden onaylı olur ve soru bankasında güncel sürüm olarak görünür."
+              : confirm === "archive"
+                ? "Arşivlenen soru yeni sınavlara eklenemez. Onaylı sürümü varsa yayından da kalkar."
+                : "Sürüm bir sınavda kullanılmıyorsa yerinde taslağa döner. Kullanılıyorsa onaylı sürüm durur ve düzenlemek için yeni bir taslak açılır."
+        }
+        confirmLabel={
+          confirm === "unpublish"
+            ? "Yayından kaldır"
+            : confirm === "republish"
+              ? "Tekrar yayınla"
+              : confirm === "archive"
+                ? "Arşivle"
+                : "Taslağa döndür"
+        }
+        onClose={() => {
+          if (!confirming) setConfirm(null);
+        }}
+        onConfirm={() => {
+          if (!q || !confirm) return;
+          const action = confirm;
+          setConfirming(true);
+          const done = (message: string, next?: QuestionDetail) => {
+            notify.success(message);
+            setConfirm(null);
+            if (next && next.versionId !== q.versionId) {
+              router.push(`${basePath}/${next.versionId}`);
+              return;
+            }
+            if (next) setQ(next);
+            if (action === "archive") router.push(basePath);
+          };
+          const fail = (e: unknown) => notify.error(errorMessage(e, "İşlem başarısız"));
+          const request =
+            action === "unpublish"
+              ? authoringApi.unpublishQuestion(q.versionId)
+              : action === "republish"
+                ? authoringApi.republishQuestion(q.versionId)
+                : action === "archive"
+                  ? authoringApi.archiveQuestion(q.questionId).then(() => undefined)
+                  : authoringApi.returnDraft(q.versionId);
+          void request
+            .then((next) => {
+              if (action === "archive") done("Arşivlendi");
+              else if (action === "unpublish") done("Yayından kaldırıldı", next);
+              else if (action === "republish") done("Tekrar yayınlandı", next);
+              else if (next && next.versionId !== q.versionId) done("Soru sınavlarda kullanıldığı için yeni taslak açıldı.", next);
+              else done("Taslağa döndürüldü", next);
+            })
+            .catch(fail)
+            .finally(() => setConfirming(false));
+        }}
+      />
       <aside aria-label="Öğrenci önizlemesi" className="min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm @min-[60rem]:sticky @min-[60rem]:top-20 @min-[60rem]:max-h-[calc(100dvh-6rem)] @min-[60rem]:overflow-y-auto">
         <QuestionPreviewShell
           model={previewModel}

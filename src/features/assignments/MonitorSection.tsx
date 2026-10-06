@@ -149,9 +149,16 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
             ) : (
               <span key="n" className="font-mono text-[13px]">{row.studentId ?? "—"}</span>
             ),
-            <Badge key="s" tone={s.tone} dot>
-              {s.label}
-            </Badge>,
+            <span key="s" className="inline-flex flex-wrap items-center gap-1">
+              <Badge tone={s.tone} dot>
+                {s.label}
+              </Badge>
+              {row.proctorFlagged || row.finishedReason === "PROCTOR_LIMIT" ? (
+                <span title={row.proctorFlagReason || "Odak kaybı sınırı aşıldı"}>
+                  <Badge tone="danger">Şüpheli</Badge>
+                </span>
+              ) : null}
+            </span>,
             <span key="t" title={row.lastSeenAt ? new Date(row.lastSeenAt).toLocaleString("tr-TR") : undefined}>
               {timeAgo(row.lastSeenAt)}
             </span>,

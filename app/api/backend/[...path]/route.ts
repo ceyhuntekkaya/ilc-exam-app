@@ -30,6 +30,10 @@ async function forward(request: NextRequest, path: string[]) {
   if (companyId) headers.set("x-company-id", companyId);
   const sessionToken = request.headers.get("x-session-token");
   if (sessionToken) headers.set("x-session-token", sessionToken);
+  // <video>/<audio> oynatıcıları Range: bytes=… gönderir. İletilmezse
+  // upstream 200 + tüm dosyayı döner ve tarayıcı kaydı oynatmaz.
+  const range = request.headers.get("range");
+  if (range) headers.set("range", range);
 
   const init: RequestInit = {
     method: request.method,
@@ -42,9 +46,42 @@ async function forward(request: NextRequest, path: string[]) {
   }
 
   const upstream = await fetch(url, init);
+  const upstreamType = upstream.headers.get("content-type") ?? "";
+  const passthrough =
+    upstream.status === 206 ||
+    targetPath.endsWith("/content") ||
+    upstreamType.startsWith("video/") ||
+    upstreamType.startsWith("audio/") ||
+    upstreamType.startsWith("image/");
+
+  if (passthrough) {
+    const responseHeaders = new Headers();
+    for (const name of [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "content-disposition",
+      "cache-control",
+    ]) {
+      const value = upstream.headers.get(name);
+      if (value) responseHeaders.set(name, value);
+    }
+    if (request.method === "HEAD") {
+      return new NextResponse(null, { status: upstream.status, headers: responseHeaders });
+    }
+    const body = await upstream.arrayBuffer();
+    if (!responseHeaders.has("content-length")) {
+      responseHeaders.set("content-length", String(body.byteLength));
+    }
+    return new NextResponse(body, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
+  }
+
   const body = await upstream.arrayBuffer();
   const responseHeaders = new Headers();
-  const upstreamType = upstream.headers.get("content-type");
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
 
   return new NextResponse(body, {
@@ -54,6 +91,11 @@ async function forward(request: NextRequest, path: string[]) {
 }
 
 export async function GET(request: NextRequest, ctx: RouteParams) {
+  const { path } = await ctx.params;
+  return forward(request, path);
+}
+
+export async function HEAD(request: NextRequest, ctx: RouteParams) {
   const { path } = await ctx.params;
   return forward(request, path);
 }

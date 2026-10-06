@@ -1,4 +1,5 @@
 import { authoringFetch } from "@/src/features/authoring/shared/api";
+import { probeDurationMs } from "@/src/features/authoring/shared/probeDuration";
 
 export type VersionStatus = "DRAFT" | "IN_REVIEW" | "APPROVED" | "RETIRED";
 export type InteractionType =
@@ -88,6 +89,38 @@ export type QuestionDetail = {
   editable: boolean;
 };
 
+export type ExamPreview = {
+  seed: number;
+  sections: Array<{
+    sectionId: string;
+    title?: string | null;
+    items: Array<{
+      examQuestionId?: string;
+      question: {
+        body?: {
+          instruction?: unknown;
+          stimulus?: unknown[];
+          mainAudio?: { mediaId?: string | null; playback?: unknown } | null;
+        };
+        parts: Array<Record<string, unknown>>;
+      };
+    }>;
+  }>;
+};
+
+export type ExamGrantRow = {
+  id: string;
+  companyId: string;
+  companyName: string;
+  examVersionId: string;
+  versionNo: number;
+  quota?: number | null;
+  used: number;
+  validFrom: string;
+  validUntil?: string | null;
+  status: string;
+};
+
 export type ExamListItem = {
   id: string;
   code: string;
@@ -105,6 +138,7 @@ export type ExamDetail = {
   title: string;
   status: string;
   purpose: string;
+  securityLevel?: string | null;
   minLevel: string;
   maxLevel: string;
   totalPoints: number;
@@ -160,6 +194,8 @@ export type ExamDetail = {
         displayOrder: number;
         role: string;
         points: number;
+        versionNo: number;
+        currentVersionNo: number;
       }>;
     }>;
   }>;
@@ -201,6 +237,27 @@ export const authoringApi = {
     if (params?.type) sp.set("type", params.type);
     const qs = sp.toString();
     return authoringFetch<QuestionSummary[]>(`/authoring/questions${qs ? `?${qs}` : ""}`);
+  },
+  listQuestionsPage: (params?: {
+    status?: string;
+    cefr?: string;
+    q?: string;
+    skill?: string;
+    currentOnly?: boolean;
+    page?: number;
+    size?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.status) sp.set("status", params.status);
+    if (params?.cefr) sp.set("cefr", params.cefr);
+    if (params?.q) sp.set("q", params.q);
+    if (params?.skill) sp.set("skill", params.skill);
+    if (params?.currentOnly) sp.set("currentOnly", "true");
+    sp.set("page", String(params?.page ?? 0));
+    sp.set("size", String(params?.size ?? 20));
+    return authoringFetch<{ items: QuestionSummary[]; page: number; size: number; total: number }>(
+      `/authoring/questions/page?${sp.toString()}`,
+    );
   },
   createQuestion: (body: { interactionType?: string; skill?: string }) =>
     authoringFetch<QuestionDetail>("/authoring/questions", {
@@ -250,6 +307,14 @@ export const authoringApi = {
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/return-draft`, {
       method: "POST",
       body: JSON.stringify({ note }),
+    }),
+  unpublishQuestion: (versionId: string) =>
+    authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/unpublish`, {
+      method: "POST",
+    }),
+  republishQuestion: (versionId: string) =>
+    authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/republish`, {
+      method: "POST",
     }),
   validateQuestion: (versionId: string, publish = false) =>
     authoringFetch<Array<{ severity: string; path: string; message: string; code?: string }>>(
@@ -323,6 +388,8 @@ export const authoringApi = {
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/sections/${sectionId}/sub-sections/${subId}`, {
       method: "DELETE",
     }),
+  upgradeQuestionVersion: (examId: string, linkId: string) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${examId}/questions/${linkId}/version`, { method: "PUT" }),
   attachQuestion: (examId: string, subId: string, questionVersionId: string, points?: number) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${examId}/sub-sections/${subId}/questions`, {
       method: "POST",
@@ -346,11 +413,26 @@ export const authoringApi = {
     ),
   publishExam: (id: string) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/publish`, { method: "POST" }),
+  unpublishExam: (id: string) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${id}/unpublish`, { method: "POST" }),
+  republishExam: (id: string) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${id}/republish`, { method: "POST" }),
+  revertExamDraft: (id: string) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${id}/revert-draft`, { method: "POST" }),
+  setExamSecurityLevel: (id: string, securityLevel: string) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${id}/security-level`, {
+      method: "PUT",
+      body: JSON.stringify({ securityLevel }),
+    }),
+  previewExam: (id: string, seed: number) =>
+    authoringFetch<ExamPreview>(`/authoring/exams/${id}/preview?seed=${seed}`),
+  listExamGrants: (id: string) =>
+    authoringFetch<ExamGrantRow[]>(`/authoring/exams/${id}/grants`),
   submitExam: (id: string) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/submit-review`, { method: "POST" }),
   listMedia: (kind?: string) =>
     authoringFetch<MediaItem[]>(`/authoring/media${kind ? `?kind=${kind}` : ""}`),
-  uploadMedia: (kind: string, file: File, meta?: {
+  uploadMedia: async (kind: string, file: File, meta?: {
     durationMs?: number | null;
     altText?: string | null;
     transcript?: string | null;
@@ -361,7 +443,13 @@ export const authoringApi = {
     const form = new FormData();
     form.append("file", file);
     form.append("kind", kind);
-    if (meta?.durationMs != null) form.append("durationMs", String(meta.durationMs));
+    const durationMs =
+      meta?.durationMs != null && meta.durationMs > 0
+        ? meta.durationMs
+        : kind === "AUDIO" || kind === "VIDEO"
+          ? await probeDurationMs(file)
+          : null;
+    if (durationMs != null && durationMs > 0) form.append("durationMs", String(durationMs));
     if (meta?.altText) form.append("altText", meta.altText);
     if (meta?.transcript) form.append("transcript", meta.transcript);
     if (meta?.license) form.append("license", meta.license);

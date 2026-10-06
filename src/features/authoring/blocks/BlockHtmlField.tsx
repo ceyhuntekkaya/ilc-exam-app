@@ -1,7 +1,8 @@
 "use client";
 
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
-import { Field, Textarea } from "@/src/ui";
+import { Field } from "@/src/ui";
+import { HtmlEditor } from "@/src/ui/composites/HtmlEditor";
 
 export type BlockHtml = HtmlValue;
 
@@ -28,12 +29,12 @@ export function BlockHtmlField({
   placeholder?: string;
 }) {
   const input = (
-    <Textarea
-      rows={rows}
+    <HtmlEditor
       value={htmlOf(value)}
       disabled={disabled}
       placeholder={placeholder}
-      onChange={(e) => onChange({ html: e.target.value })}
+      minHeight={rows <= 3 ? "min-h-[88px]" : rows <= 5 ? "min-h-[140px]" : "min-h-[200px]"}
+      onChange={(html) => onChange({ html })}
     />
   );
   if (!label) return input;
