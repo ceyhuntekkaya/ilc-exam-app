@@ -22,9 +22,9 @@ export function StudentShell({ children }: { children: ReactNode }) {
   const name = loading ? "" : firstName(user?.displayName || user?.username);
 
   return (
-    <div data-panel="student" className={`${studentFontClass} flex min-h-dvh flex-1 flex-col bg-bg text-fg`}>
+    <div data-panel="student" lang="en" className={`${studentFontClass} flex min-h-dvh flex-1 flex-col bg-bg text-fg`}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow">
-        İçeriğe geç
+        Skip to content
       </a>
       {inQuestion ? null : (
         <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/85 backdrop-blur">
@@ -54,7 +54,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-neutral-700 hover:bg-neutral-100 [&>svg]:size-5"
                 >
                   <IconLogout aria-hidden />
-                  Çıkış
+                  Log out
                 </button>
               </div>
             )}
@@ -70,11 +70,11 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
 export function Logo() {
   return (
-    <Link href="/student" className="inline-flex items-center gap-2.5 rounded-xl" aria-label="ILC — ana sayfa">
+    <Link href="/student" className="inline-flex items-center gap-2.5 rounded-xl" aria-label="ILC — home">
       <span aria-hidden className="grid size-9 place-items-center rounded-lg bg-primary-600 font-kid text-xs font-bold tracking-wide text-white shadow-[0_3px_0_var(--color-primary-800)]">
         ILC
       </span>
-      <span className="font-kid text-base font-bold text-neutral-900">Sınavlarım</span>
+      <span className="font-kid text-base font-bold text-neutral-900">My tests</span>
     </Link>
   );
 }

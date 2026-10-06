@@ -1,6 +1,6 @@
 "use client";
 
-import { OptionButton } from "@/src/features/exam-player/interactions/OptionChip";
+import { OptionButton, OptionGrid } from "@/src/features/exam-player/interactions/OptionChip";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { useMemo, useState } from "react";
@@ -28,7 +28,7 @@ export function MultipleChoiceView({
   useAnswerSync(itemId, selected ? { optionId: selected } : null, !preview && !disabled);
 
   return (
-    <div className="space-y-2" role="radiogroup">
+    <OptionGrid format={format} label="Answers">
       {options.map((opt, i) => (
         <OptionButton
           key={opt.id}
@@ -41,7 +41,7 @@ export function MultipleChoiceView({
           onSelect={() => setSelected(opt.id)}
         />
       ))}
-    </div>
+    </OptionGrid>
   );
 }
 
@@ -82,14 +82,9 @@ export function MultipleResponseView({
   }
 
   return (
-    <div className="space-y-2" role="group">
-      {max != null || interaction.minSelections != null ? (
-        <p className="text-xs text-exam-slate-500">
-          {interaction.minSelections != null ? `En az ${interaction.minSelections}` : null}
-          {interaction.minSelections != null && max != null ? " · " : null}
-          {max != null ? `En fazla ${max}` : null}
-        </p>
-      ) : null}
+    <div className="space-y-2">
+      <SelectionCount min={interaction.minSelections as number | null | undefined} max={max} count={selected.length} />
+      <OptionGrid format={format} label="Answers" multi>
       {options.map((opt, i) => (
         <OptionButton
           key={opt.id}
@@ -103,6 +98,18 @@ export function MultipleResponseView({
           onSelect={() => toggle(opt.id)}
         />
       ))}
+      </OptionGrid>
     </div>
+  );
+}
+
+/** Çoklu seçimde kaç tane seçileceği ve kaç tane seçildiği (A1 dil). */
+function SelectionCount({ min, max, count }: { min?: number | null; max?: number | null; count: number }) {
+  if (min == null && max == null) return null;
+  const need = min != null && max != null && min === max ? `Choose ${max}.` : [min != null ? `Choose at least ${min}.` : "", max != null ? `You can choose up to ${max}.` : ""].filter(Boolean).join(" ");
+  return (
+    <p className="text-sm font-semibold text-exam-slate-600">
+      {need} <span className="text-exam-navy-700">Chosen: {count}{max != null ? ` / ${max}` : ""}</span>
+    </p>
   );
 }

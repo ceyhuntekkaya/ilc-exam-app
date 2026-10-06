@@ -19,13 +19,13 @@ type Result = {
   skillScores?: Record<string, number> | null;
 };
 
-const SKILL_TR: Record<string, string> = {
-  READING: "Okuma",
-  LISTENING: "Dinleme",
-  WRITING: "Yazma",
-  SPEAKING: "Konuşma",
-  GRAMMAR: "Dil bilgisi",
-  VOCABULARY: "Kelime",
+const SKILL_LABEL: Record<string, string> = {
+  READING: "Reading",
+  LISTENING: "Listening",
+  WRITING: "Writing",
+  SPEAKING: "Speaking",
+  GRAMMAR: "Grammar",
+  VOCABULARY: "Words",
 };
 
 /**
@@ -42,7 +42,7 @@ export default function StudentHomePage() {
   const fetchAll = useCallback(() => {
     listAssignments()
       .then(setRows)
-      .catch((err: unknown) => setError(err instanceof ExamApiError ? err.message : "Sınavların yüklenemedi."));
+      .catch((err: unknown) => setError(err instanceof ExamApiError ? err.message : "We could not load your tests."));
     customInstance<{ data: Result[] }>("/me/results")
       .then((res) => setResults(res.data ?? []))
       .catch(() => setResults([]));
@@ -78,24 +78,24 @@ export default function StudentHomePage() {
     <div className="space-y-6">
       <Hello name={name} rows={rows} now={groups.now} />
 
-      {error ? <KidError title="Sınavların yüklenemedi" message="İnternet bağlantını kontrol edip tekrar dene." onRetry={retry} /> : null}
+      {error ? <KidError title="We could not load your tests" message="Check your internet and try again." onRetry={retry} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="space-y-6">
-          <Block title="Şimdi girebileceğin sınavlar" count={groups.now.length} id="simdi">
+          <Block title="Tests you can take now" count={groups.now.length} id="simdi">
             {rows == null && !error ? (
-              <KidLoading label="Sınavlar yükleniyor…" />
+              <KidLoading label="Loading your tests…" />
             ) : groups.now.length ? (
               <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {groups.now.map((row) => <NowCard key={row.recipientId} row={row} />)}
               </ul>
             ) : rows ? (
-              <Empty icon={<IconCheck />} title="Şu an girmen gereken bir sınav yok" text="Öğretmenin yeni bir sınav açınca burada görünecek." />
+              <Empty icon={<IconCheck />} title="You have no tests now" text="When your teacher opens a new test, you will see it here." />
             ) : null}
           </Block>
 
           {groups.soon.length ? (
-            <Block title="Yakında açılacak" count={groups.soon.length} id="yakinda">
+            <Block title="Coming soon" count={groups.soon.length} id="yakinda">
               <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {groups.soon.map((row) => <SoonCard key={row.recipientId} row={row} />)}
               </ul>
@@ -103,7 +103,7 @@ export default function StudentHomePage() {
           ) : null}
 
           {groups.done.length ? (
-            <Block title="Biten sınavlar" count={groups.done.length} id="biten">
+            <Block title="Finished tests" count={groups.done.length} id="biten">
               <ul className="divide-y divide-neutral-200 overflow-hidden rounded-3xl bg-white ring-1 ring-neutral-200">
                 {groups.done.map((row) => <DoneRow key={row.recipientId} row={row} />)}
               </ul>
@@ -112,15 +112,15 @@ export default function StudentHomePage() {
         </div>
 
         <aside className="space-y-6">
-          <Block title="Sonuçlarım" count={results?.length} id="sonuclar">
+          <Block title="My results" count={results?.length} id="sonuclar">
             {results == null ? (
-              <KidLoading rows={1} label="Sonuçlar yükleniyor…" />
+              <KidLoading rows={1} label="Loading your results…" />
             ) : results.length ? (
               <ul className="space-y-3">
                 {results.map((row) => <ResultCard key={row.applicationId} row={row} />)}
               </ul>
             ) : (
-              <Empty icon={<IconTrophy />} title="Henüz sonuç yok" text="Öğretmenin sonuçları paylaşınca burada göreceksin." tone="grape" />
+              <Empty icon={<IconTrophy />} title="No results yet" text="When your teacher shares your results, you will see them here." tone="grape" />
             )}
           </Block>
           <Tips />
@@ -138,14 +138,14 @@ function time(value?: string | null) {
 function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | null; now: AssignmentCard[] }) {
   const resume = now.find((row) => row.cta === "RESUME");
   const line = rows == null
-    ? "Sınavlarına bakıyoruz…"
+    ? "Looking for your tests…"
     : resume
-      ? "Yarım kalan bir sınavın var. Kaldığın yerden devam edebilirsin."
+      ? "You have a test that is not finished. You can continue from where you stopped."
       : now.length === 1
-        ? "Seni bekleyen 1 sınav var. Hazır olduğunda başlayabilirsin."
+        ? "You have 1 test. Start when you are ready."
         : now.length > 1
-          ? `Seni bekleyen ${now.length} sınav var. İstediğinden başlayabilirsin.`
-          : "Şu an bekleyen sınavın yok. Harika!";
+          ? `You have ${now.length} tests. You can start with any of them.`
+          : "You have no tests now. Great!";
 
   return (
     <section className="relative overflow-hidden rounded-3xl bg-primary-600 px-5 py-5 text-white shadow-[0_4px_0_var(--color-primary-800)] sm:px-7 sm:py-6">
@@ -154,11 +154,11 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
       <span aria-hidden className="absolute top-14 right-24 hidden h-8 w-24 rounded-full bg-white/15 sm:block" />
       <span aria-hidden className="absolute -bottom-12 left-1/3 h-24 w-56 rounded-full bg-white/10" />
       <div className="relative max-w-xl">
-        <h1 className="text-2xl font-bold sm:text-[1.75rem]">Merhaba{name ? `, ${name}` : ""}!</h1>
+        <h1 className="text-2xl font-bold sm:text-[1.75rem]">Hello{name ? `, ${name}` : ""}!</h1>
         <p className="mt-2 text-base text-white/90">{line}</p>
         {resume ? (
           <KidButtonLink href={`/student/exams/${resume.recipientId}`} variant="sun" className="mt-4 max-w-full min-w-0">
-            <span className="min-w-0 truncate">Devam et: {resume.examTitle}</span>
+            <span className="min-w-0 truncate">Continue: {resume.examTitle}</span>
             <IconArrowRight aria-hidden />
           </KidButtonLink>
         ) : null}
@@ -194,21 +194,21 @@ function NowCard({ row }: { row: AssignmentCard }) {
         {until ? (
           <p className="mt-1.5 flex items-center gap-1.5 text-neutral-600 [&>svg]:size-4">
             <IconCalendar aria-hidden />
-            {until} saatine kadar açık
+            Open until {until}
           </p>
         ) : null}
         <div className="mt-4 grid grid-cols-2 gap-2.5">
-          <InfoTile icon={<IconClock />} label="Süre" value={row.timingMode === "UNTIMED" ? "Süresiz" : formatDuration(row.durationSeconds)} />
-          <InfoTile icon={<IconLayers />} label="Bölüm · Soru" value={`${row.sectionCount} · ${row.questionCount}`} tone="grape" />
+          <InfoTile icon={<IconClock />} label="Time" value={row.timingMode === "UNTIMED" ? "No limit" : formatDuration(row.durationSeconds)} />
+          <InfoTile icon={<IconLayers />} label="Parts · Questions" value={`${row.sectionCount} · ${row.questionCount}`} tone="grape" />
         </div>
         {row.attemptsTotal > 1 ? (
           <p className="mt-3 text-neutral-600">
-            Giriş hakkın: <strong className="text-neutral-900">{row.attemptsLeft}</strong> / {row.attemptsTotal}
+            Tries left: <strong className="text-neutral-900">{row.attemptsLeft}</strong> / {row.attemptsTotal}
           </p>
         ) : null}
         <div className="mt-auto pt-5">
           <KidButtonLink href={`/student/exams/${row.recipientId}`} variant={resume ? "sun" : "primary"} size="lg" full>
-            {resume ? "Kaldığın yerden devam et" : "Sınava başla"}
+            {resume ? "Continue the test" : row.attemptsUsed > 0 ? "Try again" : "Start the test"}
             <IconArrowRight aria-hidden />
           </KidButtonLink>
         </div>
@@ -226,7 +226,7 @@ function SoonCard({ row }: { row: AssignmentCard }) {
       <div className="min-w-0">
         <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
         <p className="text-neutral-600">
-          {friendlyWhen(row.availableFrom) ? <>Açılış: <strong className="text-neutral-800">{friendlyWhen(row.availableFrom)}</strong></> : "Açılış tarihi henüz belli değil"}
+          {friendlyWhen(row.availableFrom) ? <>Opens: <strong className="text-neutral-800">{friendlyWhen(row.availableFrom)}</strong></> : "The opening date is not ready yet"}
         </p>
       </div>
     </li>
@@ -240,7 +240,7 @@ function DoneRow({ row }: { row: AssignmentCard }) {
     <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
       <div className="min-w-0">
         <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-        {last?.finishedAt ? <p className="text-neutral-600">Bitirdiğin zaman: {friendlyWhen(last.finishedAt)}</p> : null}
+        {last?.finishedAt ? <p className="text-neutral-600">Finished: {friendlyWhen(last.finishedAt)}</p> : null}
       </div>
       <StatusPill tone={status.tone}>{status.label}</StatusPill>
     </li>
@@ -256,14 +256,14 @@ function ResultCard({ row }: { row: Result }) {
         {row.cefrLevel ? <StatusPill tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
       </div>
       <p className="mt-2 text-neutral-600">
-        Puanın: <strong className="font-kid text-xl text-neutral-900">{row.totalScore ?? "—"}</strong>
+        Your score: <strong className="font-kid text-xl text-neutral-900">{row.totalScore ?? "—"}</strong>
       </p>
       {skills.length ? (
         <ul className="mt-3 space-y-2.5">
           {skills.map(([skill, score]) => (
             <li key={skill}>
               <div className="flex justify-between text-sm font-semibold text-neutral-700">
-                <span>{SKILL_TR[skill] ?? skill}</span>
+                <span>{SKILL_LABEL[skill] ?? skill}</span>
                 <span className="numeric">{String(score)}</span>
               </div>
               {typeof score === "number" && score >= 0 && score <= 100 ? (
@@ -295,16 +295,16 @@ function Empty({ icon, title, text, tone = "mint" }: { icon: ReactNode; title: s
 
 function Tips() {
   const tips = [
-    "Sessiz bir yere otur.",
-    "Dinleme soruları için kulaklığını tak.",
-    "Cihazının şarjı dolu olsun.",
-    "Soruyu dikkatlice oku, acele etme.",
+    "Sit in a quiet place.",
+    "Put on your headphones for listening.",
+    "Charge your tablet or computer.",
+    "Read each question carefully. Do not hurry.",
   ];
   return (
     <section aria-labelledby="ipucu" className="rounded-3xl bg-secondary-100 p-4 sm:p-5">
       <h2 id="ipucu" className="flex items-center gap-2 text-base font-bold text-neutral-900 [&>svg]:size-5">
         <IconQuestion aria-hidden className="text-secondary-700" />
-        Sınavdan önce
+        Before the test
       </h2>
       <ul className="mt-3 space-y-2">
         {tips.map((tip) => (

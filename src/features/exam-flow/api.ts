@@ -29,7 +29,7 @@ function asExamError(err: unknown): ExamApiError {
   let state: ExamState | undefined;
   const parsed = examStateSchema.safeParse(raw.data?.state);
   if (parsed.success) state = parsed.data;
-  return new ExamApiError(raw.data?.error || raw.message || "İstek başarısız", raw.status, raw.data?.code, state);
+  return new ExamApiError(raw.data?.error || raw.message || "Something went wrong. Please try again.", raw.status, raw.data?.code, state);
 }
 
 async function parse<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {
@@ -38,8 +38,8 @@ async function parse<T>(path: string, schema: ZodType<T>, init?: RequestInit): P
     const result = schema.safeParse(response.data);
     if (!result.success) {
       const issue = result.error.issues[0];
-      const where = issue?.path.length ? issue.path.join(".") : "yanıt";
-      throw new ExamApiError(`Sınav durumu okunamadı (${where}). Sayfayı yenileyin.`);
+      const where = issue?.path.length ? issue.path.join(".") : "response";
+      throw new ExamApiError(`We could not read the test (${where}). Please refresh the page.`);
     }
     return result.data;
   } catch (err) {
@@ -97,7 +97,7 @@ export function enterSection(applicationId: string, token: string, sectionId: st
     { method: "POST", headers: sessionHeaders(token) },
   ).then((response) => {
     const state = examStateSchema.safeParse(response.data.state);
-    if (!state.success) throw new ExamApiError("Sınav durumu okunamadı. Sayfayı yenileyin.");
+    if (!state.success) throw new ExamApiError("We could not read the test. Please refresh the page.");
     return { state: state.data, items: response.data.content?.items ?? [] };
   }).catch((err) => {
     throw asExamError(err);
@@ -172,7 +172,7 @@ export async function uploadCheck(
       `/applications/${applicationId}/checks/${type}/media`,
       { method: "POST", headers: sessionHeaders(token), body },
     );
-    if (!response.data.mediaId) throw new ExamApiError("Kayıt kaydedilemedi");
+    if (!response.data.mediaId) throw new ExamApiError("The recording was not saved. Please try again.");
     return response.data.mediaId;
   } catch (err) {
     throw asExamError(err);

@@ -27,7 +27,9 @@
 - Tek ana sayfa (`/student`); yeni öğrenci sayfası/menü açma, içerik ana sayfaya bölüm olarak eklenir.
 - Bileşenler `src/features/student/ui.tsx`: `KidButton` (ekranda tek `primary`), `StatusPill` (renk + ikon + metin), `KidDialog`, `KidLoading`, `KidError`, `KidNotice`. Admin `src/ui` bileşenlerini öğrenci ekranında kullanma.
 - Metin: kısa, "sen" dili, teknik terim yok. Arayüz metni sade (başlık en fazla `text-2xl`, gövde `text-base`), soru içeriği büyük; dokunma hedefi en az 44px. Durum yalnız renkle verilmez.
-- Soru içeriği (`exam-player`, `QuestionView`) admin "Öğrenci önizlemesi" ile birebir aynı: öğrenci kapsamında `.exam-player` CSS ezme, kabı önizlemedeki gibi; görünüm değişikliği yalnız `exam-player` içinde (ikisine birden yansır). Soru ekranı kabuk metinleri İngilizce; ana sayfa/hazırlık/bölüm listesi Türkçe. Soru ekranında kabuk gizli, süs yok; üst çubuk 48px (bölüm · sıra · süre), soru takibi + Önceki/Sonraki footer'da. Süre normalde gri, uyarıda sarı, son dakikada mercan.
+- Soru içeriği (`exam-player`, `QuestionView`) admin "Öğrenci önizlemesi" ile birebir aynı: öğrenci kapsamında `.exam-player` CSS ezme, kabı önizlemedeki gibi; görünüm değişikliği yalnız `exam-player` içinde (ikisine birden yansır). Öğrenci paneli tamamen İngilizce (A1–A2, kısa cümle; kabukta `lang="en"`); yalnız admin önizleme notları Türkçe. Soru ekranında kabuk gizli, süs yok; üst çubuk 48px (bölüm · sıra · süre), soru takibi + Önceki/Sonraki footer'da. Süre normalde gri, uyarıda sarı, son dakikada mercan; süre sınırı yoksa sayaç gösterilmez.
+- Sürükle-bırak yalnız `exam-player/dnd/PlaceBoard` (`@dnd-kit`; sürükle + dokun-seç, kutudaki karta dokun = geri al, `StartOver`; renk `DropZone variant` + `correct` ile — exam-player'da `cn` birleştirmez, aynı özelliğe iki sınıf verme); sıralama `@dnd-kit/sortable` + ok düğmeleri. Native HTML5 drag kullanma (tablette çalışmaz).
+- Medya: öğrencide başlayınca sonuna kadar çalar, hak sayısı kadar, aynı anda tek medya ve çalarken soru geçişi kilitli (`session/playerGuard`). Ses/video seçenekli kart sonuna kadar oynatılmadan taşınamaz/seçilemez (`useOptionLock`, havuzda `OptionDragItem`, dizilim `poolListClass`). Writing otomatik kaydetmez ("Save answer"; geçişte sorulur). Her soru başında `FormatHint`.
 
 ## Değişiklik günlüğü
 
@@ -79,3 +81,13 @@
 - 2026-10-06 — 18 eki 4: araç çubuğu sayacında sayı–ad boşluğu (flex içinde yutuluyordu), tek satır.
 - 2026-10-06 — `student-redesign.md` › 07: cihaz kontrolü — 3-2-1 geri sayım, kalan süre, Bitir/Vazgeç, unmount'ta medya kapatma, ayrıntılı izin/cihaz hata mesajları, webm süre düzeltmesi.
 - 2026-10-06 — 07 eki: cihaz kartı sabit sahne (kamera 16:9, mikrofon sabit yükseklik), izin bekleme ekranı, tek satır durum, eşit kart boyu.
+- 2026-10-06 — `student-redesign.md` › 08: PLAN — sınav ekranı UX revizyonu (dokunmatik sürükle-bırak, geri alma, medya kilidi, format rehberi, İngilizce panel, giriş hakkı); onay bekliyor.
+- 2026-10-06 — `student-redesign.md` › 09: plan uygulandı — @dnd-kit PlaceBoard (dokunmatik sürükle + dokun-seç, geri alma, Start over), medya kilidi/hak/odak, FormatHint, seçenek kartları ve görsel ızgaralar, boşluk yuvaları, Writing kaydet, yükleme önizleme+kaldırma, giriş hakkı ile yeniden deneme, süresizde sayaç yok, öğrenci paneli tamamen İngilizce.
+- 2026-10-06 — `student-redesign.md` › 10: 09 review — dinleme/deneme hakkı oturumda saklanıyor, çift dokunuş ve medya tuşu açıkları, QuestionView key, kayıt otomatik durma/gerçek süre/kilit, DropZone varyantları (sınıf çakışmaları), havuz parlaması, çokgen alan, "Keep this order".
+- 2026-10-06 — `student-redesign.md` › 11: backend uyumu (cevapta üst düzey mediaId), hareketsiz sürükleme = dokunuş (yavaş dokunuş kaybolmuyor), iOS: touch-callout, overlay panel kökünde, m4a kayıt, video kapak karesi, ≥44px hedefler; PreviewRubricPanel lint.
+- 2026-10-06 — `student-redesign.md` › 12: önce izle/dinle kilidi (sürükle-bırak, sıralama, çoktan seçmeli), video kartları yan yana 2 sütun, görsel 2–4 sütun, sıralamada video oynatıcı, kutuda video kapak karesi.
+- 2026-10-06 — `student-redesign.md` › 13: sürüklenen kopya imleç/parmağı izliyor (followPointer + OVERLAY_STYLE; kopya kaynak kartın boyuyla konumlandığı için yukarıda kalıyordu).
+- 2026-10-06 — `student-redesign.md` › 14: yerleşen görsel/video kutuyu tam doldurur (puzzle: görsel üstü alan, grup kare kutucukları, eşleştirme kutusu), MediaImageSlot object-fit çakışması.
+- 2026-10-06 — `student-redesign.md` › 15: boşluklar düz metin gibi (alt çizgili; seçmeli, kelime havuzu, açık uçlu), seçilen kelime normal boyda okunur.
+- 2026-10-06 — `student-redesign.md` › 16: boşluk hizası düzeltildi (inline-block, taban çizgisi), numara yerine okunaklı "•••".
+- 2026-10-06 — `student-redesign.md` › 17: boşluk zemini şeffaf, boşta yalnız "•••", dolunca kelime altı çizili (eski tasarım).

@@ -2,6 +2,7 @@
 
 import { ContentBlockListView } from "@/src/features/exam-player/blocks/ContentBlockView";
 import { HtmlBlock, HtmlInline } from "@/src/features/exam-player/html";
+import { FormatHint } from "@/src/features/exam-player/interactions/FormatHint";
 import { InteractionRenderer } from "@/src/features/exam-player/interactions/InteractionRenderer";
 import { MediaAudio } from "@/src/features/exam-player/media/MediaContext";
 import { PlayerPreviewProvider } from "@/src/features/exam-player/preview/PlayerPreviewContext";
@@ -26,6 +27,10 @@ export function QuestionView({
   const hasMainAudio = !!model.mainAudio?.mediaId;
   const instructionHtml = htmlOf(model.instruction);
   const parts = [...(model.parts ?? [])].sort((a, b) => a.position - b.position);
+  const hasInstructionAudio = !!model.instructionAudio?.mediaId;
+  // Tüm bölümler aynı türdeyse tür yönergesi bir kez, en üstte; değilse her bölümün başında.
+  const hintKey = (p: (typeof parts)[number]) => `${p.interactionType}:${String(p.interaction?.supply ?? "")}`;
+  const sharedHint = parts.length && parts.every((p) => hintKey(p) === hintKey(parts[0])) ? { type: parts[0].interactionType, interaction: parts[0].interaction } : null;
 
   const body = (
     <div
@@ -42,36 +47,29 @@ export function QuestionView({
       ) : null}
 
       <div className="mb-4 space-y-3">
-        <div className="flex items-start gap-2">
-          {instructionHtml ? (
-            <div className={cn(epInstructionBanner, "min-w-0 flex-1 [&_p]:m-0")}>
-              <HtmlInline value={model.instruction} />
-            </div>
-          ) : (
-            <div className={cn(epInstructionBanner, "min-w-0 flex-1 italic opacity-70")}>
-              Yönerge yok
-            </div>
-          )}
-          {model.instructionAudio?.mediaId ? (
-            <MediaAudio
-              mediaId={model.instructionAudio.mediaId}
-              playback={model.instructionAudio.playback}
-              variant="icon"
-              unlimited
-            />
-          ) : null}
-        </div>
-
-        {hasMainAudio ? (
-          <div className="flex justify-end">
-            <div className="w-full max-w-md">
+        {sharedHint ? <FormatHint type={sharedHint.type} interaction={sharedHint.interaction} /> : null}
+        {instructionHtml || hasInstructionAudio || preview ? (
+          <div className="flex flex-col gap-2 @sm:flex-row @sm:items-start">
+            {instructionHtml ? (
+              <div className={cn(epInstructionBanner, "min-w-0 flex-1 [&_p]:m-0")}>
+                <HtmlInline value={model.instruction} />
+              </div>
+            ) : preview ? (
+              <div className={cn(epInstructionBanner, "min-w-0 flex-1 italic opacity-70")}>Yönerge yok</div>
+            ) : null}
+            {hasInstructionAudio ? (
               <MediaAudio
-                mediaId={model.mainAudio!.mediaId}
-                playback={model.mainAudio!.playback}
+                mediaId={model.instructionAudio!.mediaId}
+                playback={model.instructionAudio!.playback}
+                variant="icon"
+                unlimited
+                className="@sm:pt-1.5"
               />
-            </div>
+            ) : null}
           </div>
         ) : null}
+
+        {hasMainAudio ? <MediaAudio mediaId={model.mainAudio!.mediaId} playback={model.mainAudio!.playback} /> : null}
       </div>
 
       <div
@@ -91,9 +89,10 @@ export function QuestionView({
             <section key={part.id} className="space-y-4">
               {parts.length > 1 ? (
                 <p className="text-xs font-semibold uppercase tracking-wide text-exam-slate-500">
-                  {idx + 1} / {parts.length}
+                  Part {idx + 1} of {parts.length}
                 </p>
               ) : null}
+              {!sharedHint ? <FormatHint type={part.interactionType} interaction={part.interaction} /> : null}
               {(part.stem?.length ?? 0) > 0 ? (
                 <div className="space-y-1.5">
                   <ContentBlockListView blocks={part.stem} />
@@ -109,7 +108,7 @@ export function QuestionView({
               />
             </section>
           ))}
-          {!parts.length ? (
+          {!parts.length && preview ? (
             <p className="text-sm italic text-exam-slate-400">Henüz part yok</p>
           ) : null}
         </div>

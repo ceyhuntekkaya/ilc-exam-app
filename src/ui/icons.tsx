@@ -706,3 +706,37 @@ export function IconRefresh(props: IconProps) {
     </svg>
   );
 }
+
+export function IconVolume(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+    </svg>
+  );
+}
+
+/** Sürüklenebilir öğe tutamağı (2×3 nokta). */
+export function IconGrip(props: IconProps) {
+  return (
+    <svg {...base} fill="currentColor" stroke="none" {...props}>
+      <circle cx="9" cy="6" r="1.5" />
+      <circle cx="15" cy="6" r="1.5" />
+      <circle cx="9" cy="12" r="1.5" />
+      <circle cx="15" cy="12" r="1.5" />
+      <circle cx="9" cy="18" r="1.5" />
+      <circle cx="15" cy="18" r="1.5" />
+    </svg>
+  );
+}
+
+export function IconImage(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.75" />
+      <path d="m21 16-5-5-9 9" />
+    </svg>
+  );
+}

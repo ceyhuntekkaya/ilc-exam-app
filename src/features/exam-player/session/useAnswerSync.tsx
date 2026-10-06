@@ -25,8 +25,10 @@ export function useAnswerSync(
     setStatus("saving");
     const send = () => {
       pending.current = null;
-      save(itemId, payload);
-      setStatus("saved");
+      void Promise.resolve(save(itemId, payload)).then(
+        () => setStatus("saved"),
+        () => setStatus("idle"),
+      );
     };
     pending.current = send;
     const handle = window.setTimeout(send, 400);
@@ -44,7 +46,7 @@ export function SaveStatus({ status }: { status: AnswerSaveStatus }) {
   if (status === "idle") return null;
   return (
     <span className="text-xs text-exam-slate-500">
-      {status === "saving" ? "Kaydediliyor…" : "Kaydedildi"}
+      {status === "saving" ? "Saving…" : "Saved"}
     </span>
   );
 }

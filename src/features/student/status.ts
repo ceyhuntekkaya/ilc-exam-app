@@ -11,35 +11,35 @@ export function examGroup(card: AssignmentCard): ExamGroup {
 }
 
 export function examStatus(card: AssignmentCard): { tone: KidTone; label: string } {
-  if (card.cta === "RESUME") return { tone: "sun", label: "Yarım kaldı" };
-  if (card.cta === "START") return { tone: "sky", label: card.attemptsUsed > 0 ? "Yeniden girebilirsin" : "Hazır" };
-  if (card.blockedReason === "NOT_OPEN_YET") return { tone: "neutral", label: "Yakında" };
-  if (card.attempts.some((attempt) => attempt.finishedAt)) return { tone: "mint", label: "Tamamlandı" };
-  return { tone: "neutral", label: "Süresi geçti" };
+  if (card.cta === "RESUME") return { tone: "sun", label: "Not finished" };
+  if (card.cta === "START") return { tone: "sky", label: card.attemptsUsed > 0 ? "You can try again" : "Ready" };
+  if (card.blockedReason === "NOT_OPEN_YET") return { tone: "neutral", label: "Coming soon" };
+  if (card.attempts.some((attempt) => attempt.finishedAt)) return { tone: "mint", label: "Done" };
+  return { tone: "neutral", label: "Closed" };
 }
 
 export function sectionTone(status?: string | null): { tone: KidTone; label: string } {
   switch (status) {
     case "LOCKED":
-      return { tone: "neutral", label: "Kilitli" };
+      return { tone: "neutral", label: "Locked" };
     case "ACTIVE":
-      return { tone: "sun", label: "Devam ediyor" };
+      return { tone: "sun", label: "In progress" };
     case "LEFT":
-      return { tone: "sun", label: "Ara verdin" };
+      return { tone: "sun", label: "On a break" };
     case "COMPLETED":
-      return { tone: "mint", label: "Bitti" };
+      return { tone: "mint", label: "Finished" };
     case "EXPIRED":
-      return { tone: "coral", label: "Süre doldu" };
+      return { tone: "coral", label: "Time is up" };
     default:
-      return { tone: "sky", label: "Hazır" };
+      return { tone: "sky", label: "Ready" };
   }
 }
 
 const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul", year: "numeric", month: "2-digit", day: "2-digit" });
-const timeOnly = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
-const longDay = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "long", weekday: "long" });
+const timeOnly = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Istanbul", hour: "2-digit", minute: "2-digit" });
+const longDay = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Istanbul", day: "numeric", month: "long", weekday: "long" });
 
-/** Çocuğun okuyabileceği tarih: "Bugün 14:00", "Yarın 09:30", "12 Ekim Pazartesi 10:00". */
+/** Çocuğun okuyabileceği tarih: "Today 14:00", "Tomorrow 09:30", "Monday 12 October 10:00". */
 export function friendlyWhen(value?: string | null) {
   if (!value) return null;
   const date = new Date(value);
@@ -48,8 +48,8 @@ export function friendlyWhen(value?: string | null) {
   const tomorrow = new Date(today.getTime() + 86_400_000);
   const key = dayKey.format(date);
   const time = timeOnly.format(date);
-  if (key === dayKey.format(today)) return `Bugün ${time}`;
-  if (key === dayKey.format(tomorrow)) return `Yarın ${time}`;
+  if (key === dayKey.format(today)) return `Today ${time}`;
+  if (key === dayKey.format(tomorrow)) return `Tomorrow ${time}`;
   return `${longDay.format(date)} ${time}`;
 }
 

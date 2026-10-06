@@ -175,14 +175,21 @@ export function PreviewRubricPanel({
           .filter((id): id is string => !!id),
       ),
     ];
+    let cancelled = false;
     if (!versionIds.length) {
-      setDetails({});
-      return;
+      // Effect gövdesinde senkron setState olmasın (zincirleme render); bir mikro görevde temizlenir.
+      void Promise.resolve().then(() => {
+        if (!cancelled) setDetails({});
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
-    let cancelled = false;
-    setLoading(true);
     void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
       const next: Record<string, RubricDetail | null> = {};
       await Promise.all(
         versionIds.map(async (versionId) => {

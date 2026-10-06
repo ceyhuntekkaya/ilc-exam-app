@@ -38,7 +38,7 @@ export default function SectionListPage() {
     } catch (err) {
       const flow = err instanceof ExamApiError ? err : null;
       if (flow?.state) applyState(flow.state);
-      setError(flow?.message || "Bölüm açılamadı");
+      setError(flow?.message || "This part did not open. Please try again.");
     } finally {
       setBusy(false);
       setPending(null);
@@ -53,7 +53,7 @@ export default function SectionListPage() {
     try {
       applyState(await postState(`/applications/${session.applicationId}/finish`, session.sessionToken, { confirmIncomplete }));
     } catch (err) {
-      setError(err instanceof ExamApiError ? err.message : "Sınav bitirilemedi");
+      setError(err instanceof ExamApiError ? err.message : "We could not finish the test. Please try again.");
     } finally {
       setBusy(false);
       setConfirmFinish(false);
@@ -64,29 +64,32 @@ export default function SectionListPage() {
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Bölümler</h1>
-          <p className="mt-1 text-base text-neutral-700">Bir bölüm seç. Bu ekrandayken süren durur.</p>
+          <h1 className="text-2xl font-bold text-neutral-900">Parts of the test</h1>
+          <p className="mt-1 text-base text-neutral-700">Choose a part. On this page, the timer stops.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-neutral-200 [&>svg]:size-5 [&>svg]:text-primary-600">
-          <IconClock aria-hidden />
-          <div>
-            <p className="text-sm text-neutral-600">Kalan sınav süresi</p>
-            <p className="numeric font-kid text-base font-bold text-neutral-900">{examLeft == null ? "Süresiz" : formatClock(remaining ?? examLeft)}</p>
+        {/* Süre sınırı yoksa sayaç gösterilmez. */}
+        {examLeft != null ? (
+          <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-neutral-200 [&>svg]:size-5 [&>svg]:text-primary-600">
+            <IconClock aria-hidden />
+            <div>
+              <p className="text-sm text-neutral-600">Time left for the test</p>
+              <p className="numeric font-kid text-base font-bold text-neutral-900">{formatClock(remaining ?? examLeft)}</p>
+            </div>
           </div>
-        </div>
+        ) : null}
       </header>
 
       <div className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
         <div className="flex items-center justify-between font-semibold text-neutral-800">
-          <span>İlerleme</span>
-          <span>{doneCount} / {total} bölüm bitti</span>
+          <span>Progress</span>
+          <span>{doneCount} / {total} parts finished</span>
         </div>
-        <div className="mt-2 h-3 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Biten bölümler">
+        <div className="mt-2 h-3 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Finished parts">
           <div className="h-full rounded-full bg-(--kid-mint-solid) transition-[width]" style={{ width: total ? `${(doneCount / total) * 100}%` : 0 }} />
         </div>
       </div>
 
-      {timeUp ? <KidNotice tone="coral">Sınav süren doldu. Bölümlere artık girilemez.</KidNotice> : null}
+      {timeUp ? <KidNotice tone="coral">The test time is up. You cannot open the parts now.</KidNotice> : null}
 
       <ol className="grid gap-4 md:grid-cols-2">
         {state.sections.map((section, index) => {
@@ -118,15 +121,15 @@ export default function SectionListPage() {
                     <StatusPill tone={tone.tone}>{tone.label}</StatusPill>
                   </div>
                   <p className="mt-1 text-neutral-600">
-                    {section.questionCount} soru · {section.durationMs == null ? "Süresiz" : formatDuration(section.durationMs / 1000)}
-                    {section.remainingMs != null && resume ? ` · ${formatClock(section.remainingMs)} kaldı` : ""}
+                    {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}{section.durationMs == null ? "" : ` · ${formatDuration(section.durationMs / 1000)}`}
+                    {section.remainingMs != null && resume ? ` · ${formatClock(section.remainingMs)} left` : ""}
                   </p>
                   {section.lockReason ? <p className="mt-2 text-neutral-600">{section.lockReason}</p> : null}
                 </div>
               </div>
               {!finished && section.canEnter ? (
                 <KidButton variant={resume ? "sun" : "primary"} full disabled={busy} onClick={() => setPending(section.sectionId)} className="mt-5">
-                  {resume ? "Devam et" : "Bölüme başla"}
+                  {resume ? "Continue" : "Start this part"}
                   <IconArrowRight aria-hidden />
                 </KidButton>
               ) : null}
@@ -140,21 +143,21 @@ export default function SectionListPage() {
       {!finished && state.canFinish ? (
         incomplete ? (
           <div className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-neutral-200 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-neutral-700">Tüm bölümleri bitirince sınavını buradan teslim edeceksin.</p>
+            <p className="text-neutral-700">When you finish all the parts, you will send your test here.</p>
             <KidButton variant="soft" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
-              Sınavı şimdi bitir
+              Finish the test now
             </KidButton>
           </div>
         ) : (
           <KidCard className="flex flex-col gap-4 bg-(--kid-mint-bg) ring-0 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xl font-bold text-neutral-900">Tüm bölümleri bitirdin!</p>
-              <p className="text-base text-neutral-700">Son adım: sınavını teslim et.</p>
+              <p className="text-xl font-bold text-neutral-900">You finished all the parts!</p>
+              <p className="text-base text-neutral-700">Last step: send your test.</p>
             </div>
             <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
-              Sınavı teslim et
+              Send my test
             </KidButton>
           </KidCard>
         )
@@ -162,16 +165,16 @@ export default function SectionListPage() {
 
       {pendingSection ? (
         <KidDialog
-          title={`${pendingSection.title} bölümüne başlıyor musun?`}
+          title={`Start "${pendingSection.title}"?`}
           icon={<IconClock />}
           body={
             <ul className="space-y-1.5">
-              <li>Bölüme girince süren başlar.</li>
-              {pendingSection.allowReturnAfterLeave === false ? <li className="font-semibold text-neutral-900">Bu bölümden çıkınca tekrar giremezsin.</li> : null}
-              {!pendingSection.allowBack ? <li>Önceki sorulara geri dönemezsin.</li> : null}
+              <li>The timer starts when you open this part.</li>
+              {pendingSection.allowReturnAfterLeave === false ? <li className="font-semibold text-neutral-900">When you leave this part, you cannot come back.</li> : null}
+              {!pendingSection.allowBack ? <li>You cannot go back to a question.</li> : null}
             </ul>
           }
-          confirmLabel="Başla"
+          confirmLabel="Start"
           busy={busy}
           onConfirm={() => void enter(pendingSection.sectionId)}
           onCancel={() => setPending(null)}
@@ -179,16 +182,16 @@ export default function SectionListPage() {
       ) : null}
       {confirmFinish ? (
         <KidDialog
-          title="Sınavı teslim ediyor musun?"
+          title="Send your test?"
           icon={<IconFlag />}
           tone={incomplete ? "sun" : "primary"}
           body={
             incomplete
-              ? <>Henüz bitirmediğin <strong>{total - doneCount} bölüm</strong> var. Teslim edersen o bölümlere bir daha giremezsin.</>
-              : "Teslim ettikten sonra cevaplarını değiştiremezsin."
+              ? <>You did not finish <strong>{total - doneCount} {total - doneCount === 1 ? "part" : "parts"}</strong>. If you send your test now, you cannot open {total - doneCount === 1 ? "it" : "them"} again.</>
+              : "After you send it, you cannot change your answers."
           }
-          confirmLabel="Teslim et"
-          cancelLabel={incomplete ? "Bölümlere dön" : "Vazgeç"}
+          confirmLabel="Send"
+          cancelLabel={incomplete ? "Back to the parts" : "Cancel"}
           busy={busy}
           onConfirm={() => void finish(incomplete)}
           onCancel={() => setConfirmFinish(false)}

@@ -9,7 +9,8 @@ import {
 import { uploadApplicationMedia } from "@/src/features/exam-player/session/studentMediaApi";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-type Pending = { itemId: string; answer: Record<string, unknown>; seq: number };
+type Pending = { itemId: string; answer: Record<string, unknown>; seq: number; mediaId?: string | null };
+type Waiter = { resolve: () => void; reject: (err: Error) => void };
 
 /** Canlı sınav oturumu — cevapları artan seq ile kaydeder, kopunca kuyruğu yeniden dener. */
 export function LiveExamSessionProvider({
@@ -30,6 +31,7 @@ export function LiveExamSessionProvider({
     onSavedRef.current = onSaved;
   }, [onSaved]);
   const queue = useRef<Pending[]>([]);
+  const waiters = useRef(new Map<string, Waiter[]>());
   const sending = useRef(false);
   const [hydrated, setHydrated] = useState(false);
   const [answersRevision, setAnswersRevision] = useState(0);
@@ -38,19 +40,38 @@ export function LiveExamSessionProvider({
     sessionStorage.setItem(storageKey(applicationId), JSON.stringify(queue.current));
   }
 
-  function enqueue(itemId: string, answer: Record<string, unknown>) {
+  function enqueue(itemId: string, answer: Record<string, unknown>, mediaId?: string | null) {
     seq.current += 1;
     queue.current = queue.current.filter((item) => item.itemId !== itemId);
-    queue.current.push({ itemId, answer, seq: seq.current });
+    queue.current.push({ itemId, answer, seq: seq.current, mediaId: mediaIdOf(answer, mediaId) });
     persistQueue();
+  }
+
+  function track(itemId: string) {
+    return new Promise<void>((resolve, reject) => {
+      const list = waiters.current.get(itemId) ?? [];
+      list.push({ resolve, reject });
+      waiters.current.set(itemId, list);
+    });
+  }
+
+  function settle(itemId: string, err?: unknown) {
+    const list = waiters.current.get(itemId) ?? [];
+    waiters.current.delete(itemId);
+    for (const waiter of list) {
+      if (err) waiter.reject(err instanceof Error ? err : new Error("Cevap kaydedilemedi"));
+      else waiter.resolve();
+    }
   }
 
   async function flush() {
     if (sending.current) return;
     sending.current = true;
+    const failed = new Set<string>();
     try {
       while (queue.current.length > 0) {
         const next = queue.current[0];
+        if (failed.has(next.itemId)) break;
         try {
           await customInstance(`/applications/${applicationId}/answers/${next.itemId}`, {
             method: "PUT",
@@ -58,23 +79,32 @@ export function LiveExamSessionProvider({
               "Content-Type": "application/json",
               "X-Session-Token": sessionToken,
             },
-            body: JSON.stringify({ answerJson: next.answer, seq: next.seq }),
+            body: JSON.stringify({
+              answerJson: next.answer,
+              seq: next.seq,
+              ...(next.mediaId ? { mediaId: next.mediaId } : {}),
+            }),
           });
         } catch (err) {
           const status = err && typeof err === "object" && "status" in err ? Number(err.status) : 0;
-          // Kalıcı red (biçim hatası) kuyruğu kilitlemesin; oturum ve sunucu hataları yeniden denensin.
+          // Kalıcı red (biçim hatası) kuyruğu kilitlemesin. 409 tek kaydı tutar, arkadakiler yazılsın.
+          queue.current.shift();
           if (status >= 400 && status < 500 && status !== 401 && status !== 409) {
-            queue.current.shift();
             persistQueue();
+            settle(next.itemId, err);
             continue;
           }
-          throw err;
+          queue.current.push(next);
+          persistQueue();
+          failed.add(next.itemId);
+          settle(next.itemId, err);
+          continue;
         }
         queue.current.shift();
         persistQueue();
+        failed.delete(next.itemId);
+        settle(next.itemId);
       }
-    } catch {
-      persistQueue();
     } finally {
       sending.current = false;
     }
@@ -150,11 +180,13 @@ export function LiveExamSessionProvider({
       uploadMedia: (itemId, file, durationMs) =>
         uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs),
       getAnswer: (itemId) => readDrafts(applicationId)[itemId],
-      saveAnswer: (itemId, answer) => {
+      saveAnswer: (itemId, answer, mediaId) => {
         onSavedRef.current?.(itemId);
         writeDraft(applicationId, itemId, answer);
-        enqueue(itemId, answer);
+        const done = track(itemId);
+        enqueue(itemId, answer, mediaId);
         void flush();
+        return done;
       },
     }),
     // flush her render'da güncel kuyruğu kullanır
@@ -163,6 +195,14 @@ export function LiveExamSessionProvider({
   );
 
   return <ExamSessionProvider value={value}>{children}</ExamSessionProvider>;
+}
+
+function mediaIdOf(answer: Record<string, unknown>, explicit?: string | null): string | null {
+  if (typeof explicit === "string" && explicit) return explicit;
+  if (typeof answer.mediaId === "string" && answer.mediaId) return answer.mediaId;
+  const many = answer.mediaIds;
+  if (Array.isArray(many) && typeof many[0] === "string" && many[0]) return many[0];
+  return null;
 }
 
 function storageKey(applicationId: string) {
