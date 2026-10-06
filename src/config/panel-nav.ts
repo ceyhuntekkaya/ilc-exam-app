@@ -128,11 +128,7 @@ export function staffNavGroups(): PanelNavGroup[] {
           description: "Açık uçlu cevapları puanla",
           perms: [Perm.assignmentEvaluate],
         },
-      ],
-    },
-    {
-      label: "Sonuçlar",
-      items: [
+
         {
           href: "/staff/results",
           label: "Sınav Sonuçları",

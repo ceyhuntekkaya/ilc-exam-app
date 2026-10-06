@@ -7,6 +7,7 @@ import {
   filtersToQuery,
   useAssignmentScope,
 } from "@/src/features/assignments/assignmentScope";
+import { GradingPrerequisites, prerequisiteQueryKey } from "@/src/features/assignments/GradingPrerequisites";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { cn } from "@/src/lib/utils/cn";
@@ -53,7 +54,7 @@ type MediaTranscript = {
 };
 
 type Lane = "audio" | "text" | "video" | "image";
-type Mode = "ai" | "manual";
+type Mode = "ai" | "manual" | "prerequisites";
 
 const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
   audio: {
@@ -91,7 +92,7 @@ function laneOf(type: string): Lane {
   }
 }
 
-function modeOf(lane: Lane): Mode {
+function modeOf(lane: Lane): "ai" | "manual" {
   return lane === "audio" || lane === "text" ? "ai" : "manual";
 }
 
@@ -329,8 +330,25 @@ export function GradingSection({
   const [transcriptProgress, setTranscriptProgress] = useState<{ index: number; total: number } | null>(null);
   const review = useReview();
   const publish = usePublish();
+  const openedExam = useRef("");
 
   const current = scope.assignments.find((row) => row.id === assignmentId);
+  const examVersionId = scope.examValue || current?.examVersionId || "";
+  const prerequisites = useQuery({
+    queryKey: prerequisiteQueryKey(companyId, examVersionId),
+    enabled: Boolean(examVersionId),
+    queryFn: () =>
+      customInstance<{ data: { missingCount: number } }>(
+        `/companies/${companyId}/exam-versions/${examVersionId}/grading-prerequisites`,
+      ),
+  });
+
+  useEffect(() => {
+    if (!examVersionId || !prerequisites.isSuccess) return;
+    if (openedExam.current === examVersionId) return;
+    openedExam.current = examVersionId;
+    if ((prerequisites.data?.data.missingCount ?? 0) > 0) setMode("prerequisites");
+  }, [examVersionId, prerequisites.isSuccess, prerequisites.data]);
   const contextMismatch = Boolean(
     current &&
       ((scope.campusId && current.instituteId && current.instituteId !== scope.campusId) ||
@@ -555,7 +573,7 @@ export function GradingSection({
   const header = (
     <PageHeader
       title="Değerlendirme"
-      description="Sınav ve şubeyi seçin. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
+      description="Sınavı seçin. Sesli yanıt ve açık uçlu sorulardaki materyal metinleri Ön Koşullar sekmesindedir. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
       back={board ? undefined : { href: filterKey ? `${hrefs.assignments}?${filterKey}` : hrefs.assignments, label: "Atamalar" }}
       actions={
         <Button type="button" onClick={() => setConfirmPublish(true)} disabled={queueIds.length === 0 || !query.isSuccess || contextMismatch}>
@@ -574,21 +592,29 @@ export function GradingSection({
     );
   }
 
-  const waiting = board
-    ? !scope.examValue
-      ? { title: "Sınavı seçin", description: "Cevaplar, sınav ve şube seçilince o şubeye ait olarak listelenir." }
-      : !scope.ready
+  const gate = examVersionId
+    ? null
+    : {
+        title: "Sınavı seçin",
+        description: board
+          ? "Cevaplar, sınav ve şube seçilince o şubeye ait olarak listelenir."
+          : "Değerlendirme, sınav seçilince açılır.",
+      };
+  const answerWaiting = !examVersionId
+    ? null
+    : board
+      ? !scope.ready
         ? { title: "Şubeyi seçin", description: "Seviye ve şube seçilince bu sınavın o şubedeki cevapları açılır." }
         : scope.rosterQ.isLoading
           ? null
           : !scope.gradingId
             ? { title: "Bu şubede değerlendirilecek cevap yok", description: "Seçilen sınavı bu şubede bitirmiş öğrenci bulunmuyor." }
             : null
-    : contextMismatch && scope.ready && !scope.gradingId
-      ? { title: "Bu şubede puanlanacak cevap yok", description: "Tamamlanmış sınavı olan başka bir şube seçin." }
-      : contextMismatch
-        ? { title: "Şubeyi seçin", description: "Sınav, seviye ve şube seçilince o şubenin değerlendirmesi açılır." }
-        : null;
+      : contextMismatch && scope.ready && !scope.gradingId
+        ? { title: "Bu şubede puanlanacak cevap yok", description: "Tamamlanmış sınavı olan başka bir şube seçin." }
+        : contextMismatch
+          ? { title: "Şubeyi seçin", description: "Sınav, seviye ve şube seçilince o şubenin değerlendirmesi açılır." }
+          : null;
 
   return (
     <div className="grid gap-4">
@@ -602,10 +628,10 @@ export function GradingSection({
         />
       )}
 
-      {scope.listLoading || (board && scope.ready && scope.rosterQ.isLoading) ? (
+      {scope.listLoading ? (
         <Skeleton className="h-48 rounded-xl" />
-      ) : waiting ? (
-        <EmptyState tone="neutral" title={waiting.title} description={waiting.description} />
+      ) : gate ? (
+        <EmptyState tone="neutral" title={gate.title} description={gate.description} />
       ) : (
         <section className="min-w-0 rounded-xl border border-border bg-surface shadow-sm">
           <div className="border-b border-border">
@@ -627,17 +653,32 @@ export function GradingSection({
               items={[
                 { id: "ai", label: "AI Değerlendirme", count: query.isSuccess ? aiRows.length : undefined },
                 { id: "manual", label: "Manuel değerlendirme", count: query.isSuccess ? manualRows.length : undefined },
+                {
+                  id: "prerequisites",
+                  label: "Ön Koşullar",
+                  count: prerequisites.isSuccess ? prerequisites.data?.data.missingCount : undefined,
+                },
               ]}
             />
-            {mode === "ai" ? (
-              <p className="text-xs text-fg-muted">
-                Sesler Sesi Tanımla ile metne çevrilir. Metinlerin dil modeliyle puanlanması sonra bağlanacak. Puanı şimdilik siz girin.
-              </p>
-            ) : null}
-            <div className="grid min-w-0 gap-4">
-              {renderColumn(leftLane, leftItems)}
-              {renderColumn(rightLane, rightItems)}
-            </div>
+            {mode === "prerequisites" ? (
+              <GradingPrerequisites companyId={companyId} examVersionId={examVersionId} />
+            ) : board && scope.ready && scope.rosterQ.isLoading ? (
+              <Skeleton className="h-48 rounded-xl" />
+            ) : answerWaiting ? (
+              <EmptyState tone="neutral" title={answerWaiting.title} description={answerWaiting.description} />
+            ) : (
+              <>
+                {mode === "ai" ? (
+                  <p className="text-xs text-fg-muted">
+                    Sesler Sesi Tanımla ile metne çevrilir. Metinlerin dil modeliyle puanlanması sonra bağlanacak. Puanı şimdilik siz girin.
+                  </p>
+                ) : null}
+                <div className="grid min-w-0 gap-4">
+                  {renderColumn(leftLane, leftItems)}
+                  {renderColumn(rightLane, rightItems)}
+                </div>
+              </>
+            )}
           </div>
         </section>
       )}
