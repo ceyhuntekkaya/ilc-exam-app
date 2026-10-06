@@ -9,6 +9,7 @@ import {
 } from "@/src/features/assignments/assignmentScope";
 import { GradingAiPrompts, aiPromptQueryKey } from "@/src/features/assignments/GradingAiPrompts";
 import { GradingPrerequisites, prerequisiteQueryKey } from "@/src/features/assignments/GradingPrerequisites";
+import { GradingSystemPrompt } from "@/src/features/assignments/GradingSystemPrompt";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { cn } from "@/src/lib/utils/cn";
@@ -43,8 +44,15 @@ type Item = {
   mediaIds?: string[] | null;
   transcripts?: MediaTranscript[] | null;
   feedback?: string | null;
+  rationale?: string | null;
   finalScore?: number | null;
   scored: boolean;
+};
+
+type AiGrade = {
+  score: number;
+  rationale: string;
+  feedback: string;
 };
 
 type MediaTranscript = {
@@ -55,17 +63,17 @@ type MediaTranscript = {
 };
 
 type Lane = "audio" | "text" | "video" | "image";
-type Mode = "ai" | "manual" | "prerequisites" | "prompt";
+type Mode = "ai" | "manual" | "prerequisites" | "prompt" | "system";
 
 const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
   audio: {
     title: "Sesler",
-    hint: "Konuşma kaydı. Sesi Tanımla, kayıtları sırayla metne çevirir.",
+    hint: "Konuşma kaydı. Sesi Tanımla, kayıtları sırayla metne çevirir. Metni hazır olanlar AI ile puanlanır.",
     empty: "Ses kaydı yok",
   },
   text: {
     title: "Metinler",
-    hint: "Yazılı cevap. Dil modeli puanı sonra bağlanacak.",
+    hint: "Yazılı cevap. AI ile değerlendir, rubriğe göre puan, gerekçe ve geri bildirim önerir.",
     empty: "Metin cevap yok",
   },
   video: {
@@ -123,6 +131,29 @@ function mediaIdsOf(item: Item): string[] {
     }
   }
   return [...ids];
+}
+
+function formatGradeScore(value: number) {
+  if (!Number.isFinite(value)) return "";
+  return String(Math.round(value * 100) / 100);
+}
+
+function aiReady(item: Item, transcripts: Record<string, MediaTranscript>): "ready" | "audio" | "empty" {
+  const lane = laneOf(item.interactionType);
+  if (lane === "audio") {
+    const ids = mediaIdsOf(item);
+    if (ids.length === 0) return "audio";
+    const ready = ids.every((id) => {
+      const row = transcripts[id];
+      return row?.status === "READY" && Boolean(row.transcript?.trim());
+    });
+    return ready ? "ready" : "audio";
+  }
+  if (lane === "text") {
+    const { text, raw } = answerText(item.answer ?? {});
+    return !raw && text.trim() ? "ready" : "empty";
+  }
+  return "empty";
 }
 
 function formatScore(value: number) {
@@ -269,6 +300,7 @@ export function GradingSection({
   const scope = useAssignmentScope(companyId);
   const seeded = useRef(false);
   const lastTarget = useRef("");
+  const runLock = useRef(false);
   const queueIds = useMemo(
     () => (assignmentId ? [assignmentId] : scope.ready ? scope.gradingIds : []),
     [assignmentId, scope.ready, scope.gradingIds],
@@ -320,9 +352,13 @@ export function GradingSection({
   });
   const rows = query.data?.data ?? [];
   const [score, setScore] = useState<Record<string, string>>({});
+  const [rationale, setRationale] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [saveProgress, setSaveProgress] = useState<{ index: number; total: number } | null>(null);
+  const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
+  const [gradingProgress, setGradingProgress] = useState<{ index: number; total: number } | null>(null);
   const [filter, setFilter] = useState<string | null>("pending");
   const [mode, setMode] = useState<Mode>("ai");
   const [confirmPublish, setConfirmPublish] = useState(false);
@@ -392,12 +428,20 @@ export function GradingSection({
     return map;
   }, [query.data]);
   const transcripts = { ...serverTranscripts, ...transcriptOverrides };
+  const actionBusy =
+    transcriptProgress != null ||
+    activeMediaId != null ||
+    gradingAnswerId != null ||
+    gradingProgress != null ||
+    savingId != null ||
+    saveProgress != null;
 
   async function identifyAudio() {
     const jobs = leftItems.flatMap((item) =>
       mediaIdsOf(item).map((mediaId) => ({ applicationId: item.applicationId, mediaId })),
     );
-    if (jobs.length === 0 || activeMediaId) return;
+    if (jobs.length === 0 || activeMediaId || runLock.current) return;
+    runLock.current = true;
     setTranscriptProgress({ index: 0, total: jobs.length });
     try {
       for (let index = 0; index < jobs.length; index += 1) {
@@ -425,35 +469,157 @@ export function GradingSection({
         }
       }
     } finally {
+      runLock.current = false;
       setActiveMediaId(null);
       setTranscriptProgress(null);
     }
   }
 
-  async function save(item: Item) {
-    const raw = score[item.answerId] ?? (item.finalScore != null ? String(item.finalScore) : "");
-    if (raw === "") {
-      notify.error("Önce puan girin");
-      return;
+  async function save(item: Item, silent = false) {
+    const raw = scoreValue(item);
+    if (raw.trim() === "") {
+      if (!silent) notify.error("Önce puan girin");
+      return false;
     }
     const finalScore = Number(raw);
+    if (Number.isNaN(finalScore)) {
+      if (!silent) notify.error("Puan sayı olmalı");
+      return false;
+    }
     setSavingId(item.answerId);
     try {
       await review.mutateAsync({
         id: item.answerId,
         data: {
           finalScore,
-          rubric: { criteria: [{ label: "Genel", score: finalScore }] },
-          feedback: feedback[item.answerId] ?? item.feedback ?? "",
+          rubric: { criteria: [{ label: "General", score: finalScore }] },
+          feedback: feedbackValue(item),
+          rationale: rationaleValue(item),
         } as { finalScore: number },
       });
       setSaved((currentSaved) => ({ ...currentSaved, [item.answerId]: true }));
-      notify.success("Değerlendirme kaydedildi");
+      if (!silent) notify.success("Değerlendirme kaydedildi");
+      return true;
     } catch (err) {
-      notify.error(errorMessage(err, "Kaydedilemedi"));
+      if (!silent) notify.error(errorMessage(err, "Kaydedilemedi"));
+      return false;
     } finally {
       setSavingId(null);
     }
+  }
+
+  function applyGrade(answerId: string, grade: AiGrade) {
+    setScore((current) => ({ ...current, [answerId]: formatGradeScore(grade.score) }));
+    setRationale((current) => ({ ...current, [answerId]: grade.rationale ?? "" }));
+    setFeedback((current) => ({ ...current, [answerId]: grade.feedback ?? "" }));
+  }
+
+  async function evaluateOne(item: Item, silent = false): Promise<"graded" | "audio" | "empty" | "failed"> {
+    const ready = aiReady(item, transcripts);
+    if (ready !== "ready") {
+      if (!silent) {
+        notify.error(
+          ready === "audio"
+            ? "Ses metne çevrilmedi. Önce Sesi Tanımla ile çevirin."
+            : "Öğrenci cevabı yok",
+        );
+      }
+      return ready;
+    }
+    if (runLock.current) return "failed";
+    runLock.current = true;
+    setGradingAnswerId(item.answerId);
+    try {
+      const result = await customInstance<{ data: AiGrade }>(
+        `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
+        { method: "POST" },
+      );
+      if (result.data) applyGrade(item.answerId, result.data);
+      if (!silent) notify.success("Değerlendirme geldi");
+      return "graded";
+    } catch (err) {
+      if (!silent) notify.error(errorMessage(err, "Değerlendirilemedi"));
+      return "failed";
+    } finally {
+      runLock.current = false;
+      setGradingAnswerId(null);
+    }
+  }
+
+  async function evaluateAll() {
+    const items = [...leftItems, ...rightItems];
+    if (items.length === 0 || actionBusy || runLock.current) return;
+    runLock.current = true;
+    let graded = 0;
+    let skippedAudio = 0;
+    let failed = 0;
+    let lastError = "Değerlendirilemedi";
+    setGradingProgress({ index: 0, total: items.length });
+    try {
+      for (let index = 0; index < items.length; index += 1) {
+        const item = items[index];
+        setGradingProgress({ index: index + 1, total: items.length });
+        const ready = aiReady(item, transcripts);
+        if (ready === "audio") {
+          skippedAudio += 1;
+          continue;
+        }
+        if (ready === "empty") continue;
+        setGradingAnswerId(item.answerId);
+        try {
+          const result = await customInstance<{ data: AiGrade }>(
+            `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
+            { method: "POST" },
+          );
+          if (result.data) applyGrade(item.answerId, result.data);
+          graded += 1;
+        } catch (err) {
+          failed += 1;
+          lastError = errorMessage(err, "Değerlendirilemedi");
+          if (lastError.includes("Dil modeli") || lastError.includes("API anahtarı") || lastError.includes("Ollama")) {
+            break;
+          }
+        } finally {
+          setGradingAnswerId(null);
+        }
+      }
+    } finally {
+      runLock.current = false;
+      setGradingAnswerId(null);
+      setGradingProgress(null);
+    }
+    if (graded > 0) notify.success(`${graded} cevap değerlendirildi`);
+    if (skippedAudio > 0) {
+      notify.error(`${skippedAudio} ses metne çevrilmediği için atlandı. Önce Sesi Tanımla kullanın.`);
+    }
+    if (failed > 0) notify.error(lastError);
+    if (graded === 0 && skippedAudio === 0 && failed === 0) {
+      notify.error("Değerlendirilecek cevap yok");
+    }
+  }
+
+  async function saveAll() {
+    const items = [...leftItems, ...rightItems].filter((item) => complete(item));
+    if (items.length === 0) {
+      notify.error("Puan, gerekçe ve geri bildirim dolu cevap yok");
+      return;
+    }
+    if (actionBusy || runLock.current) return;
+    runLock.current = true;
+    let savedCount = 0;
+    setSaveProgress({ index: 0, total: items.length });
+    try {
+      for (let index = 0; index < items.length; index += 1) {
+        setSaveProgress({ index: index + 1, total: items.length });
+        if (await save(items[index], true)) savedCount += 1;
+      }
+    } finally {
+      runLock.current = false;
+      setSaveProgress(null);
+      setSavingId(null);
+    }
+    if (savedCount > 0) notify.success(`${savedCount} değerlendirme kaydedildi`);
+    else notify.error("Kaydedilemedi");
   }
 
   async function publishResults() {
@@ -479,6 +645,16 @@ export function GradingSection({
 
   function feedbackValue(item: Item) {
     return Object.prototype.hasOwnProperty.call(feedback, item.answerId) ? feedback[item.answerId] : (item.feedback ?? "");
+  }
+
+  function rationaleValue(item: Item) {
+    return Object.prototype.hasOwnProperty.call(rationale, item.answerId) ? rationale[item.answerId] : (item.rationale ?? "");
+  }
+
+  function complete(item: Item) {
+    const raw = scoreValue(item).trim();
+    if (raw === "" || Number.isNaN(Number(raw))) return false;
+    return rationaleValue(item).trim() !== "" && feedbackValue(item).trim() !== "";
   }
 
   function renderCard(item: Item, index: number) {
@@ -512,15 +688,40 @@ export function GradingSection({
           activeMediaId={activeMediaId}
         />
         <Field label="Puan" required>
-          <Input
-            type="number"
-            min={0}
-            step={0.5}
-            suffix="puan"
-            value={scoreValue(item)}
-            onChange={(e) => setScore((currentScore) => ({ ...currentScore, [item.answerId]: e.target.value }))}
-          />
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="min-w-36 flex-1">
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                suffix="puan"
+                value={scoreValue(item)}
+                onChange={(e) => setScore((currentScore) => ({ ...currentScore, [item.answerId]: e.target.value }))}
+              />
+            </div>
+            {lane === "audio" || lane === "text" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 shrink-0"
+                loading={gradingAnswerId === item.answerId}
+                disabled={actionBusy && gradingAnswerId !== item.answerId}
+                onClick={() => void evaluateOne(item)}
+              >
+                AI ile Değerlendir
+              </Button>
+            ) : null}
+          </div>
         </Field>
+        {lane === "audio" || lane === "text" ? (
+          <Field label="Gerekçe" hint="Rubriğe dayalı. Öğrenci bunu görmez.">
+            <Textarea
+              rows={3}
+              value={rationaleValue(item)}
+              onChange={(e) => setRationale((current) => ({ ...current, [item.answerId]: e.target.value }))}
+            />
+          </Field>
+        ) : null}
         <Field label="Geri bildirim" hint="Öğrenci sonuç ekranında görür.">
           <Textarea
             rows={2}
@@ -529,7 +730,7 @@ export function GradingSection({
           />
         </Field>
         <div className="flex justify-end">
-          <Button type="button" loading={savingId === item.answerId} disabled={savingId !== null} onClick={() => void save(item)}>
+          <Button type="button" loading={savingId === item.answerId} disabled={actionBusy && savingId !== item.answerId} onClick={() => void save(item)}>
             {done ? "Güncelle" : "Kaydet"}
           </Button>
         </div>
@@ -539,28 +740,8 @@ export function GradingSection({
 
   function renderColumn(lane: Lane, items: Item[]) {
     const copy = LANE_COPY[lane];
-    const identifying = transcriptProgress != null;
     return (
       <section className="grid min-w-0 content-start gap-3">
-        {lane === "audio" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              className="min-h-11 w-full sm:w-auto"
-              disabled={items.length === 0 || identifying || query.isLoading}
-              onClick={() => void identifyAudio()}
-            >
-              {identifying && transcriptProgress
-                ? `Tanımlanıyor ${transcriptProgress.index}/${transcriptProgress.total}`
-                : "Sesi Tanımla"}
-            </Button>
-            {identifying ? (
-              <p className="text-xs text-fg-muted" aria-live="polite">
-                Sesler sırayla metne çevriliyor.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
         <header className="min-w-0">
           <h3 className="text-sm font-semibold text-fg">
             {copy.title}
@@ -672,12 +853,15 @@ export function GradingSection({
                   label: "AI metni",
                   count: aiPrompts.isSuccess ? aiPrompts.data?.data.items.length : undefined,
                 },
+                { id: "system", label: "Sistem promptu" },
               ]}
             />
             {mode === "prerequisites" ? (
               <GradingPrerequisites companyId={companyId} examVersionId={examVersionId} />
             ) : mode === "prompt" ? (
               <GradingAiPrompts companyId={companyId} examVersionId={examVersionId} />
+            ) : mode === "system" ? (
+              <GradingSystemPrompt companyId={companyId} />
             ) : board && scope.ready && scope.rosterQ.isLoading ? (
               <Skeleton className="h-48 rounded-xl" />
             ) : answerWaiting ? (
@@ -685,9 +869,47 @@ export function GradingSection({
             ) : (
               <>
                 {mode === "ai" ? (
-                  <p className="text-xs text-fg-muted">
-                    Sesler Sesi Tanımla ile metne çevrilir. Metinlerin dil modeliyle puanlanması sonra bağlanacak. Puanı şimdilik siz girin.
-                  </p>
+                  <div className="grid gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        className="min-h-11 w-full sm:w-auto"
+                        disabled={leftItems.length === 0 || actionBusy || query.isLoading}
+                        onClick={() => void identifyAudio()}
+                      >
+                        {transcriptProgress
+                          ? `Tanımlanıyor ${transcriptProgress.index}/${transcriptProgress.total}`
+                          : "Sesi Tanımla"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-11 w-full sm:w-auto"
+                        disabled={leftItems.length + rightItems.length === 0 || actionBusy || query.isLoading}
+                        onClick={() => void evaluateAll()}
+                      >
+                        {gradingProgress
+                          ? `Değerlendiriliyor ${gradingProgress.index}/${gradingProgress.total}`
+                          : "Tümünü AI ile değerlendir"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-11 w-full sm:w-auto"
+                        disabled={leftItems.length + rightItems.length === 0 || actionBusy || query.isLoading}
+                        onClick={() => void saveAll()}
+                      >
+                        {saveProgress ? `Kaydediliyor ${saveProgress.index}/${saveProgress.total}` : "Tümünü kaydet"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-fg-muted" aria-live="polite">
+                      {transcriptProgress
+                        ? "Sesler sırayla metne çevriliyor."
+                        : gradingProgress
+                          ? "Cevaplar sırayla seçili modele gidiyor. Metne çevrilmemiş ses gönderilmez."
+                          : "Metne çevrilmemiş ses gönderilmez. Tümünü kaydet yalnız puan, gerekçe ve geri bildirimi dolu cevapları yazar."}
+                    </p>
+                  </div>
                 ) : null}
                 <div className="grid min-w-0 gap-4">
                   {renderColumn(leftLane, leftItems)}
