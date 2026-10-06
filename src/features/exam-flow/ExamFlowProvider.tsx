@@ -47,7 +47,30 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const stateRef = useRef<ExamState | null>(null);
   const heldRef = useRef(false);
   const linkDownRef = useRef(false);
-  const redirectTo = useRef<string | null>(null);
+  const lastNav = useRef<{ to: string; at: number; count: number }>({ to: "", at: 0, count: 0 });
+
+  /**
+   * Aşamaya uygun adrese tek seferlik yönlendirme. Her router.replace sunucuya bir istek demek; bu yüzden:
+   * - adres çubuğundaki gerçek yol zaten hedefse hiçbir şey yapma (usePathname bir an geride kalabilir),
+   * - aynı hedefe 1 sn içinde tekrar gitme; art arda denemeler olursa geliştirmede konsola yaz.
+   */
+  const navigateOnce = useCallback(
+    (to: string, reason: string) => {
+      if (currentPath() === to) return;
+      const now = Date.now();
+      const last = lastNav.current;
+      if (last.to === to && now - last.at < 1000) {
+        last.count += 1;
+        if (last.count >= 3 && process.env.NODE_ENV !== "production") {
+          console.warn("[exam-flow] yönlendirme döngüsü engellendi", { to, reason, path: window.location.pathname });
+        }
+        return;
+      }
+      lastNav.current = { to, at: now, count: 1 };
+      router.replace(to);
+    },
+    [router],
+  );
 
   const applyState = useCallback((next: ExamState) => {
     stateRef.current = next;
@@ -93,7 +116,8 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   }, [applyState, recipientId]);
 
   useEffect(() => {
-    void load();
+    // İlk yükleme bir mikro görevde (effect içinde senkron setState olmasın).
+    void Promise.resolve().then(load);
   }, [load]);
 
   useEffect(() => {
@@ -101,31 +125,24 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     const target = state
       ? stageHref(recipientId, state.stage, state.currentSectionId)
       : `/student/exams/${recipientId}`;
-    const here = pathname.replace(/\/$/, "");
-    const there = target.replace(/\/$/, "");
-    if (here === there) {
-      redirectTo.current = null;
-      return;
-    }
-    if (redirectTo.current === there) return;
-    redirectTo.current = there;
-    router.replace(there);
-  }, [conflict, loading, pathname, recipientId, router, state]);
+    if (pathname.replace(/\/$/, "") === target.replace(/\/$/, "")) return;
+    navigateOnce(target.replace(/\/$/, ""), "stage");
+  }, [conflict, loading, navigateOnce, pathname, recipientId, state]);
 
   useEffect(() => {
     const onPop = () => {
       const current = stateRef.current;
       if (!current) return;
       const target = stageHref(recipientId, current.stage, current.currentSectionId);
-      if (window.location.pathname !== target) {
+      if (currentPath() !== target) {
         const session = readSession(recipientId);
         if (session) enqueueEvent(session.applicationId, "NAV_BLOCKED", { path: window.location.pathname });
-        router.replace(target);
+        navigateOnce(target, "back-button");
       }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [recipientId, router]);
+  }, [navigateOnce, recipientId]);
 
   useEffect(() => {
     const session = readSession(recipientId);
@@ -227,17 +244,22 @@ export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {
     at: 0,
     running: false,
   });
-  const [left, setLeft] = useState<number | null>(null);
+  const remaining = clock?.sectionRemainingMs ?? clock?.examRemainingMs ?? null;
+  const [left, setLeft] = useState<number | null>(remaining);
+  // Sunucudan yeni saat gelince gösterilen değeri render sırasında eşitle (effect + setState yerine).
+  const [seen, setSeen] = useState({ clock, held });
+  if (seen.clock !== clock || seen.held !== held) {
+    setSeen({ clock, held });
+    setLeft(remaining);
+  }
 
   useEffect(() => {
-    const remaining = clock?.sectionRemainingMs ?? clock?.examRemainingMs ?? null;
     anchor.current = {
       remaining,
       at: performance.now(),
       running: Boolean(clock?.running) && !held,
     };
-    setLeft(remaining);
-  }, [clock, held]);
+  }, [clock, held, remaining]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -256,4 +278,9 @@ export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {
   }, []);
 
   return left;
+}
+
+/** Adres çubuğundaki yol (sondaki / olmadan). */
+function currentPath() {
+  return typeof window === "undefined" ? "" : window.location.pathname.replace(/\/$/, "");
 }

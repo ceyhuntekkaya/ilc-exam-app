@@ -14,6 +14,8 @@ export type ExamSessionContextValue = {
   /** itemId = question_part.id */
   uploadMedia: (itemId: string, file: File, durationMs?: number | null) => Promise<ExamUploadResult>;
   saveAnswer?: (itemId: string, answer: Record<string, unknown>) => void;
+  /** Bu oturumda daha önce verilen cevap (soruya geri dönünce ekranda yeniden gösterilir). */
+  getAnswer?: (itemId: string) => Record<string, unknown> | undefined;
 };
 
 const ExamSessionCtx = createContext<ExamSessionContextValue | null>(null);

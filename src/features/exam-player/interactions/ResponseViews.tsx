@@ -1,6 +1,7 @@
 "use client";
 
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epCta, epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
 import { type HtmlValue } from "@/src/features/exam-player/types";
@@ -51,18 +52,23 @@ export function OpenEndedView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const minWords = interaction.minWords as number | null | undefined;
   const maxWords = interaction.maxWords as number | null | undefined;
   const limitMode = (interaction.limitMode as string) || "SOFT";
   const spellcheck = interaction.spellcheckAllowed !== false;
   const pasteAllowed = interaction.pasteAllowed !== false;
-  const [text, setText] = useState("");
+  const saved = useSavedAnswer(itemId, preview);
+  const [text, setText] = useState(() => (saved?.text as string | undefined) ?? "");
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { text }, !preview && !disabled && touched);
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   const over = maxWords != null && words > maxWords;
 
@@ -82,6 +88,7 @@ export function OpenEndedView({
             const w = next.trim() ? next.trim().split(/\s+/) : [];
             if (w.length > maxWords) return;
           }
+          setTouched(true);
           setText(next);
         }}
         className={cn(

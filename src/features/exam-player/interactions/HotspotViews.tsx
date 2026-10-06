@@ -8,6 +8,7 @@ import { epChip } from "@/src/features/exam-player/styles";
 import type { OptionFormat, PlayerOption, Region, Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useState, type CSSProperties, type MouseEvent } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 function shapeStyle(shape: Shape): CSSProperties {
   if (shape.kind === "RECT") {
@@ -67,11 +68,13 @@ export function HotspotSelectView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const mediaId = interaction.mediaId as string | undefined;
   const regions = (interaction.regions as Region[]) || [];
@@ -80,11 +83,15 @@ export function HotspotSelectView({
   const correctIds = new Set(
     preview ? ((answerKey?.correctRegionIds as string[]) || []) : [],
   );
+  const saved = useSavedAnswer(itemId, preview);
   const [selected, setSelected] = useState<string[]>(() =>
-    preview ? [...correctIds] : [],
+    preview ? [...correctIds] : ((saved?.regionIds as string[] | undefined) ?? []),
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { regionIds: selected }, !preview && !disabled && touched);
 
   function toggleRegion(id: string) {
+    setTouched(true);
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (max != null && prev.length >= max) {
@@ -154,11 +161,13 @@ export function HotspotPlaceView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const mediaId = interaction.mediaId as string | undefined;
   const zones = (interaction.zones as Region[]) || [];
@@ -168,21 +177,25 @@ export function HotspotPlaceView({
   const correctZoneOf = preview
     ? ((answerKey?.zoneOf as Record<string, string>) || {})
     : {};
+  const saved = useSavedAnswer(itemId, preview);
   const [zoneOf, setZoneOf] = useState<Record<string, string | null>>(() =>
-    preview ? { ...correctZoneOf } : {},
+    preview ? { ...correctZoneOf } : { ...((saved?.zoneOf as Record<string, string>) ?? {}) },
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { zoneOf }, !preview && !disabled && touched);
   const { pickedId, pick, clear } = usePickAndPlace();
 
   const unplaced = draggables.filter((d) => !zoneOf[d.id]);
 
-  function place(itemId: string, zoneId: string | null) {
+  function place(dragId: string, zoneId: string | null) {
+    setTouched(true);
     setZoneOf((prev) => {
       if (zoneId && capacity != null) {
         const count = Object.values(prev).filter((z) => z === zoneId).length;
-        const already = prev[itemId] === zoneId;
+        const already = prev[dragId] === zoneId;
         if (!already && count >= capacity) return prev;
       }
-      return { ...prev, [itemId]: zoneId };
+      return { ...prev, [dragId]: zoneId };
     });
     clear();
   }

@@ -7,6 +7,7 @@ import { epChip } from "@/src/features/exam-player/styles";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 function shuffleIds(ids: string[]): string[] {
   const a = [...ids];
@@ -22,11 +23,13 @@ export function OrderingView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const items = useMemo(
@@ -46,7 +49,13 @@ export function OrderingView({
     () => (preview && correctOrder ? [...correctOrder] : shuffleIds(items.map((i) => i.id))),
     [items, preview, correctOrder],
   );
-  const [order, setOrder] = useState(initial);
+  const saved = useSavedAnswer(itemId, preview);
+  const [order, setOrder] = useState(() => {
+    const restored = saved?.order as string[] | undefined;
+    return restored && restored.length === initial.length && restored.every((id) => initial.includes(id)) ? restored : initial;
+  });
+  const [touched, setTouched] = useState(!!saved?.order);
+  useAnswerSync(itemId, { order }, !preview && !disabled && touched);
   const { pickedId, pick, clear } = usePickAndPlace();
 
   const byId = useMemo(() => {
@@ -56,6 +65,7 @@ export function OrderingView({
   }, [items]);
 
   function move(fromId: string, toIndex: number) {
+    setTouched(true);
     setOrder((prev) => {
       const next = prev.filter((id) => id !== fromId);
       next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, fromId);

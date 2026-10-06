@@ -5,6 +5,9 @@ import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { readSession } from "@/src/features/exam-flow/session";
+import { KidButton, KidNotice, StatusPill } from "@/src/features/student/ui";
+import { cn } from "@/src/lib/utils/cn";
+import { IconArrowRight, IconCamera, IconMic, IconRefresh } from "@/src/ui/icons";
 import { useEffect, useRef, useState } from "react";
 
 const AUDIO_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"];
@@ -34,26 +37,30 @@ export default function DeviceCheckPage() {
   const camOk = !state.requiresCamera || state.checksPassed.includes("CAMERA");
 
   return (
-    <section className="space-y-4">
-      <h2 className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-ilc-navy">Cihaz kontrolü</h2>
-      <p className="text-sm text-ilc-navy/70">
-        Sınavda kullanacağınız cihazları deneyin. Kayıtlar bu oturuma ait olarak saklanır.
-      </p>
-      {state.requiresMicrophone ? (
-        <DeviceCard recipientId={recipientId} title="Mikrofon" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />
-      ) : null}
-      {state.requiresCamera ? (
-        <DeviceCard recipientId={recipientId} title="Kamera" kind="CAMERA" mimeTypes={VIDEO_TYPES} passed={camOk} onPassed={applyState} />
-      ) : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <button
-        type="button"
-        disabled={!micOk || !camOk || busy}
-        onClick={() => void finish()}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white disabled:opacity-50 md:w-auto"
-      >
-        {busy ? "Kaydediliyor" : "Bölümlere geç"}
-      </button>
+    <section className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-neutral-900">Cihazını deneyelim</h1>
+        <p className="mt-2 max-w-2xl text-base text-neutral-700">
+          Sınavda {state.requiresCamera && state.requiresMicrophone ? "mikrofonun ve kameran" : state.requiresCamera ? "kameran" : "mikrofonun"} kullanılacak.
+          Kısa bir deneme kaydı al, sonra dinle ya da izle. Her şey yolundaysa bölümlere geçebilirsin.
+        </p>
+      </header>
+      <div className="grid gap-4 md:grid-cols-2">
+        {state.requiresMicrophone ? (
+          <DeviceCard recipientId={recipientId} title="Mikrofon" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />
+        ) : null}
+        {state.requiresCamera ? (
+          <DeviceCard recipientId={recipientId} title="Kamera" kind="CAMERA" mimeTypes={VIDEO_TYPES} passed={camOk} onPassed={applyState} />
+        ) : null}
+      </div>
+      {error ? <KidNotice tone="coral">{error}</KidNotice> : null}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <KidButton size="lg" disabled={!micOk || !camOk || busy} onClick={() => void finish()} className="w-full sm:w-auto">
+          {busy ? "Kaydediliyor…" : "Bölümlere geç"}
+          {busy ? null : <IconArrowRight aria-hidden />}
+        </KidButton>
+        {!micOk || !camOk ? <p className="text-neutral-600">Önce yukarıdaki kontrolleri tamamla.</p> : null}
+      </div>
     </section>
   );
 }
@@ -125,8 +132,8 @@ function DeviceCard({
         if (session) enqueueEvent(session.applicationId, "PERMISSION_DENIED", { kind });
         setPhase("denied");
         setError(kind === "CAMERA"
-          ? "Kamera izni kapalı. Adres çubuğundaki kilit simgesinden kameraya izin verip yeniden deneyin."
-          : "Mikrofon izni kapalı. Adres çubuğundaki kilit simgesinden mikrofona izin verip yeniden deneyin.");
+          ? "Kamera izni kapalı. Adres çubuğundaki kilit simgesine dokun, kameraya izin ver ve yeniden dene. Takılırsan öğretmenine haber ver."
+          : "Mikrofon izni kapalı. Adres çubuğundaki kilit simgesine dokun, mikrofona izin ver ve yeniden dene. Takılırsan öğretmenine haber ver.");
       } else {
         setError(err instanceof ExamApiError ? err.message : "Kayıt alınamadı");
         setPhase("idle");
@@ -148,7 +155,7 @@ function DeviceCard({
     try {
       if (result === "PASSED") {
         if (!played) {
-          setError(kind === "CAMERA" ? "Önce videoyu izleyin." : "Önce kaydı dinleyin.");
+          setError(kind === "CAMERA" ? "Önce videonu izle." : "Önce kaydını dinle.");
           return;
         }
         await postState(`/applications/${session.applicationId}/checks/${kind}/playback`, session.sessionToken, { mediaId });
@@ -171,33 +178,60 @@ function DeviceCard({
   }
 
   return (
-    <article className="rounded-3xl bg-white p-4 ring-1 ring-ilc-line md:p-5">
-      <h3 className="text-lg font-semibold text-ilc-navy">{title}</h3>
-      {passed ? <p className="mt-2 text-sm text-ilc-navy">Kontrol tamam.</p> : null}
+    <article className={cn("rounded-3xl bg-white p-5 shadow-sm ring-1 sm:p-6", passed ? "ring-2 ring-(--kid-mint-solid)" : "ring-neutral-200")}>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-3 text-base font-bold text-neutral-900">
+          <span className="grid size-10 place-items-center rounded-xl bg-(--kid-sky-bg) text-(--kid-sky) [&>svg]:size-5">
+            {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
+          </span>
+          {title}
+        </h2>
+        {passed ? <StatusPill tone="mint">Tamam</StatusPill> : null}
+      </div>
+      {!passed && phase === "idle" ? (
+        <ol className="mt-4 list-inside list-decimal space-y-1 text-base text-neutral-700 marker:font-bold marker:text-primary-700">
+          <li>Aşağıdaki düğmeye bas.</li>
+          <li>{kind === "CAMERA" ? "Kameraya bak ve el salla (5 saniye)." : "“Bir, iki, üç” diye yüksek sesle say (6 saniye)."}</li>
+          <li>{kind === "CAMERA" ? "Kaydını izle." : "Kaydını dinle."}</li>
+        </ol>
+      ) : null}
+      {phase === "live" ? (
+        <p className="mt-4 flex items-center gap-2 text-base font-semibold text-(--kid-coral)">
+          <span aria-hidden className="size-2.5 rounded-full bg-(--kid-coral-solid)" />
+          Kaydediliyor… {kind === "CAMERA" ? "el salla!" : "şimdi konuş!"}
+        </p>
+      ) : null}
       {phase === "live" && kind === "CAMERA" && live ? (
         <video className="mt-3 aspect-video w-full rounded-2xl bg-black" autoPlay muted playsInline ref={(node) => { if (node) node.srcObject = live; }} />
       ) : null}
       {phase === "live" && kind === "MICROPHONE" && live ? <LevelMeter stream={live} onLevel={setLevel} level={level} /> : null}
-      {phase === "review" && previewUrl ? (
-        kind === "CAMERA"
-          ? <video className="mt-3 w-full rounded-2xl" src={previewUrl} controls onPlay={() => setPlayed(true)} />
-          : <audio className="mt-3 w-full" src={previewUrl} controls onPlay={() => setPlayed(true)} />
+      {phase === "review" && previewUrl && !passed ? (
+        <>
+          <p className="mt-4 text-base text-neutral-700">
+            {kind === "CAMERA" ? "Videonu izle. Kendini görebiliyor ve sesini duyabiliyor musun?" : "Kaydını dinle. Sesini duyabiliyor musun?"}
+          </p>
+          {kind === "CAMERA"
+            ? <video className="mt-3 w-full rounded-2xl" src={previewUrl} controls onPlay={() => setPlayed(true)} />
+            : <audio className="mt-3 w-full" src={previewUrl} controls onPlay={() => setPlayed(true)} />}
+        </>
       ) : null}
-      {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <div className="mt-4"><KidNotice tone="coral">{error}</KidNotice></div> : null}
       {!passed ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           {phase !== "review" ? (
-            <button type="button" disabled={busy} onClick={() => void record()} className="min-h-11 rounded-xl bg-ilc-navy px-4 text-sm text-white disabled:opacity-50">
-              {busy ? "Kaydediliyor" : kind === "CAMERA" ? "5 sn kaydet" : "Kaydı al"}
-            </button>
+            <KidButton disabled={busy} onClick={() => void record()} full>
+              {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
+              {busy ? "Kaydediliyor…" : phase === "denied" ? "Yeniden dene" : "Denemeyi başlat"}
+            </KidButton>
           ) : (
             <>
-              <button type="button" disabled={busy} onClick={() => void confirm("PASSED")} className="min-h-11 rounded-xl bg-ilc-navy px-4 text-sm text-white disabled:opacity-50">
-                {kind === "CAMERA" ? "Gördüm" : "Duydum"}
-              </button>
-              <button type="button" disabled={busy} onClick={() => void confirm("FAILED")} className="min-h-11 rounded-xl bg-white px-4 text-sm ring-1 ring-ilc-line">
-                Sorun var, tekrar dene
-              </button>
+              <KidButton disabled={busy} onClick={() => void confirm("PASSED")} full>
+                {kind === "CAMERA" ? "Evet, gördüm" : "Evet, duydum"}
+              </KidButton>
+              <KidButton variant="soft" disabled={busy} onClick={() => void confirm("FAILED")} full>
+                <IconRefresh aria-hidden />
+                Hayır, tekrar dene
+              </KidButton>
             </>
           )}
         </div>
@@ -235,8 +269,8 @@ function LevelMeter({ stream, level, onLevel }: { stream: MediaStream; level: nu
   }, [onLevel, stream]);
 
   return (
-    <div className="mt-3 h-3 overflow-hidden rounded-full bg-[#f7f4ef]" aria-label="Mikrofon seviyesi">
-      <div className="h-full bg-ilc-accent" style={{ width: `${Math.round(level * 100)}%` }} />
+    <div className="mt-3 h-4 overflow-hidden rounded-full bg-neutral-100" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(level * 100)} aria-label="Ses seviyesi">
+      <div className="h-full rounded-full bg-(--kid-mint-solid) transition-[width] duration-75" style={{ width: `${Math.round(level * 100)}%` }} />
     </div>
   );
 }
