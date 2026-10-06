@@ -15,7 +15,7 @@ import {
   Textarea,
   IconX,
 } from "@/src/ui";
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { SettingToggle as SharedSettingToggle } from "@/src/features/authoring/shared/FormGroup";
 
 type AnyRec = Record<string, unknown>;
@@ -27,6 +27,44 @@ function asObj(v: unknown): AnyRec {
 function htmlOf(v: unknown): string {
   if (v && typeof v === "object" && "html" in (v as AnyRec)) return String((v as AnyRec).html ?? "");
   return "";
+}
+
+function linesFromText(raw: string): string[] {
+  return raw.split("\n").map((s) => s.trim()).filter(Boolean);
+}
+
+/** Satır başına bir değer. Taslak metin odaktayken tutulur; aksi halde sondaki boş satır hemen silinir ve Enter işlemez. */
+function LinesField({
+  label,
+  hint,
+  lines,
+  disabled,
+  rows = 4,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  lines: string[];
+  disabled?: boolean;
+  rows?: number;
+  onChange: (lines: string[]) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Field label={label} hint={hint}>
+      <Textarea
+        rows={rows}
+        disabled={disabled}
+        value={draft ?? lines.join("\n")}
+        onChange={(e) => {
+          const raw = e.target.value;
+          setDraft(raw);
+          onChange(linesFromText(raw));
+        }}
+        onBlur={() => setDraft(null)}
+      />
+    </Field>
+  );
 }
 
 function duplicateBlankIds(html: string): string[] {
@@ -134,9 +172,19 @@ export function InteractionForm({
             disabled={disabled}
             correctMode="multi"
             correctIds={(key.correctOptionIds as string[]) || []}
-            onCorrectIdsChange={(ids) =>
-              setKey({ type: "MULTIPLE_RESPONSE", correctOptionIds: ids, elementPoints: key.elementPoints ?? {} })
-            }
+            onCorrectIdsChange={(ids) => {
+              const raw = key.elementPoints;
+              const hasPoints =
+                raw != null &&
+                typeof raw === "object" &&
+                !Array.isArray(raw) &&
+                Object.keys(raw as Record<string, unknown>).length > 0;
+              setKey({
+                type: "MULTIPLE_RESPONSE",
+                correctOptionIds: ids,
+                elementPoints: hasPoints ? raw : null,
+              });
+            }}
           />
           <div className="grid items-end gap-3 sm:grid-cols-2">
             <Field label="En az seçim" hint="Boş = sınırsız">
@@ -524,30 +572,26 @@ export function InteractionForm({
                   />
                 </Field>
               </div>
-              <Field label="Kabul edilen cevaplar (satır başına)">
-                <Textarea
-                  rows={2}
-                  disabled={disabled}
-                  value={
-                    Array.isArray(accepted[String(b.blankId)])
-                      ? (accepted[String(b.blankId)] as string[]).join("\n")
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setKey({
-                      type: "SHORT_ANSWER",
-                      acceptedAnswers: {
-                        ...accepted,
-                        [String(b.blankId)]: e.target.value
-                          .split("\n")
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      },
-                      matchPolicy: policy,
-                    })
-                  }
-                />
-              </Field>
+              <LinesField
+                label="Kabul edilen cevaplar (satır başına)"
+                hint="Her satır eşit derecede doğru cevaptır. Öğrenci bunlardan herhangi birini yazarsa puan alır."
+                lines={
+                  Array.isArray(accepted[String(b.blankId)])
+                    ? (accepted[String(b.blankId)] as string[])
+                    : []
+                }
+                disabled={disabled}
+                onChange={(lines) =>
+                  setKey({
+                    type: "SHORT_ANSWER",
+                    acceptedAnswers: {
+                      ...accepted,
+                      [String(b.blankId)]: lines,
+                    },
+                    matchPolicy: policy,
+                  })
+                }
+              />
             </div>
           ))}
           <Checkbox
@@ -913,23 +957,20 @@ export function AnswerKeyForm({
   const manualTypes = new Set(["OPEN_ENDED", "AUDIO_RESPONSE", "VIDEO_RESPONSE", "IMAGE_RESPONSE"]);
   if (manualTypes.has(type)) {
     const rawSamples = (key.sampleAnswers as AnyRec[]) || [];
-    const samplesText = rawSamples.map((s) => htmlOf(s) || String(s ?? "")).join("\n");
     return (
       <div className="space-y-2">
-        <Field label="Örnek cevaplar (satır başına)">
-          <Textarea
-            rows={4}
-            disabled={disabled}
-            value={samplesText}
-            onChange={(e) =>
-              set({
-                type: "MANUAL",
-                sampleAnswers: e.target.value.split("\n").filter(Boolean).map((html) => ({ html })),
-                raterNotes: key.raterNotes ?? null,
-              })
-            }
-          />
-        </Field>
+        <LinesField
+          label="Örnek cevaplar (satır başına)"
+          lines={rawSamples.map((s) => htmlOf(s) || String(s ?? "")).filter(Boolean)}
+          disabled={disabled}
+          onChange={(lines) =>
+            set({
+              type: "MANUAL",
+              sampleAnswers: lines.map((html) => ({ html })),
+              raterNotes: key.raterNotes ?? null,
+            })
+          }
+        />
         <Field label="Değerlendirici notları">
           <Textarea
             rows={3}

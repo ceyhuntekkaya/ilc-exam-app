@@ -8,6 +8,7 @@ import {
 } from "@/src/features/authoring/shared/client";
 import { FormGroup, SettingToggle } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
+import { QuestionPreviewLoader } from "@/src/features/authoring/questions/QuestionPreviewLoader";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
 import { useContentBasePath } from "@/src/features/panel/PanelContext";
@@ -15,6 +16,7 @@ import {
   Badge,
   Button,
   ButtonLink,
+  ConfirmDialog,
   DataGrid,
   ErrorState,
   Field,
@@ -34,8 +36,10 @@ import {
   IconX,
   IconPlus,
 } from "@/src/ui";
+import { ExamGrantsTab, ExamPreviewTab } from "@/src/features/authoring/exams/ExamExtraTabs";
+import { HoverPreview } from "@/src/ui/composites/HoverPreview";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
@@ -511,6 +515,8 @@ type Sel =
   | { kind: "question"; sectionId: string; subId: string; linkId: string };
 
 export function ExamBuilderPage({ examId }: { examId: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const basePath = useContentBasePath("exams");
   const qBase = useContentBasePath("questions");
   const { tenant } = useAuthoringTenant();
@@ -518,11 +524,21 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
   const [sel, setSel] = useState<Sel>({ kind: "exam" });
   const [error, setError] = useState<string | null>(null);
   const [bank, setBank] = useState<QuestionSummary[]>([]);
+  const [bankPage, setBankPage] = useState(0);
+  const [bankTotal, setBankTotal] = useState(0);
   const [bankQ, setBankQ] = useState("");
   const [bankCefr, setBankCefr] = useState("");
   const [bankSkill, setBankSkill] = useState("");
+  const [confirm, setConfirm] = useState<null | { title: string; description: string; confirmLabel: string; run: () => Promise<unknown> }>(null);
+  const [confirming, setConfirming] = useState(false);
   const [catalog, setCatalog] = useState<Record<string, QuestionSummary>>({});
-  const [tab, setTab] = useState<"detail" | "questions">("detail");
+  const tabParam = searchParams.get("tab");
+  const tab = tabParam === "questions" || tabParam === "preview" || tabParam === "grants" ? tabParam : "detail";
+  function selectTab(next: string | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", next || "detail");
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
   const [attachSubId, setAttachSubId] = useState("");
   const [violations, setViolations] = useState<Array<{ severity: string; path: string; message: string }>>([]);
   const [busy, setBusy] = useState(false);
@@ -544,10 +560,24 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
   useEffect(() => {
     if (!tenant) return;
     void authoringApi
-      .listQuestions({ status: "APPROVED", q: bankQ || undefined, cefr: bankCefr || undefined, skill: bankSkill || undefined })
-      .then(setBank)
-      .catch(() => setBank([]));
-  }, [tenant, bankQ, bankCefr, bankSkill]);
+      .listQuestionsPage({
+        status: "APPROVED",
+        currentOnly: true,
+        q: bankQ || undefined,
+        cefr: bankCefr || undefined,
+        skill: bankSkill || undefined,
+        page: bankPage,
+        size: 20,
+      })
+      .then((page) => {
+        setBank(page.items);
+        setBankTotal(page.total);
+      })
+      .catch(() => {
+        setBank([]);
+        setBankTotal(0);
+      });
+  }, [tenant, bankQ, bankCefr, bankSkill, bankPage]);
 
   useEffect(() => {
     if (bank.length === 0) return;
@@ -659,6 +689,10 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
       .catch(() => undefined);
   }
 
+  function ask(title: string, description: string, confirmLabel: string, run: () => Promise<unknown>) {
+    setConfirm({ title, description, confirmLabel, run });
+  }
+
   const selCls = (on: boolean) =>
     on ? "bg-primary-50 font-semibold text-primary ring-1 ring-primary-200" : "text-fg hover:bg-neutral-50";
 
@@ -680,6 +714,27 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
           {error}
         </p>
       ) : null}
+      <ConfirmDialog
+        open={confirm != null}
+        pending={confirming}
+        title={confirm?.title ?? ""}
+        description={confirm?.description}
+        confirmLabel={confirm?.confirmLabel}
+        onClose={() => {
+          if (!confirming) setConfirm(null);
+        }}
+        onConfirm={() => {
+          if (!confirm) return;
+          setConfirming(true);
+          void confirm
+            .run()
+            .catch((e) => notify.error(errorMessage(e, "İşlem başarısız")))
+            .finally(() => {
+              setConfirming(false);
+              setConfirm(null);
+            });
+        }}
+      />
       <PointsMatchBanner
         raw={rawPoints}
         total={Number(exam.totalPoints)}
@@ -692,10 +747,12 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
         <FilterTabs
           label="Sınav düzenleme"
           value={tab}
-          onChange={(v) => setTab((v as "detail" | "questions") ?? "detail")}
+          onChange={selectTab}
           items={[
             { label: "Yapı ve ayarlar", value: "detail" },
             { label: "Soru ataması", value: "questions", count: attachedCount },
+            { label: "Önizleme", value: "preview" },
+            { label: "Atamalar", value: "grants" },
           ]}
         />
       </div>
@@ -814,8 +871,17 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <Textarea rows={3} value={exam.welcomeHtml ?? ""} onChange={(e) => setExam({ ...exam, welcomeHtml: e.target.value })} onBlur={() => void saveExamBasics({ welcomeHtml: exam.welcomeHtml })} />
                 </Field>
               </FormCard>
-              <EmbeddableEditor exam={exam} onSave={saveSettings} />
-              <ScoreBandsEditor exam={exam} setExam={setExam} />
+              <EmbeddableEditor
+                exam={exam}
+                onSave={saveSettings}
+                onSecurity={(level) =>
+                  notify
+                    .run(authoringApi.setExamSecurityLevel(exam.id, level), { error: "Güvenlik düzeyi kaydedilemedi" })
+                    .then(setExam)
+                    .then(() => undefined)
+                }
+              />
+              <ScoreBandsEditor exam={exam} setExam={setExam} ask={ask} />
             </>
           ) : null}
 
@@ -830,14 +896,18 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                     variant="danger"
                     className="sm:mr-auto"
                     onClick={() =>
-                      confirm(`"${section.title}" bölümü, alt bölümleri ve soru bağlantılarıyla birlikte silinsin mi?`) &&
-                      void notify
-                        .run(authoringApi.removeSection(exam.id, section.id), { success: "Bölüm silindi", error: "Silinemedi" })
-                        .then((e) => {
-                          setExam(e);
-                          setSel({ kind: "exam" });
-                        })
-                        .catch(() => undefined)
+                      ask(
+                        "Bölüm silinsin mi?",
+                        `"${section.title}" bölümü, alt bölümleri ve soru bağlantılarıyla birlikte silinir. Sorular bankada kalır.`,
+                        "Bölümü sil",
+                        () =>
+                          notify
+                            .run(authoringApi.removeSection(exam.id, section.id), { success: "Bölüm silindi", error: "Silinemedi" })
+                            .then((e) => {
+                              setExam(e);
+                              setSel({ kind: "exam" });
+                            }),
+                      )
                     }
                   >
                     Bölümü sil
@@ -905,14 +975,18 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                     variant="danger"
                     className="sm:mr-auto"
                     onClick={() =>
-                      confirm(`"${sub.title}" alt bölümü ve ${sub.questions.length} soru bağlantısı silinsin mi?`) &&
-                      void notify
-                        .run(authoringApi.removeSubSection(exam.id, section.id, sub.id), { success: "Alt bölüm silindi", error: "Silinemedi" })
-                        .then((e) => {
-                          setExam(e);
-                          setSel({ kind: "section", sectionId: section.id });
-                        })
-                        .catch(() => undefined)
+                      ask(
+                        "Alt bölüm silinsin mi?",
+                        `"${sub.title}" alt bölümü ve ${sub.questions.length} soru bağlantısı silinir. Sorular bankada kalır.`,
+                        "Alt bölümü sil",
+                        () =>
+                          notify
+                            .run(authoringApi.removeSubSection(exam.id, section.id, sub.id), { success: "Alt bölüm silindi", error: "Silinemedi" })
+                            .then((e) => {
+                              setExam(e);
+                              setSel({ kind: "section", sectionId: section.id });
+                            }),
+                      )
                     }
                   >
                     Alt bölümü sil
@@ -1006,7 +1080,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                 {sub.questions.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[13px] text-fg-subtle">
                     Soru yok.{" "}
-                    <button type="button" className="font-medium text-primary hover:underline" onClick={() => setTab("questions")}>
+                    <button type="button" className="min-h-11 font-medium text-primary hover:underline" onClick={() => selectTab("questions")}>
                       Soru ataması sekmesinden ekleyin →
                     </button>
                   </p>
@@ -1051,14 +1125,18 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   variant="danger"
                   className="sm:mr-auto"
                   onClick={() =>
-                    confirm("Soru bu alt bölümden kaldırılsın mı? Soru bankadan silinmez.") &&
-                    void notify
-                      .run(authoringApi.detachQuestion(exam.id, link.id), { success: "Soru kaldırıldı", error: "Kaldırılamadı" })
-                      .then((e) => {
-                        setExam(e);
-                        setSel({ kind: "sub", sectionId: sel.sectionId, subId: sel.subId });
-                      })
-                      .catch(() => undefined)
+                    ask(
+                      "Soru kaldırılsın mı?",
+                      "Soru bu alt bölümden çıkar. Soru bankadan silinmez.",
+                      "Kaldır",
+                      () =>
+                        notify
+                          .run(authoringApi.detachQuestion(exam.id, link.id), { success: "Soru kaldırıldı", error: "Kaldırılamadı" })
+                          .then((e) => {
+                            setExam(e);
+                            setSel({ kind: "sub", sectionId: sel.sectionId, subId: sel.subId });
+                          }),
+                    )
                   }
                 >
                   Sınavdan kaldır
@@ -1104,47 +1182,104 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
             description="Sırayla: doğrula → incelemeye gönder → yayınla. Yayınlanan sınav kurumlara lisanslanabilir."
           >
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  void notify
-                    .run(authoringApi.validateExam(exam.id), { error: "Doğrulama başarısız" })
-                    .then((v) => {
-                      setViolations(v);
-                      const errors = v.filter((x) => x.severity === "ERROR");
-                      if (errors.length === 0) notify.success("Eksik yok");
-                      else notify.error(`${errors.length} hata bulundu`);
-                    })
-                    .catch(() => undefined)
-                }
-              >
-                Eksikleri kontrol et
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={pointsMismatch}
-                onClick={() =>
-                  void notify
-                    .run(authoringApi.submitExam(exam.id), { success: "İncelemeye gönderildi", error: "Gönderilemedi" })
-                    .then(setExam)
-                    .catch(() => undefined)
-                }
-              >
-                İncelemeye gönder
-              </Button>
-              <Button
-                disabled={pointsMismatch}
-                onClick={() =>
-                  confirm("Sınav yayınlansın mı? Yayınlanan sürüm değiştirilemez; değişiklik için yeni sürüm gerekir.") &&
-                  void notify
-                    .run(authoringApi.publishExam(exam.id), { success: "Yayınlandı", error: "Yayınlanamadı" })
-                    .then(setExam)
-                    .catch(() => undefined)
-                }
-              >
-                Yayınla
-              </Button>
-              {pointsMismatch ? <span className="text-xs text-danger">Puanlar eşitlenmeden gönderilemez.</span> : null}
+              {exam.status === "DRAFT" || exam.status === "IN_REVIEW" ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    className="min-h-11"
+                    onClick={() =>
+                      void notify
+                        .run(authoringApi.validateExam(exam.id), { error: "Doğrulama başarısız" })
+                        .then((v) => {
+                          setViolations(v);
+                          const errors = v.filter((x) => x.severity === "ERROR");
+                          if (errors.length === 0) notify.success("Eksik yok");
+                          else notify.error(`${errors.length} hata bulundu`);
+                        })
+                        .catch(() => undefined)
+                    }
+                  >
+                    Eksikleri kontrol et
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="min-h-11"
+                    disabled={pointsMismatch || exam.status !== "DRAFT"}
+                    onClick={() =>
+                      void notify
+                        .run(authoringApi.submitExam(exam.id), { success: "İncelemeye gönderildi", error: "Gönderilemedi" })
+                        .then(setExam)
+                        .catch(() => undefined)
+                    }
+                  >
+                    İncelemeye gönder
+                  </Button>
+                  <Button
+                    className="min-h-11"
+                    disabled={pointsMismatch}
+                    onClick={() =>
+                      ask(
+                        "Sınav yayınlansın mı?",
+                        "Yayınlanan sürüm kurumlara lisanslanabilir. İçerik değişirse sınav taslağa çekilip yeniden yayınlanır ve sürüm numarası artar.",
+                        "Yayınla",
+                        () => notify.run(authoringApi.publishExam(exam.id), { success: "Yayınlandı", error: "Yayınlanamadı" }).then(setExam),
+                      )
+                    }
+                  >
+                    Yayınla
+                  </Button>
+                </>
+              ) : null}
+              {exam.status === "PUBLISHED" ? (
+                <Button
+                  variant="secondary"
+                  className="min-h-11"
+                  onClick={() =>
+                    ask(
+                      "Sınav yayından kaldırılsın mı?",
+                      "Yeni atama ve yeni oturum açılamaz. Devam eden oturumlar tamamlanabilir.",
+                      "Yayından kaldır",
+                      () => notify.run(authoringApi.unpublishExam(exam.id), { success: "Yayından kaldırıldı", error: "Kaldırılamadı" }).then(setExam),
+                    )
+                  }
+                >
+                  Yayından kaldır
+                </Button>
+              ) : null}
+              {exam.status === "UNPUBLISHED" ? (
+                <Button
+                  className="min-h-11"
+                  onClick={() =>
+                    ask(
+                      "Sınav tekrar yayınlansın mı?",
+                      "İçerik değişmediği için aynı sürüm kullanılır.",
+                      "Tekrar yayınla",
+                      () => notify.run(authoringApi.republishExam(exam.id), { success: "Yeniden yayınlandı", error: "Yayınlanamadı" }).then(setExam),
+                    )
+                  }
+                >
+                  Tekrar yayınla
+                </Button>
+              ) : null}
+              {exam.status === "PUBLISHED" || exam.status === "UNPUBLISHED" ? (
+                <Button
+                  variant="secondary"
+                  className="min-h-11"
+                  onClick={() =>
+                    ask(
+                      "Sınav taslağa çekilsin mi?",
+                      "Sınav düzenlenebilir olur ve yayından kalkar. Yeniden yayınlandığında sürüm artar; kurum lisansları yeni sürüme taşınır. Başlamış oturumlar eski sürümde kalır.",
+                      "Taslağa çek",
+                      () => notify.run(authoringApi.revertExamDraft(exam.id), { success: "Taslağa çekildi", error: "Taslağa çekilemedi" }).then(setExam),
+                    )
+                  }
+                >
+                  Taslağa çek
+                </Button>
+              ) : null}
+              {pointsMismatch && (exam.status === "DRAFT" || exam.status === "IN_REVIEW") ? (
+                <span className="text-xs text-danger">Puanlar eşitlenmeden gönderilemez.</span>
+              ) : null}
             </div>
             {violations.length ? (
               <ul className="grid max-h-72 gap-1.5 overflow-y-auto">
@@ -1166,6 +1301,13 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
         </div>
       </div>
 
+      <div className={tab === "preview" ? "block" : "hidden"}>
+        <ExamPreviewTab examId={exam.id} />
+      </div>
+      <div className={tab === "grants" ? "block" : "hidden"}>
+        <ExamGrantsTab exam={exam} />
+      </div>
+
       <div className={tab === "questions" ? "block" : "hidden"}>
         <QuestionAssignPanel
           exam={exam}
@@ -1178,9 +1320,27 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
           attachSubId={attachSubId}
           rawPoints={rawPoints}
           pointsMismatch={pointsMismatch}
-          onSearch={setBankQ}
-          onCefr={setBankCefr}
-          onSkill={setBankSkill}
+          bankPage={bankPage}
+          bankTotal={bankTotal}
+          onSearch={(value) => {
+            setBankPage(0);
+            setBankQ(value);
+          }}
+          onCefr={(value) => {
+            setBankPage(0);
+            setBankCefr(value);
+          }}
+          onSkill={(value) => {
+            setBankPage(0);
+            setBankSkill(value);
+          }}
+          onPage={setBankPage}
+          onUpgrade={(linkId) => {
+            void notify
+              .run(authoringApi.upgradeQuestionVersion(exam.id, linkId), { success: "Sürüm güncellendi", error: "Güncellenemedi" })
+              .then(setExam)
+              .catch(() => undefined);
+          }}
           onPickSub={setAttachSubId}
           onAttach={(versionId) => {
             if (!attachSubId) {
@@ -1193,11 +1353,12 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
               .catch(() => undefined);
           }}
           onDetach={(linkId) => {
-            if (!confirm("Soru bu alt bölümden kaldırılsın mı?")) return;
-            void notify
-              .run(authoringApi.detachQuestion(exam.id, linkId), { success: "Soru kaldırıldı", error: "Kaldırılamadı" })
-              .then(setExam)
-              .catch(() => undefined);
+            ask(
+              "Soru kaldırılsın mı?",
+              "Soru bu alt bölümden çıkar. Soru bankadan silinmez.",
+              "Kaldır",
+              () => notify.run(authoringApi.detachQuestion(exam.id, linkId), { success: "Soru kaldırıldı", error: "Kaldırılamadı" }).then(setExam),
+            );
           }}
           onPoints={(linkId, points) => {
             void notify
@@ -1282,16 +1443,20 @@ function QuestionAssignPanel({
   bankQ,
   bankCefr,
   bankSkill,
+  bankPage,
+  bankTotal,
   attachSubId,
   rawPoints,
   pointsMismatch,
   onSearch,
   onCefr,
   onSkill,
+  onPage,
   onPickSub,
   onAttach,
   onDetach,
   onPoints,
+  onUpgrade,
 }: {
   exam: ExamDetail;
   bank: QuestionSummary[];
@@ -1300,20 +1465,28 @@ function QuestionAssignPanel({
   bankQ: string;
   bankCefr: string;
   bankSkill: string;
+  bankPage: number;
+  bankTotal: number;
   attachSubId: string;
   rawPoints: number;
   pointsMismatch: boolean;
   onSearch: (value: string) => void;
   onCefr: (value: string) => void;
   onSkill: (value: string) => void;
+  onPage: (page: number) => void;
   onPickSub: (id: string) => void;
   onAttach: (versionId: string) => void;
   onDetach: (linkId: string) => void;
   onPoints: (linkId: string, points: number) => void;
+  onUpgrade: (linkId: string) => void;
 }) {
-  const attachedIds = new Set(
-    exam.sections.flatMap((section) => section.subSections.flatMap((sub) => sub.questions.map((q) => q.questionId))),
+  const [openPreview, setOpenPreview] = useState<string | null>(null);
+  const attachedByQuestion = new Map(
+    exam.sections.flatMap((section) =>
+      section.subSections.flatMap((sub) => sub.questions.map((q) => [q.questionId, q] as const)),
+    ),
   );
+  const pageCount = Math.max(1, Math.ceil(bankTotal / 20));
   const target = exam.sections.flatMap((s) => s.subSections.map((ss) => ({ s, ss }))).find((x) => x.ss.id === attachSubId);
   const hasTarget = Boolean(target);
 
@@ -1324,7 +1497,7 @@ function QuestionAssignPanel({
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2 className="text-[13px] font-semibold text-fg">Soru bankası</h2>
-              <p className="text-xs text-fg-subtle">Yalnız onaylı sorular · {bank.length} sonuç</p>
+              <p className="text-xs text-fg-subtle">Yalnız güncel onaylı sürüm · {bankTotal} soru</p>
             </div>
             <ButtonLink href={`${qBase}/new`} variant="secondary" size="sm">
               + Yeni soru
@@ -1354,28 +1527,40 @@ function QuestionAssignPanel({
             <li className="px-3 py-8 text-center text-[13px] text-fg-subtle">Bu filtreye uyan onaylı soru yok.</li>
           ) : (
             bank.map((q) => {
-              const added = attachedIds.has(q.questionId);
+              const linked = attachedByQuestion.get(q.questionId);
+              const added = Boolean(linked);
               return (
-                <li key={q.versionId} className={`flex items-center gap-3 rounded-lg border p-2.5 ${added ? "border-success/25 bg-success-bg/30" : "border-border"}`}>
+                <li key={q.versionId} className={`flex items-center gap-2 rounded-lg border p-2 ${added ? "border-success/25 bg-success-bg/30" : "border-border"}`}>
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2">
-                      <Link href={`${qBase}/${q.versionId}`} className="truncate font-mono text-[13px] font-medium text-fg hover:text-primary" title="Soruyu düzenle">
-                        {q.code}
-                      </Link>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <HoverPreview label={q.code} preview={<QuestionPreviewLoader versionId={q.versionId} />}>
+                        <Link href={`${qBase}/${q.versionId}`} className="truncate font-mono text-[13px] font-medium text-fg hover:text-primary">
+                          {q.code} - v{q.versionNo}
+                        </Link>
+                      </HoverPreview>
                       {q.cefrLevel ? <span className="rounded bg-(--accent-plum-bg) px-1 font-mono text-[10.5px] font-semibold text-(--accent-plum)">{q.cefrLevel}</span> : null}
-                    </p>
+                    </div>
                     <p className="truncate text-xs text-fg-muted">
                       {getTemplate(q.primaryType)?.label ?? q.primaryType ?? "—"} · {questionSkillText(q)}
                     </p>
                   </div>
                   <Button type="button" size="sm" variant={added ? "ghost" : "primary"} className="shrink-0" disabled={added || !hasTarget} onClick={() => onAttach(q.versionId)}>
-                    {added ? "✓ Ekli" : "+ Ekle"}
+                    {added ? `Ekli (v${linked?.versionNo ?? q.versionNo})` : "+ Ekle"}
                   </Button>
                 </li>
               );
             })
           )}
         </ul>
+        <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2">
+          <Button type="button" variant="secondary" size="sm" disabled={bankPage <= 0} onClick={() => onPage(bankPage - 1)}>
+            Önceki
+          </Button>
+          <span className="text-xs text-fg-muted tabular-nums">{bankPage + 1} / {pageCount}</span>
+          <Button type="button" variant="secondary" size="sm" disabled={bankPage + 1 >= pageCount} onClick={() => onPage(bankPage + 1)}>
+            Sonraki
+          </Button>
+        </div>
       </section>
 
       <section aria-label="Sınavdaki sorular" className="min-h-0 rounded-xl border border-border bg-surface shadow-sm">
@@ -1408,52 +1593,72 @@ function QuestionAssignPanel({
                       <div key={sub.id} className={`rounded-lg border ${active ? "border-primary ring-2 ring-primary/15" : "border-border"}`}>
                         <button
                           type="button"
-                          aria-pressed={active}
-                          className={`flex w-full items-center justify-between gap-2 rounded-t-lg px-3 py-2 text-left ${active ? "bg-primary-50/60" : "hover:bg-neutral-50"}`}
+                          aria-expanded={active}
+                          className={`flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-left ${active ? "rounded-t-lg bg-primary-50/60" : "rounded-lg hover:bg-neutral-50"}`}
                           onClick={() => onPickSub(sub.id)}
                         >
                           <span className="text-[13px] font-medium text-fg">{sub.title} <span className="font-normal text-fg-subtle">({sub.questions.length})</span></span>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${active ? "bg-primary text-white" : "bg-neutral-100 text-fg-subtle"}`}>
-                            {active ? "Eklenecek yer" : "Hedef yap"}
+                            {active ? "Açık" : "Aç"}
                           </span>
                         </button>
-                        {sub.questions.length === 0 ? (
-                          <p className="border-t border-border px-3 py-3 text-xs text-fg-subtle">Bu alt bölümde soru yok.</p>
-                        ) : (
+                        {active && sub.questions.length === 0 ? (
+                          <p className="border-t border-border px-3 py-3 text-xs text-fg-subtle">Bu alt bölümde soru yok. Soldan ekleyebilirsiniz.</p>
+                        ) : null}
+                        {active && sub.questions.length > 0 ? (
                           <ul className="divide-y divide-border border-t border-border">
                             {sub.questions.map((link, index) => {
                               const known = catalog[link.questionVersionId];
+                              const newer = exam.status === "DRAFT" && link.currentVersionNo > link.versionNo;
+                              const shown = openPreview === link.id;
                               return (
-                                <li key={link.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-3 px-3 py-2">
-                                  <span className="text-right text-xs text-fg-subtle tabular-nums">{index + 1}.</span>
-                                  <div className="min-w-0">
-                                    <p className="truncate font-mono text-[13px] font-medium text-fg">{known?.code ?? `${link.questionVersionId.slice(0, 8)}…`}</p>
-                                    <p className="truncate text-xs text-fg-muted">
-                                      {known ? `${getTemplate(known.primaryType)?.label ?? known.primaryType ?? "—"} · ` : ""}
-                                      {roleLabel(link.role)}
-                                    </p>
+                                <li key={link.id} className="px-3 py-2">
+                                  <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto_auto] items-center gap-2">
+                                    <span className="text-right text-xs text-fg-subtle tabular-nums">{index + 1}.</span>
+                                    <div className="min-w-0">
+                                      <p className="truncate font-mono text-[13px] font-medium text-fg">{known?.code ?? "Soru"} - v{link.versionNo}</p>
+                                      <p className="truncate text-xs text-fg-muted">
+                                        {known ? `${getTemplate(known.primaryType)?.label ?? known.primaryType ?? "—"} · ` : ""}
+                                        {roleLabel(link.role)}
+                                      </p>
+                                    </div>
+                                    <label className="flex items-center gap-1.5 text-xs text-fg-muted">
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        step="0.5"
+                                        className="w-16 text-right"
+                                        key={`${link.id}-${link.points}`}
+                                        defaultValue={link.points}
+                                        aria-label={`${known?.code ?? "Soru"} puanı`}
+                                        onBlur={(e) => Number(e.target.value) !== Number(link.points) && onPoints(link.id, Number(e.target.value))}
+                                      />
+                                      puan
+                                    </label>
+                                    <Button type="button" variant="ghost" className="size-11" onClick={() => onDetach(link.id)} aria-label={`${known?.code ?? "Soru"} kaldır`}>
+                                      <IconX className="size-3.5" aria-hidden />
+                                    </Button>
                                   </div>
-                                  <label className="flex items-center gap-1.5 text-xs text-fg-muted">
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      step="0.5"
-                                      className="w-16 text-right"
-                                      key={`${link.id}-${link.points}`}
-                                      defaultValue={link.points}
-                                      aria-label={`${known?.code ?? "Soru"} puanı`}
-                                      onBlur={(e) => Number(e.target.value) !== Number(link.points) && onPoints(link.id, Number(e.target.value))}
-                                    />
-                                    puan
-                                  </label>
-                                  <Button type="button" variant="ghost" size="sm" onClick={() => onDetach(link.id)} aria-label={`${known?.code ?? "Soru"} kaldır`} title="Kaldır">
-                                    <IconX className="size-3.5" aria-hidden />
-                                  </Button>
+                                  <div className="mt-1 flex flex-wrap items-center gap-2 pl-6">
+                                    <Button type="button" variant="secondary" size="sm" onClick={() => setOpenPreview(shown ? null : link.id)}>
+                                      {shown ? "Önizlemeyi gizle" : "Soruyu göster"}
+                                    </Button>
+                                    {newer ? (
+                                      <Button type="button" variant="secondary" size="sm" onClick={() => onUpgrade(link.id)}>
+                                        v{link.currentVersionNo} mevcut – Güncelle
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                  {shown ? (
+                                    <div className="mt-2 min-w-0">
+                                      <QuestionPreviewLoader versionId={link.questionVersionId} />
+                                    </div>
+                                  ) : null}
                                 </li>
                               );
                             })}
                           </ul>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })
@@ -1484,9 +1689,11 @@ function numOrNull(id: string) {
 function EmbeddableEditor({
   exam,
   onSave,
+  onSecurity,
 }: {
   exam: ExamDetail;
   onSave: (patch: Record<string, unknown>) => Promise<void>;
+  onSecurity: (level: string) => Promise<void>;
 }) {
   const session = (exam.session || {}) as Record<string, unknown>;
   const navigation = (exam.navigation || {}) as Record<string, unknown>;
@@ -1495,7 +1702,12 @@ function EmbeddableEditor({
   const scoring = (exam.scoring || {}) as Record<string, unknown>;
   const results = (exam.results || {}) as Record<string, unknown>;
   const attemptPolicy = (exam.attemptPolicy || {}) as Record<string, unknown>;
-  const proctoring = (exam.proctoring || {}) as Record<string, unknown>;
+  const level = exam.securityLevel || "STANDARD";
+  const rules = level === "OPEN"
+    ? ["Kopyalama ve sekme değişimi serbesttir.", "Sekme değişimi yalnızca kayda geçer."]
+    : level === "STRICT"
+      ? ["Kopyala-yapıştır ve sağ tık kapalıdır.", "Odak kaybında uyarı gösterilir.", "3. odak kaybında sınav otomatik teslim edilir.", "Cihaz destekliyorsa tam ekran istenir."]
+      : ["Kopyala-yapıştır ve sağ tık kapalıdır.", "Odak kaybında uyarı gösterilir.", "3. odak kaybında başvuru şüpheli işaretlenir; sınav devam eder."];
 
   return (
     <FormCard title="Sınav kuralları" description="Değişiklikler anında kaydedilir.">
@@ -1543,11 +1755,30 @@ function EmbeddableEditor({
         </div>
       </FormGroup>
       <FormGroup title="Gözetim">
-        <div className="grid gap-2 sm:grid-cols-3">
-          <SettingToggle label="Tam ekran zorunlu" description="Tam ekrandan çıkılırsa uyarı verilir." checked={!!proctoring.requireFullscreen} onChange={(e) => void onSave({ proctoring: { ...proctoring, requireFullscreen: e.target.checked } })} />
-          <SettingToggle label="Sekme değişimini kaydet" description="Öğrenci başka pencereye geçerse raporlanır." checked={!!proctoring.detectFocusLoss} onChange={(e) => void onSave({ proctoring: { ...proctoring, detectFocusLoss: e.target.checked } })} />
-          <SettingToggle label="Kopyala-yapıştırı engelle" description="Sınav içinde kopyalama ve yapıştırma kapatılır." checked={!!proctoring.blockCopyPaste} onChange={(e) => void onSave({ proctoring: { ...proctoring, blockCopyPaste: e.target.checked } })} />
+        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Güvenlik düzeyi">
+          {[
+            ["OPEN", "Serbest"],
+            ["STANDARD", "Standart"],
+            ["STRICT", "Sıkı"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={level === value}
+              disabled={exam.status !== "DRAFT"}
+              className={`min-h-11 rounded-lg border px-3 text-sm font-medium ${level === value ? "border-primary bg-primary-50 text-primary" : "border-border bg-surface text-fg"}`}
+              onClick={() => void onSecurity(value)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
+        <ul className="grid gap-1 text-sm text-fg-muted">
+          {rules.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
       </FormGroup>
     </FormCard>
   );
@@ -1605,7 +1836,15 @@ function bandCoverage(bands: Array<{ minPercent: number; maxPercent: number }>):
   return { gaps, overlaps };
 }
 
-function ScoreBandsEditor({ exam, setExam }: { exam: ExamDetail; setExam: (e: ExamDetail) => void }) {
+function ScoreBandsEditor({
+  exam,
+  setExam,
+  ask,
+}: {
+  exam: ExamDetail;
+  setExam: (e: ExamDetail) => void;
+  ask: (title: string, description: string, confirmLabel: string, run: () => Promise<unknown>) => void;
+}) {
   const bands = [...(exam.scoreBands || [])]
     .map((b) => ({ ...b, minPercent: Number(b.minPercent), maxPercent: Number(b.maxPercent) }))
     .sort((a, b) => a.minPercent - b.minPercent);
@@ -1762,11 +2001,12 @@ function ScoreBandsEditor({ exam, setExam }: { exam: ExamDetail; setExam: (e: Ex
                       aria-label={`${b.label} bandını sil`}
                       title="Sil"
                       onClick={() =>
-                        confirm(`“${b.label}” bandı (%${b.minPercent}–${b.maxPercent}) silinsin mi?`) &&
-                        void notify
-                          .run(authoringApi.removeScoreBand(exam.id, b.id), { success: "Puan bandı silindi", error: "Silinemedi" })
-                          .then(setExam)
-                          .catch(() => undefined)
+                        ask(
+                          "Puan bandı silinsin mi?",
+                          `“${b.label}” bandı (%${b.minPercent}–${b.maxPercent}) silinir.`,
+                          "Bandı sil",
+                          () => notify.run(authoringApi.removeScoreBand(exam.id, b.id), { success: "Puan bandı silindi", error: "Silinemedi" }).then(setExam),
+                        )
                       }
                     >
                       <IconX className="size-3.5" aria-hidden />

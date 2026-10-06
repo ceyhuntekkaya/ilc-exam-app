@@ -7,7 +7,9 @@ import Link from "next/link";
 export default function FinishedPage() {
   const { state } = useExamFlow();
   if (!state) return null;
-  const reason = state.finishedReason === "EXAM_TIME_UP"
+  const reason = state.finishedReason === "PROCTOR_LIMIT"
+    ? "Odak kaybı sınırı aşıldı. Sınav güvenlik kuralı gereği otomatik teslim edildi."
+    : state.finishedReason === "EXAM_TIME_UP"
     ? "Süre doldu. Sınav otomatik teslim edildi."
     : state.finishedReason === "WINDOW_CLOSED"
       ? "Sınavın açık olduğu süre kapandı."

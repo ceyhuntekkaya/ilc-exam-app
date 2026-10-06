@@ -43,6 +43,7 @@ export function formatClock(ms: number | null) {
 }
 
 export function attemptLabel(status: string, reason?: string | null) {
+  if (reason === "PROCTOR_LIMIT") return "Gözetim sınırı";
   if (reason === "EXAM_TIME_UP") return "Süre doldu";
   if (reason === "WINDOW_CLOSED") return "Süre penceresi kapandı";
   if (status === "SUBMITTED") return "Teslim edildi";

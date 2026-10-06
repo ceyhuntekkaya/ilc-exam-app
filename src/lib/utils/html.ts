@@ -73,6 +73,11 @@ function sanitizePass(html: string): string {
     .replace(DROPPED_WITH_CONTENT, "")
     .replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (whole, rawTag: string, attrs: string) => {
       const tag = rawTag.toLowerCase();
+      if (tag === "font") {
+        if (whole.startsWith("</")) return "</span>";
+        const color = safeColor(attrs);
+        return color ? `<span style="color: ${color}">` : "<span>";
+      }
       if (!ALLOWED_TAGS.has(tag)) return "";
       if (whole.startsWith("</")) return `</${tag}>`;
       if (tag === "a") return `<a${safeAttribute(tag, attrs, "href")}>`;
@@ -80,8 +85,39 @@ function sanitizePass(html: string): string {
         const src = safeAttribute(tag, attrs, "src");
         return src ? `<img${src}>` : "";
       }
-      return `<${tag}>`;
+      return `<${tag}${safeStyle(attrs)}>`;
     });
+}
+
+/** Editörün ürettiği hizalama ve palet rengi; başka stil (konum, url, expression) geçmez. */
+function safeStyle(attrs: string): string {
+  const match = /\sstyle\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+  const raw = (match?.[2] ?? match?.[3] ?? match?.[4] ?? "").toLowerCase();
+  const kept: string[] = [];
+  for (const decl of raw.split(";")) {
+    const idx = decl.indexOf(":");
+    if (idx < 0) continue;
+    const name = decl.slice(0, idx).trim();
+    const value = decl.slice(idx + 1).trim();
+    if (name === "text-align" && /^(left|center|right)$/.test(value)) kept.push(`text-align: ${value}`);
+    if (name === "color") {
+      const color = safeColorValue(value);
+      if (color) kept.push(`color: ${color}`);
+    }
+  }
+  return kept.length ? ` style="${kept.join("; ")}"` : "";
+}
+
+function safeColor(attrs: string): string | null {
+  const fromStyle = safeStyle(attrs).match(/color:\s*(#[0-9a-f]{3,6})/i)?.[1] ?? null;
+  if (fromStyle) return fromStyle;
+  const match = /\scolor\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+  return safeColorValue(match?.[2] ?? match?.[3] ?? match?.[4] ?? "");
+}
+
+function safeColorValue(value: string): string | null {
+  const color = value.trim().toLowerCase();
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/.test(color) ? color : null;
 }
 
 /** Metin HTML etiketi içeriyor mu (editör çıktısı mı, düz metin mi). */

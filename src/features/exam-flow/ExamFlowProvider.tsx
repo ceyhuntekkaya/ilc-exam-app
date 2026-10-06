@@ -48,6 +48,8 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const heldRef = useRef(false);
   const linkDownRef = useRef(false);
   const redirectTo = useRef<string | null>(null);
+  const seenFocusLoss = useRef<number | null>(null);
+  const [focusWarning, setFocusWarning] = useState<number | null>(null);
 
   const applyState = useCallback((next: ExamState) => {
     stateRef.current = next;
@@ -140,7 +142,13 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       syncHeld();
       if (document.hidden) flushEventsKeepalive(session.applicationId, session.sessionToken);
     };
-    const onHide = () => mark(document.hidden ? "VISIBILITY_HIDDEN" : "VISIBILITY_VISIBLE");
+    const onHide = () => {
+      if (!navigator.onLine) {
+        syncHeld();
+        return;
+      }
+      mark(document.hidden ? "VISIBILITY_HIDDEN" : "VISIBILITY_VISIBLE");
+    };
     const onOff = () => mark("CONNECTION_LOST");
     const onOn = () => mark("CONNECTION_RESTORED");
     const onPageHide = () => flushEventsKeepalive(session.applicationId, session.sessionToken);
@@ -157,6 +165,55 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       window.removeEventListener("pagehide", onPageHide);
     };
   }, [recipientId, state?.stage, state?.applicationId]);
+
+  useEffect(() => {
+    const count = state?.proctoring.focusLossCount ?? 0;
+    if (seenFocusLoss.current == null) {
+      seenFocusLoss.current = count;
+      return;
+    }
+    if (state?.stage === "IN_SECTION" && count > seenFocusLoss.current) {
+      setFocusWarning(Math.max(0, state.proctoring.focusLossLimit - count));
+    }
+    seenFocusLoss.current = count;
+  }, [state]);
+
+  useEffect(() => {
+    const rules = state?.proctoring;
+    if (!rules || state.stage === "FINISHED" || state.stage === "WELCOME") return;
+    const stop = (event: Event) => event.preventDefault();
+    if (rules.blockCopyPaste) {
+      document.addEventListener("copy", stop);
+      document.addEventListener("cut", stop);
+      document.addEventListener("paste", stop);
+    }
+    if (rules.blockContextMenu) document.addEventListener("contextmenu", stop);
+    return () => {
+      document.removeEventListener("copy", stop);
+      document.removeEventListener("cut", stop);
+      document.removeEventListener("paste", stop);
+      document.removeEventListener("contextmenu", stop);
+    };
+  }, [state?.proctoring, state?.stage]);
+
+  useEffect(() => {
+    if (state?.stage !== "IN_SECTION" || !state.proctoring.requireFullscreen) return;
+    const node = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+    const request = node.requestFullscreen?.bind(node) ?? node.webkitRequestFullscreen?.bind(node);
+    if (request) void Promise.resolve(request()).catch(() => undefined);
+    const onExit = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      if (document.fullscreenElement || doc.webkitFullscreenElement) return;
+      const session = readSession(recipientId);
+      if (session) enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
+    };
+    document.addEventListener("fullscreenchange", onExit);
+    document.addEventListener("webkitfullscreenchange", onExit);
+    return () => {
+      document.removeEventListener("fullscreenchange", onExit);
+      document.removeEventListener("webkitfullscreenchange", onExit);
+    };
+  }, [recipientId, state?.currentSectionId, state?.proctoring.requireFullscreen, state?.stage]);
 
   useEffect(() => {
     if (!state || state.stage !== "IN_SECTION") return;
@@ -218,7 +275,22 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     [applyState, conflict, error, held, load, loading, recipientId, state, takeOver],
   );
 
-  return <FlowContext.Provider value={value}>{children}</FlowContext.Provider>;
+  return (
+    <FlowContext.Provider value={value}>
+      {children}
+      {focusWarning != null ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
+            <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">Sınavdan ayrıldınız</h2>
+            <p className="mt-2 text-sm text-ilc-navy/80">Odak kaybı kaydedildi. Kalan hak: {focusWarning}.</p>
+            <button type="button" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white" onClick={() => setFocusWarning(null)}>
+              Sınava dön
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </FlowContext.Provider>
+  );
 }
 
 export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {

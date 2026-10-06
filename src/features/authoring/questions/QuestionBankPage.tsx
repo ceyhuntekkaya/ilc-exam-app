@@ -54,10 +54,10 @@ export function QuestionBankPage() {
       {
         field: "code",
         headerName: "Kod",
-        width: 130,
+        width: 160,
         renderCell: ({ row }) => (
           <Link href={`${basePath}/${row.versionId}`} className="font-mono text-[13px] font-medium text-primary hover:underline">
-            {row.code || "—"}
+            {row.code ? `${row.code} - v${row.versionNo}` : "—"}
           </Link>
         ),
       },
@@ -129,14 +129,6 @@ export function QuestionBankPage() {
         headerName: "Durum",
         width: 120,
         renderCell: ({ row }) => <StatusBadge status={row.status} />,
-      },
-      {
-        field: "versionNo",
-        headerName: "Sürüm",
-        width: 90,
-        align: "right",
-        headerAlign: "right",
-        renderCell: ({ row }) => <span className="numeric font-mono text-xs text-fg-subtle">v{row.versionNo}</span>,
       },
     ],
     [basePath],

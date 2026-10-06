@@ -12,4 +12,7 @@ export interface PresenceRow {
   lastSeenAt?: string;
   currentSectionId?: string;
   status?: string;
+  proctorFlagged?: boolean;
+  proctorFlagReason?: string;
+  finishedReason?: string;
 }

@@ -42,6 +42,14 @@ export const examStateSchema = z.object({
   currentItemId: absentString,
   answeredItemIds: z.array(z.string()),
   canFinish: z.boolean(),
+  proctoring: z.object({
+    level: z.enum(["OPEN", "STANDARD", "STRICT"]),
+    blockCopyPaste: z.boolean(),
+    blockContextMenu: z.boolean(),
+    requireFullscreen: z.boolean(),
+    focusLossLimit: z.number(),
+    focusLossCount: z.number(),
+  }),
 });
 
 export const attemptSummarySchema = z.object({

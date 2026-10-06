@@ -2,8 +2,9 @@
 
 import { InlineHtmlField } from "@/src/features/authoring/blocks/InlineHtmlField";
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
-import { PlaybackPolicyFields, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
+import { PlaybackPolicyFields, shownPlayback, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
 import { newId } from "@/src/features/authoring/blocks/ids";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   Button,
   Field,
@@ -12,7 +13,6 @@ import {
   IconArrowUp,
   IconX,
 } from "@/src/ui";
-import type { ReactNode } from "react";
 
 export type OptionFormat = "TEXT" | "IMAGE" | "AUDIO" | "VIDEO";
 
@@ -55,6 +55,14 @@ export function OptionListEditor({
 }) {
   const rows = options ?? [];
   const selected = new Set(correctIds ?? []);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (disabled || (format !== "AUDIO" && format !== "VIDEO")) return;
+    if (!rows.some((o) => o.playback == null)) return;
+    onChangeRef.current(rows.map((o) => (o.playback == null ? { ...o, playback: shownPlayback(null) } : o)));
+  }, [disabled, format, rows]);
 
   function update(i: number, next: OptionItem) {
     const copy = [...rows];
