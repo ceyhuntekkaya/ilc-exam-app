@@ -2,26 +2,40 @@
 
 import { ExamApiError, previewAssignment, sha256Hex, startAttempt } from "@/src/features/exam-flow/api";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
-import { formatDuration, formatRange, formatWhen, sectionStatusLabel } from "@/src/features/exam-flow/format";
+import { formatDuration, formatWhen } from "@/src/features/exam-flow/format";
 import type { AssignmentPreview } from "@/src/features/exam-flow/schema";
 import { writeSession } from "@/src/features/exam-flow/session";
+import { friendlyWhen } from "@/src/features/student/status";
+import { InfoTile, KidButton, KidCard, KidError, KidLoading } from "@/src/features/student/ui";
+import { cn } from "@/src/lib/utils/cn";
+import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconLayers, IconQuestion } from "@/src/ui/icons";
 import { RichText } from "@/src/ui/composites/RichText";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const STATEMENT = "Yönergeyi okudum ve sınav kurallarını kabul ediyorum.";
 
 export default function ExamWelcomePage() {
   const { recipientId, state, applyState } = useExamFlow();
   const [preview, setPreview] = useState<AssignmentPreview | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const fetchPreview = useCallback(() => {
     previewAssignment(recipientId)
       .then(setPreview)
-      .catch((err: unknown) => setError(err instanceof ExamApiError ? err.message : "Sınav bilgisi alınamadı"));
+      .catch((err: unknown) => setLoadError(err instanceof ExamApiError ? err.message : "Sınav bilgisi alınamadı"));
   }, [recipientId]);
+
+  useEffect(() => {
+    fetchPreview();
+  }, [fetchPreview]);
+
+  function retry() {
+    setLoadError(null);
+    fetchPreview();
+  }
 
   async function accept() {
     if (!preview) return;
@@ -44,89 +58,97 @@ export default function ExamWelcomePage() {
     }
   }
 
-  const card = preview?.assignment;
-  const acceptedAt = state?.acknowledgementAt ?? preview?.acknowledgementAt;
+  if (loadError) return <KidError title="Sınav bilgisi alınamadı" message={loadError} onRetry={retry} />;
+  if (!preview) return <KidLoading label="Sınav bilgisi yükleniyor…" />;
+
+  const card = preview.assignment;
+  const acceptedAt = state?.acknowledgementAt ?? preview.acknowledgementAt;
+  const questionCount = preview.sections.reduce((sum, section) => sum + section.questionCount, 0) || card.questionCount;
 
   return (
-    <section className="space-y-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-ilc-line md:p-6">
-      <h2 className="font-[family-name:var(--font-fraunces)] text-2xl font-semibold text-ilc-navy">
-        {card?.examTitle ?? "Sınav"}
-      </h2>
-      {card ? (
-        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <Info label="Açık olduğu tarihler" value={formatRange(card.availableFrom, card.availableUntil)} />
-          <Info label="Toplam puan" value={String(card.totalPoints ?? "—")} />
-          <Info label="Süre" value={card.timingMode === "UNTIMED" ? "Süresiz" : formatDuration(card.durationSeconds)} />
-          <Info label="Kalan hak" value={`${card.attemptsLeft} / ${card.attemptsTotal}`} />
-        </dl>
-      ) : null}
-      <div className="rounded-2xl bg-[#f7f4ef] p-4">
-        {preview?.welcomeHtml ? <RichText value={preview.welcomeHtml} className="text-base text-ilc-navy" /> : (
-          <p className="text-sm text-ilc-navy/70">Bu sınav için karşılama metni yok.</p>
-        )}
-      </div>
-      <ul className="grid gap-3 md:hidden">
-        {(preview?.sections ?? []).map((section, index) => (
-          <li key={section.sectionId} className="rounded-2xl bg-[#f7f4ef] px-3 py-3 text-sm">
-            <p className="font-medium text-ilc-navy">{index + 1}. {section.title}</p>
-            <p className="mt-1 text-ilc-navy/80">
-              {section.questionCount} soru · {formatDuration(section.durationSeconds)} · {sectionStatusLabel(section.status)}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+      <div className="space-y-6">
+        <header>
+          <p className="font-semibold text-primary-700">Sınava hazırlan</p>
+          <h1 className="mt-1 text-2xl font-bold text-neutral-900">{card.examTitle}</h1>
+          {card.availableUntil ? (
+            <p className="mt-2 flex items-center gap-1.5 text-neutral-600 [&>svg]:size-4">
+              <IconCalendar aria-hidden />
+              {friendlyWhen(card.availableUntil)} saatine kadar açık
             </p>
-          </li>
-        ))}
-      </ul>
-      <div className="hidden md:block">
-        <table className="w-full text-left text-sm">
-          <thead className="text-ilc-navy/60">
-            <tr>
-              <th className="py-2 pr-3">#</th>
-              <th className="py-2 pr-3">Bölüm</th>
-              <th className="py-2 pr-3">Soru</th>
-              <th className="py-2 pr-3">Süre</th>
-              <th className="py-2">Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(preview?.sections ?? []).map((section, index) => (
-              <tr key={section.sectionId} className="border-t border-ilc-line">
-                <td className="py-3 pr-3">{index + 1}</td>
-                <td className="py-3 pr-3 font-medium text-ilc-navy">{section.title}</td>
-                <td className="py-3 pr-3">{section.questionCount}</td>
-                <td className="py-3 pr-3">{formatDuration(section.durationSeconds)}</td>
-                <td className="py-3">{sectionStatusLabel(section.status)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {acceptedAt ? (
-        <p className="text-sm text-ilc-navy">Onay zamanı: {formatWhen(acceptedAt)}</p>
-      ) : (
-        <label className="flex min-h-11 items-start gap-3 text-sm text-ilc-navy">
-          <input type="checkbox" className="mt-1 size-5" checked={ack} onChange={(e) => setAck(e.target.checked)} />
-          {STATEMENT}
-        </label>
-      )}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      {!acceptedAt ? (
-        <button
-          type="button"
-          disabled={!ack || busy || !preview}
-          onClick={() => void accept()}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white disabled:opacity-50 md:w-auto"
-        >
-          {busy ? "Kaydediliyor" : "Devam"}
-        </button>
-      ) : null}
-    </section>
-  );
-}
+          ) : null}
+        </header>
 
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-[#f7f4ef] px-3 py-2">
-      <dt className="text-ilc-navy/60">{label}</dt>
-      <dd className="font-medium text-ilc-navy">{value}</dd>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <InfoTile icon={<IconClock />} label="Süre" value={card.timingMode === "UNTIMED" ? "Süresiz" : formatDuration(card.durationSeconds)} />
+          <InfoTile icon={<IconLayers />} label="Bölüm" value={preview.sections.length || card.sectionCount} tone="grape" />
+          <InfoTile icon={<IconQuestion />} label="Soru" value={questionCount} tone="sun" />
+        </div>
+
+        <KidCard>
+          <h2 className="text-base font-bold text-neutral-900">Yönerge</h2>
+          {preview.welcomeHtml ? (
+            <RichText value={preview.welcomeHtml} className="mt-3 text-base leading-relaxed text-neutral-800" />
+          ) : (
+            <p className="mt-3 text-base text-neutral-700">Soruları dikkatlice oku ve sana en doğru gelen cevabı seç. Başarılar!</p>
+          )}
+        </KidCard>
+
+        {preview.sections.length ? (
+          <section aria-labelledby="bolumler" className="space-y-3">
+            <h2 id="bolumler" className="text-base font-bold text-neutral-900">Sınavdaki bölümler</h2>
+            <ol className="grid gap-3 sm:grid-cols-2">
+              {preview.sections.map((section, index) => (
+                <li key={section.sectionId} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-50 font-kid text-base font-bold text-primary-700">{index + 1}</span>
+                  <div className="min-w-0">
+                    <p className="font-kid text-base font-bold text-neutral-900">{section.title}</p>
+                    <p className="text-neutral-600">
+                      {section.questionCount} soru{section.durationSeconds ? ` · ${formatDuration(section.durationSeconds)}` : ""}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
+      </div>
+
+      {/* Onay + başlat: geniş ekranda sağda sabit, mobilde en altta. */}
+      <aside className="lg:sticky lg:top-24">
+        <KidCard className="space-y-5">
+          <h2 className="text-base font-bold text-neutral-900">Hazır mısın?</h2>
+          <ul className="space-y-2 text-neutral-700">
+            {["Bölüme girince süren başlar.", "Bölüm listesindeyken süre durur.", "Cevapların otomatik kaydedilir."].map((line) => (
+              <li key={line} className="flex items-start gap-2 [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:shrink-0">
+                <IconCheck aria-hidden className="text-(--kid-mint)" />
+                {line}
+              </li>
+            ))}
+          </ul>
+          {acceptedAt ? (
+            <p className="rounded-2xl bg-(--kid-mint-bg) px-4 py-3 font-medium text-(--kid-mint)">Kuralları {formatWhen(acceptedAt)} tarihinde onayladın.</p>
+          ) : (
+            <label
+              className={cn(
+                "flex min-h-12 items-start gap-3 rounded-2xl p-3.5 text-[15px] font-medium ring-2 transition",
+                ack ? "bg-primary-50 text-primary-900 ring-primary-400" : "bg-neutral-50 text-neutral-800 ring-neutral-200 hover:ring-primary-300",
+              )}
+            >
+              <input type="checkbox" className="mt-0.5 size-5 shrink-0 accent-primary-600" checked={ack} onChange={(e) => setAck(e.target.checked)} />
+              {STATEMENT}
+            </label>
+          )}
+          {error ? <p role="alert" className="rounded-2xl bg-(--kid-coral-bg) px-4 py-3 font-medium text-(--kid-coral)">{error}</p> : null}
+          {!acceptedAt ? (
+            <KidButton size="lg" full disabled={!ack || busy} onClick={() => void accept()}>
+              {busy ? "Hazırlanıyor…" : "Hazırım, başlayalım"}
+              {busy ? null : <IconArrowRight aria-hidden />}
+            </KidButton>
+          ) : null}
+          {!acceptedAt && !ack ? <p className="text-center text-sm text-neutral-600">Başlamak için yukarıdaki kutuyu işaretle.</p> : null}
+        </KidCard>
+      </aside>
     </div>
   );
 }

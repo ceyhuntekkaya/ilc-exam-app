@@ -1,0 +1,144 @@
+/*
+  Öğrenci teması — "gökyüzü + güneş". Hedef: ilkokul / ortaokul (7–14 yaş).
+  Kapsam: yalnız `[data-panel="student"]` (StudentShell + öğrenci girişi). Admin,
+  staff, landing bu dosyadan etkilenmez. Her zaman açık tema.
+
+  Paletler:
+    primary   → Gökyüzü mavisi. Tek ana eylem (Başla, Devam, Sonraki), odak, link.
+    secondary → Güneş sarısı. "Devam ediyor", vurgu, kutlama.
+    neutral   → Hafif mavimsi gri. Metin, çizgi, yüzey.
+  Durum tonları (renk + ikon + metin birlikte; yalnız renkle anlam verilmez):
+    --kid-mint   tamamlandı / doğru
+    --kid-sun    devam ediyor / yarım kaldı
+    --kid-coral  süre azaldı / dikkat (kırmızıdan yumuşak, panik yaratmaz)
+    --kid-grape  sonuçlar / seviye
+    --kid-sky    açık / girilebilir
+  Kontrast: metin tonları beyaz ve -bg yüzeyleri üzerinde WCAG AA (≥4.5:1).
+*/
+
+[data-panel][data-panel="student"] {
+  --color-primary-50: #eff7ff;
+  --color-primary-100: #dbedff;
+  --color-primary-200: #bfdfff;
+  --color-primary-300: #93caff;
+  --color-primary-400: #5fabfb;
+  --color-primary-500: #3a8bf5;
+  --color-primary-600: #236ce9;
+  --color-primary-700: #1c57d4;
+  --color-primary-800: #1d47ab;
+  --color-primary-900: #1d3f87;
+  --color-primary-950: #172852;
+
+  --color-secondary-50: #fffbeb;
+  --color-secondary-100: #fff3c6;
+  --color-secondary-200: #ffe788;
+  --color-secondary-300: #ffd54a;
+  --color-secondary-400: #ffc220;
+  --color-secondary-500: #f9a007;
+  --color-secondary-600: #dd7902;
+  --color-secondary-700: #b75406;
+  --color-secondary-800: #94400c;
+  --color-secondary-900: #7a350d;
+  --color-secondary-950: #461a02;
+
+  --color-neutral-50: #f6f9fc;
+  --color-neutral-100: #edf2f8;
+  --color-neutral-200: #dce4ee;
+  --color-neutral-300: #c2cedc;
+  --color-neutral-400: #8d9cb0;
+  --color-neutral-500: #66768c;
+  --color-neutral-600: #4e5d72;
+  --color-neutral-700: #3d4a5d;
+  --color-neutral-800: #2a3546;
+  --color-neutral-900: #1b2433;
+  --color-neutral-950: #101722;
+
+  --bg: #f4f8fd;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --fg: var(--color-neutral-900);
+  --fg-muted: var(--color-neutral-600);
+  --fg-subtle: var(--color-neutral-500);
+  --primary: var(--color-primary-600);
+  --primary-fg: #ffffff;
+  --primary-hover: var(--color-primary-700);
+  --focus: var(--color-primary-500);
+  --shadow: 0 1px 2px rgb(16 23 34 / 5%), 0 6px 20px rgb(35 108 233 / 7%);
+
+  --kid-sky: #1c57d4;
+  --kid-sky-bg: #e6f1ff;
+  --kid-sun: #8a4b00;
+  --kid-sun-bg: #fff3c6;
+  --kid-sun-solid: #ffc220;
+  --kid-mint: #0d7a55;
+  --kid-mint-bg: #ddf7ec;
+  --kid-mint-solid: #1fb57f;
+  --kid-coral: #c2412d;
+  --kid-coral-bg: #ffe9e4;
+  --kid-coral-solid: #f26b52;
+  --kid-grape: #6d3fc0;
+  --kid-grape-bg: #f0e9ff;
+
+  /* Konteyner: okunabilir satır uzunluğu için ortalı, en fazla 72rem. */
+  --student-max: 72rem;
+  --gutter: 1rem;
+
+}
+
+/* Varsayılan yüzey, metin ve font base katmanında: sayfadaki bg- ve text- sınıfları (ör. girişin mavi zemini) bunları ezebilsin. */
+@layer base {
+  [data-panel][data-panel="student"] {
+    font-family: var(--font-lexend), var(--font-source-sans), "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+  }
+}
+
+@media (width >= 40rem) {
+  [data-panel][data-panel="student"] {
+    --gutter: 1.5rem;
+  }
+}
+
+@media (width >= 64rem) {
+  [data-panel][data-panel="student"] {
+    --gutter: 2rem;
+  }
+}
+
+@utility student-container {
+  width: 100%;
+  max-width: calc(var(--student-max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Başlıklar: yuvarlak, sıcak (Nunito). */
+[data-panel][data-panel="student"] :where(h1, h2, h3, .font-kid) {
+  font-family: var(--font-nunito), var(--font-lexend), sans-serif;
+  letter-spacing: -0.01em;
+}
+
+[data-panel][data-panel="student"] :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+[data-panel][data-panel="student"] ::selection {
+  background: var(--color-secondary-200);
+  color: var(--color-neutral-950);
+}
+
+/* Soru içeriği (.exam-player) burada ezilmez: öğrenci ekranı admin "Öğrenci önizlemesi" ile birebir aynı olmalı.
+   Tek istisna eşitleme: panel fontu yerine önizlemedeki (site geneli) font. */
+[data-panel][data-panel="student"] .exam-player,
+[data-panel][data-panel="student"] .exam-player :where(h1, h2, h3, .font-kid) {
+  font-family: var(--font-source-sans), "Segoe UI", sans-serif;
+}
+
+/* Mobil alt çubuk: iPhone ana ekran çizgisinin altında kalmasın. */
+@utility pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}

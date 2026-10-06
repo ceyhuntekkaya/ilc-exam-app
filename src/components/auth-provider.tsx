@@ -55,7 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    // İlk oturum sorgusu bir mikro görevde başlar (effect içinde senkron setState olmasın).
+    void Promise.resolve().then(refresh);
   }, [refresh]);
 
   const establishSession = useCallback(

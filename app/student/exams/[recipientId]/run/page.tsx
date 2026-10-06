@@ -9,5 +9,5 @@ export default function LegacyRunRedirect() {
   useEffect(() => {
     router.replace(`/student/exams/${params.recipientId}`);
   }, [params.recipientId, router]);
-  return <p className="text-sm text-ilc-navy/70">Yönlendiriliyor…</p>;
+  return <p className="text-neutral-600">Yönlendiriliyor…</p>;
 }

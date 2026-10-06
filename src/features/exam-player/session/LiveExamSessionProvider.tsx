@@ -15,12 +15,19 @@ export function LiveExamSessionProvider({
   applicationId,
   sessionToken,
   children,
+  onSaved,
 }: {
   applicationId: string;
   sessionToken: string;
   children: ReactNode;
+  /** Cevap kuyruğa alınınca (sunucu yanıtı beklenmeden) çağrılır; ekran "cevaplandı" durumunu hemen gösterebilsin. */
+  onSaved?: (itemId: string) => void;
 }) {
   const seq = useRef(0);
+  const onSavedRef = useRef(onSaved);
+  useEffect(() => {
+    onSavedRef.current = onSaved;
+  }, [onSaved]);
   const queue = useRef<Pending[]>([]);
   const sending = useRef(false);
 
@@ -73,7 +80,10 @@ export function LiveExamSessionProvider({
       sessionToken,
       uploadMedia: (itemId, file, durationMs) =>
         uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs),
+      getAnswer: (itemId) => readDrafts(applicationId)[itemId],
       saveAnswer: (itemId, answer) => {
+        onSavedRef.current?.(itemId);
+        writeDraft(applicationId, itemId, answer);
         seq.current += 1;
         queue.current = queue.current.filter((item) => item.itemId !== itemId);
         queue.current.push({ itemId, answer, seq: seq.current });
@@ -91,4 +101,25 @@ export function LiveExamSessionProvider({
 
 function storageKey(applicationId: string) {
   return `ilc-answer-queue:${applicationId}`;
+}
+
+// Verilen son cevaplar (soru değişince bileşen yeniden kurulur; cevap ekranda kaybolmasın).
+function draftKey(applicationId: string) {
+  return `ilc-answer-drafts:${applicationId}`;
+}
+
+function readDrafts(applicationId: string): Record<string, Record<string, unknown>> {
+  try {
+    return JSON.parse(sessionStorage.getItem(draftKey(applicationId)) ?? "{}") as Record<string, Record<string, unknown>>;
+  } catch {
+    return {};
+  }
+}
+
+function writeDraft(applicationId: string, itemId: string, answer: Record<string, unknown>) {
+  try {
+    sessionStorage.setItem(draftKey(applicationId), JSON.stringify({ ...readDrafts(applicationId), [itemId]: answer }));
+  } catch {
+    // depolama doluysa yalnız ekranda geri yükleme kaybolur; sunucuya gönderim etkilenmez
+  }
 }

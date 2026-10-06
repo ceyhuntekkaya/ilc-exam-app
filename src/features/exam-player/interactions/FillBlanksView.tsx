@@ -7,6 +7,9 @@ import { epChip } from "@/src/features/exam-player/styles";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useFloatingPanel } from "@/src/ui/primitives/floating";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 type TextChoice = { id: string; text?: HtmlValue };
 type BlankChoices = { blankId: string; choices?: TextChoice[] };
@@ -28,20 +31,25 @@ function BlankPicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // Liste portal + fixed: soru kartının overflow-hidden kabında kırpılmasın (öğrenci ekranı ve admin önizlemesi).
+  const { panelRef, container, prepare } = useFloatingPanel(triggerRef, open, { upward: false });
   const selected = choices.find((c) => c.id === value);
 
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!rootRef.current?.contains(target) && !panelRef.current?.contains(target)) setOpen(false);
     }
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
+  }, [open, panelRef]);
 
   return (
     <span ref={rootRef} className="relative inline align-baseline">
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
@@ -49,6 +57,7 @@ function BlankPicker({
         aria-label={selected ? `Boşluk ${blankId}` : `Boşluk ${blankId} doldur`}
         onClick={() => {
           if (disabled) return;
+          if (!open) prepare(triggerRef.current);
           setOpen((o) => !o);
         }}
         className={cn(
@@ -68,10 +77,11 @@ function BlankPicker({
           ".........."
         )}
       </button>
-      {open ? (
-        <span
+      {open && container ? createPortal(
+        <div
+          ref={panelRef}
           role="listbox"
-          className="absolute left-0 top-full z-30 mt-1 min-w-[10rem] max-w-[min(20rem,80vw)] overflow-hidden rounded-lg border border-exam-slate-200 bg-white py-1 shadow-lg"
+          className="max-h-72 min-w-40 max-w-[min(20rem,80vw)] overflow-y-auto rounded-lg border border-exam-slate-200 bg-white py-1 text-sm text-exam-slate-800 shadow-lg"
         >
           <button
             type="button"
@@ -102,7 +112,8 @@ function BlankPicker({
               <span dangerouslySetInnerHTML={{ __html: htmlOf(c.text) || c.id }} />
             </button>
           ))}
-        </span>
+        </div>,
+        container,
       ) : null}
     </span>
   );
@@ -113,11 +124,13 @@ export function FillInTheBlanksView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const supply = (interaction.supply as string) || "PER_BLANK";
   const blanks = useMemo(
@@ -131,9 +144,12 @@ export function FillInTheBlanksView({
     if (!preview) return {} as Record<string, string>;
     return (answerKey?.correctChoiceIds as Record<string, string>) || {};
   }, [preview, answerKey]);
+  const saved = useSavedAnswer(itemId, preview);
   const [answers, setAnswers] = useState<Record<string, string | null>>(() =>
-    preview ? { ...correctChoiceIds } : {},
+    preview ? { ...correctChoiceIds } : { ...((saved?.choiceIds as Record<string, string>) ?? {}) },
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { choiceIds: answers }, !preview && !disabled && touched);
   const { pickedId, pick, clear } = usePickAndPlace();
 
   const blankMap = useMemo(() => {
@@ -145,6 +161,7 @@ export function FillInTheBlanksView({
   const usedIds = new Set(Object.values(answers).filter(Boolean) as string[]);
 
   function place(blankId: string, choiceId: string | null) {
+    setTouched(true);
     setAnswers((prev) => ({ ...prev, [blankId]: choiceId }));
     clear();
   }

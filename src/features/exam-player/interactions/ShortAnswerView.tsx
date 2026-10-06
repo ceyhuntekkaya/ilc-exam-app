@@ -6,6 +6,7 @@ import { epBlankInline } from "@/src/features/exam-player/styles";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 type BlankInput = {
   blankId: string;
@@ -19,11 +20,13 @@ export function ShortAnswerView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const blanks = useMemo(
     () => (interaction.blanks as BlankInput[]) || [],
@@ -41,8 +44,9 @@ export function ShortAnswerView({
     for (const b of blanks) m.set(b.blankId, b);
     return m;
   }, [blanks]);
+  const saved = useSavedAnswer(itemId, preview);
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
-    if (!preview) return {};
+    if (!preview) return { ...((saved?.answers as Record<string, string>) ?? {}) };
     const init: Record<string, string> = {};
     for (const [id, list] of Object.entries(accepted)) {
       if (list?.[0]) init[id] = list[0];
@@ -50,7 +54,11 @@ export function ShortAnswerView({
     return init;
   });
 
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { answers }, !preview && !disabled && touched);
+
   function setBlank(id: string, value: string, meta?: BlankInput) {
+    setTouched(true);
     let next = value;
     if (limitMode === "HARD" && meta?.maxChars != null) {
       next = next.slice(0, meta.maxChars);

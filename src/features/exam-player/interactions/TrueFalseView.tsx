@@ -5,6 +5,7 @@ import { epOption } from "@/src/features/exam-player/styles";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 type Statement = { id: string; text?: HtmlValue };
 type Labels = {
@@ -20,11 +21,13 @@ export function TrueFalseView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const labels = (interaction.labels as Labels) || {};
   const statements = (interaction.statements as Statement[]) || [];
@@ -33,9 +36,12 @@ export function TrueFalseView({
     if (!preview) return {} as Record<string, Answer>;
     return (answerKey?.answers as Record<string, Answer>) || {};
   }, [preview, answerKey]);
+  const saved = useSavedAnswer(itemId, preview);
   const [answers, setAnswers] = useState<Record<string, Answer | null>>(() =>
-    preview ? { ...keyAnswers } : {},
+    preview ? { ...keyAnswers } : { ...((saved?.answers as Record<string, Answer>) ?? {}) },
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { answers }, !preview && !disabled && touched);
 
   const choices: Array<{ value: Answer; label: HtmlValue; fallback: string }> = [
     { value: "TRUE", label: labels.trueLabel, fallback: "True" },
@@ -87,7 +93,10 @@ export function TrueFalseView({
                     key={c.value}
                     type="button"
                     disabled={disabled}
-                    onClick={() => setAnswers((prev) => ({ ...prev, [s.id]: c.value }))}
+                    onClick={() => {
+                      setTouched(true);
+                      setAnswers((prev) => ({ ...prev, [s.id]: c.value }));
+                    }}
                     className={cn(
                       "min-h-11 min-w-[5.5rem] rounded-lg border px-3 py-2 text-sm transition-all duration-150",
                       isCorrect ? epOption.correct : active ? epOption.selected : epOption.idle,

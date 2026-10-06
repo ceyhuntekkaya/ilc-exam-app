@@ -8,6 +8,7 @@ import { epChip, epDrop } from "@/src/features/exam-player/styles";
 import type { HtmlValue, OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 type Group = { id: string; label?: HtmlValue };
 
@@ -16,11 +17,13 @@ export function GroupingView({
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const groups = (interaction.groups as Group[]) || [];
   const itemFormat = (interaction.itemFormat as OptionFormat) || "TEXT";
@@ -29,15 +32,19 @@ export function GroupingView({
     if (!preview) return {} as Record<string, string>;
     return (answerKey?.groupOf as Record<string, string>) || {};
   }, [preview, answerKey]);
+  const saved = useSavedAnswer(itemId, preview);
   const [groupOf, setGroupOf] = useState<Record<string, string | null>>(() =>
-    preview ? { ...correctGroupOf } : {},
+    preview ? { ...correctGroupOf } : { ...((saved?.groupOf as Record<string, string>) ?? {}) },
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { groupOf }, !preview && !disabled && touched);
   const { pickedId, pick, clear } = usePickAndPlace();
 
   const unassigned = items.filter((it) => !groupOf[it.id]);
 
-  function place(itemId: string, groupId: string | null) {
-    setGroupOf((prev) => ({ ...prev, [itemId]: groupId }));
+  function place(memberId: string, groupId: string | null) {
+    setTouched(true);
+    setGroupOf((prev) => ({ ...prev, [memberId]: groupId }));
     clear();
   }
 

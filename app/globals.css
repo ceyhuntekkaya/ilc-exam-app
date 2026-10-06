@@ -2,6 +2,7 @@
 @import "../src/styles/theme-colors.css";
 @import "../src/styles/animations.css";
 @import "../src/styles/admin-theme.css";
+@import "../src/styles/student-theme.css";
 @import "../src/features/exam-player/exam-player-theme.css";
 
 /* `dark:` sınıfları belgedeki data-theme ile gider. */

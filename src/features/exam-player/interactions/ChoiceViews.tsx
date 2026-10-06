@@ -1,7 +1,7 @@
 "use client";
 
 import { OptionButton } from "@/src/features/exam-player/interactions/OptionChip";
-import { useAnswerSync } from "@/src/features/exam-player/session/useAnswerSync";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { useMemo, useState } from "react";
 
@@ -23,7 +23,8 @@ export function MultipleChoiceView({
   const format = (interaction.format as OptionFormat) || "TEXT";
   const options = (interaction.options as PlayerOption[]) || [];
   const correctId = preview ? String(answerKey?.correctOptionId ?? "") : "";
-  const [selected, setSelected] = useState<string | null>(correctId || null);
+  const saved = useSavedAnswer(itemId, preview);
+  const [selected, setSelected] = useState<string | null>(correctId || (saved?.optionId as string | undefined) || null);
   useAnswerSync(itemId, selected ? { optionId: selected } : null, !preview && !disabled);
 
   return (
@@ -64,12 +65,15 @@ export function MultipleResponseView({
     if (!preview) return new Set<string>();
     return new Set((answerKey?.correctOptionIds as string[]) || []);
   }, [preview, answerKey]);
+  const saved = useSavedAnswer(itemId, preview);
   const [selected, setSelected] = useState<string[]>(() =>
-    preview ? [...correctIds] : [],
+    preview ? [...correctIds] : ((saved?.optionIds as string[] | undefined) ?? []),
   );
-  useAnswerSync(itemId, { optionIds: selected }, !preview && !disabled && selected.length > 0);
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { optionIds: selected }, !preview && !disabled && touched);
 
   function toggle(id: string) {
+    setTouched(true);
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (max != null && prev.length >= max) return prev;

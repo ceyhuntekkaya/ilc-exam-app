@@ -18,6 +18,15 @@
 - Tarih: `<Input type="date">`, tarih-saat: `<Input type="datetime-local">` — admin'de DatePicker / DateTimePicker otomatik, değer biçimi native ile aynı. Başlangıç/bitiş çiftlerinde bitiş < başlangıç kontrolü ve ne anlama geldiğini söyleyen ipucu ekle.
 - Açılır panel (liste, takvim, menü): `useFloatingPanel` + `createPortal` (src/ui/primitives/floating.ts). `absolute` panel kart/tablo overflow'unda kırpılır. Sabit kümeden seçimde `Select`; native `<datalist>` kullanma (stillenemez).
 
+## Öğrenci paneli (`/student/**`) tasarımı
+
+- Belge: `docs/student-redesign.md` (hedef kitle 7–14 yaş; ilkeler, palet, ekranlar). Her değişiklikten sonra sonuna bölüm ekle ve günlüğü güncelle.
+- Tema: `src/styles/student-theme.css`, `[data-panel="student"]` kapsamında "gökyüzü + güneş" (primary mavi, secondary güneş sarısı, `--kid-mint|sun|coral|grape|sky` + `-bg`). Fontlar `src/styles/student-fonts.ts` (Lexend + Nunito, `latin-ext`). Ham hex yazma.
+- Tek ana sayfa (`/student`); yeni öğrenci sayfası/menü açma, içerik ana sayfaya bölüm olarak eklenir.
+- Bileşenler `src/features/student/ui.tsx`: `KidButton` (ekranda tek `primary`), `StatusPill` (renk + ikon + metin), `KidDialog`, `KidLoading`, `KidError`, `KidNotice`. Admin `src/ui` bileşenlerini öğrenci ekranında kullanma.
+- Metin: kısa, "sen" dili, teknik terim yok. Arayüz metni sade (başlık en fazla `text-2xl`, gövde `text-base`), soru içeriği büyük; dokunma hedefi en az 44px. Durum yalnız renkle verilmez.
+- Soru içeriği (`exam-player`, `QuestionView`) admin "Öğrenci önizlemesi" ile birebir aynı: öğrenci kapsamında `.exam-player` CSS ezme, kabı önizlemedeki gibi; görünüm değişikliği yalnız `exam-player` içinde (ikisine birden yansır). Soru ekranı kabuk metinleri İngilizce; ana sayfa/hazırlık/bölüm listesi Türkçe. Soru ekranında kabuk gizli, süs yok; üst çubuk 48px (bölüm · sıra · süre), soru takibi + Önceki/Sonraki footer'da. Süre normalde gri, uyarıda sarı, son dakikada mercan.
+
 ## Değişiklik günlüğü
 
 - 2026-10-05 — `admin-redesign.md` › 01: admin paleti, sidebar, konteyner sistemi, dashboard stat kartları.
@@ -41,3 +50,19 @@
 - 2026-10-05 — 13 eki: native datalist yerine `Combobox` (Formatlar görev türü).
 - 2026-10-05 — 13 eki 2: Formatlar görev türü Select (Türkçe etiket, belirtilmemiş, özel değer korunur).
 - 2026-10-05 — `admin-redesign.md` › 14: commit öncesi review — select değeri okuma, TR büyük harf, NumberInput yuvarlama/genişlik, dakika dönüşümü, boş taskType, buton nowrap, Combobox kaldırıldı; build temiz.
+- 2026-10-06 — `student-redesign.md` › 01: öğrenci paneli — tek ana sayfa, gökyüzü+güneş teması, Lexend/Nunito (latin-ext), sınav adımları, odaklı soru ekranı (soru noktaları, sakin süre, yapışkan alt çubuk), KidDialog/StatusPill kiti, yeni giriş ekranı.
+- 2026-10-06 — `student-redesign.md` › 02: yoğunluk revizyonu — küçük tipografi/kit, ince soru header, soru takibi footer'da (Önceki · numaralar · Sonraki), oynatıcı içeriği öğrenci kapsamında büyütüldü.
+- 2026-10-06 — 02 eki: sınav adım çubuğu eşit sütunlu kart (etiketler her cihazda, çizgiler merkezden merkeze).
+- 2026-10-06 — `student-redesign.md` › 03: tüm soru formatlarında cevap kaydetme + geri yükleme (önce yalnız çoktan seçmeli kaydediliyordu), format bazında düzen/metin düzeltmeleri, PickHint, tek satır adım çubuğu.
+- 2026-10-06 — `student-redesign.md` › 04: her zaman görünen süre (kalan/geçen, sınav geneli, süre çubuğu), dinleme kartı (dalga animasyonu, ilerleme, hak noktaları), konuşma kaydı (hazırlık sayacı, seviye, otomatik durma), cevap kontrollerinde İngilizce etiketler.
+- 2026-10-06 — 04 eki: animasyonlar sakinleştirildi (ping/pulse yok, küçük yavaş dalga), dinleme/konuşma aynı satır düzeni, range input yerine tek tip ilerleme çubuğu.
+- 2026-10-06 — 04 eki 2: soru ekranı + oynatıcı öğrenci metinleri İngilizce; ana ses kartı tam genişlik.
+- 2026-10-06 — `student-redesign.md` › 05: soru alanı admin önizlemesiyle eşlendi — exam-player görselleri commit haline döndü, öğrenci .exam-player ezmeleri silindi; yalnız cevap kaydetme (görünmez) korundu.
+- 2026-10-06 — 05 eki: öğrenci teması varsayılan bg/renk/font `@layer base`e alındı (giriş ekranında beyaz metinler görünmüyordu).
+- 2026-10-06 — 05 eki 2: student-theme CSS yorum ayrıştırma hatası; öğrenci akışında effect içi setState lint hataları giderildi.
+- 2026-10-06 — 05 eki 3: KidDialog ikon solda + metin sağda, düğmeler sağa yaslı.
+- 2026-10-06 — 05 eki 4: geniş ekranda Back/Next sayfa kenarlarında dikey ortalı sabit düğmeler; mobilde alt çubukta.
+- 2026-10-06 — 05 eki 5: sınav akışı yönlendirmeleri tekilleştirildi (navigateOnce), süre sonu heartbeat döngüsü kilitlendi.
+- 2026-10-06 — 05 eki 6: boşluk seçici listesi portal (kırpılma yok); geçen süre sessionStorage ile yenilemede korunuyor.
+- 2026-10-06 — `student-redesign.md` › 06: review — hızlı geçişte cevap kaybı ve 5 sn Next kilidi giderildi; kenar düğmeleri içerik kenarında; ana sayfa lg tek sütun, küçük telefon adım etiketleri.
+- 2026-10-06 — 06 eki: tablet alt çubukta Back/Next/Finish eşit genişlik ve aynı kabartma.

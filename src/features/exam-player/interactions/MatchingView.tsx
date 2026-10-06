@@ -7,17 +7,20 @@ import { epChip, epDrop } from "@/src/features/exam-player/styles";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { useMemo, useState } from "react";
+import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 
 export function MatchingView({
   interaction,
   disabled,
   answerKey,
   preview,
+  itemId,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  itemId?: string;
 }) {
   const leftFormat = (interaction.leftFormat as OptionFormat) || "TEXT";
   const rightFormat = (interaction.rightFormat as OptionFormat) || "TEXT";
@@ -28,14 +31,18 @@ export function MatchingView({
     if (!preview) return {} as Record<string, string>;
     return (answerKey?.pairs as Record<string, string>) || {};
   }, [preview, answerKey]);
+  const saved = useSavedAnswer(itemId, preview);
   const [pairs, setPairs] = useState<Record<string, string | null>>(() =>
-    preview ? { ...correctPairs } : {},
+    preview ? { ...correctPairs } : { ...((saved?.pairs as Record<string, string>) ?? {}) },
   );
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { pairs }, !preview && !disabled && touched);
   const { pickedId, pick, clear } = usePickAndPlace();
 
   const usedRight = new Set(Object.values(pairs).filter(Boolean) as string[]);
 
   function assign(leftId: string, rightId: string | null) {
+    setTouched(true);
     setPairs((prev) => {
       const next = { ...prev };
       if (!reusable && rightId) {

@@ -49,17 +49,17 @@ export function InteractionRenderer({
         <MultipleResponseView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "TRUE_FALSE":
-      return <TrueFalseView interaction={i} disabled={disabled} answerKey={key} preview={preview} />;
+      return <TrueFalseView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
     case "FILL_IN_THE_BLANKS":
       return (
-        <FillInTheBlanksView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <FillInTheBlanksView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "SHORT_ANSWER":
       return (
-        <ShortAnswerView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <ShortAnswerView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "MATCHING":
-      return <MatchingView interaction={i} disabled={disabled} answerKey={key} preview={preview} />;
+      return <MatchingView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
     case "ORDERING":
       return (
         <OrderingView
@@ -68,20 +68,21 @@ export function InteractionRenderer({
           disabled={disabled}
           answerKey={key}
           preview={preview}
+          itemId={itemId}
         />
       );
     case "GROUPING":
-      return <GroupingView interaction={i} disabled={disabled} answerKey={key} preview={preview} />;
+      return <GroupingView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
     case "HOTSPOT_SELECT":
       return (
-        <HotspotSelectView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <HotspotSelectView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "HOTSPOT_PLACE":
       return (
-        <HotspotPlaceView interaction={i} disabled={disabled} answerKey={key} preview={preview} />
+        <HotspotPlaceView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
       );
     case "OPEN_ENDED":
-      return <OpenEndedView interaction={i} disabled={disabled} answerKey={key} preview={preview} />;
+      return <OpenEndedView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
     case "AUDIO_RESPONSE":
       return (
         <AudioResponseView
