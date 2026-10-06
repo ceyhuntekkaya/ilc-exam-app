@@ -77,3 +77,5 @@
 - 2026-10-06 — 18 eki 2: Select genişlik sınıfları sarmalayıcıya (araç çubuğunda düğmenin alt satıra kayması giderildi).
 - 2026-10-06 — 18 eki 3: tablo araç çubuğu her panelde sıkı ölçü (32px), sayaç + kontroller tek satır aynı hizada.
 - 2026-10-06 — 18 eki 4: araç çubuğu sayacında sayı–ad boşluğu (flex içinde yutuluyordu), tek satır.
+- 2026-10-06 — `student-redesign.md` › 07: cihaz kontrolü — 3-2-1 geri sayım, kalan süre, Bitir/Vazgeç, unmount'ta medya kapatma, ayrıntılı izin/cihaz hata mesajları, webm süre düzeltmesi.
+- 2026-10-06 — 07 eki: cihaz kartı sabit sahne (kamera 16:9, mikrofon sabit yükseklik), izin bekleme ekranı, tek satır durum, eşit kart boyu.
