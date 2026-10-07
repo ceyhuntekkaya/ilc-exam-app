@@ -109,3 +109,6 @@
 - 2026-10-07 — `student-redesign.md` › 31: 30 geri alındı — "Start again" yalnız ekranda sıfırlar (yerel taslak silinir, sunucuya istek yok).
 - 2026-10-07 — `student-redesign.md` › 32: telefon/tablet denetimi — uyaranlı soru tablet dikeyde alt alta (@3xl), soru numaraları ve Break 44px, "Ana sayfa" → "Home".
 - 2026-10-07 — `student-redesign.md` › 33: commit öncesi inceleme — yumuşak tam ekran zamanlayıcı uzatma, dosya seçici iptalinde pencere kapanır, hata çevirici kelime sınırı; build başarılı.
+- 2026-10-07 — `student-redesign.md` › 34: ana sayfa tablet/laptop ilk ekran kesiksiz — tek satır karşılama, bilgi çipli kompakt sınav kartı, ipuçları kaldırıldı.
+- 2026-10-07 — `student-redesign.md` › 35: tam ekran — izin/dosya sonrası geç çıkış olayı (1,5 sn gecikmeli kapanış), dokunmatik geri dönüş (pointerup/touchend), kayıt sürerken pencere uzar, iOS klavye çıkışı beklenen.
+- 2026-10-07 — 35 eki: Android dosya seçici/kamera gizlenmesi odak kaybı ihlali sayılmıyor; platform sınırları belgelendi.

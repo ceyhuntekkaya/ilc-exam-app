@@ -8,14 +8,18 @@ import {
   enterExamFullscreen,
   exitExamFullscreen,
   expectedExitRemainingMs,
+  expectFullscreenExit,
   holdExamMedia,
+  isAppleTouchDevice,
   isExamFullscreen,
   isFullscreenExitExpected,
   lockExamEscape,
   releaseExamMediaHold,
+  settleExpectedExitSoon,
 } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { clearSession, readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
+import { isMediaActive } from "@/src/features/exam-player/session/playerGuard";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -195,8 +199,21 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       syncHeld();
       if (document.hidden) flushEventsKeepalive(session.applicationId, session.sessionToken);
     };
+    // Android'de dosya seçici / kamera ayrı ekran açar: sayfa gizlenir. Öğrencinin başlattığı bu işlem (beklenen çıkış
+    // penceresi) odak kaybı ihlali sayılmaz; eşleşen "görünür" olayı da gönderilmez. Süre yine durur (syncHeld).
+    let expectedHide = false;
     const onHide = () => {
       if (!navigator.onLine) {
+        syncHeld();
+        return;
+      }
+      if (document.hidden && isFullscreenExitExpected()) {
+        expectedHide = true;
+        syncHeld();
+        return;
+      }
+      if (!document.hidden && expectedHide) {
+        expectedHide = false;
         syncHeld();
         return;
       }
@@ -313,21 +330,54 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
   }, [needsFullscreen, recipientId, state?.applicationId]);
 
+  // iPad/iPhone: yazı alanına odaklanınca ekran klavyesi tam ekrandan çıkarır — ihlal değil, beklenen çıkış.
+  useEffect(() => {
+    if (!needsFullscreen || !isAppleTouchDevice()) return;
+    const editable = (target: EventTarget | null) =>
+      target instanceof HTMLTextAreaElement ||
+      (target instanceof HTMLInputElement && !["button", "checkbox", "radio", "range", "file", "submit", "reset"].includes(target.type)) ||
+      (target instanceof HTMLElement && target.isContentEditable);
+    const onFocusIn = (event: FocusEvent) => {
+      if (editable(event.target)) expectFullscreenExit();
+    };
+    const onFocusOut = (event: FocusEvent) => {
+      if (editable(event.target)) settleExpectedExitSoon();
+    };
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, [needsFullscreen]);
+
   // Yumuşak mod: öğrencinin sonraki dokunuşu/tuşu tam ekranı geri açar (tarayıcı tam ekranı yalnız kullanıcı hareketiyle açar).
   // Pencere içinde dönülmezse eski kural: çıkış ihlal olarak yazılır ve sınav durur (kapı).
   useEffect(() => {
     if (!softExit || !needsFullscreen) return;
-    const resume = () => {
-      if (!isExamFullscreen()) void engageFullscreen().catch(() => undefined);
+    // Dokunmatikte `click` her zaman gelmez (sürükle-bırak dokunuşu yutar, kaydırma iptal eder); tarayıcının kullanıcı
+    // hareketi saydığı olaylar: pointerup (dokunma/kalem), touchend, click, keydown. Hangisi önce gelirse dener.
+    const resume = (event: Event) => {
+      if (isExamFullscreen() || enterPromiseRef.current) return;
+      // Yazı alanında klavye açıkken iOS tam ekrana izin vermez; yazmayı bölmeyelim.
+      if (event.type === "keydown" && isAppleTouchDevice()) return;
+      void engageFullscreen().catch(() => undefined);
     };
-    document.addEventListener("click", resume, true);
-    document.addEventListener("keydown", resume, true);
+    const RESUME_EVENTS = ["pointerup", "touchend", "click", "keydown"] as const;
+    RESUME_EVENTS.forEach((type) => document.addEventListener(type, resume, true));
     let timer = 0;
     const expire = () => {
       if (isExamFullscreen()) return;
       // Yumuşak modda yeni bir izin/dosya işlemi pencereyi uzattıysa bekle (kapı erken açılmasın).
       if (isFullscreenExitExpected()) {
         timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
+        return;
+      }
+      // Kayıt sürüyor / ses-video çalıyor ya da yazı yazılıyor: öğrenci dokunmadan uzun süre geçebilir (konuşma kaydı
+      // 90 sn'yi aşabilir). Bu sırada kapı açılıp kaydı kesmesin; bitince pencere yeniden başlar.
+      if (isMediaActive() || (isAppleTouchDevice() && isEditing())) {
+        expectFullscreenExit();
+        timer = window.setTimeout(expire, 5_000);
         return;
       }
       const session = readSession(recipientId);
@@ -341,8 +391,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
     timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
     return () => {
-      document.removeEventListener("click", resume, true);
-      document.removeEventListener("keydown", resume, true);
+      RESUME_EVENTS.forEach((type) => document.removeEventListener(type, resume, true));
       window.clearTimeout(timer);
     };
   }, [softExit, needsFullscreen, engageFullscreen, recipientId]);
@@ -523,4 +572,10 @@ async function hasAttemptsLeft(recipientId: string) {
 
 function currentPath() {
   return typeof window === "undefined" ? "" : window.location.pathname.replace(/\/$/, "");
+}
+
+/** Odak bir yazı alanında mı (iOS'ta ekran klavyesi açık demek). */
+function isEditing() {
+  const node = typeof document === "undefined" ? null : document.activeElement;
+  return node instanceof HTMLTextAreaElement || (node instanceof HTMLInputElement && node.type !== "file") || (node instanceof HTMLElement && node.isContentEditable);
 }

@@ -6,7 +6,7 @@ import { ExamApiError, listAssignments } from "@/src/features/exam-flow/api";
 import { formatDuration } from "@/src/features/exam-flow/format";
 import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import { examGroup, examStatus, firstName, friendlyWhen } from "@/src/features/student/status";
-import { InfoTile, KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
+import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -75,18 +75,19 @@ export default function StudentHomePage() {
   const name = authLoading ? "" : firstName(user?.displayName || user?.username);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Hello name={name} rows={rows} now={groups.now} />
 
       {error ? <KidError title="We could not load your tests" message="Check your internet and try again." onRetry={retry} /> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-        <div className="space-y-6">
+      {/* Tablet+: iki sütun; ilk ekranda karşılama + kartlar + sonuçlar kesilmeden görünür, fazlası sayfada kayar. */}
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-5">
           <Block title="Tests you can take now" count={groups.now.length} id="simdi">
             {rows == null && !error ? (
               <KidLoading label="Loading your tests…" />
             ) : groups.now.length ? (
-              <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                 {groups.now.map((row) => <NowCard key={row.recipientId} row={row} />)}
               </ul>
             ) : rows ? (
@@ -96,7 +97,7 @@ export default function StudentHomePage() {
 
           {groups.soon.length ? (
             <Block title="Coming soon" count={groups.soon.length} id="yakinda">
-              <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                 {groups.soon.map((row) => <SoonCard key={row.recipientId} row={row} />)}
               </ul>
             </Block>
@@ -111,7 +112,7 @@ export default function StudentHomePage() {
           ) : null}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-5">
           <Block title="My results" count={results?.length} id="sonuclar">
             {results == null ? (
               <KidLoading rows={1} label="Loading your results…" />
@@ -123,7 +124,6 @@ export default function StudentHomePage() {
               <Empty icon={<IconTrophy />} title="No results yet" text="When your teacher shares your results, you will see them here." tone="grape" />
             )}
           </Block>
-          <Tips />
         </aside>
       </div>
     </div>
@@ -148,16 +148,18 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
           : "You have no tests now. Great!";
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-primary-600 px-5 py-5 text-white shadow-[0_4px_0_var(--color-primary-800)] sm:px-7 sm:py-6">
+    <section className="relative overflow-hidden rounded-3xl bg-primary-600 px-5 py-5 text-white shadow-[0_4px_0_var(--color-primary-800)] sm:px-6 sm:py-4">
       {/* Süs: güneş ve bulut şekilleri — dikkat dağıtmayacak kadar soluk. */}
       <span aria-hidden className="absolute -top-12 -right-12 size-32 rounded-full bg-secondary-400 opacity-90 sm:size-36" />
-      <span aria-hidden className="absolute top-14 right-24 hidden h-8 w-24 rounded-full bg-white/15 sm:block" />
-      <span aria-hidden className="absolute -bottom-12 left-1/3 h-24 w-56 rounded-full bg-white/10" />
-      <div className="relative max-w-xl">
-        <h1 className="text-2xl font-bold sm:text-[1.75rem]">Hello{name ? `, ${name}` : ""}!</h1>
-        <p className="mt-2 text-base text-white/90">{line}</p>
+      
+      
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:pr-16">
+        <div className="min-w-0">
+        <h1 className="text-2xl font-bold">Hello{name ? `, ${name}` : ""}!</h1>
+        <p className="mt-1 text-base text-white/90">{line}</p>
+        </div>
         {resume ? (
-          <KidButtonLink href={`/student/exams/${resume.recipientId}`} variant="sun" className="mt-4 max-w-full min-w-0">
+          <KidButtonLink href={`/student/exams/${resume.recipientId}`} variant="sun" className="max-w-full min-w-0 shrink-0 sm:max-w-[45%]">
             <span className="min-w-0 truncate">Continue: {resume.examTitle}</span>
             <IconArrowRight aria-hidden />
           </KidButtonLink>
@@ -169,8 +171,8 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
 
 function Block({ title, count, id, children }: { title: string; count?: number; id: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="flex items-center gap-2.5 text-xl font-bold text-neutral-900">
+    <section aria-labelledby={id} className="space-y-3">
+      <h2 id={id} className="flex items-center gap-2.5 text-lg font-bold text-neutral-900">
         {title}
         {count ? <span className="grid h-6 min-w-6 place-items-center rounded-full bg-neutral-200 px-2 text-sm text-neutral-700">{count}</span> : null}
       </h2>
@@ -186,33 +188,39 @@ function NowCard({ row }: { row: AssignmentCard }) {
   return (
     <li className={cn("flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1", resume ? "ring-2 ring-secondary-400" : "ring-neutral-200")}>
       <span aria-hidden className={cn("h-2", resume ? "bg-secondary-400" : "bg-primary-500")} />
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
+      <div className="flex flex-1 flex-col p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h3 className="min-w-0 text-base font-bold text-neutral-900">{row.examTitle}</h3>
           <StatusPill tone={status.tone}>{status.label}</StatusPill>
         </div>
         {until ? (
-          <p className="mt-1.5 flex items-center gap-1.5 text-neutral-600 [&>svg]:size-4">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-600 [&>svg]:size-4 [&>svg]:shrink-0">
             <IconCalendar aria-hidden />
             Open until {until}
           </p>
         ) : null}
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
-          <InfoTile icon={<IconClock />} label="Time" value={row.timingMode === "UNTIMED" ? "No limit" : formatDuration(row.durationSeconds)} />
-          <InfoTile icon={<IconLayers />} label="Parts · Questions" value={`${row.sectionCount} · ${row.questionCount}`} tone="grape" />
-        </div>
-        {row.attemptsTotal > 1 ? (
-          <p className="mt-3 text-neutral-600">
-            Tries left: <strong className="text-neutral-900">{row.attemptsLeft}</strong> / {row.attemptsTotal}
-          </p>
-        ) : null}
-        <div className="mt-auto pt-5">
-          <KidButtonLink href={`/student/exams/${row.recipientId}`} variant={resume ? "sun" : "primary"} size="lg" full>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          <Fact icon={<IconClock />} label="Time">{row.timingMode === "UNTIMED" ? "No limit" : formatDuration(row.durationSeconds)}</Fact>
+          <Fact icon={<IconLayers />} label="Parts">{row.sectionCount}</Fact>
+          <Fact icon={<IconQuestion />} label="Questions">{row.questionCount}</Fact>
+          {row.attemptsTotal > 1 ? <Fact icon={<IconCheck />} label="Tries left">{row.attemptsLeft} / {row.attemptsTotal}</Fact> : null}
+        </ul>
+        <div className="mt-auto pt-4">
+          <KidButtonLink href={`/student/exams/${row.recipientId}`} variant={resume ? "sun" : "primary"} full>
             {resume ? "Continue the test" : row.attemptsUsed > 0 ? "Try again" : "Start the test"}
             <IconArrowRight aria-hidden />
           </KidButtonLink>
         </div>
       </div>
+    </li>
+  );
+}
+
+function Fact({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <li className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-sm text-neutral-700 [&>svg]:size-4 [&>svg]:text-neutral-500">
+      {icon}
+      {label}: <strong className="font-kid text-neutral-900">{children}</strong>
     </li>
   );
 }
@@ -250,7 +258,7 @@ function DoneRow({ row }: { row: AssignmentCard }) {
 function ResultCard({ row }: { row: Result }) {
   const skills = Object.entries(row.skillScores ?? {});
   return (
-    <KidCard as="li" className="p-5">
+    <KidCard as="li" className="p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="min-w-0 font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
         {row.cefrLevel ? <StatusPill tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
@@ -281,7 +289,7 @@ function ResultCard({ row }: { row: Result }) {
 
 function Empty({ icon, title, text, tone = "mint" }: { icon: ReactNode; title: string; text: string; tone?: "mint" | "grape" }) {
   return (
-    <div className="flex items-center gap-4 rounded-3xl bg-white p-5 ring-1 ring-neutral-200">
+    <div className="flex items-center gap-3 rounded-3xl bg-white p-4 ring-1 ring-neutral-200">
       <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl [&>svg]:size-5", tone === "mint" ? "bg-(--kid-mint-bg) text-(--kid-mint)" : "bg-(--kid-grape-bg) text-(--kid-grape)")}>
         {icon}
       </span>
@@ -293,27 +301,3 @@ function Empty({ icon, title, text, tone = "mint" }: { icon: ReactNode; title: s
   );
 }
 
-function Tips() {
-  const tips = [
-    "Sit in a quiet place.",
-    "Put on your headphones for listening.",
-    "Charge your tablet or computer.",
-    "Read each question carefully. Do not hurry.",
-  ];
-  return (
-    <section aria-labelledby="ipucu" className="rounded-3xl bg-secondary-100 p-4 sm:p-5">
-      <h2 id="ipucu" className="flex items-center gap-2 text-base font-bold text-neutral-900 [&>svg]:size-5">
-        <IconQuestion aria-hidden className="text-secondary-700" />
-        Before the test
-      </h2>
-      <ul className="mt-3 space-y-2">
-        {tips.map((tip) => (
-          <li key={tip} className="flex items-start gap-2.5 text-neutral-800 [&>svg]:mt-1 [&>svg]:size-4 [&>svg]:shrink-0">
-            <IconCheck aria-hidden className="text-(--kid-mint)" />
-            {tip}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}

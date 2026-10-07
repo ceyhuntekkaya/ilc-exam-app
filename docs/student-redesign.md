@@ -584,3 +584,28 @@ Düzeltilen hatalar:
 - **Hata çevirici yanlış sebep üretiyordu** (`studentErrors`): anahtar kelimeler kelime içinde eşleşiyordu ("mul**tip**art" → dosya türü; "**hak**kında" → hak bitti). Artık kelime başında ve belirgin ifadelerle; 11 örnek mesajla doğrulandı (boyut, tür, hak, oturum, kapalı, ağ, 413, 500, SESSION_REPLACED, ilgisiz metin → genel).
 
 Doğrulandı: tip kontrolü temiz; değişen dosyalarda lint 0; **üretim derlemesi başarılı** (42 sayfa). Derleme için eksik `jspdf` / `jspdf-autotable` `--no-save` ile yalnız `node_modules`'a kuruldu (package.json / lock değişmedi; ekipte `npm install` gerekli).
+
+## 34 — Ana sayfa tablet/laptop'ta ilk ekran kesiksiz (2026-10-07)
+
+- **Neden:** `/student` ilk açılışta tablet ve laptopta kartlar ekranın altında kesiliyordu. Hedef: ilk ekranda her şey tam görünsün, fazladan sınav varsa sayfa normal kaysın.
+- İlk denemede sabit yükseklik + sütun içi kaydırma vardı. Geri alındı (kabuk değişmedi), yerine içerik sıkılaştırıldı:
+  - Karşılama kartı tek satır: metin solda, "Continue" düğmesi sağda; süs bulutları kaldırıldı.
+  - Sınav kartı: iki büyük bilgi kutusu ve ayrı "Tries left" satırı yerine tek satır bilgi çipleri (`Fact`: Time · Parts · Questions · Tries left), düğme normal boyda.
+  - "Before the test" ipuçları kaldırıldı. Bölüm başlıkları `text-lg`, boşluklar 5.
+  - Izgara md'den itibaren iki sütun (sol 1fr, sağda sonuçlar 17–20rem). Kartlar: sm 2, md 1, lg 2 sütun.
+
+## 35 — Tam ekran: izin / dosya / klavye sonrası geri dönüş (2026-10-07)
+
+- **Sorun:** Tablette mikrofon/kamera izni verildikten (ve görsel yükledikten) sonra sınav tam ekrana dönmüyor, bazen kapı ekranı açılıyordu.
+- **Kök nedenler ve düzeltmeler:**
+  1. **Geç gelen çıkış olayı:** Android Chrome / iPadOS `fullscreenchange`'i izin penceresi kapanırken, `getUserMedia` çözüldükten *sonra* gönderebiliyor. Beklenen çıkış penceresi hemen kapandığı için bu çıkış ihlal sayılıyordu (kapı). Pencere artık 1,5 sn gecikmeyle kapanıyor (`settleExpectedExitSoon`; `withExpectedExit`, dosya seçici `onChange`/`focus`).
+  2. **Dokunuş algılanmıyordu:** geri dönüş yalnız `click`/`keydown` dinliyordu. Dokunmatikte sürükle-bırak ve kaydırma `click`i yutuyor. Artık tarayıcının kullanıcı hareketi saydığı `pointerup`, `touchend`, `click`, `keydown` dinleniyor (capture). Çift istek `enterPromiseRef` ile engelleniyor.
+  3. **Konuşma kaydı 90 sn'yi aşınca kapı açılıyordu:** öğrenci kayıt sırasında dokunmadığı için pencere doluyordu. Medya/kayıt sürerken (`isMediaActive`, playerGuard) ya da iOS'ta yazı alanı odaktayken pencere uzatılıyor.
+  4. **iPad/iPhone ekran klavyesi:** Safari klavye açılınca tam ekrandan çıkıyor. Yazı alanına odak artık beklenen çıkış (`isAppleTouchDevice`); yazarken tuş vuruşları tam ekranı zorlamıyor, alan dışına dokununca geri dönüyor.
+- Gerçek cihazda doğrulanmadı (Android tablet + iPad'de: ilk izin, dosya seçici iptali/seçimi, Writing yazımı denenmeli).
+
+### 35 eki — derin analiz (2026-10-07)
+
+- **Yeni bulunan:** Android'de dosya seçici / kamera ayrı ekran açar → `visibilitychange` (gizli) → `VISIBILITY_HIDDEN` odak kaybı ihlali yazılıyordu ("You left the test screen", hak düşüyordu). Beklenen çıkış penceresi içindeki gizlenme ve eşleşen görünür olayı artık gönderilmiyor; süre yine duruyor.
+- **Çözülemeyen / platform sınırı:** iPhone Safari öğe tam ekranını desteklemez (kapı "desteklenmiyor" der); iPad'de tam ekran sırasında Safari'nin kendi uyarı/çıkış davranışları sürüme göre değişir; tam ekrana dönüş her zaman bir dokunuş ister (tarayıcı kuralı).
+- **Bilinçli ödün:** iOS'ta yazı alanı odaktayken ve medya/kayıt sürerken beklenen çıkış penceresi dolmaz; bu sırada gerçek bir çıkış da ihlal sayılmaz.

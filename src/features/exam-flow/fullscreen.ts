@@ -44,14 +44,35 @@ export function settleExpectedExit() {
   if (isExamFullscreen()) expectedExitUntil = 0;
 }
 
+/**
+ * Tarayıcı tam ekran çıkışını işlem bittikten SONRA da bildirebilir (Android Chrome / iPadOS'ta izin penceresi kapanırken
+ * `fullscreenchange` getUserMedia çözüldükten sonra gelir). Pencereyi hemen kapatmak bu geç çıkışı ihlal saydırıp
+ * kapıyı açıyordu; kısa bir gecikmeyle kapatılır.
+ */
+export const SETTLE_DELAY_MS = 1500;
+
+export function settleExpectedExitSoon() {
+  if (typeof window === "undefined") return;
+  window.setTimeout(settleExpectedExit, SETTLE_DELAY_MS);
+}
+
 /** İzin isteyen işlemi (getUserMedia) beklenen çıkış penceresi içinde çalıştırır. */
 export async function withExpectedExit<T>(work: () => Promise<T>): Promise<T> {
   expectFullscreenExit();
   try {
     return await work();
   } finally {
-    settleExpectedExit();
+    settleExpectedExitSoon();
   }
+}
+
+/**
+ * iPad / iPhone Safari: ekran klavyesi açılınca tarayıcı tam ekrandan çıkar (sayfa engelleyemez). Yazı alanına odaklanmak
+ * bu yüzden beklenen çıkıştır. (iPadOS kendini "Macintosh" diye tanıtır: dokunma noktası sayısıyla ayırt edilir.)
+ */
+export function isAppleTouchDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
 export function clearExpectedExit() {
