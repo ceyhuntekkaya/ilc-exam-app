@@ -266,6 +266,10 @@ export const authoringApi = {
     }),
   getQuestion: (versionId: string) =>
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}`),
+  questionCodeAvailable: (questionId: string, code: string) => {
+    const sp = new URLSearchParams({ questionId, code });
+    return authoringFetch<{ available: boolean }>(`/authoring/questions/code-available?${sp.toString()}`);
+  },
   updateMetadata: (versionId: string, body: Record<string, unknown>) =>
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/metadata`, {
       method: "PUT",

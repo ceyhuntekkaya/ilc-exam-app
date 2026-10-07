@@ -51,7 +51,7 @@ import {
   IconChevronRight,
 } from "@/src/ui";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SKILLS: Skill[] = [
   "READING",
@@ -174,6 +174,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
 
   const [cefr, setCefr] = useState("");
   const [ageBand, setAgeBand] = useState("");
+  const [questionCode, setQuestionCode] = useState("");
+  const [codeError, setCodeError] = useState<string | undefined>();
+  const questionCodeRef = useRef("");
+  const codeCheckGen = useRef(0);
   const [classErrors, setClassErrors] = useState<{ cefr?: string; skill?: string; ageBand?: string }>({});
   const [estimatedTimeSec, setEstimatedTimeSec] = useState("");
   const [timeLimitSec, setTimeLimitSec] = useState("");
@@ -214,6 +218,9 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     try {
       const data = await authoringApi.getQuestion(versionId);
       setQ(data);
+      setQuestionCode(data.code ?? "");
+      questionCodeRef.current = data.code ?? "";
+      setCodeError(undefined);
       setCefr(data.cefrLevel ?? "");
       setAgeBand(data.ageBand ?? "");
       setEstimatedTimeSec(data.estimatedTimeSec != null ? String(data.estimatedTimeSec) : "");
@@ -357,6 +364,34 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     setOpenPanel((current) => Math.min(current + 1, PANELS.length - 1));
   }
 
+  async function evaluateQuestionCode(value: string, savedCode: string, questionId: string): Promise<string | null> {
+    const trimmed = value.trim();
+    if (!trimmed) return "Soru kodu girin.";
+    if (trimmed.length > 32) return "Soru kodu en fazla 32 karakter olabilir.";
+    if (trimmed.toLowerCase() === savedCode.trim().toLowerCase()) return null;
+    try {
+      const result = await authoringApi.questionCodeAvailable(questionId, trimmed);
+      return result.available ? null : "Bu kod kullanılıyor.";
+    } catch {
+      return "Kod kontrol edilemedi. Tekrar deneyin.";
+    }
+  }
+
+  async function publishCodeCheck(): Promise<string | null> {
+    if (!q) return "Soru kodu girin.";
+    const gen = ++codeCheckGen.current;
+    let snapshot = questionCodeRef.current;
+    let problem = await evaluateQuestionCode(snapshot, q.code, q.questionId);
+    while (questionCodeRef.current !== snapshot) {
+      snapshot = questionCodeRef.current;
+      problem = await evaluateQuestionCode(snapshot, q.code, q.questionId);
+    }
+    if (gen === codeCheckGen.current) {
+      setCodeError(problem ?? undefined);
+    }
+    return problem;
+  }
+
   async function saveMetadata() {
     if (!q) return;
     const nextErrors: { cefr?: string; skill?: string; ageBand?: string } = {};
@@ -364,7 +399,9 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     if (!partDraft?.skill) nextErrors.skill = "Beceri seçin.";
     if (!ageBand) nextErrors.ageBand = "Yaş bandı seçin.";
     setClassErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    const codeProblem = await publishCodeCheck();
+    if (Object.keys(nextErrors).length > 0 || codeProblem) return;
+    const codeToSave = questionCodeRef.current.trim();
     setSaving(true);
     try {
       if (selectedPart && partDraft && (selectedPart.skill ?? "") !== partDraft.skill) {
@@ -378,7 +415,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         timeLimitSec: timeLimitSec === "" ? null : Number(timeLimitSec),
         securityLevel,
         tagIds,
+        code: codeToSave,
       });
+      setQuestionCode(next.code);
+      questionCodeRef.current = next.code;
       setQ(next);
       notify.success("Kaydedildi");
       advancePanel();
@@ -632,11 +672,40 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               title="Sınıflandırma"
               description="Soru bankasında arama, filtre ve sınav eşleştirmesi bu alanlarla yapılır."
               footer={
-                <Button disabled={!editable || saving} loading={saving} onClick={() => void saveMetadata()}>
+                <Button
+                  disabled={!editable || saving || Boolean(codeError)}
+                  loading={saving}
+                  onClick={() => void saveMetadata()}
+                >
                   Sınıflandırmayı kaydet
                 </Button>
               }
             >
+              <FormGroup title="Soru kodu" hint="Yeni soruda önerilen kod gelir. Değiştirmezseniz bu kalır.">
+                <div className="max-w-sm">
+                  <Field label="Kod" required error={codeError}>
+                    <Input
+                      value={questionCode}
+                      disabled={!editable}
+                      maxLength={32}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      className="font-mono"
+                      onChange={(e) => {
+                        questionCodeRef.current = e.target.value;
+                        setQuestionCode(e.target.value);
+                        setCodeError(undefined);
+                      }}
+                      onBlur={() => {
+                        if (!editable) return;
+                        void publishCodeCheck();
+                      }}
+                    />
+                  </Field>
+                </div>
+              </FormGroup>
               <FormGroup title="Seviye ve beceri">
               <div className="grid gap-3 @min-[28rem]/form:grid-cols-2 @min-[46rem]/form:grid-cols-4">
                 <Field label="CEFR seviyesi" required error={classErrors.cefr}>

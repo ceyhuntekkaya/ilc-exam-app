@@ -5,6 +5,6 @@
  * OpenAPI spec version: v0
  */
 
-export interface ResetPasswordResponse {
-  temporaryPassword?: string;
+export interface ResetPasswordRequest {
+  password?: string;
 }

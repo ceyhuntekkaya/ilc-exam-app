@@ -19,7 +19,6 @@ import { userStatusLabel } from "@/src/features/admin/labels";
 import {
   Badge,
   Button,
-  ConfirmDialog,
   ErrorState,
   Field,
   FormDialog,
@@ -29,7 +28,6 @@ import {
   PasswordInput,
   SectionTable,
   SectionToolbar,
-  SecretNotice,
   Select,
   errorMessage,
   notify,
@@ -67,7 +65,6 @@ export function StaffSection({ companyId }: { companyId: string }) {
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [scopeForId, setScopeForId] = useState<string | null>(null);
   const [resetFor, setResetFor] = useState<StaffDto | null>(null);
-  const [secret, setSecret] = useState<{ name: string; value: string } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   // Rol penceresi güncel listeden okunur: rol eklenip kaldırıldıkça yenilenir.
   const scopeFor = all.find((r) => r.id === scopeForId) ?? null;
@@ -83,9 +80,6 @@ export function StaffSection({ companyId }: { companyId: string }) {
 
   return (
     <div className="grid gap-4">
-      {secret ? (
-        <SecretNotice label={`${secret.name} için geçici parola`} value={secret.value} onDismiss={() => setSecret(null)} />
-      ) : null}
       <SectionTable
         toolbar={
           <SectionToolbar count={rows.length} noun="personel" loading={isLoading}>
@@ -136,34 +130,52 @@ export function StaffSection({ companyId }: { companyId: string }) {
             <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setEditing(r); }}>
               Düzenle
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setResetFor(r)}>
+            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setResetFor(r); }}>
               Parola sıfırla
             </Button>
           </div>,
         ])}
       />
 
-      <ConfirmDialog
+      <FormDialog
         open={resetFor !== null}
         onClose={() => setResetFor(null)}
-        title="Parola sıfırlansın mı?"
-        tone="danger"
-        confirmLabel="Sıfırla"
+        title="Parola sıfırla"
+        description={`${fullName(resetFor)} kişisinin mevcut parolası hemen geçersiz olur. Yeni parolayı belirleyin ve kişiye güvenli bir kanaldan iletin.`}
+        submitLabel="Kaydet"
         pending={resetPassword.isPending}
-        description={`${fullName(resetFor)} kişisinin mevcut parolası hemen geçersiz olur. Yeni geçici parola bir kez gösterilir; kişiye güvenli bir kanaldan iletin.`}
-        onConfirm={async () => {
+        error={formError}
+        onSubmit={async (fd) => {
           if (!resetFor?.id) return;
+          const password = String(fd.get("password") || "");
+          const confirm = String(fd.get("confirmPassword") || "");
+          if (password.length < 6) {
+            setFormError("Parola en az 6 karakter olmalı.");
+            return;
+          }
+          if (password !== confirm) {
+            setFormError("Parolalar eşleşmiyor.");
+            return;
+          }
+          setFormError(null);
           try {
-            const res = await resetPassword.mutateAsync({ id, uid: resetFor.id });
-            const value = res.data.temporaryPassword;
-            if (value) setSecret({ name: fullName(resetFor), value });
-            notify.success("Parola sıfırlandı");
+            await resetPassword.mutateAsync({ id, uid: resetFor.id, data: { password } });
             setResetFor(null);
+            notify.success("Parola sıfırlandı");
           } catch (err) {
-            notify.error(errorMessage(err, "Parola sıfırlanamadı"));
+            const message = errorMessage(err, "Parola sıfırlanamadı");
+            setFormError(message);
+            notify.error(message);
           }
         }}
-      />
+      >
+        <Field label="Yeni parola" required hint="En az 6 karakter.">
+          <PasswordInput name="password" required minLength={6} autoComplete="new-password" />
+        </Field>
+        <Field label="Yeni parola (tekrar)" required>
+          <PasswordInput name="confirmPassword" required minLength={6} autoComplete="new-password" />
+        </Field>
+      </FormDialog>
 
       <FormDialog
         open={open}

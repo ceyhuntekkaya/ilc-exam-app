@@ -104,7 +104,7 @@ export * from './playRequest';
 export * from './presenceRow';
 export * from './publish200';
 export * from './recordCheck200';
-export * from './resetPasswordResponse';
+export * from './resetPasswordRequest';
 export * from './resolvedStudent';
 export * from './resumeView';
 export * from './retryFailed200';

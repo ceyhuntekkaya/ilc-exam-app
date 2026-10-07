@@ -1,11 +1,17 @@
-import { ComingSoonPage } from "@/src/features/staff/ComingSoonPage";
+"use client";
+
+import { Suspense } from "react";
+import { ResultsSection } from "@/src/features/results/ResultsSection";
+import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function StaffResultsPage() {
   return (
-    <ComingSoonPage
-      title="Sınav sonuçları"
-      description="Yayınlanan sınav sonuçlarını öğrenci, sınıf ve kampüs bazında burada takip edebileceksiniz."
-      fallback={{ href: "/staff/reports", label: "Raporlara git" }}
-    />
+    <StaffPage bare>
+      {(companyId) => (
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-neutral-100" />}>
+          <ResultsSection companyId={companyId} />
+        </Suspense>
+      )}
+    </StaffPage>
   );
 }

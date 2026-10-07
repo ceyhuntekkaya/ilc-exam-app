@@ -46,7 +46,7 @@ import type {
   ListParams,
   PageResponseCompanySummary,
   PatchSubscriptionRequest,
-  ResetPasswordResponse,
+  ResetPasswordRequest,
   RoleDto,
   StaffDto,
   StaffScopeDto,
@@ -1159,12 +1159,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getAddScopeMutationOptions(options), queryClient);
     }
-    export type resetPasswordResponse200 = {
-  data: ResetPasswordResponse
-  status: 200
+    export type resetPasswordResponse204 = {
+  data: void
+  status: 204
 }
 
-export type resetPasswordResponseSuccess = (resetPasswordResponse200) & {
+export type resetPasswordResponseSuccess = (resetPasswordResponse204) & {
   headers: Headers;
 };
 ;
@@ -1181,17 +1181,31 @@ export const getResetPasswordUrl = (id: string,
 }
 
 export const resetPassword = async (id: string,
-    uid: string, options?: Parameters<typeof customInstance>[1]): Promise<resetPasswordResponse> => {
+    uid: string,
+    resetPasswordRequest: ResetPasswordRequest, options?: Parameters<typeof customInstance>[1]): Promise<resetPasswordResponse> => {
 
-  return customInstance<resetPasswordResponse>(getResetPasswordUrl(id,uid),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<resetPasswordResponse>(getResetPasswordUrl(id,uid),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(resetPasswordRequest)
   }
 );}
-
 
 
 
@@ -1213,11 +1227,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetPassword>>, ResetPasswordMutationVariables> = (props) => {
-          const {id,uid} = props ?? {};
+          const {id,uid,data} = props ?? {};
 
-          return  resetPassword(id,uid,requestOptions)
+          return  resetPassword(id,uid,data,requestOptions)
         }
-
 
 
 
@@ -1226,9 +1239,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof resetPassword>>>
-
+    export type ResetPasswordMutationBody = BodyType<ResetPasswordRequest>
     export type ResetPasswordMutationError = ErrorType<unknown>
-    export type ResetPasswordMutationVariables = {id: string;uid: string}
+    export type ResetPasswordMutationVariables = {id: string;uid: string;data: BodyType<ResetPasswordRequest>}
 
     export const useResetPassword = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetPassword>>, TError,ResetPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
