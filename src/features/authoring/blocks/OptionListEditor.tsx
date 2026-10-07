@@ -180,17 +180,29 @@ export function OptionListEditor({
                 </div>
 
                 <div className="grid min-w-0 gap-2">
-                  {!hideIds ? <code className="text-[11px] text-fg-subtle">{o.id}</code> : null}
                   {format === "TEXT" || !format ? (
-                    <InlineHtmlField
-                      value={o.text}
-                      placeholder={`${letter} seçeneğinin metni`}
-                      onChange={(text) => update(i, { ...o, text })}
-                      disabled={disabled}
-                    />
+                    <>
+                      {!hideIds ? (
+                        <p className="text-[12px] font-medium text-fg-muted">
+                          {letter} seçeneği — {o.id}
+                        </p>
+                      ) : null}
+                      <InlineHtmlField
+                        value={o.text}
+                        placeholder={`${letter} seçeneğinin metni`}
+                        onChange={(text) => update(i, { ...o, text })}
+                        disabled={disabled}
+                      />
+                    </>
                   ) : (
                     <>
-                      <MediaPicker kind={format} label={`${letter} seçeneği`} value={o.mediaId} onChange={(mediaId) => update(i, { ...o, mediaId })} disabled={disabled} />
+                      <MediaPicker
+                        kind={format}
+                        label={hideIds ? `${letter} seçeneği` : `${letter} seçeneği — ${o.id}`}
+                        value={o.mediaId}
+                        onChange={(mediaId) => update(i, { ...o, mediaId })}
+                        disabled={disabled}
+                      />
                       <InlineHtmlField
                         value={o.text}
                         placeholder="Altyazı (isteğe bağlı)"

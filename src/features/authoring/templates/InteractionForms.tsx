@@ -665,6 +665,7 @@ export function InteractionForm({
           <OptionListEditor
             title="Sağ"
             idPrefix="r"
+            hideIds={false}
             format={(v.rightFormat as OptionFormat) || "TEXT"}
             onFormatChange={(rightFormat) => set({ rightFormat })}
             options={right}
