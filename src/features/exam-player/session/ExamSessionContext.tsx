@@ -24,6 +24,11 @@ export type ExamSessionContextValue = {
   saveAnswer?: (itemId: string, answer: Record<string, unknown>, mediaId?: string | null) => Promise<void>;
   /** Bu oturumda daha önce verilen cevap (soruya geri dönünce ekranda yeniden gösterilir). */
   getAnswer?: (itemId: string) => Record<string, unknown> | undefined;
+  /**
+   * "Start again": yalnız bu tarayıcıdaki ekran taslağını siler, soru ilk hâliyle açılır. Sunucuya istek YOK;
+   * kayıtlı cevap öğrenci yeni cevap verene kadar geçerli kalır.
+   */
+  discardDraft?: (itemId: string) => void;
 };
 
 const ExamSessionCtx = createContext<ExamSessionContextValue | null>(null);

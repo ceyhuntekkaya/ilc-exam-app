@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
   // Dev'de sol alttaki "N" göstergesi panel sidebar'ının altını kapatıyordu. Derleme/çalışma hataları
   // yine tam ekran overlay olarak gösterilir; production'da gösterge zaten yoktur.
   devIndicators: false,
+  // Dev: aynı ağdaki tablet/telefon IP ile açabilsin (Next 16 aksi hâlde dev JS isteklerini engeller, sayfa çalışmaz).
+  // Yalnız `next dev`i etkiler; production'a etkisi yok.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*"],
   env: {
     NEXT_PUBLIC_API_URL: apiPublicUrl,
   },

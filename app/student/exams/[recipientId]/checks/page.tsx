@@ -3,6 +3,7 @@
 import { ExamApiError, postState, uploadCheck } from "@/src/features/exam-flow/api";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
+import { withExpectedExit } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { readSession } from "@/src/features/exam-flow/session";
 import { KidButton, KidNotice, StatusPill } from "@/src/features/student/ui";
@@ -185,7 +186,8 @@ function DeviceCard({
     setPhase("requesting");
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia(kind === "CAMERA" ? { video: true, audio: true } : { audio: true });
+      // İzin penceresi tam ekrandan çıkarabilir: beklenen çıkış (ihlal değil, sonraki dokunuşta geri dönülür).
+      stream = await withExpectedExit(() => navigator.mediaDevices.getUserMedia(kind === "CAMERA" ? { video: true, audio: true } : { audio: true }));
     } catch (err) {
       if (run === runRef.current) fail(err);
       return;

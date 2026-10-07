@@ -82,7 +82,8 @@ export function ContentBlockListView({
           <ContentBlockView key={group[0].id} block={group[0]} />
         ) : (
           <div key={group[0].id} className="@container">
-            <div className="grid gap-3 @lg:grid-cols-2">
+            {/* Video: küçük kapak (oynatma modalda) → havuzla aynı eşit sütunlar; görsel 2 sütun. */}
+            <div className={cn("grid gap-3", group[0].type === "VIDEO" ? "grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))]" : "@lg:grid-cols-2")}>
               {group.map((b) => (
                 <ContentBlockView key={b.id} block={b} />
               ))}

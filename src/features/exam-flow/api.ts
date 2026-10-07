@@ -1,4 +1,5 @@
 import { customInstance } from "@/src/api/mutator";
+import { studentErrorMessage } from "@/src/features/exam-flow/studentErrors";
 import {
   assignmentCardSchema,
   assignmentPreviewSchema,
@@ -23,13 +24,16 @@ export class ExamApiError extends Error {
   }
 }
 
+// Öğrenci hata metinleri: studentErrors.ts
 function asExamError(err: unknown): ExamApiError {
   if (err instanceof ExamApiError) return err;
   const raw = err as { message?: string; status?: number; data?: { error?: string; code?: string; state?: unknown } };
   let state: ExamState | undefined;
   const parsed = examStateSchema.safeParse(raw.data?.state);
   if (parsed.success) state = parsed.data;
-  return new ExamApiError(raw.data?.error || raw.message || "Something went wrong. Please try again.", raw.status, raw.data?.code, state);
+  // Ham backend metni öğrenciye gösterilmez (Türkçe/teknik olabilir): İngilizce, sebebi söyleyen cümle.
+  const message = studentErrorMessage({ status: raw.status, code: raw.data?.code, raw: raw.data?.error || raw.message }, "exam");
+  return new ExamApiError(message, raw.status, raw.data?.code, state);
 }
 
 async function parse<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {

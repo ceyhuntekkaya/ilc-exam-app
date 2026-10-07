@@ -17,17 +17,24 @@ export function useAnswerSync(
   const session = useExamSession();
   const json = JSON.stringify(payload);
   const pending = useRef<(() => void) | null>(null);
-  const [status, setStatus] = useState<AnswerSaveStatus>("idle");
+  // Son kayıt denemesinin sonucu; durum bundan türetilir (effect içinde senkron setState yok).
+  const [result, setResult] = useState<{ json: string; ok: boolean } | null>(null);
+  const active = enabled && !!itemId && !!payload && !!session?.saveAnswer;
+  const status: AnswerSaveStatus = !active
+    ? result?.ok ? "saved" : "idle"
+    : result?.json === json
+      ? result.ok ? "saved" : "idle"
+      : "saving";
 
   useEffect(() => {
     if (!enabled || !itemId || !payload || !session?.saveAnswer) return;
     const save = session.saveAnswer;
-    setStatus("saving");
+    const sent = json;
     const send = () => {
       pending.current = null;
       void Promise.resolve(save(itemId, payload)).then(
-        () => setStatus("saved"),
-        () => setStatus("idle"),
+        () => setResult({ json: sent, ok: true }),
+        () => setResult({ json: sent, ok: false }),
       );
     };
     pending.current = send;
@@ -58,10 +65,17 @@ export function SaveStatus({ status }: { status: AnswerSaveStatus }) {
 export function useSavedAnswer(itemId: string | undefined, preview?: boolean): Record<string, unknown> | undefined {
   const session = useExamSession();
   const revision = session?.answersRevision ?? 0;
-  const [saved, setSaved] = useState(() => (preview || !itemId ? undefined : session?.getAnswer?.(itemId)));
-  useEffect(() => {
-    if (preview || !itemId) return;
-    setSaved((current) => current ?? session?.getAnswer?.(itemId));
-  }, [itemId, preview, revision, session]);
+  const read = () => (preview || !itemId ? undefined : session?.getAnswer?.(itemId));
+  const [saved, setSaved] = useState(read);
+  // Cevaplar sonradan yüklenirse (revision artar) ilk bulunan cevap bir kez alınır, sonra sabit kalır.
+  // Render sırasında koşullu güncelleme: effect + setState yerine React'in önerdiği kalıp.
+  const [seenRevision, setSeenRevision] = useState(revision);
+  if (seenRevision !== revision) {
+    setSeenRevision(revision);
+    if (saved === undefined) {
+      const next = read();
+      if (next !== undefined) setSaved(next);
+    }
+  }
   return saved;
 }

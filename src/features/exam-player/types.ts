@@ -66,3 +66,26 @@ export function shortId(id: string | null | undefined): string {
   if (!id) return "—";
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
 }
+
+/**
+ * Soru gövdesi → QuestionViewModel gövde alanları. Öğrenci sınav ekranı, admin soru önizlemesi ve sınav önizlemesi
+ * BU fonksiyonu kullanır: yeni bir gövde alanı tek yerde eklenir, hiçbir ekranda unutulmaz.
+ */
+export function viewBodyOf(body: unknown): Omit<QuestionViewModel, "parts"> {
+  const b = (body ?? {}) as {
+    instruction?: HtmlValue;
+    instructionAudio?: { mediaId?: string | null; playback?: unknown } | null;
+    mainAudio?: { mediaId?: string | null; playback?: unknown } | null;
+    stimulus?: unknown[];
+  };
+  return {
+    instruction: b.instruction ?? "",
+    instructionAudio: b.instructionAudio?.mediaId
+      ? { mediaId: b.instructionAudio.mediaId, playback: (b.instructionAudio.playback as PlaybackPolicy | null) ?? null }
+      : null,
+    mainAudio: b.mainAudio?.mediaId
+      ? { mediaId: b.mainAudio.mediaId, playback: (b.mainAudio.playback as PlaybackPolicy | null) ?? null }
+      : null,
+    stimulus: (b.stimulus ?? []) as ContentBlock[],
+  };
+}

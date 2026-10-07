@@ -9,7 +9,7 @@ import { MediaAudio, MediaImageSlot, MediaVideo, useMediaUrl } from "@/src/featu
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { htmlOf } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import { IconCheck, IconLock, IconPlay } from "@/src/ui/icons";
+import { IconCheck, IconLock } from "@/src/ui/icons";
 import type { KeyboardEvent, ReactNode } from "react";
 
 /**
@@ -25,15 +25,23 @@ export function useOptionLock(option: PlayerOption, format: OptionFormat): strin
   return format === "VIDEO" ? "Watch the video to the end first." : "Listen to the end first.";
 }
 
-/** Kutuya yerleşmiş video kartı: küçük kapak karesi (hangi video olduğu görünsün) + oynat işareti. */
+/** Kapak altına sığan kısa kilit metni (tam cümle aria / ekran okuyucuda kalır). */
+function lockNote(lock: string | null): string | null {
+  return lock ? "Watch to the end" : null;
+}
+
+/**
+ * Kutuya yerleşmiş video kartı: küçük kapak karesi (hangi video olduğu görünsün) + köşede "Video" etiketi.
+ * Ortada oynat işareti YOK: yerleşmiş karta dokunmak kartı geri alır; ▶ "izle" vaat edip kartı havuza atıyordu.
+ */
 function VideoThumb({ mediaId, className }: { mediaId?: string | null; className?: string }) {
   const url = useMediaUrl(mediaId);
   return (
-    <span className={cn("relative grid shrink-0 place-items-center overflow-hidden bg-exam-slate-800 text-white", className ?? "h-11 w-20 rounded-md")} aria-hidden>
+    <span className={cn("relative block shrink-0 overflow-hidden bg-exam-slate-800 text-white", className ?? "h-11 w-20 rounded-md")} aria-hidden>
       {url ? (
         <video src={`${url}#t=0.1`} preload="metadata" muted playsInline tabIndex={-1} className="pointer-events-none absolute inset-0 size-full object-cover" />
       ) : null}
-      <IconPlay className="relative size-4 drop-shadow" />
+      <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 py-px text-[9px] font-bold uppercase leading-tight tracking-wide">Video</span>
     </span>
   );
 }
@@ -58,9 +66,10 @@ export function OptionDragItem({
   label: string;
 }) {
   const lock = useOptionLock(option, format);
+  const video = format === "VIDEO";
   return (
-    <DragItem id={id} label={label} locked={!!lock} lockedHint={lock ?? undefined} className={poolListClass(format) ? "w-full" : undefined}>
-      <OptionContent option={option} format={format} size="lg" />
+    <DragItem id={id} label={label} locked={!!lock} lockedHint={lock ?? undefined} tile={video} className={poolListClass(format) ? "w-full" : undefined}>
+      <OptionContent option={option} format={format} size="lg" note={video ? lockNote(lock) : undefined} />
     </DragItem>
   );
 }
@@ -70,9 +79,12 @@ export function OptionContent({
   option,
   format,
   size = "md",
+  note,
 }: {
   option: PlayerOption;
   format: OptionFormat;
+  /** Video kartı kilitliyken kapak altında gösterilen kısa metin. */
+  note?: string | null;
   /** fill: kabı tamamen kaplar (kutuya yerleşmiş görsel/video). */
   size?: "sm" | "md" | "lg" | "fill";
 }) {
@@ -117,7 +129,8 @@ export function OptionContent({
   }
   if (format === "AUDIO") {
     return (
-      <span className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      // Tıklama durdurma oynat düğmesinde: açıklamaya dokunmak kartı seçer/işaretler.
+      <span className="flex items-center gap-2">
         <MediaAudio mediaId={option.mediaId} playback={option.playback} variant="compact" />
         {caption}
       </span>
@@ -132,17 +145,8 @@ export function OptionContent({
         </span>
       );
     }
-    return (
-      <span
-        className="block w-full space-y-1"
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-      >
-        <MediaVideo mediaId={option.mediaId} playback={option.playback} />
-        {caption}
-      </span>
-    );
+    // Kapak + modal oynatıcı; kapak dokunuşu kartı seçmez/sürüklemez (MediaVideo içinde durdurulur).
+    return <MediaVideo mediaId={option.mediaId} playback={option.playback} caption={caption} note={note} />;
   }
   return <HtmlInline value={option.text} fallback={option.id} className="prose-section text-[15px] leading-snug" />;
 }
@@ -165,7 +169,8 @@ export function OptionGrid({ format, children, label, multi = false }: { format:
         className={cn(
           "grid gap-2.5",
           format === "IMAGE" && "grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4",
-          format === "VIDEO" && "gap-3 @xs:grid-cols-2",
+          // Video kapağı küçük (oynatma modalda): otomatik dolan eşit sütunlar.
+          format === "VIDEO" && "grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-3",
           format === "AUDIO" && "@lg:grid-cols-2",
         )}
       >
@@ -233,7 +238,7 @@ export function OptionButton({
       className={cn(
         "relative flex w-full select-none rounded-xl border-2 text-left outline-none transition-[border-color,background-color,box-shadow] duration-150",
         "focus-visible:ring-4 focus-visible:ring-exam-sky-200",
-        tile ? "flex-col gap-2 p-2.5" : "min-h-14 flex-wrap items-center gap-3 px-3.5 py-3",
+        tile ? "h-full flex-col gap-2 p-2.5" : "min-h-14 flex-wrap items-center gap-3 px-3.5 py-3",
         correct
           ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-200"
           : selected
@@ -252,7 +257,7 @@ export function OptionButton({
               </span>
             ) : null}
           </div>
-          <OptionContent option={option} format={format} />
+          <OptionContent option={option} format={format} note={format === "VIDEO" ? lockNote(lock) : undefined} />
         </>
       ) : (
         <>
@@ -262,7 +267,7 @@ export function OptionButton({
           </div>
         </>
       )}
-      {lock ? (
+      {lock && format !== "VIDEO" ? (
         <p className="flex basis-full items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200 [&>svg]:size-3.5 [&>svg]:shrink-0">
           <IconLock aria-hidden />
           {lock}

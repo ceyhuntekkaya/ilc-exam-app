@@ -1,6 +1,6 @@
 "use client";
 
-import { QuestionView } from "@/src/features/exam-player/QuestionView";
+import { QuestionFrame, QuestionView } from "@/src/features/exam-player/QuestionView";
 import { MediaProvider, type MediaResolveFn } from "@/src/features/exam-player/media/MediaContext";
 import {
   PreviewRubricPanel,
@@ -31,13 +31,11 @@ export function QuestionPreviewShell({
         </p>
       </div>
 
-      <div className="w-full overflow-hidden rounded-lg border border-exam-slate-200 bg-white shadow-sm">
-        <div className="px-4 py-4 sm:px-6">
-          <MediaProvider resolveUrl={resolveUrl}>
-            <QuestionView model={model} preview />
-          </MediaProvider>
-        </div>
-      </div>
+      <QuestionFrame>
+        <MediaProvider resolveUrl={resolveUrl}>
+          <QuestionView model={model} preview />
+        </MediaProvider>
+      </QuestionFrame>
 
       {rubricParts?.length && rubricCatalog ? (
         <PreviewRubricPanel parts={rubricParts} rubricCatalog={rubricCatalog} />

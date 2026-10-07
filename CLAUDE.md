@@ -91,3 +91,21 @@
 - 2026-10-06 — `student-redesign.md` › 15: boşluklar düz metin gibi (alt çizgili; seçmeli, kelime havuzu, açık uçlu), seçilen kelime normal boyda okunur.
 - 2026-10-06 — `student-redesign.md` › 16: boşluk hizası düzeltildi (inline-block, taban çizgisi), numara yerine okunaklı "•••".
 - 2026-10-06 — `student-redesign.md` › 17: boşluk zemini şeffaf, boşta yalnız "•••", dolunca kelime altı çizili (eski tasarım).
+- 2026-10-07 — `student-redesign.md` › 18: yönerge sesi (`instructionAudio`) öğrenci ekranına ve sınav önizlemesine aktarıldı; sınav önizlemesi aynı kapta.
+- 2026-10-07 — `student-redesign.md` › 19: sıralama soruları alt alta tek sütun; video küçük kapak + modal oynatıcı (öğrencide bitene kadar kapanmaz, hak/kilit kuralları aynı).
+- 2026-10-07 — `student-redesign.md` › 20: tüm soru videoları (uyaran, seçenek, havuz, eşleştirme, gruplama, hotspot) kapak + modal oynatıcı; portal olay sızıntısı engellendi.
+- 2026-10-07 — `student-redesign.md` › 21: video kartları küçük (max 16rem), havuz ve seçeneklerde otomatik dolan eşit sütunlar (2+1 dağınıklığı yok).
+- 2026-10-07 — `student-redesign.md` › 22: denetim — tüm önizlemeler ve öğrenci ekranı aynı QuestionView; ortak `viewBodyOf` dönüştürücü ve `QuestionFrame` kabı.
+- 2026-10-07 — 22 eki: değişen dosyalarda lint hataları giderildi (useAnswerSync, useSavedAnswer, ExamExtraTabs, öğrenci bölüm sayfası useEffectEvent).
+- 2026-10-07 — 22 eki 2: inceleme — video modalı z-index (tam ekran kapısının üstünde kalıp sınavı kilitliyordu) düzeltildi, modal odak yönetimi.
+- 2026-10-07 — `student-redesign.md` › 23: video kartları eşit boy (h-full), kilit uyarısı kapak altında tek satır, hak noktaları kapakta, tutamak yok.
+- 2026-10-07 — `student-redesign.md` › 24: video kartı kapağından da sürüklenir (basılı tut/sürükle), kısa veya yavaş dokunuş yine videoyu açar (tapMediaTrigger).
+- 2026-10-07 — `student-redesign.md` › 25: hakkı biten video/ses kartı kapaktan da taşınır (native disabled yerine aria-disabled, dokunuş karta geçer); ses düğmesi aynı kurala alındı.
+- 2026-10-07 — `student-redesign.md` › 26: video denetimi — yerleşmiş video kartında yanıltıcı ▶ kaldırıldı ("VIDEO" etiketi), uyaranda art arda videolar eşit sütun.
+- 2026-10-07 — `student-redesign.md` › 27: öğrenci hata mesajları (yükleme + sınav akışı) İngilizce, sebep + ne yapmalı; ham backend metni yalnız konsolda (studentErrorMessage).
+- 2026-10-07 — `student-redesign.md` › 28: izin penceresi / dosya seçici kaynaklı tam ekran çıkışı ihlal sayılmıyor (90 sn beklenen çıkış, sonraki dokunuşta tam ekrana dönüş, şerit).
+- 2026-10-07 — `student-redesign.md` › 29: allowSkip açıkken "You can skip this question" ipucu; cevap kaydetme hatası İngilizce; clear answer için backend uç noktası yok (öneri yazıldı).
+- 2026-10-07 — `student-redesign.md` › 30: "Clear my answer" mevcut PUT ile ({} = boş bırakıldı), red olursa cevap geri yüklenir; yalnız allowSkip açıkken.
+- 2026-10-07 — `student-redesign.md` › 31: 30 geri alındı — "Start again" yalnız ekranda sıfırlar (yerel taslak silinir, sunucuya istek yok).
+- 2026-10-07 — `student-redesign.md` › 32: telefon/tablet denetimi — uyaranlı soru tablet dikeyde alt alta (@3xl), soru numaraları ve Break 44px, "Ana sayfa" → "Home".
+- 2026-10-07 — `student-redesign.md` › 33: commit öncesi inceleme — yumuşak tam ekran zamanlayıcı uzatma, dosya seçici iptalinde pencere kapanır, hata çevirici kelime sınırı; build başarılı.
