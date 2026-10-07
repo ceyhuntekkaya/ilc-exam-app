@@ -2,6 +2,7 @@
 
 import { listSavedAnswers } from "@/src/features/exam-flow/api";
 import { customInstance } from "@/src/api/mutator";
+import { studentErrorMessage } from "@/src/features/exam-flow/studentErrors";
 import {
   ExamSessionProvider,
   type ExamSessionContextValue,
@@ -59,7 +60,8 @@ export function LiveExamSessionProvider({
     const list = waiters.current.get(itemId) ?? [];
     waiters.current.delete(itemId);
     for (const waiter of list) {
-      if (err) waiter.reject(err instanceof Error ? err : new Error("Cevap kaydedilemedi"));
+      // Öğrenciye giden metin İngilizce ve sebebi söyler (ham backend metni yalnız konsolda).
+      if (err) waiter.reject(new Error(saveErrorMessage(err)));
       else waiter.resolve();
     }
   }
@@ -180,6 +182,8 @@ export function LiveExamSessionProvider({
       uploadMedia: (itemId, file, durationMs) =>
         uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs),
       getAnswer: (itemId) => readDrafts(applicationId)[itemId],
+      // Yalnız yerel ekran taslağı: sunucuya istek yok.
+      discardDraft: (itemId) => removeDraft(applicationId, itemId),
       saveAnswer: (itemId, answer, mediaId) => {
         onSavedRef.current?.(itemId);
         writeDraft(applicationId, itemId, answer);
@@ -228,4 +232,20 @@ function writeDraft(applicationId: string, itemId: string, answer: Record<string
   } catch {
     // depolama doluysa yalnız ekranda geri yükleme kaybolur; sunucuya gönderim etkilenmez
   }
+}
+
+function removeDraft(applicationId: string, itemId: string) {
+  try {
+    const drafts = readDrafts(applicationId);
+    if (!(itemId in drafts)) return;
+    delete drafts[itemId];
+    sessionStorage.setItem(draftKey(applicationId), JSON.stringify(drafts));
+  } catch {
+    // depolama kapalıysa taslak zaten yok
+  }
+}
+
+function saveErrorMessage(err: unknown): string {
+  const e = (err ?? {}) as { status?: number; message?: string; data?: { error?: string; code?: string } };
+  return studentErrorMessage({ status: e.status, code: e.data?.code, raw: e.data?.error || e.message }, "exam");
 }

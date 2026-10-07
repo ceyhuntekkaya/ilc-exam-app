@@ -4,10 +4,13 @@ import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } fr
 import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
 import { FullscreenGate } from "@/src/features/exam-flow/FullscreenGate";
 import {
+  clearExpectedExit,
   enterExamFullscreen,
   exitExamFullscreen,
+  expectedExitRemainingMs,
   holdExamMedia,
   isExamFullscreen,
+  isFullscreenExitExpected,
   lockExamEscape,
   releaseExamMediaHold,
 } from "@/src/features/exam-flow/fullscreen";
@@ -66,10 +69,12 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const [focusWarning, setFocusWarning] = useState<number | null>(null);
   const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
   const fullscreenBlockedRef = useRef(false);
+  // Beklenen çıkış (izin penceresi / dosya seçici): sınav durmaz, ihlal yazılmaz; sonraki dokunuşta tam ekrana döner.
+  const [softExit, setSoftExit] = useState(false);
   const enterPromiseRef = useRef<Promise<void> | null>(null);
   const lastNav = useRef<{ to: string; at: number; count: number }>({ to: "", at: 0, count: 0 });
   const needsFullscreen = state != null && state.stage !== "WELCOME" && state.stage !== "FINISHED";
-  const shouldBlockFullscreen = needsFullscreen && !isExamFullscreen();
+  const shouldBlockFullscreen = needsFullscreen && !isExamFullscreen() && !softExit;
   if (fullscreenBlocked !== shouldBlockFullscreen) {
     setFullscreenBlocked(shouldBlockFullscreen);
   }
@@ -272,6 +277,17 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     else holdExamMedia();
     const onChange = () => {
       const on = isExamFullscreen();
+      if (wasOn.current && !on && isFullscreenExitExpected()) {
+        // Öğrencinin başlattığı izin/dosya işlemi tarayıcıyı tam ekrandan çıkardı: ihlal değil.
+        wasOn.current = false;
+        fullscreenBlockedRef.current = false;
+        setSoftExit(true);
+        return;
+      }
+      if (on) {
+        clearExpectedExit();
+        setSoftExit(false);
+      }
       if (wasOn.current && !on) {
         const session = readSession(recipientId);
         if (session) {
@@ -296,6 +312,40 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       document.removeEventListener("webkitfullscreenchange", onChange);
     };
   }, [needsFullscreen, recipientId, state?.applicationId]);
+
+  // Yumuşak mod: öğrencinin sonraki dokunuşu/tuşu tam ekranı geri açar (tarayıcı tam ekranı yalnız kullanıcı hareketiyle açar).
+  // Pencere içinde dönülmezse eski kural: çıkış ihlal olarak yazılır ve sınav durur (kapı).
+  useEffect(() => {
+    if (!softExit || !needsFullscreen) return;
+    const resume = () => {
+      if (!isExamFullscreen()) void engageFullscreen().catch(() => undefined);
+    };
+    document.addEventListener("click", resume, true);
+    document.addEventListener("keydown", resume, true);
+    let timer = 0;
+    const expire = () => {
+      if (isExamFullscreen()) return;
+      // Yumuşak modda yeni bir izin/dosya işlemi pencereyi uzattıysa bekle (kapı erken açılmasın).
+      if (isFullscreenExitExpected()) {
+        timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
+        return;
+      }
+      const session = readSession(recipientId);
+      if (session) {
+        enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
+        flushEventsKeepalive(session.applicationId, session.sessionToken);
+      }
+      clearExpectedExit();
+      holdExamMedia();
+      setSoftExit(false);
+    };
+    timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
+    return () => {
+      document.removeEventListener("click", resume, true);
+      document.removeEventListener("keydown", resume, true);
+      window.clearTimeout(timer);
+    };
+  }, [softExit, needsFullscreen, engageFullscreen, recipientId]);
 
   useEffect(() => {
     if (needsFullscreen || enterPromiseRef.current) return;
@@ -394,6 +444,16 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
         {children}
       </div>
       {fullscreenBlocked ? <FullscreenGate onResume={engageFullscreen} /> : null}
+      {softExit && needsFullscreen && !fullscreenBlocked ? (
+        // Sınavı kapatmayan küçük şerit: herhangi bir dokunuş tam ekranı geri açar.
+        <button
+          type="button"
+          onClick={() => void engageFullscreen().catch(() => undefined)}
+          className="fixed inset-x-0 top-2 z-40 mx-auto flex w-max max-w-[calc(100%-2rem)] items-center gap-2 rounded-full bg-primary-700 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+        >
+          Tap anywhere to go back to full screen
+        </button>
+      ) : null}
       {focusWarning != null && !fullscreenBlocked ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">

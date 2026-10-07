@@ -36,7 +36,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-primary-800 hover:bg-primary-50 [&>svg]:size-5"
               >
                 <IconHome aria-hidden />
-                Ana sayfa
+                Home
               </Link>
             ) : (
               <div className="flex items-center gap-2">

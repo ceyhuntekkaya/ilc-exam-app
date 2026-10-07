@@ -1,4 +1,5 @@
 import { getClientAccessToken } from "@/src/api/mutator";
+import { studentErrorMessage } from "@/src/features/exam-flow/studentErrors";
 
 export type StudentMediaUploadResult = {
   mediaId: string;
@@ -32,11 +33,16 @@ export async function uploadApplicationMedia(
   const token = getClientAccessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api/backend/applications/${applicationId}/media`, {
-    method: "POST",
-    headers,
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`/api/backend/applications/${applicationId}/media`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+  } catch {
+    throw new Error(studentErrorMessage({ status: 0 }, "upload"));
+  }
 
   const text = await res.text();
   let body: unknown = undefined;
@@ -49,11 +55,10 @@ export async function uploadApplicationMedia(
   }
 
   if (!res.ok) {
-    const message =
-      body && typeof body === "object" && body !== null && "error" in body
-        ? String((body as { error: string }).error)
-        : res.statusText || "Upload failed";
-    throw new Error(message);
+    // Ham backend metni (çoğu Türkçe) öğrenciye gösterilmez: sebep İngilizce, anlaşılır cümleye çevrilir.
+    const data = body && typeof body === "object" ? (body as { error?: unknown; code?: unknown; message?: unknown }) : {};
+    const raw = String(data.error ?? data.message ?? (typeof body === "string" ? body : "") ?? "");
+    throw new Error(studentErrorMessage({ status: res.status, code: typeof data.code === "string" ? data.code : undefined, raw }, "upload"));
   }
 
   return body as StudentMediaUploadResult;

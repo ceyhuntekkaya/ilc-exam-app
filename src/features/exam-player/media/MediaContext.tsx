@@ -7,7 +7,8 @@ import { isExamMediaHeld } from "@/src/features/exam-flow/fullscreen";
 import { claimMedia, markHeard, releaseMedia, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import { cn } from "@/src/lib/utils/cn";
 import { shortId, type PlaybackPolicy } from "@/src/features/exam-player/types";
-import { IconCheck, IconImage, IconPause, IconPlay, IconVolume } from "@/src/ui/icons";
+import { IconCheck, IconImage, IconLock, IconPause, IconPlay, IconVolume, IconX } from "@/src/ui/icons";
+import { createPortal } from "react-dom";
 
 export type MediaResolveFn = (mediaId: string) => string | null | undefined;
 
@@ -193,7 +194,7 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
     },
   };
 
-  return { preview, max, remaining, blocked, waiting, playing, progress, start, events };
+  return { preview, max, plays, remaining, blocked, waiting, playing, progress, start, events };
 }
 
 function writePlays(key: string | null, value: number) {
@@ -297,12 +298,12 @@ export function MediaAudio({
         {audio}
         <button
           type="button"
-          disabled={disabled}
-          // Sürüklenebilir kart içinde: oynat düğmesi sürüklemeyi/seçimi başlatmasın.
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
+          // Video kapağıyla aynı kural: düğme de kartın tutma yeri (basılı tut/sürükle = taşı, dokun = dinle,
+          // yavaş dokunuş tapMediaTrigger ile dinle). Native disabled yok: hak bitince dokunuş karta geçer.
+          data-media-trigger=""
+          aria-disabled={disabled || undefined}
           onClick={(e) => {
+            if (disabled) return;
             e.stopPropagation();
             p.start(ref.current);
           }}
@@ -310,7 +311,7 @@ export function MediaAudio({
           className={cn(
             "grid size-11 shrink-0 place-items-center rounded-full transition",
             p.playing ? "bg-exam-sky-500 text-white ring-4 ring-exam-sky-100" : disabled ? "bg-exam-slate-300 text-white" : "bg-exam-sky-600 text-white hover:bg-exam-sky-700",
-            "disabled:cursor-not-allowed",
+            disabled ? "cursor-[inherit]" : "cursor-pointer",
           )}
         >
           {p.playing ? <Bars className="h-4 [&>span]:bg-white" /> : <IconPlay className="size-5" aria-hidden />}
@@ -369,82 +370,231 @@ export function MediaAudio({
   );
 }
 
+/**
+ * Küçük video kapağı; dokununca video modalda oynar (sıralama satırları gibi dar yerler için).
+ * Öğrenci: oynatma kuralları MediaVideo ile aynı (hak, tek medya, durdurulamaz) ve modal video bitene kadar kapanmaz.
+ * Video öğesi modal kapalıyken de bağlı kalır: play() dokunuşun içinde çağrılır (iOS otomatik oynatma kısıtı).
+ */
+function stopEvent(e: { stopPropagation: () => void }) {
+  e.stopPropagation();
+}
+
+export function MediaVideoPopup({
+  mediaId,
+  playback,
+  caption,
+  className,
+  layout = "row",
+  note,
+}: {
+  mediaId?: string | null;
+  playback?: PlaybackPolicy | null;
+  caption?: ReactNode;
+  className?: string;
+  /** Kart kilitli (önce sonuna kadar izlenmeli): durum satırında kilit ikonu + bu kısa metin. */
+  note?: string | null;
+  /** row: küçük kapak + yanında durum (sıralama satırı) · tile: kabı dolduran kapak, altında durum (kart, havuz, uyaran) */
+  layout?: "row" | "tile";
+}) {
+  const url = useMediaUrl(mediaId);
+  const ref = useRef<HTMLVideoElement>(null);
+  const p = usePlayback(mediaId, playback, false);
+  const tile = layout === "tile";
+  const [open, setOpen] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const downAt = useRef<{ x: number; y: number } | null>(null);
+  // Öğrenci: video çalarken kapatılamaz (bitince ya da oynatılamazsa kapanabilir).
+  const canClose = p.preview || !p.playing;
+
+  function close() {
+    if (!canClose) return;
+    if (p.preview) ref.current?.pause();
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      if (canClose) {
+        if (p.preview) ref.current?.pause();
+        setOpen(false);
+      }
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // Klavye odağı modala geçsin (arkadaki kapakta kalmasın).
+    dialogRef.current?.focus();
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, canClose, p.preview]);
+
+  if (!url) return <Placeholder kind="VIDEO" mediaId={mediaId} className={className} />;
+
+  const disabled = !p.preview && (p.blocked || p.waiting);
+  const status = p.preview ? "Tap to watch" : p.blocked ? "Watched" : p.waiting ? "Please wait" : p.plays > 0 ? "Watch again" : "Tap to watch";
+  const root = typeof document === "undefined" ? null : (document.querySelector<HTMLElement>("[data-panel]") ?? document.body);
+
+  return (
+    <div className={cn("flex min-w-0 gap-3", tile ? "w-full max-w-64 flex-col gap-1.5" : "items-center", className)}>
+      <button
+        type="button"
+        // Kapak da kartın tutma yeridir: basılı tutup sürüklemek kartı taşır (dnd-kit: fare 6px / dokunma 120ms).
+        // Kısa dokunuş = izle. Dokunmada yavaş (hareketsiz) dokunuş sürükleme olarak başlar; PlaceBoard/Ordering
+        // onu data-media-trigger üzerinden yine "izle"ye çevirir (tapMediaTrigger).
+        data-media-trigger=""
+        onPointerDown={(e) => {
+          downAt.current = { x: e.clientX, y: e.clientY };
+        }}
+        // Native disabled değil: devre dışı düğme fare olaylarını yutar ve kart (dnd-kit mousedown) kapaktan tutulamazdı.
+        aria-disabled={disabled || undefined}
+        onClick={(e) => {
+          // Hakkı bitti / başka medya çalıyor: dokunuş karta geçsin (havuzda seç, sürükle) — kapak kartın parçası gibi.
+          if (disabled) return;
+          // Kartı seçmesin (havuz) / işaretlemesin (çoktan seçmeli).
+          e.stopPropagation();
+          // Fareyle sürükleyip kapağın üstünde bırakınca gelen tıklama oynatmasın.
+          const from = downAt.current;
+          downAt.current = null;
+          if (from && e.detail > 0 && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 6) return;
+          setOpen(true);
+          p.start(ref.current);
+        }}
+        aria-label={p.blocked && !p.preview ? "Video watched. No more plays." : "Watch the video"}
+        className={cn(
+          "group relative grid aspect-video shrink-0 place-items-center overflow-hidden rounded-lg bg-exam-slate-800 text-white",
+          // Devre dışıyken imleç kartınkini alır (sürüklenebilir kartta "tut").
+          disabled ? "cursor-[inherit]" : "cursor-pointer",
+          tile ? "w-full" : "w-32 @sm:w-40",
+        )}
+      >
+        <video src={`${url}#t=0.1`} preload="metadata" muted playsInline tabIndex={-1} className="pointer-events-none absolute inset-0 size-full object-cover" />
+        <span className="absolute inset-0 bg-black/30" aria-hidden />
+        <span
+          className={cn(
+            "relative grid place-items-center rounded-full shadow transition ",
+            !disabled && "group-hover:scale-105",
+            "size-10 [&>svg]:size-5",
+            disabled ? "bg-white/70 text-exam-slate-500" : "bg-white text-exam-sky-700",
+          )}
+          aria-hidden
+        >
+          {p.blocked && !p.preview ? <IconCheck /> : <IconPlay className="translate-x-0.5" />}
+        </span>
+        {/* Kart: hak noktaları kapağın köşesinde (alt satır sabit tek satır kalsın, kartlar eşit boy). */}
+        {tile && p.max != null ? (
+          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-1.5 py-1 [&_span]:ring-0">
+            <PlaysLeft max={p.max} remaining={p.remaining ?? 0} className="[&>span:last-child]:hidden" />
+          </span>
+        ) : null}
+      </button>
+      {tile ? (
+        <div className="min-w-0 space-y-0.5 px-0.5">
+          <p
+            className={cn(
+              "flex h-5 items-center gap-1 text-xs font-bold [&>svg]:size-3.5 [&>svg]:shrink-0",
+              note ? "text-amber-700" : p.blocked && !p.preview ? "text-emerald-700" : "text-exam-slate-600",
+            )}
+          >
+            {note ? <IconLock aria-hidden /> : p.blocked && !p.preview ? <IconCheck aria-hidden /> : <IconPlay aria-hidden />}
+            <span className="truncate">{note ?? status}</span>
+          </p>
+          {caption ? <div className="line-clamp-1 text-sm">{caption}</div> : null}
+        </div>
+      ) : (
+        <div className="min-w-0 flex-1 space-y-1">
+          {caption}
+          <p className={cn("flex items-center gap-1 text-xs font-bold [&>svg]:size-3.5", note ? "text-amber-700" : "text-exam-slate-600")}>
+            {note ? <IconLock aria-hidden /> : null}
+            {note ?? status}
+          </p>
+          {p.max != null ? <PlaysLeft max={p.max} remaining={p.remaining ?? 0} /> : null}
+        </div>
+      )}
+
+      {root
+        ? createPortal(
+            <div
+              className={cn(
+                "exam-player fixed inset-0 grid place-items-center bg-black/75 p-4",
+                // Öğrenci: alt çubuğun (30) üstünde, sınav uyarılarının (bağlantı/odak 40, KidDialog 50, tam ekran kapısı 80) ALTINDA —
+                // video çalarken tam ekrandan çıkılırsa kapı tıklanabilir kalır. Önizleme: admin kabuğunun (≤50) üstünde.
+                p.preview ? "z-60" : "z-35",
+                !open && "hidden",
+              )}
+              ref={dialogRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Video"
+              // Portal olayları React ağacında yukarı taşınır: modal içi tıklama seçenek kartını seçmesin / sürüklemesin.
+              onPointerDown={stopEvent}
+              onMouseDown={stopEvent}
+              onTouchStart={stopEvent}
+              onKeyDown={stopEvent}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (e.target === e.currentTarget) close();
+              }}
+            >
+              <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+                <div className="bg-black">
+                  <video
+                    ref={ref}
+                    src={url}
+                    playsInline
+                    preload="metadata"
+                    disablePictureInPicture
+                    controls={p.preview}
+                    controlsList="nodownload"
+                    className="mx-auto aspect-video max-h-[70vh] w-full object-contain"
+                    {...p.events}
+                  />
+                </div>
+                <div className="h-1 bg-exam-slate-100" aria-hidden>
+                  <div className="h-full bg-exam-sky-500 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <p className="flex items-center gap-2 text-sm font-bold text-exam-slate-800" aria-live="polite">
+                    {p.playing && !p.preview ? <Bars /> : null}
+                    {p.preview ? "Önizleme · istediğin zaman kapatabilirsin" : p.playing ? "Watching… Please watch to the end." : "Done! You can close the video."}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={!canClose}
+                    onClick={close}
+                    className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-exam-sky-600 px-4 text-sm font-bold text-white enabled:hover:bg-exam-sky-700 disabled:bg-exam-slate-300 [&>svg]:size-4"
+                  >
+                    {canClose ? <IconX aria-hidden /> : <IconLock aria-hidden />}
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>,
+            root,
+          )
+        : null}
+    </div>
+  );
+}
+
+/** Soru içindeki her video (uyaran, kök, seçenek kartı, havuz): kapak + modal oynatıcı. */
 export function MediaVideo({
   mediaId,
   playback,
   className,
+  caption,
+  note,
 }: {
   mediaId?: string | null;
   playback?: PlaybackPolicy | null;
   className?: string;
+  caption?: ReactNode;
+  note?: string | null;
 }) {
-  const url = useMediaUrl(mediaId);
-  const ref = useRef<HTMLVideoElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const p = usePlayback(mediaId, playback, false);
-
-  // İzlenen video ekranda ortalansın (odak).
-  useEffect(() => {
-    if (p.playing && !p.preview) boxRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [p.playing, p.preview]);
-
-  if (!url) return <Placeholder kind="VIDEO" mediaId={mediaId} className={className} />;
-
-  if (p.preview) {
-    return (
-      <video
-        src={url}
-        controls
-        playsInline
-        controlsList="nodownload"
-        className={cn("mx-auto max-h-80 w-full rounded-lg border border-exam-slate-200 bg-black", className)}
-      />
-    );
-  }
-
-  const disabled = p.blocked || p.waiting;
-  return (
-    <div
-      ref={boxRef}
-      className={cn(
-        "overflow-hidden rounded-xl border-2 bg-white transition",
-        p.playing ? "border-exam-sky-400 ring-4 ring-exam-sky-100" : "border-exam-slate-200",
-        p.waiting && "opacity-50",
-        className,
-      )}
-    >
-      <div className="relative bg-black">
-        {/* iOS Safari metadata ile kare çizmez: #t=0.1 ilk kareyi kapak olarak gösterir. */}
-        <video ref={ref} src={`${url}#t=0.1`} playsInline preload="metadata" disablePictureInPicture className="mx-auto aspect-video max-h-80 w-full object-contain" {...p.events} />
-        {!p.playing ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => p.start(ref.current)}
-            aria-label={p.blocked ? "No more plays" : p.waiting ? "Please wait" : "Watch the video"}
-            className="group absolute inset-0 grid place-items-center bg-black/35 disabled:cursor-not-allowed"
-          >
-            <span
-              className={cn(
-                "grid size-16 place-items-center rounded-full shadow-lg transition group-enabled:group-hover:scale-105 group-enabled:group-active:scale-95",
-                disabled ? "bg-white/70 text-exam-slate-500" : "bg-white text-exam-sky-700",
-              )}
-            >
-              {p.blocked ? <IconCheck className="size-7" aria-hidden /> : <IconPlay className="size-7 translate-x-0.5" aria-hidden />}
-            </span>
-          </button>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-        <p className="flex items-center gap-2 text-sm font-bold text-exam-slate-800" aria-live="polite">
-          {p.playing ? <Bars /> : null}
-          {p.playing ? "Watching… Please watch to the end." : p.blocked ? "You watched. No more plays." : p.waiting ? "Please wait." : "Tap to watch"}
-        </p>
-        {p.max != null ? <PlaysLeft max={p.max} remaining={p.remaining ?? 0} /> : null}
-      </div>
-      <div className="h-1 bg-exam-slate-100" aria-hidden>
-        <div className="h-full bg-exam-sky-500 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
-      </div>
-    </div>
-  );
+  return <MediaVideoPopup mediaId={mediaId} playback={playback} caption={caption} className={className} note={note} layout="tile" />;
 }

@@ -75,7 +75,9 @@ export function QuestionView({
       <div
         className={cn(
           "grid gap-6",
-          hasStimulus ? "@md:grid-cols-2 @md:items-start" : "grid-cols-1",
+          // Metin + soru yan yana yalnız alan ≥ 48rem iken (tablet yatay / masaüstü). @md'de (28rem) tablet dikeyde
+          // iki ~320px sütuna sıkışıyordu (sürükle-bırak havuzu ve kutular daralıyordu); dikeyde alt alta.
+          hasStimulus ? "@3xl:grid-cols-2 @3xl:items-start" : "grid-cols-1",
         )}
       >
         {hasStimulus ? (
@@ -117,6 +119,15 @@ export function QuestionView({
   );
 
   return <PlayerPreviewProvider preview={preview}>{body}</PlayerPreviewProvider>;
+}
+
+/** Soru kabı: öğrenci sınav ekranı, admin/staff soru önizlemesi ve sınav önizlemesi aynı kabı kullanır. */
+export function QuestionFrame({ className, children }: { className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("w-full overflow-hidden rounded-lg border border-exam-slate-200 bg-white shadow-sm", className)}>
+      <div className="px-4 py-4 sm:px-6">{children}</div>
+    </div>
+  );
 }
 
 export function QuestionInstructionBlock({ html }: { html: string }) {

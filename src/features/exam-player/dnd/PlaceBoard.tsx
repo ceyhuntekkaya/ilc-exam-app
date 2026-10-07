@@ -64,6 +64,19 @@ export const useBoard = () => useContext(Ctx);
  * Sürüklenen kopyanın açılacağı yer: panel kökü (öğrenci/admin fontu ve teması korunur), yoksa body.
  * Kart/tablo overflow'unda kırpılmaz; panel kökünde transform yoktur (fixed konum bozulmaz).
  */
+/**
+ * Hareketsiz biten sürükleme bir medya kapağında (data-media-trigger) başladıysa onu tıklar ve true döner.
+ * Dokunmada yavaş dokunuş sürükleme olarak başlar ve dnd-kit tıklamayı yutar; çocuğun "izle" dokunuşu kaybolmasın.
+ * touchend/pointerup işleyicisi içinde çalıştığı için tarayıcı bunu kullanıcı hareketi sayar (iOS oynatma izni).
+ */
+export function tapMediaTrigger(activator: Event | null | undefined): boolean {
+  const target = activator?.target;
+  const trigger = target instanceof Element ? target.closest<HTMLElement>("[data-media-trigger]") : null;
+  if (!trigger || trigger.getAttribute("aria-disabled") === "true") return false;
+  trigger.click();
+  return true;
+}
+
 export function overlayRoot(): HTMLElement | null {
   if (typeof document === "undefined") return null;
   return document.querySelector<HTMLElement>("[data-panel]") ?? document.body;
@@ -161,6 +174,8 @@ export function PlaceBoard({
     setDragging(null);
     const id = String(e.active.id);
     if (Math.hypot(e.delta.x, e.delta.y) < 8) {
+      // Video kapağına yavaş dokunuş: kartı seçme, videoyu aç.
+      if (tapMediaTrigger(e.activatorEvent)) return;
       const data = e.active.data.current as { placed?: boolean; zone?: string } | undefined;
       const before = pickedBefore.current;
       if (data?.placed) {
@@ -227,6 +242,7 @@ export function DragItem({
   label,
   className,
   inline = false,
+  tile = false,
   children,
 }: {
   id: string;
@@ -247,6 +263,8 @@ export function DragItem({
   className?: string;
   /** Satır içi (metindeki boşluk): span olarak çizilir. */
   inline?: boolean;
+  /** Havuzdaki video kartı: dikey kart, ızgara satırını eşit doldurur; tutamak ve kilit uyarısı içerikte (kapak altı tek satır). */
+  tile?: boolean;
   children: ReactNode;
 }) {
   const { picked, pick, place, disabled: boardDisabled } = useBoard();
@@ -295,16 +313,18 @@ export function DragItem({
           : isPicked
             ? "min-h-12 -translate-y-0.5 gap-2 rounded-xl border-2 border-exam-sky-500 bg-exam-sky-50 py-2 pl-1.5 pr-3 text-sm text-exam-slate-800 shadow-md ring-4 ring-exam-sky-100"
             : "min-h-12 gap-2 rounded-xl border-2 border-exam-slate-200 bg-white py-2 pl-1.5 pr-3 text-sm text-exam-slate-800 shadow-[0_2px_0_var(--color-exam-slate-200)] hover:border-exam-sky-300",
+        // Video kartı: dikey, eşit yükseklik (h-full), eşit iç boşluk.
+        tile && !placed && "h-full items-stretch p-1.5",
         locked ? "cursor-default" : disabled ? "cursor-default opacity-60" : placed ? "cursor-pointer" : "cursor-grab",
         // Sürüklenen kartın yeri soluk kalır: düzen kaymaz.
         isDragging && "opacity-30",
         className,
       )}
     >
-      {!placed ? <IconGrip className="size-4 shrink-0 text-exam-slate-300" aria-hidden /> : null}
+      {!placed && !tile ? <IconGrip className="size-4 shrink-0 text-exam-slate-300" aria-hidden /> : null}
       <Inner className={fill && placed ? "block size-full" : plain && placed ? "inline" : "min-w-0 flex-1"}>
         {children}
-        {locked && lockedHint ? (
+        {locked && lockedHint && !tile ? (
           <span className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200 [&>svg]:size-3.5 [&>svg]:shrink-0">
             <IconLock aria-hidden />
             {lockedHint}
@@ -463,8 +483,11 @@ export function DragPool({
 
 /** Havuz ızgarası (görsel kartlar): dar alanda 2, genişte 3–4 sütun. */
 export const POOL_IMAGE_GRID = "grid grid-cols-2 gap-2 @lg:grid-cols-3 @2xl:grid-cols-4";
-/** Havuz ızgarası (video kartlar): yan yana 2 sütun (çok dar alanda tek). */
-export const POOL_VIDEO_GRID = "grid grid-cols-1 gap-3 @xs:grid-cols-2";
+/**
+ * Havuz ızgarası (video kartlar): video modalda oynar, kartta yalnız küçük kapak.
+ * Sabit 2 sütun yerine otomatik dolan eşit sütunlar: 3 video genişte tek satır, dar alanda düzenli kırılır (2 + 1 tek başına büyümez).
+ */
+export const POOL_VIDEO_GRID = "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2";
 
 /** "Start over": iki adımlı (yanlış dokunuşla cevaplar silinmesin). 5 sn içinde onaylanmazsa kapanır. */
 export function StartOver({ onReset, disabled }: { onReset: () => void; disabled?: boolean }) {

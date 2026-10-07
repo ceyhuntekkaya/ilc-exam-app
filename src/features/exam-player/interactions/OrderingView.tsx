@@ -10,10 +10,13 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { OptionContent, useOptionLock } from "@/src/features/exam-player/interactions/OptionChip";
-import { DND_A11Y, OVERLAY_STYLE, StartOver, followPointer, overlayRoot } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { HtmlInline } from "@/src/features/exam-player/html";
+import { MediaImageSlot, MediaVideoPopup } from "@/src/features/exam-player/media/MediaContext";
+import { htmlOf } from "@/src/features/exam-player/types";
+import { DND_A11Y, OVERLAY_STYLE, StartOver, followPointer, overlayRoot, tapMediaTrigger } from "@/src/features/exam-player/dnd/PlaceBoard";
 import { PreviewAnswerBanner, previewLabel } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -50,9 +53,6 @@ export function OrderingView({
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const items = useMemo(() => (interaction.items as PlayerOption[]) || [], [interaction.items]);
-  const horizontal = ((interaction.orientation as string) || "VERTICAL") === "HORIZONTAL";
-  // Görsel/video kartları her zaman kutu ızgarası (video yan yana 2 sütun, oynatıcı görünür kalır).
-  const tiles = horizontal || format === "IMAGE" || format === "VIDEO";
   const correctOrder = useMemo(() => {
     if (!preview) return null as string[] | null;
     const fromKey = answerKey?.correctOrder as string[] | undefined;
@@ -84,6 +84,8 @@ export function OrderingView({
   function onDragEnd(e: DragEndEvent) {
     setActiveId(null);
     const { active, over } = e;
+    // Video kapağına yavaş (hareketsiz) dokunuş: taşıma değil, izle.
+    if (Math.hypot(e.delta.x, e.delta.y) < 8 && tapMediaTrigger(e.activatorEvent)) return;
     if (!over || active.id === over.id) return;
     commit(arrayMove(order, order.indexOf(String(active.id)), order.indexOf(String(over.id))));
   }
@@ -101,7 +103,7 @@ export function OrderingView({
     <div className="@container space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-exam-slate-500">
-          {tiles ? "Card 1 is first. Put the cards in order: 1, 2, 3…" : "First is at the top. Last is at the bottom."}
+          First is at the top. Last is at the bottom.
         </p>
         {touched ? (
           <StartOver disabled={disabled} onReset={() => commit(initial)} />
@@ -125,13 +127,9 @@ export function OrderingView({
         onDragCancel={() => setActiveId(null)}
         accessibility={DND_A11Y}
       >
-        <SortableContext items={order} strategy={tiles ? rectSortingStrategy : verticalListSortingStrategy}>
-          <ol
-            className={cn(
-              "gap-2",
-              format === "VIDEO" ? "grid grid-cols-1 gap-3 @xs:grid-cols-2" : tiles ? "grid grid-cols-2 @lg:grid-cols-3 @3xl:grid-cols-4" : "flex flex-col",
-            )}
-          >
+        <SortableContext items={order} strategy={verticalListSortingStrategy}>
+          {/* Her format alt alta tek sütun: sıra yukarıdan aşağı okunur (yan yana kartlarda sıra anlaşılmıyordu). */}
+          <ol className="flex flex-col gap-2">
             {order.map((id, index) => {
               const item = byId.get(id);
               if (!item) return null;
@@ -141,14 +139,13 @@ export function OrderingView({
                   id={id}
                   index={index}
                   count={order.length}
-                  horizontal={tiles}
                   option={item}
                   format={format}
                   disabled={disabled}
                   correct={!!preview && correctOrder?.[index] === id}
                   onStep={(delta) => step(id, delta)}
                 >
-                  <OptionContent option={item} format={format} size={tiles ? "md" : "sm"} />
+                  <RowContent option={item} format={format} />
                 </SortableRow>
               );
             })}
@@ -187,7 +184,6 @@ function SortableRow({
   id,
   index,
   count,
-  horizontal,
   option,
   format,
   disabled: boardDisabled,
@@ -198,7 +194,6 @@ function SortableRow({
   id: string;
   index: number;
   count: number;
-  horizontal: boolean;
   option: PlayerOption;
   format: OptionFormat;
   disabled?: boolean;
@@ -218,7 +213,6 @@ function SortableRow({
       style={{ transform: CSS.Translate.toString(transform), transition, touchAction: "manipulation" }}
       className={cn(
         "flex select-none items-center gap-2 rounded-xl border-2 bg-white p-2 transition-[border-color,box-shadow] [-webkit-touch-callout:none]",
-        horizontal && "flex-col items-stretch",
         correct ? "border-emerald-400" : "border-exam-slate-200",
         // Sürüklenen kartın yeri soluk kalır (diğerleri yer açar, düzen zıplamaz).
         isDragging && "opacity-30",
@@ -230,7 +224,7 @@ function SortableRow({
         role="button"
         tabIndex={-1}
         aria-label={`Card ${index + 1}. Drag to move.`}
-        className={cn("flex min-w-0 flex-1 gap-2 rounded-lg px-1 py-1", horizontal ? "items-start" : "items-center", disabled ? "cursor-default" : "cursor-grab hover:bg-exam-slate-50")}
+        className={cn("flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1", disabled ? "cursor-default" : "cursor-grab hover:bg-exam-slate-50")}
       >
         <span
           className={cn(
@@ -253,15 +247,30 @@ function SortableRow({
         </div>
       </div>
       {!boardDisabled ? (
-        <div className={cn("flex shrink-0 gap-1", horizontal ? "justify-between" : "flex-col @sm:flex-row")}>
-          <button type="button" className={stepBtn} disabled={index === 0 || !!lock} onClick={() => onStep(-1)} aria-label={horizontal ? "Move back" : "Move up"}>
-            <IconArrowUp className={horizontal ? "-rotate-90" : undefined} aria-hidden />
+        <div className="flex shrink-0 flex-col gap-1 @sm:flex-row">
+          <button type="button" className={stepBtn} disabled={index === 0 || !!lock} onClick={() => onStep(-1)} aria-label="Move up">
+            <IconArrowUp aria-hidden />
           </button>
-          <button type="button" className={stepBtn} disabled={index === count - 1 || !!lock} onClick={() => onStep(1)} aria-label={horizontal ? "Move forward" : "Move down"}>
-            <IconArrowDown className={horizontal ? "-rotate-90" : undefined} aria-hidden />
+          <button type="button" className={stepBtn} disabled={index === count - 1 || !!lock} onClick={() => onStep(1)} aria-label="Move down">
+            <IconArrowDown aria-hidden />
           </button>
         </div>
       ) : null}
     </li>
   );
+}
+
+/** Satır içeriği: görsel küçük kare, video küçük kapak (dokununca modalda oynar), ses/metin olduğu gibi. */
+function RowContent({ option, format }: { option: PlayerOption; format: OptionFormat }) {
+  const caption = option.text ? <HtmlInline value={option.text} className="block text-sm" /> : null;
+  if (format === "VIDEO") return <MediaVideoPopup mediaId={option.mediaId} playback={option.playback} caption={caption} />;
+  if (format === "IMAGE") {
+    return (
+      <span className="flex items-center gap-3">
+        <MediaImageSlot mediaId={option.mediaId} alt={htmlOf(option.text)} className="h-20 w-28 shrink-0 rounded-md bg-exam-slate-50 object-contain @sm:h-24 @sm:w-36" />
+        {caption}
+      </span>
+    );
+  }
+  return <OptionContent option={option} format={format} size="sm" />;
 }

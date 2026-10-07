@@ -425,3 +425,162 @@ Sorun (ekran görüntüsü, gruplama): video kartları izlenmeden taşınabiliyo
 
 - Eski tasarıma dönüş: boşluğun zemini hep şeffaf (boş/dolu/açık). Boş = yalnız "•••" + küçük ok, çizgi yok. Dolu = kelime boşluğu doldurur, metin altı çizili (`underline decoration-2 underline-offset-4`, koyu; liste açıkken mavi).
 - Kelime havuzu yuvası da şeffaf; yalnız sürüklerken / kelime seçiliyken bırakılacak yer hafif mavi yanar (nereye bırakılacağı belli olsun). Yerleşen kelime aynı altı çizili düz metin.
+
+## 18 — Yönerge sesi öğrencide görünmüyordu; önizlemelerle model eşlendi (2026-10-07)
+
+- Kök neden: öğrenci bölüm sayfası `QuestionViewModel`'i `body`'den alan alan kuruyordu ve `instructionAudio`'yu atlıyordu. Soru düzenleyici önizlemesi (`previewModelFromDetail` / editör modeli) bu alanı veriyordu; bu yüzden yönerge yanındaki "Listen" düğmesi yalnız önizlemede çıkıyordu.
+- Öğrenci sayfası ve admin sınav "Önizleme" sekmesi (`ExamExtraTabs` › `modelOf`) artık `instructionAudio`'yu da aktarıyor.
+- Sınav önizleme sekmesi soruyu öğrenci ekranı / `QuestionPreviewShell` ile aynı kapta çiziyor (`rounded-lg border-exam-slate-200`, `px-4 sm:px-6`).
+- Bilerek farklı kalanlar (önizleme modu): sarı "Önizleme modu" şeridi, oynatıcıda duraklat düğmesi ve sınırsız dinleme, doğru cevap işaretleri. Öğrencide: hak sayacı, "Listening…" ve çalarken kilit.
+- Sonraki adım: model kurulumu üç yerde tekrarlanıyor (öğrenci sayfası, `modelOf`, `previewModelFromDetail`). Tek bir `toQuestionViewModel(body, parts)` yardımcısına toplanmalı; böylece yeni bir alan bir ekranda unutulamaz.
+
+## 19 — Sıralama alt alta; video kapak + modal oynatıcı (2026-10-07)
+
+- Sorun: sıralama sorularında görsel/video kartları 2–4 sütunlu ızgaradaydı, sıra (1, 2, 3…) satır satır okunmak zorundaydı ve anlaşılmıyordu. Videolar büyük oynatıcıyla yer kaplıyordu.
+- `OrderingView`: her format tek sütun, alt alta (`verticalListSortingStrategy`). Satır = sıra no · tutamak · içerik · ↑/↓. Görsel küçük kare (`h-20 w-28`, sm'de `h-24 w-36`), metin/ses aynı. `orientation: HORIZONTAL` ayarı öğrenci görünümünde artık uygulanmıyor (bilinçli).
+- Yeni `MediaVideoPopup` (MediaContext): satırda küçük kapak (`w-32`/`w-40`, 16:9) + durum (Tap to watch / Watch again / Watched) + hak noktaları. Kapağa dokununca modal açılır ve video oynar.
+- Öğrenci kuralları değişmedi, aynı `usePlayback`: hak sayısı, aynı anda tek medya + soru geçiş kilidi, duraklatılamaz, bitince `markHeard` → "Watch the video to the end first" kilidi açılır. Modal video bitene kadar kapanmaz: Kapat düğmesi kilitli, Esc ve dış tıklama işlemez. Oynatılamazsa (hata) kapatılabilir.
+- Video öğesi modal kapalıyken de bağlı (gizli) kalır; `play()` dokunuşun içinde çağrılır (iOS otomatik oynatma kısıtı). Modal panel köküne (`[data-panel]`) portal, `.exam-player` kapsamında.
+- Önizleme (admin): modalda kontroller açık, istenince kapanır (kapanınca durur), sınır yok.
+
+## 20 — Tüm soru videoları kapak + modal (2026-10-07)
+
+- `MediaVideo` artık `MediaVideoPopup layout="tile"` çiziyor: kabı dolduran kapak (16:9, `max-h-56`) + altında durum ve hak noktaları; dokununca modal. Böylece uyaran/kök videoları (`ContentBlockView`) ve tüm seçenek videoları (`OptionContent`: çoktan seçmeli kartlar, sürükle havuzu, eşleştirme, gruplama, hotspot) tek yapıda. Sıralama `layout="row"` (küçük kapak, yanında durum).
+- Eski satır içi oynatıcı (büyük video + alt bilgi şeridi, çalınca scrollIntoView) kaldırıldı; kurallar aynı `usePlayback`.
+- Olay sızıntısı: portal olayları React ağacında yukarı taşınır. Modal kökünde pointer/mouse/touch/key/click durduruluyor (modal içi tıklama kartı seçmesin, sürüklemesin). Kapak düğmesi de kendi olaylarını durduruyor; sarmalayıcıdaki durdurma kaldırıldı → kart açıklamadan tutularak sürüklenebilir.
+- Kapsam dışı (soru videosu değil): öğrencinin kendi video cevabı önizlemesi (`ResponseViews`), cihaz kontrolü, admin medya/değerlendirme ekranları. Kutuya yerleşmiş küçük `VideoThumb` (sm/fill) oynatıcı değil, olduğu gibi.
+
+## 21 — Video kartları küçük ve düzenli dizilim (2026-10-07)
+
+- Sorun: gruplama/eşleştirme/hotspot havuzunda ve video seçeneklerinde sabit 2 sütun vardı; 3 videoda 2 üstte, 1 altta tek başına büyük duruyordu. Video artık modalda oynadığı için kartta büyük oynatıcıya gerek yok.
+- `POOL_VIDEO_GRID` ve `OptionGrid` (VIDEO): `repeat(auto-fill, minmax(9.5rem | 10.5rem, 1fr))` eşit sütunlar → genişte 3–5 video tek satır, dar alanda düzenli kırılım; kartlar aynı boy.
+- `MediaVideoPopup` tile: en fazla `max-w-64`, 16:9 kapak + 40px oynat rozeti, altında kısa durum ve hak noktaları (sıkı). Uyaran/kök videoları da bu boyda.
+- Görsel havuzları, kutuya yerleşmiş kareler (fill) ve sıralama satırı değişmedi.
+
+## 22 — Admin önizlemesi = öğrenci sınav ekranı: tek bileşen, tek dönüştürücü, tek kap (2026-10-07)
+
+Denetim: soru içeriği dört yerde çiziliyor ve dördü de aynı `QuestionView` (exam-player) bileşenini kullanıyor:
+
+| Ekran | Veri kaynağı | Mod |
+|---|---|---|
+| Soru düzenleyici sağ panel (`/admin|staff/content/questions/[id]`, `QuestionPreviewShell`) | editör durumu (canlı taslak) | `preview` |
+| Sınav kurucu üzerine gelme önizlemesi (`QuestionPreviewLoader`) | `/authoring/questions/versions/{id}` | `preview` |
+| Sınav › Önizleme sekmesi (`ExamPreviewTab`) | `/authoring/exams/{id}/preview?seed` | `preview` |
+| Öğrenci sınav ekranı | `/applications/{id}/sections/{sid}/content` | öğrenci |
+
+Sorun bileşende değil beslemedeydi: gövde → model dönüşümü her ekranda ayrı elle yazılmıştı (öğrenci ve sınav önizlemesi `instructionAudio`'yu düşürüyordu); kap (çerçeve + iç boşluk) üç yerde kopyaydı.
+
+- `viewBodyOf(body)` (`exam-player/types.ts`): instruction, instructionAudio, mainAudio, stimulus tek yerde. Öğrenci sayfası, `ExamPreviewTab`, `previewModelFromDetail` bunu kullanıyor. Editör canlı taslağı kendi durumundan kurar (alanlar aynı).
+- `QuestionFrame` (`QuestionView.tsx`): öğrenci ekranı, `QuestionPreviewShell`, sınav önizlemesi aynı kap.
+- Bilinçli farklar yalnız `preview` bayrağından gelir: sarı önizleme şeridi, sınırsız/duraklatılabilir medya, kilit yok, doğru cevap işaretleri, "Yönerge yok" yer tutucu.
+- Kalan dış bağımlılık: öğrenci yanıtı (`sections/{sid}/content`) `question.body.instructionAudio` döndürmezse yönerge sesi yine görünmez (backend).
+
+### 22 eki — Lint temizliği (değişen dosyalar)
+
+- `useAnswerSync`: "Saving…/Saved" durumu son kayıt sonucundan türetiliyor (effect içinde senkron setState yok). `useSavedAnswer`: geç yüklenen cevap, revision değişince render sırasında bir kez alınıyor (effect yerine React'in "render sırasında durum ayarı" kalıbı).
+- Öğrenci bölüm sayfası: kaldığı soru `useEffectEvent` ile yükleme anında okunuyor (bağımlılık uyarısı; içerik her geçişte yeniden yüklenmiyor).
+- `ExamExtraTabs`: önizleme ve lisans listesi effect içinde iptal edilebilir istek; lisans verilince `version` artar ve liste yeniden çekilir.
+- Değişen dosyalarda lint 0. Projenin geri kalanında önceden kalma 26 hata + 14 uyarı var (çoğu aynı kural: effect içinde setState, render sırasında ref okuma).
+
+### 22 eki 2 — Değişiklik incelemesi
+
+- **Hata (düzeltildi):** video modalı `z-90` idi; sınav uyarıları daha altta (bağlantı/odak 40, KidDialog 50, tam ekran kapısı 80). Video çalarken tam ekrandan çıkılırsa video dondurulur, "oynuyor" durumda kaldığı için modal kapanmaz ve kapının üstünde kalırdı → öğrenci "tam ekrana dön"e basamaz, sınav kilitlenirdi (portal, kapının `invisible` sarmalayıcısının dışında). Artık öğrencide `z-35` (alt çubuk 30'un üstü, uyarıların altı), önizlemede `z-60` (admin kabuğu ≤50'nin üstü).
+- Modal açılınca klavye odağı modala geçiyor (`tabIndex=-1` + focus).
+- İncelenip sorunsuz bulunanlar: `viewBodyOf` eski alanlarla aynı sonucu veriyor; tam ekran dondurma modal videosunda da çalışıyor (kapaklar sessiz ve hiç oynamıyor); oynatılamayan video modalı kilitlemiyor; hakkı biten video açılmıyor; sıralamada kilitli satırın kapağı tıklanabiliyor; `useAnswerSync` durumu ve `useSavedAnswer` geri yükleme aynı davranıyor.
+- Derleme: `jspdf` / `jspdf-autotable` package.json'da var ama kurulu değil (`npm install` gerekli; bu değişiklikle ilgisiz).
+
+## 23 — Video kartları eşit boy, sade kilit gösterimi (2026-10-07)
+
+- Sorun (gruplama havuzu ve diğer havuzlar, video seçenekleri): kilitli kartın altına iki satıra taşabilen sarı "Watch the video to the end first." kutusu ekleniyordu; kilidi açılan kartta yoktu → aynı satırda kart yükseklikleri farklı. Soldaki tutamak ikonu videoyu daraltıyordu; hak noktaları ayrı satırdı.
+- Yeni kart (`MediaVideoPopup layout="tile"`): 16:9 kapak · hak noktaları kapağın sağ alt köşesinde · altında **sabit tek satır** durum (kilitli: kilit + "Watch to the end", amber; izlendi: ✓ "Watched", yeşil; diğer: "Tap to watch") · açıklama tek satır (`line-clamp-1`).
+- `DragItem tile`: video havuz kartı dikey, `h-full` (ızgara satırını eşit doldurur), tutamak ikonu ve sarı kutu yok; tam kilit cümlesi `aria-label`da kalır. `OptionButton` video kartı da `h-full`, sarı kutu yerine aynı tek satır.
+- Kilit kuralları değişmedi (`useOptionLock`); yalnız gösterim. Sıralama satırı ve metin/görsel/ses kartları aynı.
+
+## 24 — Video kartı kapağından da sürüklenir; dokunuş yine "izle" (2026-10-07)
+
+- Önce: kapak düğmesi pointer/mouse/touch olaylarını durduruyordu → kart yalnız kapak dışından tutulabiliyordu (video kartında bu alan çok dar).
+- Şimdi kapak da tutma yeri. Ayrım dnd-kit eşikleriyle: fare 6px hareket / dokunma 120ms basılı tut = sürükle; kısa dokunuş/tık = izle (modal).
+- Yavaş dokunuş: dokunmada 120ms'yi geçen hareketsiz dokunuş sürükleme olarak başlar ve tıklama yutulur. `tapMediaTrigger(activatorEvent)` (PlaceBoard): hareketsiz biten sürükleme `data-media-trigger` kapağında başladıysa kapağı tıklar → video açılır (kart seçilmez). touchend içinde çalıştığı için iOS oynatma izni korunur. Aynısı `OrderingView` onDragEnd'de.
+- Fareyle kapaktan sürükleyip kapağın üstünde bırakma: kapak pointerdown konumunu saklar; tıklama 6px'ten uzaksa oynatmaz. Programatik tıklama (`detail = 0`) bu kontrolden muaf.
+- Kapak tıklaması yine `stopPropagation`: havuzda kartı seçmez, çoktan seçmelide işaretlemez. Kilitli kart (henüz izlenmedi) sürüklenemez; kapağa her türlü dokunuş izle'yi açar. Modal kökündeki olay durdurma aynı.
+
+## 25 — Hakkı biten medya kartı her yerinden taşınır (2026-10-07)
+
+- Sorun: izleme/dinleme hakkı bitince (veya başka medya çalarken) kapak/oynat düğmesi native `disabled` oluyordu. Tarayıcı devre dışı düğmeye fare olaylarını iletmez → dnd-kit (mousedown) başlamaz, kart kapağın üstünden tutulamıyordu. Ses kartının oynat düğmesi ayrıca her durumda pointer/mouse/touch durduruyordu.
+- Video kapağı ve ses oynat düğmesi: `disabled` yerine `aria-disabled`; devre dışıyken tıklama işlenmez ve **karta geçer** (havuzda seç, çoktan seçmelide işaretle), imleç kartınkini alır. Etkinken tıklama durdurulur (izle/dinle). İkisi de `data-media-trigger`: basılı tut/sürükle = taşı, kısa ya da yavaş dokunuş = oynat (`tapMediaTrigger`, devre dışıysa normal kart dokunuşu).
+- Ses seçeneğinde sarmalayıcıdaki tıklama durdurma kaldırıldı: açıklamaya dokunmak kartı seçer.
+- Kilit kuralı aynı: henüz sonuna kadar izlenmemiş/dinlenmemiş kart taşınamaz (önce izle). Hak bitmişse kart zaten izlenmiş sayılır (`markHeard`) → serbest.
+
+## 26 — Tüm soru türlerinde video denetimi (2026-10-07)
+
+Taranan video noktaları: havuz kartı (gruplama, eşleştirme sağ, hotspot), yerleşmiş kart (grup/kutu/alan: `fill` ve `sm`), sürüklenen kopya, sıralama satırı, çoktan seçmeli kart, eşleştirme sol sütun, uyaran/kök blokları.
+
+- **Hata (düzeltildi):** yerleşmiş video kartında (`VideoThumb`) ortada ▶ vardı; yerleşmiş karta dokunmak kartı havuza geri alır → çocuk "izle" diye dokununca kart kayboluyordu. ▶ kaldırıldı; köşede küçük "VIDEO" etiketi (tür belli, oynatma vaadi yok). Yeniden izlemek için kart havuza alınır (kapaktan izle).
+- Uyaran/kökte art arda videolar: 2 sütun yerine havuzla aynı otomatik dolan eşit sütunlar (3 video "2 + 1" olmuyor). Görseller 2 sütun kaldı.
+- Sorunsuz: sürüklenen kopya küçük kapak + etiket; eşleştirme sol video kartı (sürüklenmez, kapak izle); çoktan seçmeli kart (kapak izle, kart/açıklama seç; hak bitince kapak da seçer); sıralama (24–25 kuralları); havuz kartları (23–25).
+
+## 27 — Öğrenci hata mesajları İngilizce ve sebebi söylüyor (2026-10-07)
+
+- Sorun: yükleme (görsel/ses/video cevap) ve sınav akışı hatalarında backend'in ham `error` metni (çoğu Türkçe, teknik) "Upload failed: …" ile öğrenciye basılıyordu; ne olduğu ve ne yapılacağı anlaşılmıyordu. Ön yüz yalnız `NO_ATTEMPTS` / `SESSION_REPLACED` kodlarını tanıyordu.
+- Yeni `src/features/exam-flow/studentErrors.ts` › `studentErrorMessage({ status, code, raw }, "upload" | "exam")`: sıra = bilinen kod → kesin HTTP durumu (401/413/415/429) → ham metindeki ipucu (TR + EN anahtar kelime: hak/deneme, boyut/büyük/MB, tür/format/uzantı, süre uzun, boş, oturum, kapalı/doldu) → HTTP durumu → genel. Çıktı A1–A2 İngilizce, "ne oldu + ne yap" (ör. "This file is too big. Please choose a smaller file.", "You have no tries left for this question.", "No internet connection. Check your internet and try again.").
+- Ham metin öğrenciye gösterilmez; `console.warn("[student-error:…]", { status, code, raw })` ile öğretmen/geliştirici görür.
+- Bağlantılar: `uploadApplicationMedia` (ağ hatası dahil), `ResponseViews` (önek kaldırıldı), `asExamError` (tüm sınav akışı çağrıları + cihaz kontrolü yüklemesi). Kod/durum alanları korunur (ExamFlowProvider yönlendirmeleri aynı).
+- Backend'e öneri: hatalarda kararlı `code` (ör. FILE_TOO_LARGE, UNSUPPORTED_MEDIA_TYPE, ATTEMPT_LIMIT, SESSION_EXPIRED) dönsün; ipucu tahmini yerine kesin eşleme olur.
+
+## 28 — İzin penceresi / dosya seçici tam ekrandan atınca sınav durmuyor (2026-10-07)
+
+- Sorun: tarayıcı, mikrofon/kamera izin penceresi ve dosya seçici açılırken güvenlik gereği tam ekrandan çıkar (sayfa engelleyemez). Her çıkış `FULLSCREEN_EXIT` ihlali yazıyor, süreyi durduruyor ve "The test is paused" kapısını açıyordu — öğrencinin istenen işi (kayıt, yükleme) ihlal sayılıyordu.
+- `fullscreen.ts`: beklenen çıkış penceresi (`EXPECTED_EXIT_MS` = 90 sn). `expectFullscreenExit()` öğrencinin dokunuşuyla başlayan işlemden önce; `settleExpectedExit()` işlem tam ekrandan çıkmadan bittiyse pencereyi kapatır; `withExpectedExit(work)` ikisini sarar.
+- Bağlanan noktalar: dosya yükleme düğmesi (tıkta aç, `change`'de kapat), ses cevabı ve video cevabı `getUserMedia`, cihaz kontrolü `getUserMedia`.
+- `ExamFlowProvider` yumuşak mod (`softExit`): pencere içindeki çıkışta ihlal yazılmaz, kapı açılmaz, süre/heartbeat sürer; üstte küçük şerit "Tap anywhere to go back to full screen" ve **öğrencinin sonraki dokunuşu/tuşu** (`click`/`keydown`, capture) tam ekranı geri açar. Pencere dolar ve hâlâ tam ekran dışındaysa eski kural: `FULLSCREEN_EXIT` yazılır, medya dondurulur, kapı açılır.
+- Sınır: tarayıcı tam ekranı yalnız kullanıcı hareketiyle açar; izin/dosya penceresi kapandıktan sonra otomatik dönüş mümkün değil, bu yüzden "sonraki dokunuş". Pencere yalnız öğrencinin kendi başlattığı işlemle açılır; Esc ile normal çıkış eskisi gibi ihlal.
+- İyileştirme önerisi: sınavda kayıt sorusu varsa izinleri cihaz kontrolünde (tam ekrandan önce) almak; Chrome izni oturum boyunca hatırlar, sınav içinde pencere hiç açılmaz.
+
+## 29 — "Soru atlayabilir" öğrenciye söyleniyor; kaydetme hatası İngilizce (2026-10-07)
+
+- Denetim: öğrenci sınav ekranında ayrı bir "boş bırak / clear answer" düğmesi hiçbir commit'te yoktu. Admin "Soru atlayabilir" (`navigation.allowSkip`) → öğrencide yalnız cevapsız Next ve ileri numaraya atlama açılıyordu; ekranda söylenmiyordu.
+- Backend (OpenAPI): öğrenci cevabı için yalnız `PUT /applications/{id}/answers/{itemId}` (`answerJson` zorunlu, `mediaId`, `seq`). Cevap silme / "atlandı" işareti yok; `answeredItemIds` listesinden çıkarmanın yolu yok → **"Clear my answer" mevcut backend ile yapılamaz** (backend'e öneri: `DELETE /applications/{id}/answers/{itemId}` ya da boş `answerJson` = sil + answeredItemIds'ten çıkar, `allowSkip` kapalıysa red).
+- Ön yüz (mevcut backend ile): `allowSkip` açık ve soru cevapsızken footer'da gri ipucu — "You can skip this question. Tap Next." / son soruda "You can leave this question blank." Kapalıyken eski "Answer this question to continue." aynı.
+- `LiveExamSessionProvider`: cevap kaydedilemezse öğrenciye giden hata `studentErrorMessage` ile İngilizce (önce sabit "Cevap kaydedilemedi" ya da ham backend metni).
+
+## 30 — "Clear my answer": mevcut backend ile cevabı boşaltma (2026-10-07)
+
+29'daki "mevcut backend ile yapılamaz" tespiti düzeltildi: ayrı silme uç noktası olmadan, mevcut `PUT /applications/{id}/answers/{itemId}` ile kuruldu.
+
+- Sözleşme (ön yüz): **boş cevap `{}` = boş bırakıldı.** Gerçek cevaplar her zaman en az bir alan taşır (`optionId`, `answers`, `order`, `pairs`…), karışma yok. `isClearedAnswer()` (`ExamSessionContext`).
+- `LiveExamSessionProvider.clearAnswer(itemId)`: önce ekranı "cevapsız" yapar (`onCleared`), taslağa `{}` yazar, mevcut kuyrukla (`seq`) `{}` gönderir. Sunucu reddederse (ör. tür doğrulaması, medya cevabında mediaId zorunluluğu) önceki cevap taslağa geri yazılır, soru yeniden "cevaplı" olur ve İngilizce hata gösterilir. `getAnswer` boş cevabı döndürmez (soru boş açılır); `isCleared` sorgusu.
+- Yenileme / başka sekme: hidrasyonda sunucudaki ya da taslaktaki `{}` → `onCleared` (cevaplı sayılmaz); taslak `{}` ama sunucuda eski cevap → `{}` yeniden kuyruğa.
+- Sınav sayfası: `localCleared` (sunucunun `answeredItemIds` listesi temizlenen soruyu hâlâ içerir; ekranda override), `isAnswered` önce buna bakar; yeniden cevaplanınca (`markAnswered`) çıkar. Alt numara griye döner, "unanswered" sayacı ve "You can skip…" ipucu geri gelir.
+- UI: yalnız `allowSkip` açık + soru cevaplı + medya/kayıt yokken soru kartının altında sağda "Clear my answer" (ghost, çöp ikonu). Onay `KidDialog`: "Clear your answer?" / "This question will be empty again. You can answer it later." / "Clear answer" · "Keep my answer". Başarıda soru bileşeni yeniden açılır (`clearRound` key) → seçim/sıra/yerleşimler boş.
+- Bilinen sınırlar (backend davranışı doğrulanamadı): puanlama `{}` cevabını 0 sayar (boş ile aynı) — beklenen; sunucu tarafı "cevaplanan" istatistiği `{}`'yi cevap sayabilir; manuel değerlendirilen (yazma/konuşma) bir soru temizlenirse öğretmen kuyruğunda boş cevap görünebilir. Backend `{}`'yi reddederse özellik zararsızca hata verir (cevap korunur).
+
+## 31 — 30 geri alındı: "Start again" yalnız ekranda sıfırlar (2026-10-07)
+
+- Karar: cevabı sunucuda boşaltmaya gerek yok; soru yalnız ekranda ilk hâline dönsün. 30'daki `{}` kaydı, `clearAnswer` / `isCleared` / `isClearedAnswer`, `onCleared`, sayfadaki `localCleared` takibi ve `RestoreAnsweredMarks` değişikliği **tamamen kaldırıldı** (29'daki İngilizce kaydetme hatası korunuyor).
+- Yeni: `discardDraft(itemId)` (`ExamSessionContext`, `LiveExamSessionProvider`) — yalnız bu tarayıcıdaki ekran taslağını (sessionStorage) siler; **sunucuya istek yok**.
+- Sınav sayfası: soru cevaplıyken (medya/kayıt yokken) kartın altında sağda "Start again" (ghost, yenile ikonu); `allowSkip`'e bağlı değil. Onay: "Start this question again?" / "The question will look new again. Your last answer stays saved until you give a new one." Onayda partların taslağı silinir ve soru bileşeni yeniden açılır (`resetRound` key) → seçim/sıra/yerleşim/yazı boş.
+- Davranış: kayıtlı cevap sunucuda kalır, soru "cevaplı" sayılmaya devam eder; öğrenci yeni cevap verince o kaydedilir. Sayfa yenilenirse sunucudaki son cevap yeniden görünür.
+
+## 32 — Telefon / tablet duyarlılık denetimi (2026-10-07)
+
+Kod üzerinden denetim (tarayıcı aracı yok): 320–390 telefon, 768 tablet dikey, 1024–1180 tablet yatay.
+
+Düzeltilenler:
+- **Metin + soru düzeni** (`QuestionView`): uyaranlı soruda iki sütun `@md` (28rem) → `@3xl` (48rem). Tablet dikeyde (~670px alan) metin ve soru ~320px'lik iki sütuna sıkışıyordu (havuz/kutular daralıyordu); artık alt alta. Tablet yatay (≥ ~784px alan) ve masaüstünde yan yana. Admin önizlemesine de yansır (aynı bileşen).
+- **Dokunma hedefleri ≥ 44px**: alt çubuktaki soru numaraları 32 → 44px (`size-11`, yatay kaydırmalı liste); üst çubuktaki "Break" 32 → 44px (`h-11 min-w-11`).
+- **Dil**: öğrenci kabuğundaki "Ana sayfa" → "Home" (panel tamamen İngilizce).
+
+Kontrol edilip sorunsuz: `min-h-dvh` + `pb-safe` (iPhone ana çizgi), üst çubuk 48px + başlık `truncate`, telefonda süre etiketi/"Break" metni gizli (ikon), alt çubuk ikon düğmeleri 44px, lg+ kenar düğmeleri; girdiler ≥ 16px (yazma `text-base`, boşluk girdisi metinden miras `text-base`, giriş `text-base`) → iOS odak yakınlaştırması yok; ana sayfa ve sınav girişi bilgi kutuları dar ekranda dikey; Ordering ↑/↓ 44px; seçenek kartları `min-h-14`.
+
+Cihazda doğrulanmalı: iOS'ta yazma sorusunda klavye açıkken yapışkan alt çubuğun metin alanını örtmemesi; tablet yatayda kenar düğmelerinin içerikle çakışmaması; 320px'te çok uzun bölüm adlarının üst çubukta kısalması.
+
+## 33 — Commit öncesi inceleme (2026-10-07)
+
+Tüm commit edilmemiş değişiklikler (25 dosya) gözden geçirildi.
+
+Düzeltilen hatalar:
+- **Yumuşak tam ekran zamanlayıcısı uzamıyordu** (`ExamFlowProvider`): yumuşak moddayken yeni bir izin/dosya işlemi pencereyi uzatırsa zamanlayıcı ilk süreye göre kalıyordu → kapı erken açılabilirdi. Süre dolunca pencere hâlâ geçerliyse yeniden kurulur.
+- **Dosya seçici iptalinde pencere 90 sn açık kalıyordu** (`ResponseViews`): seçici tam ekrandan çıkarmadan kapanırsa (iptal / Safari) sayfa odağı dönünce `settleExpectedExit` → pencere kapanır, gerçek Esc çıkışı yine ihlal.
+- **Hata çevirici yanlış sebep üretiyordu** (`studentErrors`): anahtar kelimeler kelime içinde eşleşiyordu ("mul**tip**art" → dosya türü; "**hak**kında" → hak bitti). Artık kelime başında ve belirgin ifadelerle; 11 örnek mesajla doğrulandı (boyut, tür, hak, oturum, kapalı, ağ, 413, 500, SESSION_REPLACED, ilgisiz metin → genel).
+
+Doğrulandı: tip kontrolü temiz; değişen dosyalarda lint 0; **üretim derlemesi başarılı** (42 sayfa). Derleme için eksik `jspdf` / `jspdf-autotable` `--no-save` ile yalnız `node_modules`'a kuruldu (package.json / lock değişmedi; ekipte `npm install` gerekli).

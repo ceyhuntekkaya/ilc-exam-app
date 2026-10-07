@@ -4,17 +4,17 @@ import { ExamApiError, postState, putPosition, sectionContent } from "@/src/feat
 import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
-import { QuestionView } from "@/src/features/exam-player";
+import { QuestionFrame, QuestionView } from "@/src/features/exam-player";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { LiveExamSessionProvider } from "@/src/features/exam-player/session/LiveExamSessionProvider";
 import { resetPlayerGuard, saveAllUnsaved, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
-import type { QuestionViewModel } from "@/src/features/exam-player/types";
+import { viewBodyOf, type QuestionViewModel } from "@/src/features/exam-player/types";
 import { readSession } from "@/src/features/exam-flow/session";
 import { KidButton, KidDialog, KidLoading, KidNotice } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
-import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconFlag, IconPause, IconVolume } from "@/src/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconFlag, IconPause, IconRefresh, IconVolume } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 
 type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; parts: QuestionViewModel["parts"] } };
 
@@ -40,10 +40,18 @@ export default function SectionQuestionPage() {
   // Bu oturumda cevap verilen sorular: sunucunun answeredItemIds listesi heartbeat ile (5 sn) gelir;
   // beklemeden "Next" açılsın ve numara yeşile dönsün.
   const [localAnswered, setLocalAnswered] = useState<ReadonlySet<string>>(() => new Set());
+  // "Start again": soru bileşeni sıfırdan açılsın (yalnız ekran; sunucuya istek yok).
+  const [resetRound, setResetRound] = useState(0);
+  const [confirmReset, setConfirmReset] = useState(false);
   const section = state?.sections.find((item) => item.sectionId === params.sectionId);
   const session = readSession(params.recipientId);
 
   const resumeItemId = state?.currentItemId;
+  // İçerik yalnız bölüm değişince yüklenir; kaldığı soru yükleme anındaki değerle okunur (her geçişte yeniden yükleme yok).
+  const resumeIndex = useEffectEvent((list: Item[]) => {
+    const found = list.findIndex((item) => item.examQuestionId === resumeItemId);
+    return found >= 0 ? found : 0;
+  });
   useEffect(() => {
     const current = readSession(params.recipientId);
     if (!current || state?.stage !== "IN_SECTION" || state.currentSectionId !== params.sectionId) return;
@@ -53,8 +61,7 @@ export default function SectionQuestionPage() {
         if (cancelled) return;
         const list = loaded as Item[];
         setItems(list);
-        const found = list.findIndex((item) => item.examQuestionId === resumeItemId);
-        setIndex(found >= 0 ? found : 0);
+        setIndex(resumeIndex(list));
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof ExamApiError ? err.message : "Questions could not be loaded.");
@@ -118,9 +125,8 @@ export default function SectionQuestionPage() {
   const item = items[index];
   const model: QuestionViewModel | null = item
     ? {
-        instruction: item.question.body?.instruction,
-        stimulus: item.question.body?.stimulus ?? [],
-        mainAudio: item.question.body?.mainAudio,
+        // Admin önizlemesiyle aynı dönüştürücü (viewBodyOf): gövde alanları her ekranda aynı.
+        ...viewBodyOf(item.question.body),
         parts: item.question.parts ?? [],
       }
     : null;
@@ -210,7 +216,7 @@ export default function SectionQuestionPage() {
                   onClick={() => go(() => setConfirm("leave"))}
                   disabled={mediaBusy}
                   aria-label="Take a break"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 [&>svg]:size-4"
+                  className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 [&>svg]:size-5"
                 >
                   <IconPause aria-hidden />
                   <span className="hidden sm:inline">Break</span>
@@ -235,11 +241,18 @@ export default function SectionQuestionPage() {
         {/* Soru alanı: ekranın büyük kısmı. */}
         <div className="student-container flex-1 py-3 sm:py-4 lg:px-24 xl:px-28">
           {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
-          <div className={cn("w-full overflow-hidden rounded-lg border border-exam-slate-200 bg-white shadow-sm", held && "pointer-events-none blur-sm")}>
-            <div className="px-4 py-4 sm:px-6">
-              {model ? <QuestionView key={item?.examQuestionId ?? index} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+          <QuestionFrame className={cn(held && "pointer-events-none blur-sm")}>
+            {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+          </QuestionFrame>
+          {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
+          {item && answered && !mediaBusy && !held ? (
+            <div className="mt-2 flex justify-end">
+              <KidButton variant="ghost" className="min-h-11 text-sm" onClick={() => setConfirmReset(true)}>
+                <IconRefresh aria-hidden />
+                Start again
+              </KidButton>
             </div>
-          </div>
+          ) : null}
           {error ? <div className="mt-3"><KidNotice tone="coral">{error}</KidNotice></div> : null}
         </div>
 
@@ -253,6 +266,11 @@ export default function SectionQuestionPage() {
           ) : !canNext ? (
             <p className="student-container pb-1.5 text-center text-xs font-semibold text-(--kid-sun)">
               {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
+            </p>
+          ) : section.allowSkip && item && !answered && !guard.unsaved.size ? (
+            // "Soru atlayabilir" açık: boş bırakılabildiğini söyle (yoksa çocuk cevaplamak zorunda sanıyor).
+            <p className="student-container pb-1.5 text-center text-xs font-semibold text-neutral-500" aria-live="polite">
+              {last ? "You can leave this question blank." : "You can skip this question. Tap Next."}
             </p>
           ) : null}
           <div className="student-container flex items-center gap-2 sm:gap-3">
@@ -281,7 +299,8 @@ export default function SectionQuestionPage() {
                         aria-current={current ? "step" : undefined}
                         aria-label={`Question ${position + 1}${done ? ", answered" : ", not answered"}`}
                         className={cn(
-                          "grid size-8 place-items-center rounded-lg text-[13px] font-bold transition disabled:cursor-default",
+                          // Dokunma hedefi ≥ 44px (çocuk, tablet).
+                          "grid size-11 place-items-center rounded-lg text-sm font-bold transition disabled:cursor-default",
                           current && "bg-primary-600 text-white",
                           !current && done && "bg-(--kid-mint-bg) text-(--kid-mint)",
                           !current && !done && "bg-neutral-100 text-neutral-500",
@@ -328,6 +347,16 @@ export default function SectionQuestionPage() {
         ) : null}
 
         <ReconnectOverlay show={held} />
+        {confirmReset && item ? (
+          <ResetQuestionDialog
+            parts={(item.question.parts ?? []).map((part) => part.id)}
+            onDone={() => {
+              setConfirmReset(false);
+              setResetRound((value) => value + 1);
+            }}
+            onCancel={() => setConfirmReset(false)}
+          />
+        ) : null}
         {pendingNav ? (
           <KidDialog
             title="Save your answer?"
@@ -398,6 +427,29 @@ function RestoreAnsweredMarks({
     }
   }, [items, onPart, session]);
   return null;
+}
+
+/**
+ * "Start again" onayı: soru ilk açıldığı hâline döner. Yalnız bu tarayıcıdaki taslak silinir; sunucuya istek yok.
+ * Oturum bağlamı gerektiği için sağlayıcının içinde çizilir.
+ */
+function ResetQuestionDialog({ parts, onDone, onCancel }: { parts: string[]; onDone: () => void; onCancel: () => void }) {
+  const session = useExamSession();
+  return (
+    <KidDialog
+      title="Start this question again?"
+      icon={<IconRefresh />}
+      tone="sun"
+      body="The question will look new again. Your last answer stays saved until you give a new one."
+      confirmLabel="Start again"
+      cancelLabel="Cancel"
+      onConfirm={() => {
+        for (const id of parts) session?.discardDraft?.(id);
+        onDone();
+      }}
+      onCancel={onCancel}
+    />
+  );
 }
 
 /** Kenar gezinme düğmesi (lg+): yuvarlak ok + altında etiket, sayfa ortasında sabit. */

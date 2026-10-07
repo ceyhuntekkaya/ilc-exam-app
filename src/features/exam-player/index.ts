@@ -10,7 +10,7 @@ export type {
   Shape,
 } from "@/src/features/exam-player/types";
 export { htmlOf, shortId } from "@/src/features/exam-player/types";
-export { QuestionView } from "@/src/features/exam-player/QuestionView";
+export { QuestionFrame, QuestionView } from "@/src/features/exam-player/QuestionView";
 export { QuestionPreviewShell } from "@/src/features/exam-player/QuestionPreviewShell";
 export { PlayerPreviewProvider, usePlayerPreview } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 export { PreviewRubricPanel } from "@/src/features/exam-player/preview/PreviewRubricPanel";

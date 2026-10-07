@@ -19,6 +19,48 @@ type KeyboardLock = {
 };
 
 let mediaHeld = false;
+let expectedExitUntil = 0;
+
+/** Beklenen çıkış penceresi: bu süre içinde dönülmezse çıkış ihlal sayılır ve sınav durur. */
+export const EXPECTED_EXIT_MS = 90_000;
+
+/**
+ * Tarayıcı izin penceresi (mikrofon/kamera) ve dosya seçici açılırken güvenlik gereği tam ekrandan çıkar; sayfa bunu
+ * engelleyemez. Öğrencinin kendi başlattığı bu işlemlerden ÖNCE çağrılır: bu süre içindeki çıkış ihlal sayılmaz,
+ * sınav durmaz ve öğrencinin bir sonraki dokunuşunda tam ekran geri açılır (ExamFlowProvider).
+ */
+export function expectFullscreenExit() {
+  // Koşulsuz: öğrenci yumuşak moddayken (tam ekran dışı) yükle'ye basarsa, aynı dokunuşla geri açılan tam ekran
+  // seçici yüzünden yeniden kapanabilir; o çıkış da beklenen sayılmalı.
+  expectedExitUntil = Date.now() + EXPECTED_EXIT_MS;
+}
+
+export function isFullscreenExitExpected() {
+  return Date.now() < expectedExitUntil;
+}
+
+/** İşlem bitti ve tam ekrandan hiç çıkılmadı (izin zaten verilmişti / seçici çıkarmadı): pencereyi kapat. */
+export function settleExpectedExit() {
+  if (isExamFullscreen()) expectedExitUntil = 0;
+}
+
+/** İzin isteyen işlemi (getUserMedia) beklenen çıkış penceresi içinde çalıştırır. */
+export async function withExpectedExit<T>(work: () => Promise<T>): Promise<T> {
+  expectFullscreenExit();
+  try {
+    return await work();
+  } finally {
+    settleExpectedExit();
+  }
+}
+
+export function clearExpectedExit() {
+  expectedExitUntil = 0;
+}
+
+export function expectedExitRemainingMs() {
+  return Math.max(0, expectedExitUntil - Date.now());
+}
 
 export function isExamMediaHeld() {
   return mediaHeld;

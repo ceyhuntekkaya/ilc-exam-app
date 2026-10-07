@@ -2,19 +2,16 @@
 
 import { authoringApi, type ExamDetail, type ExamGrantRow, type ExamPreview } from "@/src/features/authoring/shared/client";
 import { GrantDialog } from "@/src/features/assignments/GrantDialog";
-import { QuestionView } from "@/src/features/exam-player";
-import type { QuestionViewModel } from "@/src/features/exam-player/types";
+import { QuestionFrame, QuestionView } from "@/src/features/exam-player";
+import { viewBodyOf, type QuestionViewModel } from "@/src/features/exam-player/types";
 import { Badge, Button, errorMessage } from "@/src/ui";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type PreviewItem = ExamPreview["sections"][number]["items"][number];
 
 function modelOf(item: PreviewItem): QuestionViewModel {
-  const body = item.question.body;
   return {
-    instruction: body?.instruction as QuestionViewModel["instruction"],
-    stimulus: (body?.stimulus ?? []) as QuestionViewModel["stimulus"],
-    mainAudio: body?.mainAudio as QuestionViewModel["mainAudio"],
+    ...viewBodyOf(item.question.body),
     parts: (item.question.parts ?? []) as QuestionViewModel["parts"],
   };
 }
@@ -25,22 +22,25 @@ export function ExamPreviewTab({ examId }: { examId: string }) {
   const [sectionId, setSectionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const next = await authoringApi.previewExam(examId, seed);
-      setPaper(next);
-      setSectionId((current) => current && next.sections.some((section) => section.sectionId === current)
-        ? current
-        : next.sections[0]?.sectionId ?? null);
-    } catch (err) {
-      setError(errorMessage(err, "Önizleme hazırlanamadı"));
-    }
-  }, [examId, seed]);
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    authoringApi.previewExam(examId, seed).then(
+      (next) => {
+        if (cancelled) return;
+        setError(null);
+        setPaper(next);
+        setSectionId((current) => current && next.sections.some((section) => section.sectionId === current)
+          ? current
+          : next.sections[0]?.sectionId ?? null);
+      },
+      (err: unknown) => {
+        if (!cancelled) setError(errorMessage(err, "Önizleme hazırlanamadı"));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [examId, seed]);
 
   const section = paper?.sections.find((item) => item.sectionId === sectionId) ?? paper?.sections[0];
 
@@ -72,7 +72,10 @@ export function ExamPreviewTab({ examId }: { examId: string }) {
         {(section?.items ?? []).map((item, index) => (
           <article key={item.examQuestionId ?? index} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
             <p className="mb-2 text-xs font-semibold text-fg-subtle">Soru {index + 1}</p>
-            <QuestionView model={modelOf(item)} preview />
+            {/* Öğrenci ekranı ve soru önizlemesiyle aynı kap. */}
+            <QuestionFrame>
+              <QuestionView model={modelOf(item)} preview />
+            </QuestionFrame>
           </article>
         ))}
         {paper && (section?.items.length ?? 0) === 0 ? (
@@ -95,18 +98,25 @@ export function ExamGrantsTab({ exam }: { exam: ExamDetail }) {
   const [open, setOpen] = useState(false);
   const published = exam.status === "PUBLISHED";
 
-  const load = useCallback(async () => {
-    try {
-      setRows(await authoringApi.listExamGrants(exam.id));
-      setError(null);
-    } catch (err) {
-      setError(errorMessage(err, "Atamalar alınamadı"));
-    }
-  }, [exam.id]);
+  // Lisans verilince artar → liste yeniden çekilir.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    authoringApi.listExamGrants(exam.id).then(
+      (next) => {
+        if (cancelled) return;
+        setRows(next);
+        setError(null);
+      },
+      (err: unknown) => {
+        if (!cancelled) setError(errorMessage(err, "Atamalar alınamadı"));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [exam.id, version]);
 
   return (
     <div className="grid gap-4">
@@ -150,7 +160,7 @@ export function ExamGrantsTab({ exam }: { exam: ExamDetail }) {
         </table>
       </div>
       {rows.length === 0 && !error ? <p className="text-sm text-fg-subtle">Henüz kurum ataması yok.</p> : null}
-      <GrantDialog open={open} examId={exam.id} onClose={() => setOpen(false)} onGranted={() => void load()} />
+      <GrantDialog open={open} examId={exam.id} onClose={() => setOpen(false)} onGranted={() => setVersion((value) => value + 1)} />
     </div>
   );
 }
