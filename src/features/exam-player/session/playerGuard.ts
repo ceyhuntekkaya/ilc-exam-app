@@ -43,6 +43,11 @@ export function claimMedia(id: string): boolean {
   return true;
 }
 
+/** Ses/video çalıyor ya da kayıt sürüyor mu (tam ekran beklenen çıkış penceresi bu sırada dolmaz). */
+export function isMediaActive() {
+  return state.activeMedia != null;
+}
+
 export function releaseMedia(id: string) {
   if (state.activeMedia === id) emit({ ...state, activeMedia: null });
 }

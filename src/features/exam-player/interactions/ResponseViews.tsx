@@ -7,7 +7,7 @@ import { applicationMediaContentUrl } from "@/src/features/exam-player/session/s
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
 import { type HtmlValue } from "@/src/features/exam-player/types";
-import { expectFullscreenExit, settleExpectedExit, withExpectedExit } from "@/src/features/exam-flow/fullscreen";
+import { expectFullscreenExit, settleExpectedExitSoon, withExpectedExit } from "@/src/features/exam-flow/fullscreen";
 import { cn } from "@/src/lib/utils/cn";
 import { IconCheck, IconImage, IconTrash, IconUpload } from "@/src/ui/icons";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
@@ -323,7 +323,7 @@ function UploadDrop({
         className="hidden"
         disabled={disabled || busy}
         onChange={(e) => {
-          settleExpectedExit();
+          settleExpectedExitSoon();
           const files = Array.from(e.target.files ?? []);
           e.target.value = "";
           if (files.length) onFiles(files);
@@ -337,7 +337,7 @@ function UploadDrop({
           expectFullscreenExit();
           // Seçici kapanınca (dosya seçildi ya da iptal) sayfa odağı geri alır: tam ekrandan çıkılmadıysa pencereyi kapat
           // (aksi hâlde 90 sn boyunca gerçek bir Esc çıkışı da ihlal sayılmazdı).
-          window.addEventListener("focus", () => window.setTimeout(settleExpectedExit, 300), { once: true });
+          window.addEventListener("focus", settleExpectedExitSoon, { once: true });
           inputRef.current?.click();
         }}
         className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-exam-sky-300 bg-exam-sky-50 px-4 py-7 text-center transition enabled:hover:border-exam-sky-500 enabled:hover:bg-exam-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
