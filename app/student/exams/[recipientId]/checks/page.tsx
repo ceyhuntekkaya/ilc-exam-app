@@ -3,7 +3,7 @@
 import { ExamApiError, postState, uploadCheck } from "@/src/features/exam-flow/api";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
-import { withExpectedExit } from "@/src/features/exam-flow/fullscreen";
+import { isNativeExamApp, openNativeAppSettings, withExpectedExit } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { readSession } from "@/src/features/exam-flow/session";
 import { KidButton, KidNotice, StatusPill } from "@/src/features/student/ui";
@@ -77,6 +77,12 @@ function mediaErrorMessage(err: unknown, kind: Kind): { denied: boolean; message
   const device = kind === "CAMERA" ? "Camera" : "Microphone";
   const name = err instanceof DOMException ? err.name : "";
   if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
+    if (isNativeExamApp()) {
+      return {
+        denied: true,
+        message: `${device} is not allowed. Tap "Open settings", go to Permissions, allow the ${kind === "CAMERA" ? "camera" : "microphone"}, then come back and try again.`,
+      };
+    }
     return {
       denied: true,
       message: `${device} is not allowed. Tap the lock icon next to the web address, allow the ${kind === "CAMERA" ? "camera" : "microphone"}, and try again. If you need help, tell your teacher.`,
@@ -473,10 +479,17 @@ function DeviceCard({
               </KidButton>
             </>
           ) : (
+            <>
+            {phase === "denied" && isNativeExamApp() ? (
+              <KidButton variant="soft" onClick={() => void openNativeAppSettings()} full>
+                Open settings
+              </KidButton>
+            ) : null}
             <KidButton disabled={busy} onClick={() => void start()} full>
               {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
               {phase === "uploading" ? "Getting ready…" : phase === "denied" || error ? "Try again" : "Start the check"}
             </KidButton>
+            </>
           )}
         </div>
       ) : null}

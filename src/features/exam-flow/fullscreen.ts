@@ -19,6 +19,36 @@ type KeyboardLock = {
 };
 
 let mediaHeld = false;
+let nativeExamActive = false;
+
+type ExamGuardPlugin = {
+  startExam: () => Promise<unknown>;
+  stopExam: () => Promise<unknown>;
+  openAppSettings: () => Promise<unknown>;
+};
+
+/**
+ * Android uygulaması (ilc-exam-mobile-app) içinde mi? Uygulama WebView'da tarayıcı tam ekranı çalışmaz; tam ekranı,
+ * uygulama sabitlemeyi ve geri tuşu kilidini native ExamGuard eklentisi sağlar. Burada "tam ekran" = native sınav kilidi.
+ */
+function nativeExamGuard(): ExamGuardPlugin | null {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return null;
+  if (!navigator.userAgent.includes("ILCExamApp/")) return null;
+  const plugins = (window as Window & { Capacitor?: { Plugins?: Record<string, unknown> } }).Capacitor?.Plugins;
+  return (plugins?.ExamGuard as ExamGuardPlugin | undefined) ?? null;
+}
+
+export function isNativeExamApp() {
+  return nativeExamGuard() != null;
+}
+
+/** Uygulamada kamera/mikrofon izni kalıcı reddedildiyse Android uygulama ayarlarını açar (ayrılış ihlal sayılmaz). */
+export async function openNativeAppSettings() {
+  const guard = nativeExamGuard();
+  if (!guard) return;
+  expectFullscreenExit();
+  await guard.openAppSettings().catch(() => undefined);
+}
 let expectedExitUntil = 0;
 
 /** Beklenen çıkış penceresi: bu süre içinde dönülmezse çıkış ihlal sayılır ve sınav durur. */
@@ -89,12 +119,14 @@ export function isExamMediaHeld() {
 
 export function isExamFullscreen() {
   if (typeof document === "undefined") return false;
+  if (isNativeExamApp()) return nativeExamActive;
   const doc = document as WebkitDocument;
   return Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
 }
 
 export function canRequestFullscreen() {
   if (typeof document === "undefined") return false;
+  if (isNativeExamApp()) return true;
   const node = document.documentElement as FullscreenElement;
   return typeof node.requestFullscreen === "function" || typeof node.webkitRequestFullscreen === "function";
 }
@@ -122,6 +154,12 @@ export function releaseExamMediaHold() {
 }
 
 export async function enterExamFullscreen() {
+  const guard = nativeExamGuard();
+  if (guard) {
+    nativeExamActive = true;
+    await guard.startExam().catch(() => undefined);
+    return;
+  }
   if (!isExamFullscreen()) {
     const node = typeof document === "undefined" ? null : (document.documentElement as FullscreenElement);
     if (!node) throw new Error("Fullscreen is not supported");
@@ -147,6 +185,12 @@ export async function enterExamFullscreen() {
 export async function exitExamFullscreen() {
   releaseExamMediaHold();
   unlockExamEscape();
+  const guard = nativeExamGuard();
+  if (guard) {
+    nativeExamActive = false;
+    await guard.stopExam().catch(() => undefined);
+    return;
+  }
   if (!isExamFullscreen()) return;
   const doc = document as WebkitDocument;
   try {
