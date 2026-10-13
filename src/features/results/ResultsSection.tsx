@@ -20,6 +20,9 @@ type StudentRow = {
   lastName: string;
   applicationId: string;
   phase: string;
+  attemptNo?: number;
+  startedAt?: string | null;
+  submittedAt?: string | null;
   score: number;
   maxScore: number;
   correct: number;
@@ -70,6 +73,9 @@ type StudentReport = {
   lastName: string;
   examTitle: string;
   phase: string;
+  attemptNo?: number;
+  startedAt?: string | null;
+  submittedAt?: string | null;
   score: number;
   maxScore: number;
   correct: number;
@@ -116,6 +122,19 @@ function fullName(row: { firstName: string; lastName: string }) {
   return `${row.firstName} ${row.lastName}`.trim();
 }
 
+function when(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function sittingLabel(row: { phase: string; attemptNo?: number; startedAt?: string | null; submittedAt?: string | null }) {
+  const attempt = row.attemptNo && row.attemptNo > 0 ? `${row.attemptNo}. deneme` : "";
+  const clock = when(row.submittedAt || row.startedAt);
+  return [PHASE[row.phase] ?? row.phase, attempt, clock].filter(Boolean).join(" · ");
+}
+
 function mediaSrc(companyId: string, applicationId: string, mediaId: string) {
   return `/api/backend/companies/${companyId}/applications/${applicationId}/media/${mediaId}/content`;
 }
@@ -125,6 +144,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const askedApplication = searchParams.get("applicationId") ?? "";
   const askedStudent = searchParams.get("studentId") ?? "";
   const [creatingReport, setCreatingReport] = useState(false);
 
@@ -143,10 +163,12 @@ export function ResultsSection({ companyId }: { companyId: string }) {
   });
 
   const students = reportQ.data?.data.students ?? [];
-  const selected = useMemo(
-    () => students.find((row) => row.studentId === askedStudent) ?? students[0] ?? null,
-    [students, askedStudent],
-  );
+  const selected = useMemo(() => {
+    const byApplication = askedApplication ? students.find((row) => row.applicationId === askedApplication) : undefined;
+    if (byApplication) return byApplication;
+    const byStudent = askedStudent ? students.find((row) => row.studentId === askedStudent) : undefined;
+    return byStudent ?? students[0] ?? null;
+  }, [students, askedApplication, askedStudent]);
 
   const detailQ = useQuery({
     queryKey: ["exam-result", companyId, selected?.applicationId],
@@ -180,7 +202,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
     }
   }
 
-  function choose(studentId: string) {
+  function choose(applicationId: string) {
     const params = new URLSearchParams(filtersToQuery({
       instituteId: scope.campusId,
       yearId: scope.seasonId,
@@ -188,14 +210,14 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       gradeId: scope.gradeValue,
       branchId: scope.branchValue,
     }).toString());
-    params.set("studentId", studentId);
+    params.set("applicationId", applicationId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   const header = (
     <PageHeader
       title="Sınav sonuçları"
-      description="Şubeyi seçin. Sınava giren öğrencilerin puanı, cevapları ve kazanımları bu sayfada durur."
+      description="Şubeyi seçin. Sezondaki her sınav uygulaması ayrı satırda durur; puan, cevap ve kazanım o uygulamanın kâğıdıdır."
     />
   );
 
@@ -207,7 +229,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       ) : (
         <AssignmentScopeFields
           scope={scope}
-          description="Sınav, seviye ve şubeyi seçin. Liste, o şubede sınava giren öğrencilerle dolar."
+          description="Sınav, seviye ve şubeyi seçin. Liste, o şubede bu sınava girmiş her uygulamayla dolar."
         />
       )}
 
@@ -230,7 +252,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
           <StudentList
             title={reportQ.data?.data.examTitle ?? "Sınav"}
             students={students}
-            selectedId={selected?.studentId ?? ""}
+            selectedId={selected?.applicationId ?? ""}
             onChoose={choose}
             creatingReport={creatingReport}
             onCreateReport={() => void createReport()}
@@ -259,17 +281,20 @@ function StudentList({
   title: string;
   students: StudentRow[];
   selectedId: string;
-  onChoose: (studentId: string) => void;
+  onChoose: (applicationId: string) => void;
   creatingReport: boolean;
   onCreateReport: () => void;
 }) {
   const average = students.reduce((sum, row) => sum + percent(num(row.score), num(row.maxScore)), 0) / students.length;
+  const studentCount = new Set(students.map((row) => row.studentId)).size;
   return (
     <section className="flex max-h-80 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm lg:max-h-[calc(100dvh-22rem)]">
       <header className="shrink-0 border-b border-border px-4 py-3">
         <p className="truncate text-sm font-semibold text-fg">{title}</p>
         <p className="mt-0.5 text-xs text-fg-muted">
-          <span className="numeric">{students.length}</span> öğrenci
+          <span className="numeric">{studentCount}</span> öğrenci
+          <span className="px-1.5 text-fg-subtle">·</span>
+          <span className="numeric">{students.length}</span> uygulama
           <span className="px-1.5 text-fg-subtle">·</span>
           sınıf ortalaması <span className="numeric">%{Math.round(average)}</span>
         </p>
@@ -287,14 +312,14 @@ function StudentList({
       </header>
       <ul className="min-h-0 flex-1 overflow-y-auto">
         {students.map((row) => {
-          const active = row.studentId === selectedId;
+          const active = row.applicationId === selectedId;
           const score = num(row.score);
           const max = num(row.maxScore);
           return (
-            <li key={row.studentId} className="border-b border-border last:border-b-0">
+            <li key={row.applicationId} className="border-b border-border last:border-b-0">
               <button
                 type="button"
-                onClick={() => onChoose(row.studentId)}
+                onClick={() => onChoose(row.applicationId)}
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left",
@@ -304,7 +329,7 @@ function StudentList({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{fullName(row)}</span>
                   <span className={cn("mt-0.5 block text-xs", active ? "text-white/75" : "text-fg-muted")}>
-                    {PHASE[row.phase] ?? row.phase}
+                    {sittingLabel(row)}
                     <span className="px-1">·</span>
                     {row.correct} doğru
                   </span>
@@ -340,7 +365,7 @@ function ResultPaper({ companyId, report }: { companyId: string; report: Student
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.14em] text-ilc-teal uppercase">{report.examTitle}</p>
           <h2 className="mt-1 font-display text-2xl font-semibold tracking-tight md:text-[1.75rem]">{fullName(report)}</h2>
-          <p className="mt-1 text-sm text-ilc-navy/70">{PHASE[report.phase] ?? report.phase}</p>
+          <p className="mt-1 text-sm text-ilc-navy/70">{sittingLabel(report)}</p>
         </div>
         <div className="min-w-[10rem]">
           <p className="numeric font-display text-4xl leading-none font-semibold tracking-tight">

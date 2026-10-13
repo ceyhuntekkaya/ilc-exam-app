@@ -11,8 +11,8 @@ import { useSyncExternalStore } from "react";
 type GuardState = {
   /** Çalan medyanın kimliği (null = sessiz). */
   activeMedia: string | null;
-  /** Kaydedilmemiş cevabı olan alanlar → kaydetme fonksiyonu. */
-  unsaved: ReadonlyMap<string, () => void>;
+  /** Kaydedilmemiş cevabı olan alanlar → kaydetme fonksiyonu (kutuya senkron yazar). */
+  unsaved: ReadonlyMap<string, () => void | Promise<void>>;
 };
 
 let state: GuardState = { activeMedia: null, unsaved: new Map() };
@@ -52,7 +52,7 @@ export function releaseMedia(id: string) {
   if (state.activeMedia === id) emit({ ...state, activeMedia: null });
 }
 
-export function setUnsaved(id: string, save: (() => void) | null) {
+export function setUnsaved(id: string, save: (() => void | Promise<void>) | null) {
   const has = state.unsaved.has(id);
   if (!save && !has) return;
   const next = new Map(state.unsaved);
@@ -61,9 +61,11 @@ export function setUnsaved(id: string, save: (() => void) | null) {
   emit({ ...state, unsaved: next });
 }
 
-/** Bekleyen tüm cevapları kaydeder (sınav sayfasındaki "Save and continue"). */
-export function saveAllUnsaved() {
-  state.unsaved.forEach((save) => save());
+/** Yazma metnini kutuya senkron koyar. Ağ onayı kapanış isteğinin içindedir. */
+export function saveAllUnsaved(): Promise<void> {
+  const saves = [...state.unsaved.values()];
+  for (const save of saves) void save();
+  return Promise.resolve();
 }
 
 /** Soru değişince / sayfa kapanınca kalıntı kilitleri temizler. */

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/src/components/auth-provider";
 import { firstName } from "@/src/features/student/status";
-import { studentFontClass } from "@/src/styles/student-fonts";
 import { IconHome, IconLogout } from "@/src/ui/icons";
 import type { ReactNode } from "react";
 
@@ -22,7 +21,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
   const name = loading ? "" : firstName(user?.displayName || user?.username);
 
   return (
-    <div data-panel="student" lang="en" className={`${studentFontClass} flex min-h-dvh flex-1 flex-col bg-bg text-fg`}>
+    <div data-panel="student" lang="en" className="flex min-h-dvh flex-1 flex-col bg-bg text-fg">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow">
         Skip to content
       </a>

@@ -24,6 +24,8 @@ const BY_CODE: Record<string, string> = {
   INVALID_FILE_TYPE: "You cannot use this type of file. Please choose a different file.",
   TIME_UP: "Time is up for this part.",
   SECTION_CLOSED: "This part is closed. You cannot change answers now.",
+  ANSWER_LOCKED: "This part is closed. You cannot change answers now.",
+  ANSWERS_NOT_SAVED: "Some answers could not be saved. Please check the questions marked with ! and try again.",
 };
 
 /** Metindeki ipucu → sebep (Türkçe ve İngilizce anahtar kelimeler). İlk eşleşen kazanır. */

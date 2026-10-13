@@ -21,7 +21,7 @@ export type ExamSessionContextValue = {
    * Cevap satırı yazılınca çözülür. Dosya yüklemesi tek başına yeterli değildir.
    * mediaId: API AnswerRequest.mediaId (konuşma/video/görsel).
    */
-  saveAnswer?: (itemId: string, answer: Record<string, unknown>, mediaId?: string | null) => Promise<void>;
+  saveAnswer?: (itemId: string, answer: Record<string, unknown>, mediaId?: string | null, intentId?: string | null) => Promise<void>;
   /** Bu oturumda daha önce verilen cevap (soruya geri dönünce ekranda yeniden gösterilir). */
   getAnswer?: (itemId: string) => Record<string, unknown> | undefined;
   /**

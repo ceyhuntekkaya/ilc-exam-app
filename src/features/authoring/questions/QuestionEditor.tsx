@@ -809,7 +809,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
           {openPanel === 3 || openPanel === 4 || openPanel === 5 ? (
             <FormCard
               title={openPanel === 3 ? "İçerik" : openPanel === 4 ? "Cevap ve puanlama" : "Gerekçe"}
-              description={selectedPart ? `Part ${selectedPart.position + 1} · ${getTemplate(selectedPart.interactionType)?.label ?? selectedPart.interactionType}` : undefined}
+              description={selectedPart ? `Part ${selectedPart.position} · ${getTemplate(selectedPart.interactionType)?.label ?? selectedPart.interactionType}` : undefined}
               footer={
                 partDraft && selectedPart ? (
                   <Button disabled={!editable || saving} loading={saving} onClick={() => void savePart()}>
@@ -831,7 +831,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                       selectedPart?.id === p.id ? "bg-surface text-primary shadow-sm ring-1 ring-primary-200" : "text-fg-muted hover:bg-surface hover:text-fg"
                     }`}
                   >
-                    <span className="font-semibold tabular-nums">{p.position + 1}</span>
+                    <span className="font-semibold tabular-nums">{p.position}</span>
                     <span>{getTemplate(p.interactionType)?.label ?? p.interactionType}</span>
                   </button>
                 ))}
@@ -903,7 +903,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     variant="danger"
                     disabled={!editable}
                     onClick={() =>
-                      globalThis.confirm(`Part ${selectedPart.position + 1} silinsin mi? İçeriği ve cevap anahtarı kaybolur.`) &&
+                      globalThis.confirm(`Part ${selectedPart.position} silinsin mi? İçeriği ve cevap anahtarı kaybolur.`) &&
                       void notify
                         .run(authoringApi.removePart(q.versionId, selectedPart.id), {
                           success: "Part silindi",
@@ -932,7 +932,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                             authoringApi.movePart(
                               q.versionId,
                               selectedPart.id,
-                              Math.max(0, selectedPart.position - 1),
+                              Math.max(0, selectedPart.position - 2),
                             ),
                             { error: "Sıralama güncellenemedi" },
                           )
@@ -955,7 +955,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                             authoringApi.movePart(
                               q.versionId,
                               selectedPart.id,
-                              selectedPart.position + 1,
+                              Math.min(q.parts.length - 1, selectedPart.position),
                             ),
                             { error: "Sıralama güncellenemedi" },
                           )

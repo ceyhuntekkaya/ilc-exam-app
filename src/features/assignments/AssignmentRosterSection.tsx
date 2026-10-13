@@ -1,9 +1,11 @@
 "use client";
 
+import { AssignmentCloseActions, type AssignmentLifecycleItem } from "@/src/features/assignments/AssignmentCloseActions";
 import { AssignmentScopeFields, filtersToQuery, useAssignmentScope, type RosterPhase } from "@/src/features/assignments/assignmentScope";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { Badge, ButtonLink, ErrorState, SectionTable, SectionToolbar } from "@/src/ui";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 
 const COLUMNS = ["Öğrenci", "Durum", "Tarih", ""];
 
@@ -33,6 +35,7 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const pathname = usePathname();
   const scope = useAssignmentScope(companyId);
   const { campusId, seasonId, examValue, gradeValue, branchOptions, exams, assignments, rosterQ, rosterRows, gradingId, filters } = scope;
+  const lifecycleItems = useMemo(() => lifecycleOf(rosterRows, assignments), [rosterRows, assignments]);
 
   if (scope.listFailed) {
     return <ErrorState error={scope.listError} onRetry={scope.refetchLists} compact />;
@@ -67,6 +70,7 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
           emptyTone="neutral"
           toolbar={
             <SectionToolbar count={rosterQ.isSuccess ? rosterRows.length : undefined} noun="öğrenci" loading={rosterQ.isLoading}>
+              <AssignmentCloseActions companyId={companyId} items={lifecycleItems} branchScoped />
               {gradingId ? (
                 <ButtonLink href={`${hrefs.gradingBoard}${listQuery ? `?${listQuery}` : ""}`} size="sm">
                   Değerlendir
@@ -116,4 +120,26 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
       )}
     </div>
   );
+}
+
+function lifecycleOf(
+  rows: { assignmentId?: string | null; phase: RosterPhase }[],
+  assignments: { id?: string; status?: string | null; availableFrom?: string | null; availableUntil?: string | null }[],
+): AssignmentLifecycleItem[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (!row.assignmentId || seen.has(row.assignmentId)) continue;
+    seen.add(row.assignmentId);
+    ids.push(row.assignmentId);
+  }
+  return ids.map((id) => {
+    const assignment = assignments.find((item) => item.id === id);
+    return {
+      id,
+      status: assignment?.status,
+      inProgress: rows.filter((row) => row.assignmentId === id && row.phase === "IN_PROGRESS").length,
+      detail: assignment ? formatWindow(assignment.availableFrom, assignment.availableUntil) : undefined,
+    };
+  });
 }

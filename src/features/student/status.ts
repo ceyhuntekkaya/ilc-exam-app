@@ -1,13 +1,46 @@
 import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import type { KidTone } from "@/src/features/student/ui";
 
-/** Ana sayfa grupları: şimdi girilebilir, yakında açılacak, bitenler. */
+/** Ana sayfa grupları: şimdi girilebilir, yakında açılacak, artık girilemeyen atama. */
 export type ExamGroup = "now" | "soon" | "done";
 
 export function examGroup(card: AssignmentCard): ExamGroup {
   if (card.cta === "START" || card.cta === "RESUME") return "now";
   if (card.blockedReason === "NOT_OPEN_YET") return "soon";
   return "done";
+}
+
+/** Teslim edilmiş her uygulama. Hak kalsa da satırdır; aynı sınavın denemeleri ayrıdır. */
+export type FinishedAttempt = {
+  key: string;
+  examTitle: string;
+  attemptNo: number;
+  attemptsTotal: number;
+  finishedAt: string;
+  availableUntil?: string | null;
+  sharedTitle: boolean;
+};
+
+export function finishedAttempts(cards: AssignmentCard[]): FinishedAttempt[] {
+  const titleCount = new Map<string, number>();
+  for (const card of cards) titleCount.set(card.examTitle, (titleCount.get(card.examTitle) ?? 0) + 1);
+  const rows: FinishedAttempt[] = [];
+  for (const card of cards) {
+    for (const attempt of card.attempts) {
+      if (!attempt.finishedAt) continue;
+      rows.push({
+        key: `${card.recipientId}:${attempt.attemptNo}`,
+        examTitle: card.examTitle,
+        attemptNo: attempt.attemptNo,
+        attemptsTotal: card.attemptsTotal,
+        finishedAt: attempt.finishedAt,
+        availableUntil: card.availableUntil,
+        sharedTitle: (titleCount.get(card.examTitle) ?? 0) > 1,
+      });
+    }
+  }
+  rows.sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt) || b.attemptNo - a.attemptNo);
+  return rows;
 }
 
 export function examStatus(card: AssignmentCard): { tone: KidTone; label: string } {

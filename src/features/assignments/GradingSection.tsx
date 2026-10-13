@@ -35,6 +35,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type Item = {
   answerId: string;
   applicationId: string;
+  attemptNo?: number;
   studentId?: string | null;
   studentName?: string | null;
   gradeId?: string | null;
@@ -301,9 +302,23 @@ export function GradingSection({
   const seeded = useRef(false);
   const lastTarget = useRef("");
   const runLock = useRef(false);
+  const sourcesQ = useQuery({
+    queryKey: ["grading-sources", companyId, scope.campusId, scope.seasonId, scope.examValue, scope.branchValue],
+    enabled: board && scope.ready,
+    queryFn: () => {
+      const params = new URLSearchParams({
+        companyId,
+        instituteId: scope.campusId,
+        academicYearId: scope.seasonId,
+        examVersionId: scope.examValue,
+        branchId: scope.branchValue,
+      });
+      return customInstance<{ data: string[] }>(`/assignments/grading-sources?${params.toString()}`);
+    },
+  });
   const queueIds = useMemo(
-    () => (assignmentId ? [assignmentId] : scope.ready ? scope.gradingIds : []),
-    [assignmentId, scope.ready, scope.gradingIds],
+    () => (assignmentId ? [assignmentId] : scope.ready ? (sourcesQ.data?.data ?? []) : []),
+    [assignmentId, scope.ready, sourcesQ.data],
   );
 
   useEffect(() => {
@@ -346,7 +361,11 @@ export function GradingSection({
           data.push(item);
         }
       }
-      data.sort((a, b) => (a.studentName ?? "").localeCompare(b.studentName ?? "", "tr"));
+      data.sort((a, b) => {
+        const byName = (a.studentName ?? "").localeCompare(b.studentName ?? "", "tr");
+        if (byName !== 0) return byName;
+        return (a.attemptNo ?? 0) - (b.attemptNo ?? 0);
+      });
       return { data };
     },
   });
@@ -668,6 +687,7 @@ export function GradingSection({
             <p className="truncate text-sm font-semibold text-fg">{item.studentName?.trim() || "Öğrenci"}</p>
             <p className="text-xs text-fg-muted">
               <span className="numeric mr-1.5 text-fg-subtle">#{index + 1}</span>
+              {item.attemptNo && item.attemptNo > 0 ? `${item.attemptNo}. deneme · ` : ""}
               {interactionLabel(item.interactionType)}
             </p>
           </div>
@@ -763,7 +783,7 @@ export function GradingSection({
   const header = (
     <PageHeader
       title="Değerlendirme"
-      description="Sınavı seçin. Açık uçlu ve sesli cevap sorularının modele gidecek metni AI metni sekmesindedir. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
+      description="Sınavı seçin. Sezonda teslim edilmiş her uygulamanın açık uçlu cevabı burada durur. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
       back={board ? undefined : { href: filterKey ? `${hrefs.assignments}?${filterKey}` : hrefs.assignments, label: "Atamalar" }}
       actions={
         <Button type="button" onClick={() => setConfirmPublish(true)} disabled={queueIds.length === 0 || !query.isSuccess || contextMismatch}>
@@ -773,11 +793,17 @@ export function GradingSection({
     />
   );
 
-  if (query.isError) {
+  if (query.isError || (board && sourcesQ.isError)) {
     return (
       <div>
         {header}
-        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
+        <ErrorState
+          error={query.error ?? sourcesQ.error}
+          onRetry={() => {
+            if (query.isError) void query.refetch();
+            if (sourcesQ.isError) void sourcesQ.refetch();
+          }}
+        />
       </div>
     );
   }
@@ -795,10 +821,10 @@ export function GradingSection({
     : board
       ? !scope.ready
         ? { title: "Şubeyi seçin", description: "Seviye ve şube seçilince bu sınavın o şubedeki cevapları açılır." }
-        : scope.rosterQ.isLoading
+        : sourcesQ.isLoading
           ? null
-          : !scope.gradingId
-            ? { title: "Bu şubede değerlendirilecek cevap yok", description: "Seçilen sınavı bu şubede bitirmiş öğrenci bulunmuyor." }
+          : (sourcesQ.data?.data.length ?? 0) === 0
+            ? { title: "Bu şubede değerlendirilecek cevap yok", description: "Seçilen sınavı bu şubede teslim etmiş öğrenci bulunmuyor." }
             : null
       : contextMismatch && scope.ready && !scope.gradingId
         ? { title: "Bu şubede puanlanacak cevap yok", description: "Tamamlanmış sınavı olan başka bir şube seçin." }
@@ -862,7 +888,7 @@ export function GradingSection({
               <GradingAiPrompts companyId={companyId} examVersionId={examVersionId} />
             ) : mode === "system" ? (
               <GradingSystemPrompt companyId={companyId} />
-            ) : board && scope.ready && scope.rosterQ.isLoading ? (
+            ) : board && scope.ready && sourcesQ.isLoading ? (
               <Skeleton className="h-48 rounded-xl" />
             ) : answerWaiting ? (
               <EmptyState tone="neutral" title={answerWaiting.title} description={answerWaiting.description} />

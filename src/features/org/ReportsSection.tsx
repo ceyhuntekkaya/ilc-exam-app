@@ -3,7 +3,8 @@
 import { useExamReports, useInstitutes } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import { assignmentStatusLabel } from "@/src/features/admin/labels";
-import { useOpsHref } from "@/src/features/panel/PanelContext";
+import { AssignmentCloseActions } from "@/src/features/assignments/AssignmentCloseActions";
+import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
 import { Badge, ButtonLink, ErrorState, FilterTabs, SectionTable, SectionToolbar } from "@/src/ui";
 import { useMemo, useState } from "react";
 
@@ -25,6 +26,7 @@ function shortDate(value?: string) {
 /** Atama bazında katılım özeti: hangi sınav, hangi kampüs, tamamlama oranı çubuğu. */
 export function ReportsSection({ companyId }: { companyId: string }) {
   const id = companyId;
+  const role = usePanelRole();
   const hrefs = useOpsHref();
   const { data, isLoading, isError, error, refetch } = useExamReports(id);
   const grantsData = useListGrants({ companyId: id }).data;
@@ -108,9 +110,17 @@ export function ReportsSection({ companyId }: { companyId: string }) {
             <span key="ab" className={(r.recipientsAbsent ?? 0) > 0 ? "text-warning" : undefined}>{r.recipientsAbsent ?? 0}</span>,
             String(r.resultsPublished ?? 0),
             r.assignmentId ? (
-              <ButtonLink key="a" href={hrefs.monitor(r.assignmentId)} variant="ghost" size="sm">
-                Ayrıntı
-              </ButtonLink>
+              <div key="a" className="flex flex-wrap items-center justify-end gap-2">
+                <AssignmentCloseActions
+                  companyId={id}
+                  items={[{ id: r.assignmentId, status: r.status, inProgress: r.recipientsInProgress ?? 0 }]}
+                />
+                {role === "SUPER_ADMIN" ? (
+                  <ButtonLink href={hrefs.monitor(r.assignmentId)} variant="ghost" size="sm" className="min-h-11">
+                    Ayrıntı
+                  </ButtonLink>
+                ) : null}
+              </div>
             ) : (
               ""
             ),

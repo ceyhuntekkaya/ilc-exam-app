@@ -90,6 +90,8 @@
 /* Varsayılan yüzey, metin ve font base katmanında: sayfadaki bg- ve text- sınıfları (ör. girişin mavi zemini) bunları ezebilsin. */
 @layer base {
   [data-panel][data-panel="student"] {
+    --font-lexend: "Lexend";
+    --font-nunito: "Nunito";
     font-family: var(--font-lexend), var(--font-source-sans), "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--fg);

@@ -18,7 +18,10 @@ import {
   settleExpectedExitSoon,
 } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
+import { holdExamTab, otherTabIsOpen } from "@/src/features/exam-flow/examTabs";
 import { clearSession, readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
+import { startAnswerOutbox } from "@/src/features/exam-player/session/answerOutboxClient";
+import { resumeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { isMediaActive } from "@/src/features/exam-player/session/playerGuard";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -120,6 +123,11 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       let session = readSession(recipientId);
       let next: ExamState;
       if (!session) {
+        // Oturumu düşürmeden önce sor. Devralma, ortak cevap kutusunu yeni jetonla gönderir.
+        if (await otherTabIsOpen(recipientId)) {
+          setConflict(true);
+          return;
+        }
         const started = await startAttempt(recipientId, { intent: "RESUME", fingerprint: navigator.userAgent });
         session = { applicationId: started.applicationId, sessionToken: started.sessionToken };
         writeSession(recipientId, session);
@@ -161,6 +169,20 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     // İlk yükleme bir mikro görevde (effect içinde senkron setState olmasın).
     void Promise.resolve().then(load);
   }, [load]);
+
+  // Cevap kutusu bölüm sayfasıyla birlikte kapanmasın. Süre dolunca listeye düşülse de göndermeye devam eder.
+  useEffect(() => {
+    const applicationId = state?.applicationId;
+    if (!applicationId) return;
+    resumeMediaUploads(applicationId, recipientId);
+    return startAnswerOutbox(applicationId, recipientId);
+  }, [recipientId, state?.applicationId]);
+
+  // Sınav bu sekmede açıkken diğer sekmelerin yoklamasına cevap ver. Oturumu olmayan sekme cevap vermez.
+  useEffect(() => {
+    if (!readSession(recipientId)) return;
+    return holdExamTab(recipientId);
+  }, [recipientId, state?.applicationId]);
 
   useEffect(() => {
     if (loading || conflict) return;

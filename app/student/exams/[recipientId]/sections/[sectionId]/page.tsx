@@ -5,8 +5,11 @@ import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProv
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
 import { QuestionFrame, QuestionView } from "@/src/features/exam-player";
+import { confirmCloseBatch, flushAnswerOutbox, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
+import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { LiveExamSessionProvider } from "@/src/features/exam-player/session/LiveExamSessionProvider";
+import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { resetPlayerGuard, saveAllUnsaved, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import { viewBodyOf, type QuestionViewModel } from "@/src/features/exam-player/types";
 import { readSession } from "@/src/features/exam-flow/session";
@@ -14,7 +17,7 @@ import { KidButton, KidDialog, KidLoading, KidNotice } from "@/src/features/stud
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconFlag, IconPause, IconRefresh, IconVolume } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; parts: QuestionViewModel["parts"] } };
 
@@ -37,9 +40,6 @@ export default function SectionQuestionPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"complete" | "leave" | null>(null);
   const [busy, setBusy] = useState(false);
-  // Bu oturumda cevap verilen sorular: sunucunun answeredItemIds listesi heartbeat ile (5 sn) gelir;
-  // beklemeden "Next" açılsın ve numara yeşile dönsün.
-  const [localAnswered, setLocalAnswered] = useState<ReadonlySet<string>>(() => new Set());
   // "Start again": soru bileşeni sıfırdan açılsın (yalnız ekran; sunucuya istek yok).
   const [resetRound, setResetRound] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -79,13 +79,16 @@ export default function SectionQuestionPage() {
     if (Date.now() - zeroSentAt.current < 5000) return;
     const current = readSession(params.recipientId);
     if (!current) return;
-    // Süre bitti: kaydedilmemiş yazı kaybolmasın.
-    saveAllUnsaved();
     zeroSentAt.current = Date.now();
-    postState(`/applications/${current.applicationId}/heartbeat`, current.sessionToken, { events: [] })
-      .then(applyState)
-      .catch((err: unknown) => {
-        if (err instanceof ExamApiError && err.state) applyState(err.state);
+    // Son cevap kutuya girsin, bir kez denensin, sonra süre sinyali gitsin. Yetişmeyen yazı sunucunun penceresine kalır.
+    void saveAllUnsaved()
+      .then(() => flushAnswerOutbox(current.applicationId))
+      .finally(() => {
+        postState(`/applications/${current.applicationId}/heartbeat`, current.sessionToken, { events: [] })
+          .then(applyState)
+          .catch((err: unknown) => {
+            if (err instanceof ExamApiError && err.state) applyState(err.state);
+          });
       });
   }, [applyState, params.recipientId, remaining, state?.clock.running]);
 
@@ -107,12 +110,12 @@ export default function SectionQuestionPage() {
     navRef.current?.querySelector<HTMLElement>('[aria-current="step"]')?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [index, items.length]);
 
-  // Kayıt part kimliğiyle gelir (gecikmeli kayıt soru değiştikten sonra da düşebilir); hangi soruya ait olduğu buradan bulunur.
-  const markAnswered = useCallback((partId: string) => {
-    const owner = items.find((entry) => entry.question.parts?.some((part) => part.id === partId))?.examQuestionId;
-    if (!owner) return;
-    setLocalAnswered((prev) => (prev.has(owner) ? prev : new Set(prev).add(owner)));
-  }, [items]);
+  const applicationId = state?.applicationId ?? "";
+  const records = useSyncExternalStore(
+    (onStoreChange) => (applicationId ? getAnswerOutbox(applicationId).subscribe(onStoreChange) : () => undefined),
+    () => (applicationId ? getAnswerOutbox(applicationId).getSnapshot() : EMPTY_RECORDS),
+    () => EMPTY_RECORDS,
+  );
 
   if (!state || !session || !section) {
     return (
@@ -130,16 +133,19 @@ export default function SectionQuestionPage() {
         parts: item.question.parts ?? [],
       }
     : null;
-  const isAnswered = (entry?: Item) => {
-    if (!entry) return false;
-    if (entry.examQuestionId && (state.answeredItemIds.includes(entry.examQuestionId) || localAnswered.has(entry.examQuestionId))) {
-      return true;
-    }
-    return (entry.question.parts ?? []).some(
-      (part) => state.answeredItemIds.includes(part.id) || localAnswered.has(part.id),
-    );
+  const phaseOf = (entry?: Item): AnswerPhase => {
+    if (!entry) return "empty";
+    const ids = [entry.examQuestionId, ...(entry.question.parts ?? []).map((part) => part.id)].filter((id): id is string => !!id);
+    const mine = records.filter((row) => ids.includes(row.itemId));
+    if (mine.some((row) => !row.hidden && row.state === "failed")) return "failed";
+    if (mine.some((row) => !row.hidden && (row.state === "pending" || row.state === "sending"))) return "pending";
+    if (mine.some((row) => row.state === "confirmed") || ids.some((id) => state.answeredItemIds.includes(id))) return "confirmed";
+    return "empty";
   };
+  const isAnswered = (entry?: Item) => phaseOf(entry) !== "empty";
   const answered = isAnswered(item);
+  const saving = records.some((row) => !row.hidden && (row.state === "pending" || row.state === "sending"));
+  const failedCount = items.filter((entry) => phaseOf(entry) === "failed").length;
   const last = index >= items.length - 1;
   const canNext = !mediaBusy && (section.allowSkip || answered || last);
   /** Geçiş: medya çalarken yok; kaydedilmemiş yazı varsa önce sor. */
@@ -160,10 +166,20 @@ export default function SectionQuestionPage() {
   const timeTotal = state.clock.sectionRemainingMs != null ? section.durationMs : null;
 
   async function act(path: "complete" | "leave") {
+    if (!session) return;
     setError(null);
     setBusy(true);
     try {
-      applyState(await postState(`/applications/${session!.applicationId}/sections/${params.sectionId}/${path}`, session!.sessionToken));
+      await saveAllUnsaved();
+      await waitForMediaUploads();
+      const answers = takeCloseBatch(session.applicationId);
+      const next = await postState(
+        `/applications/${session.applicationId}/sections/${params.sectionId}/${path}`,
+        session.sessionToken,
+        { answers },
+      );
+      confirmCloseBatch(session.applicationId, answers);
+      applyState(next);
     } catch (err) {
       const flow = err instanceof ExamApiError ? err : null;
       if (flow?.state) applyState(flow.state);
@@ -175,8 +191,7 @@ export default function SectionQuestionPage() {
   }
 
   return (
-    <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken} onSaved={markAnswered}>
-      <RestoreAnsweredMarks items={items} onPart={markAnswered} />
+    <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken}>
       <div className="relative flex min-h-dvh flex-1 flex-col">
         {/* İnce üst çubuk (48px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
         <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
@@ -219,7 +234,7 @@ export default function SectionQuestionPage() {
                   className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 [&>svg]:size-5"
                 >
                   <IconPause aria-hidden />
-                  <span className="hidden sm:inline">Break</span>
+                  <span className="hidden sm:inline">{saving ? "Saving…" : "Break"}</span>
                 </button>
               ) : null}
             </div>
@@ -263,6 +278,10 @@ export default function SectionQuestionPage() {
               <IconVolume aria-hidden />
               Please wait. Finish listening, watching or recording first.
             </p>
+          ) : saving ? (
+            <p className="student-container pb-1.5 text-center text-xs font-semibold text-primary-700" aria-live="polite">
+              Saving your answers…
+            </p>
           ) : !canNext ? (
             <p className="student-container pb-1.5 text-center text-xs font-semibold text-(--kid-sun)">
               {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
@@ -288,8 +307,9 @@ export default function SectionQuestionPage() {
             <nav aria-label="Questions" className="scrollbar-none min-w-0 flex-1 overflow-x-auto">
               <ol ref={navRef} className="mx-auto flex w-max gap-1 p-1">
                 {items.map((entry, position) => {
-                  const done = isAnswered(entry);
+                  const phase = phaseOf(entry);
                   const current = position === index;
+                  const label = phase === "confirmed" ? "saved" : phase === "pending" ? "saving" : phase === "failed" ? "not saved" : "not answered";
                   return (
                     <li key={entry.examQuestionId ?? position}>
                       <button
@@ -297,17 +317,24 @@ export default function SectionQuestionPage() {
                         disabled={!canJump(position)}
                         onClick={() => goTo(position)}
                         aria-current={current ? "step" : undefined}
-                        aria-label={`Question ${position + 1}${done ? ", answered" : ", not answered"}`}
+                        aria-label={`Question ${position + 1}, ${label}`}
                         className={cn(
                           // Dokunma hedefi ≥ 44px (çocuk, tablet).
-                          "grid size-11 place-items-center rounded-lg text-sm font-bold transition disabled:cursor-default",
+                          "relative grid size-11 place-items-center rounded-lg text-sm font-bold transition disabled:cursor-default",
                           current && "bg-primary-600 text-white",
-                          !current && done && "bg-(--kid-mint-bg) text-(--kid-mint)",
-                          !current && !done && "bg-neutral-100 text-neutral-500",
+                          !current && phase === "confirmed" && "bg-(--kid-mint-bg) text-(--kid-mint)",
+                          !current && phase === "failed" && "bg-rose-100 text-rose-700",
+                          !current && (phase === "empty" || phase === "pending") && "bg-neutral-100 text-neutral-500",
                           !current && "enabled:hover:ring-2 enabled:hover:ring-primary-300",
                         )}
                       >
                         {position + 1}
+                        {phase === "pending" ? <span className="absolute right-1 top-1 size-2 rounded-full bg-primary-500" aria-hidden /> : null}
+                        {phase === "failed" ? (
+                          <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-rose-600 text-[10px] leading-none font-bold text-white" aria-hidden>
+                            !
+                          </span>
+                        ) : null}
                       </button>
                     </li>
                   );
@@ -318,7 +345,7 @@ export default function SectionQuestionPage() {
             {last ? (
               <KidButton variant="sun" className={cn(FOOTER_BTN, "px-3!")} onClick={() => go(() => setConfirm("complete"))} disabled={!items.length || mediaBusy} aria-label="Finish section">
                 <IconFlag aria-hidden />
-                <span>Finish</span>
+                <span>{saving ? "Saving…" : "Finish"}</span>
               </KidButton>
             ) : (
               <KidButton className={cn(FOOTER_BTN, FOOTER_ICON)} disabled={!canNext} onClick={() => goTo(index + 1)} aria-label="Next question">
@@ -366,10 +393,11 @@ export default function SectionQuestionPage() {
             confirmLabel="Save and go"
             cancelLabel="Stay here"
             onConfirm={() => {
-              saveAllUnsaved();
-              const next = pendingNav;
-              setPendingNav(null);
-              next();
+              void saveAllUnsaved().then(() => {
+                const next = pendingNav;
+                setPendingNav(null);
+                next();
+              });
             }}
             onCancel={() => setPendingNav(null)}
           />
@@ -380,11 +408,13 @@ export default function SectionQuestionPage() {
             icon={<IconFlag />}
             tone={unanswered ? "sun" : "primary"}
             body={
-              unanswered
-                ? <>You have <strong>{unanswered} unanswered {unanswered === 1 ? "question" : "questions"}</strong>. After you finish, you cannot go back to this section.</>
-                : "You answered all the questions. After you finish, you cannot go back to this section."
+              failedCount
+                ? <>{failedCount === 1 ? "One answer" : `${failedCount} answers`} could not be saved. They are marked with !. If they still cannot be saved, this part stays open.</>
+                : unanswered
+                  ? <>You have <strong>{unanswered} unanswered {unanswered === 1 ? "question" : "questions"}</strong>. After you finish, you cannot go back to this section.</>
+                  : "You answered all the questions. After you finish, you cannot go back to this section."
             }
-            confirmLabel="Finish"
+            confirmLabel={saving ? "Saving…" : "Finish"}
             cancelLabel={unanswered ? "Back to questions" : "Cancel"}
             busy={busy}
             busyLabel="Please wait…"
@@ -397,7 +427,7 @@ export default function SectionQuestionPage() {
             title="Take a break?"
             icon={<IconPause />}
             body="You will go back to the sections page and the timer for this section will stop. When you are ready, you can continue from this question."
-            confirmLabel="Take a break"
+            confirmLabel={saving ? "Saving…" : "Take a break"}
             cancelLabel="Keep going"
             busy={busy}
             busyLabel="Please wait…"
@@ -410,24 +440,9 @@ export default function SectionQuestionPage() {
   );
 }
 
-function RestoreAnsweredMarks({
-  items,
-  onPart,
-}: {
-  items: Item[];
-  onPart: (partId: string) => void;
-}) {
-  const session = useExamSession();
-  useEffect(() => {
-    if (!session?.hydrated) return;
-    for (const entry of items) {
-      for (const part of entry.question.parts ?? []) {
-        if (session.getAnswer?.(part.id)) onPart(part.id);
-      }
-    }
-  }, [items, onPart, session]);
-  return null;
-}
+type AnswerPhase = "empty" | "pending" | "failed" | "confirmed";
+
+const EMPTY_RECORDS: OutboxRecord[] = [];
 
 /**
  * "Start again" onayı: soru ilk açıldığı hâline döner. Yalnız bu tarayıcıdaki taslak silinir; sunucuya istek yok.

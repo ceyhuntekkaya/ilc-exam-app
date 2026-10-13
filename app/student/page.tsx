@@ -5,7 +5,7 @@ import { useAuth } from "@/src/components/auth-provider";
 import { ExamApiError, listAssignments } from "@/src/features/exam-flow/api";
 import { formatDuration } from "@/src/features/exam-flow/format";
 import type { AssignmentCard } from "@/src/features/exam-flow/schema";
-import { examGroup, examStatus, firstName, friendlyWhen } from "@/src/features/student/status";
+import { examGroup, examStatus, finishedAttempts, firstName, friendlyWhen, type FinishedAttempt } from "@/src/features/student/status";
 import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
@@ -31,7 +31,7 @@ const SKILL_LABEL: Record<string, string> = {
 /**
  * Öğrencinin tek ana sayfası. Öncelik sırası (yukarıdan aşağı):
  * 1) Şimdi girebileceğin sınavlar (yarım kalan en üstte) → 2) Yakında açılacaklar
- * 3) Sonuçlarım → 4) Bitenler. Geniş ekranda sonuçlar + ipuçları sağ sütunda.
+ * 3) Sonuçlarım → 4) Biten uygulamalar (her teslim ayrı satır). Geniş ekranda sonuçlar sağ sütunda.
  */
 export default function StudentHomePage() {
   const { user, loading: authLoading } = useAuth();
@@ -72,6 +72,12 @@ export default function StudentHomePage() {
     return { now, soon, done };
   }, [rows]);
 
+  const finished = useMemo(() => finishedAttempts(rows ?? []), [rows]);
+  const closedOnly = useMemo(
+    () => groups.done.filter((row) => !row.attempts.some((attempt) => attempt.finishedAt)),
+    [groups.done],
+  );
+
   const name = authLoading ? "" : firstName(user?.displayName || user?.username);
 
   return (
@@ -103,10 +109,11 @@ export default function StudentHomePage() {
             </Block>
           ) : null}
 
-          {groups.done.length ? (
-            <Block title="Finished tests" count={groups.done.length} id="biten">
+          {finished.length || closedOnly.length ? (
+            <Block title="Finished tests" count={finished.length + closedOnly.length} id="biten">
               <ul className="divide-y divide-neutral-200 overflow-hidden rounded-3xl bg-white ring-1 ring-neutral-200">
-                {groups.done.map((row) => <DoneRow key={row.recipientId} row={row} />)}
+                {finished.map((row) => <FinishedRow key={row.key} row={row} />)}
+                {closedOnly.map((row) => <DoneRow key={row.recipientId} row={row} />)}
               </ul>
             </Block>
           ) : null}
@@ -237,6 +244,24 @@ function SoonCard({ row }: { row: AssignmentCard }) {
           {friendlyWhen(row.availableFrom) ? <>Opens: <strong className="text-neutral-800">{friendlyWhen(row.availableFrom)}</strong></> : "The opening date is not ready yet"}
         </p>
       </div>
+    </li>
+  );
+}
+
+function FinishedRow({ row }: { row: FinishedAttempt }) {
+  const when = friendlyWhen(row.finishedAt);
+  const until = row.sharedTitle ? friendlyWhen(row.availableUntil) : null;
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+      <div className="min-w-0">
+        <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
+        <p className="text-neutral-600">
+          {row.attemptsTotal > 1 ? <>Try {row.attemptNo} of {row.attemptsTotal} · </> : null}
+          {when ? <>Finished: {when}</> : "Finished"}
+        </p>
+        {until ? <p className="text-neutral-600">Open until {until}</p> : null}
+      </div>
+      <StatusPill tone="mint">Done</StatusPill>
     </li>
   );
 }

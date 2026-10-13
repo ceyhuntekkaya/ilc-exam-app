@@ -6,7 +6,6 @@ import { useStudentLogin } from "@/src/api/generated/auth/auth";
 import { useAuth } from "@/src/components/auth-provider";
 import { kidButtonClass } from "@/src/features/student/ui";
 import type { SessionUserType } from "@/src/lib/auth-constants";
-import { studentFontClass } from "@/src/styles/student-fonts";
 import { IconAlert, IconArrowRight, IconUser } from "@/src/ui/icons";
 
 export default function StudentLoginPage() {
@@ -37,7 +36,7 @@ export default function StudentLoginPage() {
   }
 
   return (
-    <div data-panel="student" lang="en" className={`${studentFontClass} relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden bg-primary-600 px-4 py-10`}>
+    <div data-panel="student" lang="en" className="relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden bg-primary-600 px-4 py-10">
       {/* Gökyüzü süsleri: güneş + bulutlar. */}
       <span aria-hidden className="absolute -top-16 -right-16 size-64 rounded-full bg-secondary-400" />
       <span aria-hidden className="absolute top-24 left-[8%] h-14 w-40 rounded-full bg-white/15" />

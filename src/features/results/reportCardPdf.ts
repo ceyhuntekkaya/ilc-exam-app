@@ -17,6 +17,7 @@ export type ReportCard = {
   firstName: string;
   lastName: string;
   phase: string;
+  attemptNo?: number;
   startedAt: string | null;
   submittedAt: string | null;
   score: number | string | null;
@@ -44,6 +45,11 @@ const PHASE: Record<string, string> = {
   FINISHED: "Tamamlandı",
   EVALUATED: "Yayınlandı",
 };
+
+function phaseLabel(card: { phase: string; attemptNo?: number }) {
+  const phase = PHASE[card.phase] ?? card.phase;
+  return card.attemptNo && card.attemptNo > 0 ? `${phase} · ${card.attemptNo}. deneme` : phase;
+}
 
 const NAVY: [number, number, number] = [20, 54, 92];
 const TEAL: [number, number, number] = [15, 118, 110];
@@ -186,7 +192,7 @@ function drawIdentity(doc: jsPDF, deck: ReportDeck, card: ReportCard, y: number)
   doc.setFont("NotoSans", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...TEAL);
-  doc.text(PHASE[card.phase] ?? card.phase, MARGIN, y);
+  doc.text(phaseLabel(card), MARGIN, y);
   y += 8;
 
   y = drawFact(doc, "Kurum", deck.companyName, MARGIN, y, CONTENT_W);
@@ -196,7 +202,7 @@ function drawIdentity(doc: jsPDF, deck: ReportDeck, card: ReportCard, y: number)
     ["Seviye", deck.gradeName],
     ["Şube", deck.branchName],
     ["Sınav", deck.examTitle],
-    ["Durum", PHASE[card.phase] ?? card.phase],
+    ["Durum", phaseLabel(card)],
   ] as const;
   const colW = (CONTENT_W - 8) / 2;
   for (let i = 0; i < facts.length; i += 2) {

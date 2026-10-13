@@ -41,8 +41,19 @@ async function forward(request: NextRequest, path: string[]) {
     cache: "no-store",
   };
 
+  const mediaUpload =
+    (request.method === "POST" || request.method === "PUT") &&
+    /\/media(\/|$)/.test(targetPath) &&
+    request.body != null;
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = await request.arrayBuffer();
+    if (mediaUpload) {
+      // Büyük kayıtlar belleğe alınmaz. Yükleme birkaç dakika sürebilir.
+      init.body = request.body;
+      (init as RequestInit & { duplex: "half" }).duplex = "half";
+      init.signal = AbortSignal.timeout(5 * 60 * 1000);
+    } else {
+      init.body = await request.arrayBuffer();
+    }
   }
 
   const upstream = await fetch(url, init);

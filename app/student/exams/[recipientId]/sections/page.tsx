@@ -4,11 +4,15 @@ import { ExamApiError, enterSection, postState } from "@/src/features/exam-flow/
 import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { formatClock, formatDuration } from "@/src/features/exam-flow/format";
 import { readSession } from "@/src/features/exam-flow/session";
+import { confirmCloseBatch, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
+import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
+import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { saveAllUnsaved } from "@/src/features/exam-player/session/playerGuard";
 import { sectionTone } from "@/src/features/student/status";
 import { KidButton, KidCard, KidDialog, KidNotice, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCheck, IconClock, IconFlag, IconLock } from "@/src/ui/icons";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 export default function SectionListPage() {
   const { recipientId, state, applyState, held, fullscreenBlocked } = useExamFlow();
@@ -17,7 +21,15 @@ export default function SectionListPage() {
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const applicationId = state?.applicationId ?? "";
+  const records = useSyncExternalStore(
+    (onStoreChange) => (applicationId ? getAnswerOutbox(applicationId).subscribe(onStoreChange) : () => undefined),
+    () => (applicationId ? getAnswerOutbox(applicationId).getSnapshot() : EMPTY_RECORDS),
+    () => EMPTY_RECORDS,
+  );
   if (!state) return null;
+  const saving = records.some((row) => !row.hidden && (row.state === "pending" || row.state === "sending"));
+  const failed = records.some((row) => !row.hidden && row.state === "failed");
 
   const finished = state.stage === "FINISHED" || state.finishedReason != null;
   const doneCount = state.sections.filter((section) => section.status === "COMPLETED" || section.status === "EXPIRED").length;
@@ -51,7 +63,11 @@ export default function SectionListPage() {
     setBusy(true);
     setError(null);
     try {
-      applyState(await postState(`/applications/${session.applicationId}/finish`, session.sessionToken, { confirmIncomplete }));
+      await saveAllUnsaved();
+      await waitForMediaUploads();
+      const answers = takeCloseBatch(session.applicationId);
+      applyState(await postState(`/applications/${session.applicationId}/finish`, session.sessionToken, { confirmIncomplete, answers }));
+      confirmCloseBatch(session.applicationId, answers);
     } catch (err) {
       setError(err instanceof ExamApiError ? err.message : "We could not finish the test. Please try again.");
     } finally {
@@ -146,7 +162,7 @@ export default function SectionListPage() {
             <p className="text-neutral-700">When you finish all the parts, you will send your test here.</p>
             <KidButton variant="soft" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
-              Finish the test now
+              {saving ? "Saving…" : "Finish the test now"}
             </KidButton>
           </div>
         ) : (
@@ -157,7 +173,7 @@ export default function SectionListPage() {
             </div>
             <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
-              Send my test
+              {saving ? "Saving…" : "Send my test"}
             </KidButton>
           </KidCard>
         )
@@ -186,11 +202,13 @@ export default function SectionListPage() {
           icon={<IconFlag />}
           tone={incomplete ? "sun" : "primary"}
           body={
-            incomplete
-              ? <>You did not finish <strong>{total - doneCount} {total - doneCount === 1 ? "part" : "parts"}</strong>. If you send your test now, you cannot open {total - doneCount === 1 ? "it" : "them"} again.</>
-              : "After you send it, you cannot change your answers."
+            failed
+              ? "Some answers could not be saved. They are marked with ! in the part. If you send now and they still cannot be saved, the test stays open."
+              : incomplete
+                ? <>You did not finish <strong>{total - doneCount} {total - doneCount === 1 ? "part" : "parts"}</strong>. If you send your test now, you cannot open {total - doneCount === 1 ? "it" : "them"} again.</>
+                : "After you send it, you cannot change your answers."
           }
-          confirmLabel="Send"
+          confirmLabel={saving ? "Saving…" : "Send"}
           cancelLabel={incomplete ? "Back to the parts" : "Cancel"}
           busy={busy}
           onConfirm={() => void finish(incomplete)}
@@ -200,3 +218,5 @@ export default function SectionListPage() {
     </section>
   );
 }
+
+const EMPTY_RECORDS: OutboxRecord[] = [];

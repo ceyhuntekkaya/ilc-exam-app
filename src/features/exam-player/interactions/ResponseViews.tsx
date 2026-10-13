@@ -3,13 +3,15 @@
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
-import { applicationMediaContentUrl } from "@/src/features/exam-player/session/studentMediaApi";
+import { enqueueRecording, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { applicationMediaContentUrl, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
 import { type HtmlValue } from "@/src/features/exam-player/types";
 import { expectFullscreenExit, settleExpectedExitSoon, withExpectedExit } from "@/src/features/exam-flow/fullscreen";
 import { cn } from "@/src/lib/utils/cn";
 import { IconCheck, IconImage, IconTrash, IconUpload } from "@/src/ui/icons";
+import { useParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 
 function ManualAnswerHints({
@@ -74,6 +76,7 @@ export function OpenEndedView({
   const [text, setText] = useState(() => (saved?.text as string | undefined) ?? "");
   const [savedText, setSavedText] = useState(() => (saved?.text as string | undefined) ?? "");
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const words = countWords(text);
   const over = maxWords != null && words > maxWords;
   const under = minWords != null && words > 0 && words < minWords;
@@ -90,11 +93,18 @@ export function OpenEndedView({
     saveRef.current = () => {
       if (!itemId || !session?.saveAnswer) return;
       const text = textRef.current;
-      void Promise.resolve(session.saveAnswer(itemId, { text })).then(() => {
-        if (textRef.current !== text) return;
-        setSavedText(text);
-        setJustSaved(true);
-      });
+      setSaveError(null);
+      return Promise.resolve(session.saveAnswer(itemId, { text })).then(
+        () => {
+          if (textRef.current !== text) return;
+          setSavedText(text);
+          setJustSaved(true);
+        },
+        (err: unknown) => {
+          if (textRef.current !== text) return;
+          setSaveError(err instanceof Error ? err.message : "Not saved. Trying again…");
+        },
+      );
     };
   }, [itemId, session]);
 
@@ -152,9 +162,11 @@ export function OpenEndedView({
           <div className="flex items-center gap-3">
             <span
               aria-live="polite"
-              className={cn("flex items-center gap-1 text-sm font-semibold", dirty ? "text-amber-700" : "text-emerald-700")}
+              className={cn("flex items-center gap-1 text-sm font-semibold", saveError ? "text-rose-700" : dirty ? "text-amber-700" : "text-emerald-700")}
             >
-              {dirty ? (
+              {saveError ? (
+                saveError
+              ) : dirty ? (
                 "Not saved yet"
               ) : savedText ? (
                 <>
@@ -365,6 +377,11 @@ function useUploader(itemId: string | undefined) {
   }
 
   async function run<T>(task: () => Promise<T>): Promise<T | null> {
+    const lock = itemId ? `answer-upload:${itemId}` : null;
+    if (lock && !claimMedia(lock)) {
+      setError("Please wait. Finish listening, watching or recording first.");
+      return null;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -374,6 +391,7 @@ function useUploader(itemId: string | undefined) {
       setError(e instanceof Error && e.message ? e.message : "We could not save your file. Please try again.");
       return null;
     } finally {
+      if (lock) releaseMedia(lock);
       setBusy(false);
     }
   }
@@ -406,27 +424,43 @@ export function AudioResponseView({
   const chunksRef = useRef<Blob[]>([]);
   const stopTimer = useRef<number | null>(null);
   const startedAt = useRef(0);
+  const intentRef = useRef<string | null>(null);
+  const mounted = useRef(true);
   const lockId = useId();
-  const { session, busy, error, setError, uploadOne, run } = useUploader(itemId);
+  const params = useParams<{ recipientId?: string }>();
+  const { session, busy, error, setError } = useUploader(itemId);
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProblem, setUploadProblem] = useState<string | null>(null);
 
-  // Soru değişir / süre biterse kayıt ve mikrofon kapanır, kilit bırakılır (yükleme yapılmaz).
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    if (!itemId) return;
+    return subscribeMediaUploads(() => setUploadProblem(mediaUploadError(itemId)));
+  }, [itemId]);
+
+  // Soru kapanırsa kayıt durur ve parça yükleme kuyruğuna verilir. onstop silinmez.
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       const recorder = mediaRecorderRef.current;
-      if (recorder && recorder.state !== "inactive") {
-        recorder.onstop = null;
-        recorder.stop();
-        recorder.stream.getTracks().forEach((t) => t.stop());
-      }
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+      else releaseMedia(lockId);
       if (stopTimer.current) window.clearTimeout(stopTimer.current);
-      releaseMedia(lockId);
-    },
-    [lockId],
-  );
+    };
+  }, [lockId]);
 
   async function startRecording() {
     setError(null);
+    setUploadProblem(null);
+    if (!preview && session && itemId && params.recipientId) {
+      try {
+        intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "We could not start the recording. Please try again.");
+        return;
+      }
+    }
     // Kayıt sürerken başka ses çalmasın ve soru geçişi kilitli olsun (önizlemede kilit yok).
     if (!preview && !claimMedia(lockId)) return;
     try {
@@ -439,24 +473,36 @@ export function AudioResponseView({
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        releaseMedia(lockId);
         const durationMs = Date.now() - startedAt.current;
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         // iOS Safari audio/mp4, Chrome/Android audio/webm üretir: uzantı türle uyumlu olsun.
         const type = blob.type || "audio/webm";
         const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
         const file = new File([blob], `recording-${Date.now()}.${ext}`, { type });
-        void run(async () => {
-          const next = await uploadOne(file, durationMs);
-          if (session?.saveAnswer && itemId && next.mediaId) {
-            await session.saveAnswer(itemId, { mediaId: next.mediaId }, next.mediaId);
-          }
-          return next;
-        }).then((next) => {
-          if (!next) return;
-          setLocalEntry(next);
-          setAttempts(() => shownAttempts + 1);
-        });
+        const intentId = intentRef.current;
+        const recipientId = params.recipientId;
+        releaseMedia(lockId);
+        if (!preview && session && itemId && recipientId && intentId) {
+          setUploading(true);
+          void enqueueRecording({
+            applicationId: session.applicationId,
+            recipientId,
+            itemId,
+            intentId,
+            file,
+            durationMs,
+          }).then((saved) => {
+            if (!mounted.current) return;
+            setLocalEntry({ key: saved.mediaId, name: file.name, url: saved.url, mediaId: saved.mediaId });
+            const stored = Number(sessionStorage.getItem(`ilc-attempts:${session.applicationId}:${itemId}`)) || 0;
+            setAttempts((count) => Math.max(count, stored));
+          }).catch((err: unknown) => {
+            if (!mounted.current) return;
+            setError(err instanceof Error ? err.message : "We could not save your recording. Please try again.");
+          }).finally(() => {
+            if (mounted.current) setUploading(false);
+          });
+        }
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
@@ -501,22 +547,29 @@ export function AudioResponseView({
           }}
           className={cn(recording ? epRecordStop : epRecordStart, "min-h-12", (disabled || (!recording && attemptsExhausted) || busy) && "opacity-50")}
         >
-          {recording ? "Stop" : busy ? "Saving…" : entry ? "Record again" : "Record"}
+          {recording ? "Stop" : busy || uploading ? "Saving…" : entry ? "Record again" : "Record"}
         </button>
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
         ) : null}
-        {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
+        {error || uploadProblem ? <p className="text-sm font-semibold text-rose-600">{error || uploadProblem}</p> : null}
+        {uploadProblem && itemId ? (
+          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-xl bg-exam-sky-600 px-4 text-sm font-bold text-white">
+            Try upload again
+          </button>
+        ) : null}
         <p className="text-sm text-exam-slate-500">
           {preview
             ? "Önizleme · sınırsız deneme"
             : recording
               ? "Recording… Tap Stop when you finish."
-              : entry?.mediaId
-                ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
-                : left != null
-                  ? `Tries left: ${left}`
-                  : ""}
+              : uploading
+                ? "Saving your recording…"
+                : entry?.mediaId
+                  ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
+                  : left != null
+                    ? `Tries left: ${left}`
+                    : ""}
         </p>
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
@@ -551,28 +604,45 @@ export function VideoResponseView({
   const chunksRef = useRef<Blob[]>([]);
   const stopTimer = useRef<number | null>(null);
   const startedAt = useRef(0);
+  const intentRef = useRef<string | null>(null);
+  const mounted = useRef(true);
   const lockId = useId();
   const liveRef = useRef<HTMLVideoElement>(null);
+  const params = useParams<{ recipientId?: string }>();
   const { session, busy, error, setError, uploadOne, run } = useUploader(itemId);
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProblem, setUploadProblem] = useState<string | null>(null);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    if (!itemId) return;
+    return subscribeMediaUploads(() => setUploadProblem(mediaUploadError(itemId)));
+  }, [itemId]);
+
+  useEffect(() => {
+    mounted.current = true;
+    const live = liveRef.current;
+    return () => {
+      mounted.current = false;
       const recorder = mediaRecorderRef.current;
-      if (recorder && recorder.state !== "inactive") {
-        recorder.onstop = null;
-        recorder.stop();
-        recorder.stream.getTracks().forEach((track) => track.stop());
-      }
-      if (liveRef.current) liveRef.current.srcObject = null;
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+      else releaseMedia(lockId);
+      if (live) live.srcObject = null;
       if (stopTimer.current) window.clearTimeout(stopTimer.current);
-      releaseMedia(lockId);
-    },
-    [lockId],
-  );
+    };
+  }, [lockId]);
 
   async function startRecording() {
     setError(null);
+    setUploadProblem(null);
+    if (!preview && session && itemId && params.recipientId) {
+      try {
+        intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "We could not start the recording. Please try again.");
+        return;
+      }
+    }
     if (!preview && !claimMedia(lockId)) return;
     try {
       const stream = await withExpectedExit(() => navigator.mediaDevices.getUserMedia({ audio: true, video: true }));
@@ -588,22 +658,34 @@ export function VideoResponseView({
       recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
         if (liveRef.current) liveRef.current.srcObject = null;
-        releaseMedia(lockId);
         const durationMs = Date.now() - startedAt.current;
         const type = recorder.mimeType || "video/webm";
         const ext = type.includes("mp4") ? "mp4" : "webm";
         const file = new File([new Blob(chunksRef.current, { type })], `video-${Date.now()}.${ext}`, { type });
-        void run(async () => {
-          const next = await uploadOne(file, durationMs);
-          if (session?.saveAnswer && itemId && next.mediaId) {
-            await session.saveAnswer(itemId, { mediaId: next.mediaId }, next.mediaId);
-          }
-          return next;
-        }).then((next) => {
-          if (!next) return;
-          setLocalEntry(next);
-          setAttempts(() => shownAttempts + 1);
-        });
+        const intentId = intentRef.current;
+        const recipientId = params.recipientId;
+        releaseMedia(lockId);
+        if (!preview && session && itemId && recipientId && intentId) {
+          setUploading(true);
+          void enqueueRecording({
+            applicationId: session.applicationId,
+            recipientId,
+            itemId,
+            intentId,
+            file,
+            durationMs,
+          }).then((saved) => {
+            if (!mounted.current) return;
+            setLocalEntry({ key: saved.mediaId, name: file.name, url: saved.url, mediaId: saved.mediaId });
+            const stored = Number(sessionStorage.getItem(`ilc-attempts:${session.applicationId}:${itemId}`)) || 0;
+            setAttempts((count) => Math.max(count, stored));
+          }).catch((err: unknown) => {
+            if (!mounted.current) return;
+            setError(err instanceof Error ? err.message : "We could not save your recording. Please try again.");
+          }).finally(() => {
+            if (mounted.current) setUploading(false);
+          });
+        }
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
@@ -689,7 +771,7 @@ export function VideoResponseView({
               onClick={() => void startRecording()}
               className={cn(epRecordStart, "min-h-12", (disabled || attemptsExhausted || busy) && "opacity-50")}
             >
-              {busy ? "Saving…" : "Record"}
+              {busy || uploading ? "Saving…" : "Record"}
             </button>
             {uploadAllowed ? (
               <UploadDrop
@@ -716,17 +798,24 @@ export function VideoResponseView({
             ) : null}
           </div>
         )}
-        {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
+        {error || uploadProblem ? <p className="text-sm font-semibold text-rose-600">{error || uploadProblem}</p> : null}
+        {uploadProblem && itemId ? (
+          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-xl bg-exam-sky-600 px-4 text-sm font-bold text-white">
+            Try upload again
+          </button>
+        ) : null}
         <p className="text-sm text-exam-slate-500">
           {preview
             ? "Önizleme · sınırsız deneme"
             : recording
               ? "Recording… Tap Stop when you finish."
-              : entry?.mediaId
-                ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
-                : left != null
-                  ? `Tries left: ${left}`
-                  : ""}
+              : uploading
+                ? "Saving your recording…"
+                : entry?.mediaId
+                  ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
+                  : left != null
+                    ? `Tries left: ${left}`
+                    : ""}
         </p>
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />

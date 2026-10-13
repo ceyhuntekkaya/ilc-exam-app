@@ -1,13 +1,13 @@
 "use client";
 
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
-export type AnswerSaveStatus = "idle" | "saving" | "saved";
+export type AnswerSaveStatus = "idle" | "saving" | "saved" | "error";
 
 /**
- * Seçim değişince cevabı kısa bir gecikmeyle (yazarken her tuşta istek atmasın) oturuma yazar. Önizlemede no-op.
- * Bileşen kapanırken (öğrenci hemen Sonraki'ye bastı) bekleyen cevap atılmaz, hemen gönderilir.
+ * Seçim değişince cevabı hemen kutuya yazar. Ağ gecikmesi kutudadır, ekranda değil.
+ * "Saved" yalnız sunucu onayından sonra gelir.
  */
 export function useAnswerSync(
   itemId: string | undefined,
@@ -16,36 +16,26 @@ export function useAnswerSync(
 ): AnswerSaveStatus {
   const session = useExamSession();
   const json = JSON.stringify(payload);
-  const pending = useRef<(() => void) | null>(null);
-  // Son kayıt denemesinin sonucu; durum bundan türetilir (effect içinde senkron setState yok).
   const [result, setResult] = useState<{ json: string; ok: boolean } | null>(null);
   const active = enabled && !!itemId && !!payload && !!session?.saveAnswer;
   const status: AnswerSaveStatus = !active
     ? result?.ok ? "saved" : "idle"
     : result?.json === json
-      ? result.ok ? "saved" : "idle"
+      ? result.ok ? "saved" : "error"
       : "saving";
 
   useEffect(() => {
     if (!enabled || !itemId || !payload || !session?.saveAnswer) return;
     const save = session.saveAnswer;
     const sent = json;
-    const send = () => {
-      pending.current = null;
-      void Promise.resolve(save(itemId, payload)).then(
-        () => setResult({ json: sent, ok: true }),
-        () => setResult({ json: sent, ok: false }),
-      );
-    };
-    pending.current = send;
-    const handle = window.setTimeout(send, 400);
-    return () => window.clearTimeout(handle);
+    void Promise.resolve(save(itemId, payload)).then(
+      () => setResult({ json: sent, ok: true }),
+      () => setResult({ json: sent, ok: false }),
+    );
     // payload kimliği json ile takip edilir
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, itemId, json, session]);
 
-  // Kapanışta bekleyen kaydı gönder.
-  useEffect(() => () => pending.current?.(), []);
   return status;
 }
 
@@ -53,7 +43,7 @@ export function SaveStatus({ status }: { status: AnswerSaveStatus }) {
   if (status === "idle") return null;
   return (
     <span className="text-xs text-exam-slate-500">
-      {status === "saving" ? "Saving…" : "Saved"}
+      {status === "saving" ? "Saving…" : status === "error" ? "Not saved. Trying again…" : "Saved"}
     </span>
   );
 }

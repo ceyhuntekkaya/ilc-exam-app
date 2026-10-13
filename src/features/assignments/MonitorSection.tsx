@@ -1,10 +1,12 @@
 "use client";
 
-import { close, finishRemaining, useMonitor } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { useStudents } from "@/src/api/generated/admin-companies/admin-companies";
+import { useListAssignments } from "@/src/api/generated/admin-exams/admin-exams";
+import { useMonitor } from "@/src/api/generated/assignment-controller/assignment-controller";
+import { AssignmentCloseActions } from "@/src/features/assignments/AssignmentCloseActions";
 import { useOpsHref, usePanelCompanyId } from "@/src/features/panel/PanelContext";
-import { Badge, Button, ConfirmDialog, ErrorState, PageHeader, SectionTable, errorMessage, notify } from "@/src/ui";
-import { useMemo, useState } from "react";
+import { Badge, ErrorState, PageHeader, SectionTable } from "@/src/ui";
+import { useMemo } from "react";
 
 const REFRESH_MS = 15000;
 
@@ -37,17 +39,20 @@ function timeAgo(iso?: string | null) {
 
 /**
  * Atama canlı izleme: özet sayaçlar + öğrenci tablosu, 15 sn'de bir sessiz yenileme.
- * Geri alınamayan işlemler (kapat / kalanları bitir) onay ister.
+ * Kapatma ve kalanları bitirme ortak eylem bileşenindedir.
  */
 export function MonitorSection({ assignmentId }: { assignmentId: string }) {
   const query = useMonitor(assignmentId, { query: { refetchInterval: REFRESH_MS } });
   const rows = query.data?.data ?? [];
   const loaded = query.isSuccess;
   const updatedAt = query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : null;
-  const [confirm, setConfirm] = useState<"close" | "finish" | null>(null);
-  const [pending, setPending] = useState(false);
   const hrefs = useOpsHref();
   const companyId = usePanelCompanyId();
+  const assignments = useListAssignments(
+    { companyId: companyId ?? "" },
+    { query: { enabled: Boolean(companyId) } },
+  );
+  const assignment = assignments.data?.data?.find((row) => row.id === assignmentId);
   const studentsQ = useStudents(companyId ?? "", { query: { enabled: Boolean(companyId) } });
   // Tabloda kimlik yerine ad; liste gelmezse kimlik gösterilir.
   const studentName = useMemo(() => {
@@ -57,21 +62,6 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
     }
     return map;
   }, [studentsQ.data]);
-
-  async function runConfirmed() {
-    if (!confirm) return;
-    setPending(true);
-    try {
-      await (confirm === "close" ? close(assignmentId) : finishRemaining(assignmentId));
-      notify.success(confirm === "close" ? "Atama kapatıldı" : "Kalan oturumlar bitirildi");
-      setConfirm(null);
-      await query.refetch();
-    } catch (err) {
-      notify.error(errorMessage(err, "İşlem başarısız"));
-    } finally {
-      setPending(false);
-    }
-  }
 
   const header = (
     <PageHeader
@@ -127,12 +117,12 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
             </span>
             Canlı · {updatedAt ? updatedAt.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "bağlanıyor"}
           </span>
-          <Button type="button" size="sm" variant="secondary" onClick={() => setConfirm("finish")}>
-            Kalanları bitir
-          </Button>
-          <Button type="button" size="sm" variant="danger" onClick={() => setConfirm("close")}>
-            Atamayı kapat
-          </Button>
+          {companyId && assignment ? (
+            <AssignmentCloseActions
+              companyId={companyId}
+              items={[{ id: assignmentId, status: assignment.status, inProgress: counts.active }]}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -164,21 +154,6 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
             </span>,
           ];
         })}
-      />
-
-      <ConfirmDialog
-        open={confirm !== null}
-        onClose={() => setConfirm(null)}
-        title={confirm === "close" ? "Atamayı kapat" : "Kalan oturumları bitir"}
-        description={
-          confirm === "close"
-            ? "Atama yeni girişlere kapanır. Sınavı henüz başlatmamış öğrenciler artık giremez."
-            : "Devam eden tüm oturumlar şu anki cevaplarıyla teslim edilir. Bu işlem geri alınamaz."
-        }
-        confirmLabel={confirm === "close" ? "Kapat" : "Bitir"}
-        tone="danger"
-        pending={pending}
-        onConfirm={() => void runConfirmed()}
       />
     </div>
     </div>
