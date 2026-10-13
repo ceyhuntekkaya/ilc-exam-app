@@ -1,6 +1,6 @@
 "use client";
 
-import { usePublish, useReview } from "@/src/api/generated/evaluation-controller/evaluation-controller";
+import { useReview } from "@/src/api/generated/evaluation-controller/evaluation-controller";
 import { customInstance } from "@/src/api/mutator";
 import {
   AssignmentScopeFields,
@@ -48,6 +48,28 @@ type Item = {
   rationale?: string | null;
   finalScore?: number | null;
   scored: boolean;
+  published?: boolean;
+};
+
+type GradingSummary = {
+  submitted: number;
+  grace: number;
+  awaitingAuto: number;
+  awaitingManual: number;
+  ready: number;
+  published: number;
+};
+
+type AutoCompleteResult = {
+  scored: number;
+  completed: number;
+  awaitingManual: number;
+  inGrace: number;
+};
+
+type PublishResult = {
+  published: number;
+  notReady: number;
 };
 
 type AiGrade = {
@@ -283,9 +305,10 @@ function ModeTabs({
 }
 
 /**
- * Açık uçlu cevapların puanlanması.
- * AI yolu: ses (sonra konuşmadan metne) ve metin (sonra dil modeli). Manuel yol: video ve görsel.
- * Otomatik puan bağlanana kadar puanı personel girer.
+ * Teslim edilmiş denemelerin değerlendirmesi.
+ * Çoktan seçmeli ve diğer objektif sorular "Otomatik Değerlendirmeleri Tamamla" ile puanlanır.
+ * Açık uçlu cevaplar burada puanlanır; son elle puandan sonra toplam hesaplanır.
+ * Değerlendirmesi bitmeyen deneme yayınlanmaz. Yayınlanan puan kilitlenir.
  */
 export function GradingSection({
   companyId,
@@ -385,8 +408,15 @@ export function GradingSection({
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [transcriptProgress, setTranscriptProgress] = useState<{ index: number; total: number } | null>(null);
   const review = useReview();
-  const publish = usePublish();
+  const [autoPending, setAutoPending] = useState(false);
+  const [publishPending, setPublishPending] = useState(false);
   const openedExam = useRef("");
+  const scopeBody = useMemo(() => {
+    const body: { assignmentIds: string[]; gradeId?: string; branchId?: string } = { assignmentIds: queueIds };
+    if (board && scope.gradeValue) body.gradeId = scope.gradeValue;
+    if (board && scope.branchValue) body.branchId = scope.branchValue;
+    return body;
+  }, [board, queueIds, scope.gradeValue, scope.branchValue]);
 
   const current = scope.assignments.find((row) => row.id === assignmentId);
   const examVersionId = scope.examValue || current?.examVersionId || "";
@@ -419,9 +449,20 @@ export function GradingSection({
         (scope.seasonId && current.academicYearId && current.academicYearId !== scope.seasonId) ||
         (scope.examValue && current.examVersionId && current.examVersionId !== scope.examValue)),
   );
+  const summaryQ = useQuery({
+    queryKey: ["grading-summary", companyId, scopeBody],
+    enabled: queueIds.length > 0 && !contextMismatch,
+    queryFn: () => {
+      const params = new URLSearchParams();
+      for (const id of scopeBody.assignmentIds) params.append("assignmentIds", id);
+      if (scopeBody.gradeId) params.set("gradeId", scopeBody.gradeId);
+      if (scopeBody.branchId) params.set("branchId", scopeBody.branchId);
+      return customInstance<{ data: GradingSummary }>(`/companies/${companyId}/grading/summary?${params.toString()}`);
+    },
+  });
+  const summary = summaryQ.data?.data;
 
   const isScored = (item: Item) => item.scored || saved[item.answerId];
-  const pendingCount = rows.filter((item) => !isScored(item)).length;
   const scoped = contextMismatch
     ? []
     : rows.filter((item) => {
@@ -453,7 +494,9 @@ export function GradingSection({
     gradingAnswerId != null ||
     gradingProgress != null ||
     savingId != null ||
-    saveProgress != null;
+    saveProgress != null ||
+    autoPending ||
+    publishPending;
 
   async function identifyAudio() {
     const jobs = leftItems.flatMap((item) =>
@@ -517,7 +560,10 @@ export function GradingSection({
         } as { finalScore: number },
       });
       setSaved((currentSaved) => ({ ...currentSaved, [item.answerId]: true }));
-      if (!silent) notify.success("Değerlendirme kaydedildi");
+      if (!silent) {
+        notify.success("Değerlendirme kaydedildi");
+        void summaryQ.refetch();
+      }
       return true;
     } catch (err) {
       if (!silent) notify.error(errorMessage(err, "Kaydedilemedi"));
@@ -566,7 +612,7 @@ export function GradingSection({
   }
 
   async function evaluateAll() {
-    const items = [...leftItems, ...rightItems];
+    const items = [...leftItems, ...rightItems].filter((item) => !item.published);
     if (items.length === 0 || actionBusy || runLock.current) return;
     runLock.current = true;
     let graded = 0;
@@ -618,7 +664,7 @@ export function GradingSection({
   }
 
   async function saveAll() {
-    const items = [...leftItems, ...rightItems].filter((item) => complete(item));
+    const items = [...leftItems, ...rightItems].filter((item) => complete(item) && !item.published);
     if (items.length === 0) {
       notify.error("Puan, gerekçe ve geri bildirim dolu cevap yok");
       return;
@@ -637,20 +683,64 @@ export function GradingSection({
       setSaveProgress(null);
       setSavingId(null);
     }
-    if (savedCount > 0) notify.success(`${savedCount} değerlendirme kaydedildi`);
-    else notify.error("Kaydedilemedi");
+    if (savedCount > 0) {
+      notify.success(`${savedCount} değerlendirme kaydedildi`);
+      void summaryQ.refetch();
+    } else notify.error("Kaydedilemedi");
+  }
+
+  async function completeAutomatic() {
+    if (queueIds.length === 0 || autoPending || contextMismatch) return;
+    setAutoPending(true);
+    try {
+      const result = await customInstance<{ data: AutoCompleteResult }>(
+        `/companies/${companyId}/grading/auto-complete`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(scopeBody),
+        },
+      );
+      const data = result.data;
+      const parts = [`${data?.scored ?? 0} denemenin otomatik puanı tamamlandı`];
+      if ((data?.completed ?? 0) > 0) parts.push(`${data?.completed} sonuç hesaplandı`);
+      if ((data?.awaitingManual ?? 0) > 0) parts.push(`${data?.awaitingManual} deneme elle puan bekliyor`);
+      if ((data?.inGrace ?? 0) > 0) parts.push(`${data?.inGrace} deneme süre penceresi açık olduğu için atlandı`);
+      notify.success(parts.join(". "));
+      await Promise.all([query.refetch(), summaryQ.refetch()]);
+    } catch (err) {
+      notify.error(errorMessage(err, "Otomatik değerlendirme tamamlanamadı"));
+    } finally {
+      setAutoPending(false);
+    }
   }
 
   async function publishResults() {
-    if (queueIds.length === 0) return;
+    if (queueIds.length === 0 || publishPending || (summary?.ready ?? 0) === 0) return;
+    setPublishPending(true);
     try {
-      for (const id of queueIds) {
-        await publish.mutateAsync({ id });
-      }
-      notify.success("Sonuçlar yayınlandı");
+      const result = await customInstance<{ data: PublishResult }>(
+        `/companies/${companyId}/grading/publish`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(scopeBody),
+        },
+      );
+      const data = result.data;
+      const published = data?.published ?? 0;
+      const notReady = data?.notReady ?? 0;
+      notify.success(
+        notReady > 0
+          ? `${published} öğrenci yayınlandı. ${notReady} öğrenci değerlendirmesi bitmediği için yayınlanmadı.`
+          : `${published} öğrenci yayınlandı`,
+      );
       setConfirmPublish(false);
+      await Promise.all([query.refetch(), summaryQ.refetch()]);
     } catch (err) {
       notify.error(errorMessage(err, "Yayınlanamadı"));
+    } finally {
+      setPublishPending(false);
     }
   }
 
@@ -678,6 +768,7 @@ export function GradingSection({
 
   function renderCard(item: Item, index: number) {
     const lane = laneOf(item.interactionType);
+    const locked = Boolean(item.published);
     const done = isScored(item);
     const shownScore = done ? Number(scoreValue(item)) : null;
     return (
@@ -695,8 +786,8 @@ export function GradingSection({
             {done && shownScore != null && !Number.isNaN(shownScore) ? (
               <span className="numeric text-sm font-semibold text-fg">{formatScore(shownScore)} puan</span>
             ) : null}
-            <Badge tone={done ? "success" : "warning"} dot>
-              {done ? "Puanlandı" : "Bekliyor"}
+            <Badge tone={locked ? "info" : done ? "success" : "warning"} dot>
+              {locked ? "Yayınlandı" : done ? "Puanlandı" : "Bekliyor"}
             </Badge>
           </div>
         </header>
@@ -716,10 +807,11 @@ export function GradingSection({
                 step={0.5}
                 suffix="puan"
                 value={scoreValue(item)}
+                disabled={locked}
                 onChange={(e) => setScore((currentScore) => ({ ...currentScore, [item.answerId]: e.target.value }))}
               />
             </div>
-            {lane === "audio" || lane === "text" ? (
+            {!locked && (lane === "audio" || lane === "text") ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -738,6 +830,7 @@ export function GradingSection({
             <Textarea
               rows={3}
               value={rationaleValue(item)}
+              disabled={locked}
               onChange={(e) => setRationale((current) => ({ ...current, [item.answerId]: e.target.value }))}
             />
           </Field>
@@ -746,14 +839,17 @@ export function GradingSection({
           <Textarea
             rows={2}
             value={feedbackValue(item)}
+            disabled={locked}
             onChange={(e) => setFeedback((currentFeedback) => ({ ...currentFeedback, [item.answerId]: e.target.value }))}
           />
         </Field>
-        <div className="flex justify-end">
-          <Button type="button" loading={savingId === item.answerId} disabled={actionBusy && savingId !== item.answerId} onClick={() => void save(item)}>
-            {done ? "Güncelle" : "Kaydet"}
-          </Button>
-        </div>
+        {locked ? null : (
+          <div className="flex justify-end">
+            <Button type="button" className="min-h-11" loading={savingId === item.answerId} disabled={actionBusy && savingId !== item.answerId} onClick={() => void save(item)}>
+              {done ? "Güncelle" : "Kaydet"}
+            </Button>
+          </div>
+        )}
       </article>
     );
   }
@@ -783,12 +879,29 @@ export function GradingSection({
   const header = (
     <PageHeader
       title="Değerlendirme"
-      description="Sınavı seçin. Sezonda teslim edilmiş her uygulamanın açık uçlu cevabı burada durur. Ses ve metin AI yolunda, video ve görsel manuel yolda puanlanır."
+      description="Çoktan seçmeli sorular otomatik puanlanır. Açık uçlu cevaplar burada puanlanır. Değerlendirmesi bitmeyen öğrenci yayınlanmaz."
       back={board ? undefined : { href: filterKey ? `${hrefs.assignments}?${filterKey}` : hrefs.assignments, label: "Atamalar" }}
       actions={
-        <Button type="button" onClick={() => setConfirmPublish(true)} disabled={queueIds.length === 0 || !query.isSuccess || contextMismatch}>
-          Sonuçları yayınla
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11"
+            loading={autoPending}
+            disabled={queueIds.length === 0 || contextMismatch || actionBusy || !summary || summary.submitted === 0 || summary.submitted === summary.published}
+            onClick={() => void completeAutomatic()}
+          >
+            Otomatik Değerlendirmeleri Tamamla
+          </Button>
+          <Button
+            type="button"
+            className="min-h-11"
+            disabled={queueIds.length === 0 || contextMismatch || actionBusy || (summary?.ready ?? 0) === 0}
+            onClick={() => setConfirmPublish(true)}
+          >
+            Sonuçları yayınla
+          </Button>
+        </div>
       }
     />
   );
@@ -863,6 +976,33 @@ export function GradingSection({
           </div>
 
           <div className="grid gap-4 p-4 sm:p-5">
+            {queueIds.length === 0 || contextMismatch ? null : summaryQ.isError ? (
+              <ErrorState compact error={summaryQ.error} onRetry={() => void summaryQ.refetch()} />
+            ) : (
+              <div className="grid gap-2">
+                <dl className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["Teslim", summary?.submitted],
+                      ["Süre penceresi", summary?.grace],
+                      ["Otomatik bekleyen", summary?.awaitingAuto],
+                      ["Elle bekleyen", summary?.awaitingManual],
+                      ["Yayına hazır", summary?.ready],
+                      ["Yayınlandı", summary?.published],
+                    ] as const
+                  ).map(([label, count]) => (
+                    <div key={label} className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-bg px-3">
+                      <dt className="text-xs text-fg-muted">{label}</dt>
+                      <dd className="numeric text-sm font-semibold text-fg">{summaryQ.isSuccess ? count : "–"}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="text-xs text-fg-muted">
+                  Sayılar teslim edilmiş denemelerdir.
+                  {board ? "" : " Otomatik puanlama ve yayın bu atamanın tamamını kapsar."}
+                </p>
+              </div>
+            )}
             <ModeTabs
               value={mode}
               onChange={setMode}
@@ -952,11 +1092,11 @@ export function GradingSection({
         title="Sonuçlar yayınlansın mı?"
         tone="primary"
         confirmLabel="Yayınla"
-        pending={publish.isPending}
+        pending={publishPending}
         description={
-          pendingCount > 0
-            ? `${pendingCount} cevap henüz puanlanmadı. Yayınlarsanız öğrenciler eksik puanla sonuçlarını görür. Yayın geri alınamaz.`
-            : "Öğrenciler ve yetkili personel sonuçları görmeye başlar. Yayın geri alınamaz."
+          (summary?.grace ?? 0) + (summary?.awaitingAuto ?? 0) + (summary?.awaitingManual ?? 0) > 0
+            ? `${summary?.ready ?? 0} öğrenci yayınlanacak, ${(summary?.grace ?? 0) + (summary?.awaitingAuto ?? 0) + (summary?.awaitingManual ?? 0)} öğrenci değerlendirmesi bitmediği için yayınlanmayacak. Yayın geri alınamaz.`
+            : `${summary?.ready ?? 0} öğrenci yayınlanacak. Yayın geri alınamaz.`
         }
         onClose={() => setConfirmPublish(false)}
         onConfirm={() => void publishResults()}
