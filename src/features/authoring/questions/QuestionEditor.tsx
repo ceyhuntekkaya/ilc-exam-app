@@ -623,6 +623,16 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
           {error}
         </p>
       ) : null}
+      {editable && q.status === "APPROVED" ? (
+        <p role="status" className="rounded-lg border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-fg">
+          Demo düzenleme açık. Bu onaylı soru yerinde değiştirilebilir. Kayıt, soruyu kullanan yayındaki sınavlara yeni oturumlarda yansır. Devam eden oturumlar başladıkları kâğıdı kullanır.
+        </p>
+      ) : null}
+      {q.liveEditNotice ? (
+        <p role="alert" className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-fg">
+          {q.liveEditNotice}
+        </p>
+      ) : null}
 
       <nav aria-label="Soru düzenleme adımları" className="scrollbar-none overflow-x-auto rounded-xl border border-border bg-surface p-1.5 shadow-sm">
         <ol className="flex min-w-max gap-1">

@@ -88,6 +88,7 @@ export type QuestionDetail = {
   exposureCount?: number;
   calibrationStatus?: string;
   editable: boolean;
+  liveEditNotice?: string | null;
 };
 
 export type ExamPreview = {
@@ -200,6 +201,8 @@ export type ExamDetail = {
       }>;
     }>;
   }>;
+  editable?: boolean;
+  liveEditNotice?: string | null;
 };
 
 export type MediaItem = {

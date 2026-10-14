@@ -28,13 +28,13 @@ function formatWindow(from?: string | null, until?: string | null) {
 
 /**
  * Atama listesi: kampüs ve sezon yalnızca birden fazlaysa seçilir.
- * Sınav (o sezonda ataması olanlar) → seviye → sınıf, ardından şubedeki tüm öğrenciler.
+ * Sınav, o sezondaki atamalar ve henüz atanmamış lisanslar. Ardından seviye ve şube.
  */
 export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const hrefs = useOpsHref();
   const pathname = usePathname();
-  const scope = useAssignmentScope(companyId);
-  const { campusId, seasonId, examValue, gradeValue, branchOptions, exams, assignments, rosterQ, rosterRows, gradingId, filters } = scope;
+  const scope = useAssignmentScope(companyId, { includeLicensed: true });
+  const { campusId, seasonId, examValue, gradeValue, branchValue, branchOptions, exams, selectedExam, assignments, rosterQ, rosterRows, gradingId, filters } = scope;
   const lifecycleItems = useMemo(() => lifecycleOf(rosterRows, assignments), [rosterRows, assignments]);
 
   if (scope.listFailed) {
@@ -44,9 +44,19 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const ready = scope.ready;
   const listQuery = filtersToQuery(filters).toString();
   const returnTo = listQuery ? `${pathname}?${listQuery}` : pathname;
+  const branchUnassigned =
+    rosterQ.isSuccess && rosterRows.length > 0 && rosterRows.every((row) => row.phase === "NONE");
+  const assignHref =
+    branchUnassigned && selectedExam?.grantId && campusId && seasonId && branchValue
+      ? `${hrefs.assign(selectedExam.grantId)}?${new URLSearchParams({
+          instituteId: campusId,
+          yearId: seasonId,
+          branchId: branchValue,
+        }).toString()}`
+      : null;
   const waiting =
     campusId && seasonId && exams.length === 0
-      ? { title: "Bu sezonda ataması olan sınav yok", hint: "Başka bir sezon seçin ya da lisanslı sınavlardan yeni bir atama açın." }
+      ? { title: "Bu sezonda sınav yok", hint: "Yayınladığınız sınav burada görünür. Merkez kataloğundan bir sınav için önce lisans gerekir." }
       : examValue && gradeValue && branchOptions.length === 0
         ? { title: "Bu seviyede şube yok", hint: "Başka bir seviye seçin." }
         : { title: "Öğrenciler burada listelenir", hint: "Sınav, seviye ve şubeyi seçince şubedeki öğrencilerin durumu görünür." };
@@ -70,6 +80,11 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
           emptyTone="neutral"
           toolbar={
             <SectionToolbar count={rosterQ.isSuccess ? rosterRows.length : undefined} noun="öğrenci" loading={rosterQ.isLoading}>
+              {assignHref ? (
+                <ButtonLink href={assignHref} size="sm">
+                  Bu şubeye ata
+                </ButtonLink>
+              ) : null}
               <AssignmentCloseActions companyId={companyId} items={lifecycleItems} branchScoped />
               {gradingId ? (
                 <ButtonLink href={`${hrefs.gradingBoard}${listQuery ? `?${listQuery}` : ""}`} size="sm">
@@ -87,7 +102,11 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
             const assignment = assignments.find((item) => item.id === row.assignmentId);
             return [
               name,
-              phase ? (
+              row.phase === "NONE" ? (
+                <Badge key="p" tone="neutral">
+                  Atanmadı
+                </Badge>
+              ) : phase ? (
                 <Badge key="p" tone={phase.tone} dot>
                   {phase.label}
                 </Badge>

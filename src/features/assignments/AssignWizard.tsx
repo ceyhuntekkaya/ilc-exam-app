@@ -31,7 +31,7 @@ import {
   errorMessage,
   notify,
 } from "@/src/ui";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 const STEPS = [
@@ -68,6 +68,7 @@ function formatDateTime(value: string) {
 
 export function AssignWizard({ companyId, grantId }: { companyId: string; grantId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const hrefs = useOpsHref();
   const role = usePanelRole();
   const grantsQ = useListGrants({ companyId });
@@ -83,11 +84,12 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const setTargets = useSetTargets();
   const openAssignment = useOpen();
 
+  const presetBranch = searchParams.get("branchId") ?? "";
   const [step, setStep] = useState(1);
-  const [instituteId, setInstituteId] = useState("");
-  const [yearId, setYearId] = useState("");
+  const [instituteId, setInstituteId] = useState(searchParams.get("instituteId") ?? "");
+  const [yearId, setYearId] = useState(searchParams.get("yearId") ?? "");
   const [targetType, setTargetType] = useState<TargetRequestType>(TargetRequestType.CLASS);
-  const [targetId, setTargetId] = useState("");
+  const [targetId, setTargetId] = useState(presetBranch);
   const [from, setFrom] = useState("");
   const [until, setUntil] = useState("");
   const [attempts, setAttempts] = useState(1);
@@ -114,8 +116,11 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       ? grades
       : targetType === TargetRequestType.STUDENT
         ? students.map((student) => ({ id: student.id, name: studentName.get(student.id ?? "") }))
-        : // Sınıf listesi seçilen kampüsle sınırlı (kampüssüz kayıtlar her zaman görünür).
-          branches.filter((row) => !row.instituteId || row.instituteId === instituteValue);
+        : branches.filter(
+            (row) =>
+              (!row.instituteId || row.instituteId === instituteValue) &&
+              (!season || !row.academicYearId || row.academicYearId === season),
+          );
 
   const rangeError = from && until && until < from ? "Kapanış, açılıştan önce olamaz." : null;
   const attemptsError = !Number.isFinite(attempts) || attempts < 1 ? "En az 1 deneme hakkı olmalı." : null;

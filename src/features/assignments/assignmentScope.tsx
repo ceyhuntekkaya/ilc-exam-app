@@ -2,6 +2,7 @@
 
 import { useBranches, useGrades, useInstitutes, useYears } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
+import type { ExamGrantDto } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import { Field, FormCard, Select, Skeleton } from "@/src/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -52,11 +53,29 @@ function byTr(a: string, b: string) {
   return a.localeCompare(b, "tr");
 }
 
+export type ScopeExam = {
+  id: string;
+  title: string;
+  /** Seçim kutusunda görünen etiket. Atanmamış lisans "henüz atanmadı" diye işaretlenir. */
+  label: string;
+  assigned: boolean;
+  grantId: string | null;
+};
+
+function grantUsable(grant: ExamGrantDto, now = Date.now()) {
+  if (!grant.examVersionId) return false;
+  if (grant.validFrom && Date.parse(grant.validFrom) > now) return false;
+  if (grant.validUntil && Date.parse(grant.validUntil) < now) return false;
+  return true;
+}
+
 /**
  * Atama ekranındaki kampüs → sezon → sınav → seviye → şube seçimi.
  * Seçim adres çubuğunda durur; değerlendirme aynı seçimle açılır.
+ * `includeLicensed`: sezonda lisansı olup henüz ataması olmayan sınavlar da listelenir.
  */
-export function useAssignmentScope(companyId: string) {
+export function useAssignmentScope(companyId: string, options?: { includeLicensed?: boolean }) {
+  const includeLicensed = options?.includeLicensed ?? false;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -122,24 +141,43 @@ export function useAssignmentScope(companyId: string) {
 
   const exams = useMemo(() => {
     if (!campusId || !seasonId) return [];
-    const seen = new Map<string, string>();
+    const seen = new Map<string, ScopeExam>();
     for (const row of assignments) {
       if (row.instituteId !== campusId || row.academicYearId !== seasonId || row.status === "DRAFT" || !row.examVersionId) {
         continue;
       }
       if (seen.has(row.examVersionId)) continue;
-      const titled =
-        grants.find((grant) => grant.examVersionId === row.examVersionId && grant.academicYearId === seasonId)?.examTitle ??
-        grants.find((grant) => grant.examVersionId === row.examVersionId)?.examTitle ??
-        "Sınav";
-      seen.set(row.examVersionId, titled);
+      const grant =
+        grants.find((item) => item.examVersionId === row.examVersionId && item.academicYearId === seasonId) ??
+        grants.find((item) => item.examVersionId === row.examVersionId);
+      const title = grant?.examTitle ?? "Sınav";
+      seen.set(row.examVersionId, {
+        id: row.examVersionId,
+        title,
+        label: title,
+        assigned: true,
+        grantId: grant?.id ?? null,
+      });
     }
-    return [...seen.entries()]
-      .map(([id, title]) => ({ id, title }))
-      .sort((a, b) => byTr(a.title, b.title));
-  }, [assignments, grants, campusId, seasonId]);
+    if (includeLicensed) {
+      for (const grant of grants) {
+        if (grant.academicYearId !== seasonId || !grant.examVersionId || !grantUsable(grant)) continue;
+        if (seen.has(grant.examVersionId)) continue;
+        const title = grant.examTitle ?? "Sınav";
+        seen.set(grant.examVersionId, {
+          id: grant.examVersionId,
+          title,
+          label: `${title} — henüz atanmadı`,
+          assigned: false,
+          grantId: grant.id ?? null,
+        });
+      }
+    }
+    return [...seen.values()].sort((a, b) => byTr(a.title, b.title));
+  }, [assignments, grants, campusId, seasonId, includeLicensed]);
 
   const examValue = exams.some((exam) => exam.id === examVersionId) ? examVersionId : "";
+  const selectedExam = exams.find((exam) => exam.id === examValue) ?? null;
 
   const gradeOptions = useMemo(() => {
     if (!campusId || !seasonId) return [];
@@ -226,6 +264,7 @@ export function useAssignmentScope(companyId: string) {
     seasonOptions,
     exams,
     examValue,
+    selectedExam,
     gradeOptions,
     gradeValue,
     branchOptions,
@@ -341,7 +380,7 @@ export function AssignmentScopeFields({
               <option value="">Seçin</option>
               {exams.map((exam) => (
                 <option key={exam.id} value={exam.id}>
-                  {exam.title}
+                  {exam.label}
                 </option>
               ))}
             </Select>

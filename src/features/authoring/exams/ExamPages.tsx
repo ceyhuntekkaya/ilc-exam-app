@@ -14,7 +14,7 @@ import { QuestionPreviewLoader } from "@/src/features/authoring/questions/Questi
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
 import { LicensedExamsSection } from "@/src/features/assignments/LicensedExamsSection";
-import { useCan, useContentBasePath, usePanelCompanyId, usePanelRole } from "@/src/features/panel/PanelContext";
+import { useCan, useContentBasePath, useOpsHref, usePanelCompanyId, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
   Badge,
   Button,
@@ -587,6 +587,7 @@ type Sel =
 export function ExamBuilderPage({ examId }: { examId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const hrefs = useOpsHref();
   const basePath = useContentBasePath("exams");
   const qBase = useContentBasePath("questions");
   const { tenant } = useAuthoringTenant();
@@ -782,6 +783,16 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
       {error ? (
         <p role="alert" className="rounded-lg border border-danger/20 bg-danger-bg px-3.5 py-2.5 text-sm text-danger">
           {error}
+        </p>
+      ) : null}
+      {exam.editable && exam.status === "PUBLISHED" ? (
+        <p role="status" className="rounded-lg border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-fg">
+          Demo düzenleme açık. Bu yayınlanmış sınav yerinde değiştirilebilir. Kayıt sürüm numarasını artırmaz; yeni başlayan oturumlar güncel içeriği görür. Devam eden oturumlar başladıkları kâğıdı kullanır.
+        </p>
+      ) : null}
+      {exam.liveEditNotice ? (
+        <p role="alert" className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-fg">
+          {exam.liveEditNotice}
         </p>
       ) : null}
       <ConfirmDialog
@@ -1292,13 +1303,24 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                         "Sınav yayınlansın mı?",
                         "Yayınlanan sürüm kurumlara lisanslanabilir. İçerik değişirse sınav taslağa çekilip yeniden yayınlanır ve sürüm numarası artar.",
                         "Yayınla",
-                        () => notify.run(authoringApi.publishExam(exam.id), { success: "Yayınlandı", error: "Yayınlanamadı" }).then(setExam),
+                        () =>
+                          notify
+                            .run(authoringApi.publishExam(exam.id), {
+                              success: tenant && !tenant.contentHq ? "Yayınlandı. Atama listesinde görünür." : "Yayınlandı",
+                              error: "Yayınlanamadı",
+                            })
+                            .then(setExam),
                       )
                     }
                   >
                     Yayınla
                   </Button>
                 </>
+              ) : null}
+              {exam.status === "PUBLISHED" && tenant && !tenant.contentHq ? (
+                <ButtonLink href={hrefs.licensed} className="min-h-11">
+                  Şimdi ata
+                </ButtonLink>
               ) : null}
               {exam.status === "PUBLISHED" ? (
                 <Button
@@ -1679,7 +1701,7 @@ function QuestionAssignPanel({
                           <ul className="divide-y divide-border border-t border-border">
                             {sub.questions.map((link, index) => {
                               const known = catalog[link.questionVersionId];
-                              const newer = exam.status === "DRAFT" && link.currentVersionNo > link.versionNo;
+                              const newer = (exam.editable ?? exam.status === "DRAFT") && link.currentVersionNo > link.versionNo;
                               const shown = openPreview === link.id;
                               return (
                                 <li key={link.id} className="px-3 py-2">
@@ -1836,7 +1858,7 @@ function EmbeddableEditor({
               type="button"
               role="radio"
               aria-checked={level === value}
-              disabled={exam.status !== "DRAFT"}
+              disabled={!(exam.editable ?? exam.status === "DRAFT")}
               className={`min-h-11 rounded-lg border px-3 text-sm font-medium ${level === value ? "border-primary bg-primary-50 text-primary" : "border-border bg-surface text-fg"}`}
               onClick={() => void onSecurity(value)}
             >
