@@ -10,6 +10,8 @@ export interface AssignmentSummaryDto {
   companyId?: string;
   instituteId?: string;
   examVersionId?: string;
+  examId?: string;
+  examVersionNo?: number;
   examGrantId?: string;
   academicYearId?: string;
   status?: string;

@@ -15,7 +15,7 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
   const canGrant = role === "SUPER_ADMIN";
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
-  if (isLoading) return <SectionTable loading empty="" columns={["Sınav", "Versiyon", "Geçerlilik", "Kota", ""]} rows={[]} />;
+  if (isLoading) return <SectionTable loading empty="" columns={["Sınav", "Paket sürümü", "Geçerlilik", ""]} rows={[]} />;
 
   return (
     <div className="grid gap-4">
@@ -40,7 +40,7 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
             : "Kurumunuza henüz sınav lisansı tanınmamış. Lisans için ILC ile iletişime geçin."
         }
         emptyAction={canGrant ? <Button onClick={() => setOpen(true)}>Lisans ver</Button> : undefined}
-        columns={["Sınav", "Versiyon", "Geçerlilik", "Kota", ""]}
+        columns={["Sınav", "Paket sürümü", "Geçerlilik", ""]}
         rows={rows.map((row) => [
           <div key="t">
             <p className="font-medium">{row.examTitle ?? "—"}</p>
@@ -52,7 +52,6 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
             {" → "}
             {row.validUntil ? new Date(row.validUntil).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : "Süresiz"}
           </span>,
-          row.quota != null ? `${row.quota} öğrenci` : "Sınırsız",
           <div key="a" className="flex flex-wrap items-center justify-end gap-2">
             {row.mandatory ? (
               <Badge tone="warning" dot>

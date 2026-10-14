@@ -120,7 +120,7 @@ export function GradesSection({ companyId }: { companyId: string }) {
           </Field>
         </div>
         {current ? (
-          <Field label="Durum" hint="Pasif seviye yeni sınıf ve kayıtlarda seçilemez.">
+          <Field label="Durum" hint="Bağlı sınıf veya aktif kayıt varsa pasif yapılamaz. Geçmiş kayıt tek başına engel değildir. Pasif seviye yeni sınıf ve kayıt açmaz.">
             <Select name="status" defaultValue={current.status ?? "ACTIVE"}>
               <option value="ACTIVE">Aktif</option>
               <option value="PASSIVE">Pasif</option>

@@ -6,7 +6,7 @@ import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { Badge, ButtonLink, ErrorState, FilterTabs, SectionTable, SectionToolbar } from "@/src/ui";
 import { useState } from "react";
 
-const COLUMNS = ["Sınav", "Durum", "Pencere", ""];
+const COLUMNS = ["Sınav", "Paket", "Durum", "Pencere", ""];
 const STATUSES = ["OPEN", "DRAFT", "CLOSED"] as const;
 
 function formatWindow(from?: string | null, until?: string | null) {
@@ -68,10 +68,13 @@ export function AssignmentListSection({ companyId, focus }: { companyId: string;
         }
         columns={COLUMNS}
         rows={rows.map((row) => {
-          const title =
-            grants.find((grant) => grant.examVersionId === row.examVersionId)?.examTitle ?? "Sınav";
+          const grant =
+            grants.find((item) => item.examVersionId === row.examVersionId) ??
+            grants.find((item) => item.examId && item.examId === row.examId);
+          const title = grant?.examTitle ?? "Sınav";
           return [
             title,
+            row.examVersionNo != null ? `v${row.examVersionNo}` : "—",
             <Badge
               key="s"
               tone={row.status === "OPEN" ? "success" : row.status === "CLOSED" ? "neutral" : "info"}

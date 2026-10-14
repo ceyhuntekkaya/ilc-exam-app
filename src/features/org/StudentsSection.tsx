@@ -312,7 +312,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
             <Input name="lastName" required defaultValue={editing?.lastName ?? ""} />
           </Field>
         </div>
-        <Field label="Durum" hint="Pasif ya da kilitli öğrenci giriş yapamaz ve yeni atamalara dahil edilmez.">
+        <Field label="Durum" hint="Kilit giriş yasağıdır ve geri alınır. Pasif geri alınamaz. Açık denemesi olan öğrenci pasif yapılamaz. Pasif ve kilitli öğrenci yeni atama kadrosuna yazılmaz.">
           <Select name="status" defaultValue={editing?.status ?? "ACTIVE"}>
             <option value="ACTIVE">Aktif</option>
             <option value="PASSIVE">Pasif</option>

@@ -89,7 +89,7 @@ export function InstitutesSection({ companyId }: { companyId: string }) {
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
         title="Kampüsü sil"
-        description={`"${pendingDelete?.name ?? "Kampüs"}" silinecek. Bağlı sınıf ve kayıtlar etkilenebilir; bu işlem geri alınamaz.`}
+        description={`"${pendingDelete?.name ?? "Kampüs"}" silinecek. Sınıf, kayıt veya atama varsa silinemez. Boş kampüs listeden kalkar; bu işlem geri alınamaz.`}
         confirmLabel="Sil"
         tone="danger"
         pending={remove.isPending}

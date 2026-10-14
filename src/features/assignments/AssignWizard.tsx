@@ -7,7 +7,7 @@ import {
   useStudents,
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
-import { useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
+import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import {
   preview,
   useCreateAssignment,
@@ -71,6 +71,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const hrefs = useOpsHref();
   const role = usePanelRole();
   const grantsQ = useListGrants({ companyId });
+  const assignmentsQ = useListAssignments({ companyId });
   const grant = (grantsQ.data?.data ?? []).find((row) => row.id === grantId) ?? null;
   const institutes = useInstitutes(companyId).data?.data ?? [];
   const years = useYears(companyId).data?.data ?? [];
@@ -200,6 +201,13 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const instituteName = institutes.find((row) => row.id === instituteValue)?.name ?? "—";
   const yearName = years.find((row) => row.id === season)?.name ?? "—";
   const targetName = targets.find((row) => row.id === targetId)?.name ?? "—";
+  const otherPackageOpen = (assignmentsQ.data?.data ?? []).some(
+    (row) =>
+      row.status === "OPEN" &&
+      Boolean(grant.examId) &&
+      row.examId === grant.examId &&
+      row.examVersionId !== grant.examVersionId,
+  );
 
   return (
     <div className="@container space-y-5">
@@ -208,6 +216,11 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         description="Dört adımda sınavı kimin, ne zaman ve kaç denemeyle alacağını belirleyin. Açmadan önce öğrenci listesini görürsünüz."
         back={back}
       />
+      {otherPackageOpen ? (
+        <p className="rounded-xl border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-fg">
+          Bu sınavın başka bir paketinde açık atama var. Yeni atama o öğrencileri yeni pakete taşımaz; eski atama eski pakette kalır. Yeni kâğıt için eski atamanın kapanması gerekir.
+        </p>
+      ) : null}
 
       <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Adımlar">
         {STEPS.map((s, i) => {

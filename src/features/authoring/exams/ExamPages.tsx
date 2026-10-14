@@ -1307,7 +1307,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   onClick={() =>
                     ask(
                       "Sınav yayından kaldırılsın mı?",
-                      "Yeni atama ve yeni oturum açılamaz. Devam eden oturumlar tamamlanabilir.",
+                      "Yeni atama ve yeni oturum açılamaz. Sürüm artmaz. Devam eden oturumlar tamamlanabilir.",
                       "Yayından kaldır",
                       () => notify.run(authoringApi.unpublishExam(exam.id), { success: "Yayından kaldırıldı", error: "Kaldırılamadı" }).then(setExam),
                     )
@@ -1338,7 +1338,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   onClick={() =>
                     ask(
                       "Sınav taslağa çekilsin mi?",
-                      "Sınav düzenlenebilir olur ve yayından kalkar. Yeniden yayınlandığında sürüm artar; kurum lisansları yeni sürüme taşınır. Başlamış oturumlar eski sürümde kalır.",
+                      "Sınav düzenlenebilir olur ve yayından kalkar. Açık atama eski pakette kalır; henüz girmemiş öğrenci de o paketi görür. Yeniden yayın yeni girişi açar ama bu atamayı yeni pakete almaz. Yeni kâğıt için eski atama kapanıp yeni atama açılır. Bu, sürüm artırmayan yayından kaldırmadan farklıdır.",
                       "Taslağa çek",
                       () => notify.run(authoringApi.revertExamDraft(exam.id), { success: "Taslağa çekildi", error: "Taslağa çekilemedi" }).then(setExam),
                     )

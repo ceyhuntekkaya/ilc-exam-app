@@ -280,7 +280,7 @@ export function StaffSection({ companyId }: { companyId: string }) {
             <Input name="phone" type="tel" defaultValue={editing?.phone ?? ""} />
           </Field>
         </div>
-        <Field label="Durum" hint="Pasif ya da kilitli personel panele giriş yapamaz.">
+        <Field label="Durum" hint="Kilit giriş yasağıdır ve geri alınır. Pasif geri alınamaz. Son kurum yöneticisi pasif yapılamaz. Sonucu yayınlanmamış kapalı atama varken son değerlendirici de pasif yapılamaz.">
           <Select name="status" defaultValue={editing?.status ?? "ACTIVE"}>
             <option value="ACTIVE">Aktif</option>
             <option value="PASSIVE">Pasif</option>

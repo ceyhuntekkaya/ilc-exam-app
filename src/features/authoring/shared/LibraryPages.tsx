@@ -3,7 +3,7 @@
 import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
 
-import { authoringApi, type MediaItem, type ReviewItem } from "@/src/features/authoring/shared/client";
+import { authoringApi, type MediaItem, type MediaUsage, type ReviewItem } from "@/src/features/authoring/shared/client";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
@@ -165,7 +165,7 @@ export function MediaLibraryPage() {
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                 {shown.map((m) => (
-                  <MediaCard key={m.id} m={m} />
+                  <MediaCard key={m.id} m={m} onChanged={() => void load()} />
                 ))}
               </ul>
             )}
@@ -225,15 +225,70 @@ export function MediaLibraryPage() {
   );
 }
 
-function MediaCard({ m }: { m: MediaItem }) {
+function MediaCard({ m, onChanged }: { m: MediaItem; onChanged: () => void }) {
   const src = `/api/backend/media/${m.id}/content`;
   const meta = [
     m.widthPx && m.heightPx ? `${m.widthPx}×${m.heightPx}` : null,
     formatDuration(m.durationMs),
     formatBytes(m.sizeBytes),
   ].filter(Boolean);
+  const [editing, setEditing] = useState(false);
+  const [altText, setAltText] = useState(m.altText ?? "");
+  const [transcript, setTranscript] = useState(m.transcript ?? "");
+  const [source, setSource] = useState(m.source ?? "");
+  const [license, setLicense] = useState(m.license ?? "");
+  const [attribution, setAttribution] = useState(m.attribution ?? "");
+  const [usages, setUsages] = useState<MediaUsage[] | null>(null);
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function showUsages() {
+    setUsageOpen((open) => !open);
+    if (usages != null) return;
+    try {
+      setUsages(await authoringApi.mediaUsages(m.id));
+    } catch (e) {
+      notify.error(errorMessage(e, "Kullanım listesi alınamadı"));
+    }
+  }
+
+  async function saveMeta() {
+    setBusy(true);
+    try {
+      await authoringApi.updateMediaMeta(m.id, {
+        altText: altText || null,
+        transcript: transcript || null,
+        source: source || null,
+        license: license || null,
+        attribution: attribution || null,
+      });
+      setEditing(false);
+      notify.success("Üst veri kaydedildi");
+      onChanged();
+    } catch (e) {
+      notify.error(errorMessage(e, "Kaydedilemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await authoringApi.deleteMedia(m.id);
+      setConfirmDelete(false);
+      notify.success("Dosya silindi");
+      onChanged();
+    } catch (e) {
+      notify.error(errorMessage(e, "Silinemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <li className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition-shadow hover:shadow-sm">
+    <li className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface">
       <div className="flex aspect-video items-center justify-center bg-neutral-50">
         {m.status !== "READY" ? (
           <StatusBadge status={m.status} />
@@ -246,7 +301,7 @@ function MediaCard({ m }: { m: MediaItem }) {
           <video controls preload="metadata" src={src} className="size-full object-contain" />
         )}
       </div>
-      <div className="grid flex-1 gap-1 p-3">
+      <div className="grid flex-1 gap-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <p className="min-w-0 truncate text-[13px] font-medium text-fg" title={m.originalFilename ?? undefined}>
             {m.originalFilename || "Adsız dosya"}
@@ -256,14 +311,51 @@ function MediaCard({ m }: { m: MediaItem }) {
         {meta.length ? <p className="text-[11px] text-fg-subtle">{meta.join(" · ")}</p> : null}
         {m.altText || m.transcript ? <p className="line-clamp-2 text-xs text-fg-muted">{m.altText || m.transcript}</p> : null}
         {m.license ? <p className="text-[11px] text-fg-subtle">Lisans: {m.license}</p> : null}
-        <button
-          type="button"
-          className="mt-auto w-fit pt-1 text-[11px] font-medium text-primary hover:underline"
-          onClick={() => void navigator.clipboard.writeText(m.id).then(() => notify.success("Medya kimliği kopyalandı"))}
-        >
-          Kimliği kopyala
-        </button>
+        <p className="text-[11px] text-fg-subtle">Yeni dosya yeni kimlik açar. Bu kimliği kullanan soru ve sınavlar eski dosyada kalır.</p>
+        <div className="mt-auto flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" className="min-h-11" onClick={() => void showUsages()}>Kullanım</Button>
+          <Button size="sm" variant="secondary" className="min-h-11" onClick={() => setEditing((v) => !v)}>Üst veri</Button>
+          <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setConfirmDelete(true)}>Sil</Button>
+          <button
+            type="button"
+            className="min-h-11 px-2 text-[12px] font-medium text-primary"
+            onClick={() => void navigator.clipboard.writeText(m.id).then(() => notify.success("Medya kimliği kopyalandı"))}
+          >
+            Kimliği kopyala
+          </button>
+        </div>
+        {usageOpen ? (
+          <ul className="max-h-40 space-y-1 overflow-auto text-[12px] text-fg-muted">
+            {usages == null ? <li>Yükleniyor…</li> : usages.length === 0 ? <li>Kullanım yok. Silinebilir.</li> : usages.map((u) => (
+              <li key={`${u.kind}-${u.refId}-${u.detail ?? ""}`}>
+                {u.kind === "QUESTION" ? "Soru" : u.kind === "EXAM" ? "Sınav" : "Paket"}: {u.label}
+                {u.detail ? ` (${u.detail})` : ""}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {editing ? (
+          <div className="grid gap-2">
+            <Field label="Alternatif metin"><Input value={altText} onChange={(e) => setAltText(e.target.value)} /></Field>
+            <Field label="Transkript"><Textarea value={transcript} onChange={(e) => setTranscript(e.target.value)} /></Field>
+            <Field label="Kaynak"><Input value={source} onChange={(e) => setSource(e.target.value)} /></Field>
+            <Field label="Lisans"><Input value={license} onChange={(e) => setLicense(e.target.value)} /></Field>
+            <Field label="Atıf"><Input value={attribution} onChange={(e) => setAttribution(e.target.value)} /></Field>
+            <Button className="min-h-11" disabled={busy} loading={busy} onClick={() => void saveMeta()}>Kaydet</Button>
+          </div>
+        ) : null}
       </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Dosyayı sil"
+        description={usages && usages.length > 0
+          ? "Bu dosya soru veya sınavda kullanılıyor. Silinemez."
+          : "Kullanılmıyorsa dosya kütüphaneden kalkar. Yeni yükleme yeni kimlik açar."}
+        confirmLabel="Sil"
+        pending={busy}
+        onClose={() => { if (!busy) setConfirmDelete(false); }}
+        onConfirm={() => void remove()}
+      />
     </li>
   );
 }
@@ -1456,8 +1548,8 @@ export function SettingsDictionariesPage() {
           pendingDelete?.kind === "tag"
             ? `“${pendingDelete.label}” kalıcı silinir. Soru veya sınavda kullanılıyorsa silinemez.`
             : pendingDelete?.kind === "age"
-              ? `“${pendingDelete.label}” listeden kalkar. Sorularda kayıtlı kod değişmez.`
-              : `“${pendingDelete?.label ?? ""}” seçiciden kalkar. Bağlı sorulardaki kayıt kalır.`
+            ? `“${pendingDelete.label}” listeden kalkar. Sorularda kullanılıyorsa kaldırılamaz. Kod değişince bağlı sorular aynı bantta kalır.`
+            : `“${pendingDelete?.label ?? ""}” seçiciden kalkar. Sorularda kullanılıyorsa kaldırılamaz.`
         }
         confirmLabel="Sil"
         pending={deleting}

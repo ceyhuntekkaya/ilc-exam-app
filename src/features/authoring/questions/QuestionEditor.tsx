@@ -173,7 +173,8 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   const [addingPart, setAddingPart] = useState(false);
 
   const [cefr, setCefr] = useState("");
-  const [ageBand, setAgeBand] = useState("");
+  const [ageBandOptionId, setAgeBandOptionId] = useState("");
+  const [orphanAgeBand, setOrphanAgeBand] = useState("");
   const [questionCode, setQuestionCode] = useState("");
   const [codeError, setCodeError] = useState<string | undefined>();
   const questionCodeRef = useRef("");
@@ -183,7 +184,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   const [timeLimitSec, setTimeLimitSec] = useState("");
   const [securityLevel, setSecurityLevel] = useState("STANDARD");
   const [tagIds, setTagIds] = useState<string[]>([]);
-  const [ageBands, setAgeBands] = useState<Array<{ code: string; label: string }>>([]);
+  const [ageBands, setAgeBands] = useState<Array<{ id: string; code: string; label: string }>>([]);
   const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
   const [outcomes, setOutcomes] = useState<Array<{ id: string; code: string; description: string }>>([]);
   const [rubrics, setRubrics] = useState<
@@ -222,7 +223,8 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       questionCodeRef.current = data.code ?? "";
       setCodeError(undefined);
       setCefr(data.cefrLevel ?? "");
-      setAgeBand(data.ageBand ?? "");
+      setAgeBandOptionId(data.ageBandOptionId ?? "");
+      setOrphanAgeBand(data.ageBandOptionId ? "" : (data.ageBand ?? ""));
       setEstimatedTimeSec(data.estimatedTimeSec != null ? String(data.estimatedTimeSec) : "");
       setTimeLimitSec(data.timeLimitSec != null ? String(data.timeLimitSec) : "");
       setSecurityLevel(data.securityLevel ?? "STANDARD");
@@ -272,6 +274,28 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       setRubrics(rb);
     });
   }, [tenant]);
+
+  const missingOutcomeIds = useMemo(() => {
+    const known = new Set(outcomes.map((o) => o.id));
+    const selected = q?.parts.flatMap((p) => p.outcomeIds ?? []) ?? [];
+    return [...new Set(selected)].filter((id) => !known.has(id)).sort();
+  }, [q, outcomes]);
+
+  useEffect(() => {
+    if (missingOutcomeIds.length === 0) return;
+    let cancelled = false;
+    void authoringApi.outcomeLabels(missingOutcomeIds).then((rows) => {
+      if (cancelled || rows.length === 0) return;
+      setOutcomes((prev) => {
+        const ids = new Set(prev.map((o) => o.id));
+        const extra = rows.filter((row) => !ids.has(row.id));
+        return extra.length === 0 ? prev : [...prev, ...extra];
+      });
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [missingOutcomeIds]);
 
   const selectedPart = useMemo(
     () => q?.parts.find((p) => p.id === selectedPartId) ?? q?.parts[0] ?? null,
@@ -397,7 +421,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     const nextErrors: { cefr?: string; skill?: string; ageBand?: string } = {};
     if (!cefr) nextErrors.cefr = "CEFR seviyesi seçin.";
     if (!partDraft?.skill) nextErrors.skill = "Beceri seçin.";
-    if (!ageBand) nextErrors.ageBand = "Yaş bandı seçin.";
+    if (!ageBandOptionId) nextErrors.ageBand = "Yaş bandı seçin.";
     setClassErrors(nextErrors);
     const codeProblem = await publishCodeCheck();
     if (Object.keys(nextErrors).length > 0 || codeProblem) return;
@@ -410,7 +434,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       const next = await authoringApi.updateMetadata(q.versionId, {
         cefrLevel: cefr,
         mebGrade: null,
-        ageBand,
+        ageBandOptionId,
         estimatedTimeSec: estimatedTimeSec === "" ? null : Number(estimatedTimeSec),
         timeLimitSec: timeLimitSec === "" ? null : Number(timeLimitSec),
         securityLevel,
@@ -419,6 +443,8 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       });
       setQuestionCode(next.code);
       questionCodeRef.current = next.code;
+      setAgeBandOptionId(next.ageBandOptionId ?? "");
+      setOrphanAgeBand(next.ageBandOptionId ? "" : (next.ageBand ?? ""));
       setQ(next);
       notify.success("Kaydedildi");
       advancePanel();
@@ -732,10 +758,25 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   </Select>
                 </Field>
                 <Field label="Yaş bandı" required error={classErrors.ageBand}>
-                  <Select value={ageBand} disabled={!editable} onChange={(e) => { setAgeBand(e.target.value); setClassErrors((prev) => ({ ...prev, ageBand: undefined })); }}>
+                  <Select
+                    value={ageBandOptionId || (orphanAgeBand ? "__orphan__" : "")}
+                    disabled={!editable}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setAgeBandOptionId(next === "__orphan__" ? "" : next);
+                      if (next !== "__orphan__") setOrphanAgeBand("");
+                      setClassErrors((prev) => ({ ...prev, ageBand: undefined }));
+                    }}
+                  >
                     <option value="">—</option>
+                    {orphanAgeBand ? (
+                      <option value="__orphan__">{`Sözlükte yok: ${orphanAgeBand}`}</option>
+                    ) : null}
+                    {ageBandOptionId && !ageBands.some((a) => a.id === ageBandOptionId) ? (
+                      <option value={ageBandOptionId}>{q?.ageBand || "Seçili bant"}</option>
+                    ) : null}
                     {ageBands.map((a) => (
-                      <option key={a.code} value={a.code}>{a.label}</option>
+                      <option key={a.id} value={a.id}>{a.label}</option>
                     ))}
                   </Select>
                 </Field>

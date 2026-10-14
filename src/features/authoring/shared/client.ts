@@ -77,6 +77,7 @@ export type QuestionDetail = {
   cefrLevel?: CefrLevel | null;
   mebGrade?: number | null;
   ageBand?: string | null;
+  ageBandOptionId?: string | null;
   estimatedTimeSec?: number | null;
   timeLimitSec?: number | null;
   securityLevel?: string | null;
@@ -213,8 +214,17 @@ export type MediaItem = {
   sizeBytes?: number | null;
   originalFilename?: string | null;
   transcript?: string | null;
+  source?: string | null;
   license?: string | null;
+  attribution?: string | null;
   contentUrl?: string | null;
+};
+
+export type MediaUsage = {
+  kind: "QUESTION" | "EXAM" | "PACKAGE" | string;
+  refId: string;
+  label: string;
+  detail?: string | null;
 };
 
 export type ReviewItem = {
@@ -469,6 +479,8 @@ export const authoringApi = {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+  mediaUsages: (id: string) => authoringFetch<MediaUsage[]>(`/authoring/media/${id}/usages`),
+  deleteMedia: (id: string) => authoringFetch<void>(`/authoring/media/${id}`, { method: "DELETE" }),
   listReviews: (status?: string) =>
     authoringFetch<ReviewItem[]>(`/authoring/reviews${status ? `?status=${status}` : ""}`),
   listTags: () => authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string }>>("/authoring/tags"),
@@ -505,6 +517,10 @@ export const authoringApi = {
         ownerOrgId?: string;
       }>
     >("/authoring/outcomes"),
+  outcomeLabels: (ids: string[]) =>
+    authoringFetch<Array<{ id: string; code: string; description: string }>>(
+      `/authoring/outcomes/labels?${ids.map((id) => `ids=${encodeURIComponent(id)}`).join("&")}`,
+    ),
   createOutcome: (body: {
     framework: string;
     code: string;

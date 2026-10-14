@@ -140,8 +140,7 @@ export function ExamGrantsTab({ exam }: { exam: ExamDetail }) {
           <thead className="bg-neutral-50 text-xs text-fg-subtle">
             <tr>
               <th className="px-3 py-3 font-medium">Kurum</th>
-              <th className="px-3 py-3 font-medium">Sürüm</th>
-              <th className="px-3 py-3 font-medium">Kota / kullanım</th>
+              <th className="px-3 py-3 font-medium">Paket sürümü</th>
               <th className="px-3 py-3 font-medium">Geçerlilik</th>
               <th className="px-3 py-3 font-medium">Durum</th>
             </tr>
@@ -151,7 +150,6 @@ export function ExamGrantsTab({ exam }: { exam: ExamDetail }) {
               <tr key={row.id} className="border-t border-border">
                 <td className="px-3 py-3">{row.companyName}</td>
                 <td className="px-3 py-3">v{row.versionNo}</td>
-                <td className="px-3 py-3">{quotaLabel(row)}</td>
                 <td className="px-3 py-3">{rangeLabel(row)}</td>
                 <td className="px-3 py-3">{GRANT_STATUS[row.status] ?? row.status}</td>
               </tr>
@@ -173,16 +171,11 @@ function GrantCard({ row }: { row: ExamGrantRow }) {
         <Badge tone={row.status === "ACTIVE" ? "success" : "neutral"}>{GRANT_STATUS[row.status] ?? row.status}</Badge>
       </div>
       <dl className="mt-2 grid gap-1 text-sm text-fg-muted">
-        <div className="flex justify-between gap-3"><dt>Sürüm</dt><dd>v{row.versionNo}</dd></div>
-        <div className="flex justify-between gap-3"><dt>Kota / kullanım</dt><dd>{quotaLabel(row)}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Paket sürümü</dt><dd>v{row.versionNo}</dd></div>
         <div className="flex justify-between gap-3"><dt>Geçerlilik</dt><dd>{rangeLabel(row)}</dd></div>
       </dl>
     </article>
   );
-}
-
-function quotaLabel(row: ExamGrantRow) {
-  return `${row.used} / ${row.quota == null ? "sınırsız" : row.quota}`;
 }
 
 function rangeLabel(row: ExamGrantRow) {
