@@ -34,11 +34,26 @@ type StudentRow = {
 
 type ClassReport = {
   examTitle: string;
+  examTotal?: number | string | null;
   students: StudentRow[];
 };
 
-type ChoiceView = { html: string; selected: boolean; correct: boolean };
-type LineView = { label: string; value: string; ok: boolean | null };
+type ChoiceView = {
+  html: string;
+  selected: boolean;
+  correct: boolean;
+  mediaId?: string | null;
+  mediaKind?: string | null;
+};
+type LineView = {
+  label: string;
+  value: string;
+  ok: boolean | null;
+  labelMediaId?: string | null;
+  labelMediaKind?: string | null;
+  valueMediaId?: string | null;
+  valueMediaKind?: string | null;
+};
 
 type AnswerView = {
   number: number;
@@ -55,6 +70,8 @@ type AnswerView = {
   mediaIds: string[];
   transcript: string | null;
   feedback: string | null;
+  sceneMediaId?: string | null;
+  sceneMediaKind?: string | null;
 };
 
 type OutcomeView = {
@@ -66,7 +83,7 @@ type OutcomeView = {
   pendingQuestions: number;
 };
 
-type StudentReport = {
+export type StudentReport = {
   applicationId: string;
   studentId: string;
   firstName: string;
@@ -78,6 +95,8 @@ type StudentReport = {
   submittedAt?: string | null;
   score: number;
   maxScore: number;
+  /** Sınavın ilan edilen toplamı. Yalnız karnenin iri puanı buna orantılanır. */
+  examTotal?: number | string | null;
   correct: number;
   wrong: number;
   blank: number;
@@ -85,6 +104,13 @@ type StudentReport = {
   pending: number;
   answers: AnswerView[];
   outcomes: OutcomeView[];
+  sections?: SectionView[];
+};
+
+type SectionView = {
+  title: string;
+  earned: number | string | null;
+  available: number | string | null;
 };
 
 const PHASE: Record<string, string> = {
@@ -118,6 +144,73 @@ function percent(score: number, max: number) {
   return Math.round((score / max) * 100);
 }
 
+/** Ham 10/34, sınav 100 ise iri yazı 29/100. Soru satırları ham puanında kalır. */
+function headline(score: number, max: number, examTotal: number) {
+  const scale = Math.round(examTotal > 0 ? examTotal : 100);
+  if (max <= 0 || scale <= 0) return { shown: 0, scale };
+  return { shown: Math.round((score / max) * scale), scale };
+}
+
+/** Bölüm payları üstteki sınav puanıyla aynı ölçekte olsun. Sunucu ham soru puanı yolladıysa yeniden oranlanır. */
+function karneSections(report: StudentReport, scale: number): SectionView[] {
+  const api = report.sections ?? [];
+  const apiSum = api.reduce((sum, section) => sum + num(section.available), 0);
+  const source = api.length > 0 && scale > 0 && Math.abs(apiSum - scale) < 1.5
+    ? api
+    : sectionsFromAnswers(report.answers, scale);
+  return wholeSections(source, scale);
+}
+
+function wholeSections(sections: SectionView[], scale: number): SectionView[] {
+  const target = Math.round(scale);
+  if (sections.length === 0 || target <= 0) return sections;
+  let assigned = 0;
+  return sections.map((section, index) => {
+    const rawAvailable = num(section.available);
+    const available = index === sections.length - 1
+      ? Math.max(0, target - assigned)
+      : Math.max(0, Math.round(rawAvailable));
+    assigned += available;
+    const earned = rawAvailable <= 0
+      ? 0
+      : Math.min(available, Math.round((num(section.earned) / rawAvailable) * available));
+    return { title: section.title, earned, available };
+  });
+}
+
+/** Sunucu bölüm listesi yoksa cevapların bölüm adından aynı oranı kurar. */
+function sectionsFromAnswers(answers: AnswerView[], examTotal: number): SectionView[] {
+  const order: string[] = [];
+  const buckets = new Map<string, { earned: number; max: number }>();
+  for (const answer of answers) {
+    const title = answer.sectionTitle?.trim() || "Bölüm";
+    let bucket = buckets.get(title);
+    if (!bucket) {
+      bucket = { earned: 0, max: 0 };
+      buckets.set(title, bucket);
+      order.push(title);
+    }
+    const pointsValue = num(answer.points);
+    bucket.max += pointsValue;
+    if (answer.verdict !== "PENDING") bucket.earned += num(answer.earned);
+  }
+  const rawMax = order.reduce((sum, title) => sum + (buckets.get(title)?.max ?? 0), 0);
+  const scale = examTotal > 0 ? examTotal : 100;
+  if (rawMax <= 0 || scale <= 0) return [];
+  const target = Math.round(scale);
+  let assigned = 0;
+  return order.map((title, index) => {
+    const bucket = buckets.get(title)!;
+    const share = (bucket.max / rawMax) * target;
+    const available = index === order.length - 1
+      ? Math.max(0, target - assigned)
+      : Math.max(0, Math.round(share));
+    assigned += available;
+    const earned = bucket.max <= 0 ? 0 : Math.min(available, Math.round((bucket.earned / bucket.max) * available));
+    return { title, earned, available };
+  });
+}
+
 function fullName(row: { firstName: string; lastName: string }) {
   return `${row.firstName} ${row.lastName}`.trim();
 }
@@ -137,6 +230,10 @@ function sittingLabel(row: { phase: string; attemptNo?: number; startedAt?: stri
 
 function mediaSrc(companyId: string, applicationId: string, mediaId: string) {
   return `/api/backend/companies/${companyId}/applications/${applicationId}/media/${mediaId}/content`;
+}
+
+function catalogSrc(mediaId: string) {
+  return `/api/backend/media/${mediaId}/content`;
 }
 
 export function ResultsSection({ companyId }: { companyId: string }) {
@@ -179,6 +276,20 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       ),
   });
 
+  async function withSectionScores(deck: ReportDeck): Promise<ReportDeck> {
+    const cards = await Promise.all(deck.cards.map(async (card) => {
+      const scale = headline(num(card.score), num(card.maxScore), num(deck.examTotal)).scale;
+      if ((card.sections?.length ?? 0) > 0) return { ...card, sections: wholeSections(card.sections ?? [], scale) };
+      const sitting = students.find((row) => row.studentId === card.studentId && (row.attemptNo ?? 0) === (card.attemptNo ?? 0));
+      if (!sitting) return card;
+      const detail = await customInstance<{ data: StudentReport }>(
+        `/companies/${companyId}/exam-results/applications/${sitting.applicationId}`,
+      );
+      return { ...card, sections: karneSections(detail.data, scale) };
+    }));
+    return { ...deck, cards };
+  }
+
   async function createReport() {
     setCreatingReport(true);
     try {
@@ -191,8 +302,9 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       const response = await customInstance<{ data: ReportDeck }>(
         `/companies/${companyId}/exam-results/report-cards?${params.toString()}`,
       );
+      const deck = await withSectionScores(response.data);
       const { downloadReportCards } = await import("./reportCardPdf");
-      await downloadReportCards(response.data);
+      await downloadReportCards(deck);
       const count = response.data.cards.length;
       notify.success(count === 1 ? "1 öğrencinin karnesi indirildi" : `${count} öğrencinin karnesi indirildi`);
     } catch (err) {
@@ -251,6 +363,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
         <div className="grid items-start gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-stretch">
           <StudentList
             title={reportQ.data?.data.examTitle ?? "Sınav"}
+            examTotal={num(reportQ.data?.data.examTotal)}
             students={students}
             selectedId={selected?.applicationId ?? ""}
             onChoose={choose}
@@ -272,6 +385,7 @@ export function ResultsSection({ companyId }: { companyId: string }) {
 
 function StudentList({
   title,
+  examTotal,
   students,
   selectedId,
   onChoose,
@@ -279,6 +393,7 @@ function StudentList({
   onCreateReport,
 }: {
   title: string;
+  examTotal: number;
   students: StudentRow[];
   selectedId: string;
   onChoose: (applicationId: string) => void;
@@ -313,8 +428,7 @@ function StudentList({
       <ul className="min-h-0 flex-1 overflow-y-auto">
         {students.map((row) => {
           const active = row.applicationId === selectedId;
-          const score = num(row.score);
-          const max = num(row.maxScore);
+          const scaled = headline(num(row.score), num(row.maxScore), examTotal);
           return (
             <li key={row.applicationId} className="border-b border-border last:border-b-0">
               <button
@@ -335,8 +449,8 @@ function StudentList({
                   </span>
                 </span>
                 <span className="numeric shrink-0 text-right text-sm font-semibold">
-                  {points(score)}
-                  <span className={cn("font-medium", active ? "text-white/70" : "text-fg-subtle")}>/{points(max)}</span>
+                  {points(scaled.shown)}
+                  <span className={cn("font-medium", active ? "text-white/70" : "text-fg-subtle")}>/{points(scaled.scale)}</span>
                 </span>
               </button>
             </li>
@@ -347,10 +461,21 @@ function StudentList({
   );
 }
 
-function ResultPaper({ companyId, report }: { companyId: string; report: StudentReport }) {
+export function ResultPaper({
+  companyId,
+  report,
+  answerMediaSrc,
+  unbounded = false,
+}: {
+  companyId: string;
+  report: StudentReport;
+  answerMediaSrc?: (mediaId: string) => string;
+  unbounded?: boolean;
+}) {
   const score = num(report.score);
   const max = num(report.maxScore);
   const ratio = percent(score, max);
+  const scaled = headline(score, max, num(report.examTotal));
   const stats = [
     { label: "Doğru", value: report.correct, tone: "text-success" },
     { label: "Yanlış", value: report.wrong, tone: "text-danger" },
@@ -360,7 +485,10 @@ function ResultPaper({ companyId, report }: { companyId: string; report: Student
   ];
 
   return (
-    <article className="min-w-0 overflow-hidden rounded-xl border border-ilc-line bg-ilc-paper text-ilc-navy shadow-sm lg:max-h-[calc(100dvh-22rem)] lg:overflow-y-auto">
+    <article className={cn(
+      "min-w-0 overflow-hidden rounded-xl border border-ilc-line bg-ilc-paper text-ilc-navy shadow-sm",
+      unbounded ? "" : "lg:max-h-[calc(100dvh-22rem)] lg:overflow-y-auto",
+    )}>
       <header className="grid gap-4 border-b border-ilc-line px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.14em] text-ilc-teal uppercase">{report.examTitle}</p>
@@ -369,8 +497,8 @@ function ResultPaper({ companyId, report }: { companyId: string; report: Student
         </div>
         <div className="min-w-[10rem]">
           <p className="numeric font-display text-4xl leading-none font-semibold tracking-tight">
-            {points(score)}
-            <span className="text-xl font-medium text-ilc-navy/45">/{points(max)}</span>
+            {points(scaled.shown)}
+            <span className="text-xl font-medium text-ilc-navy/45">/{points(scaled.scale)}</span>
           </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`Puanın %${ratio}'i`}>
             <div className="h-full rounded-full bg-ilc-teal" style={{ width: `${ratio}%` }} />
@@ -394,6 +522,8 @@ function ResultPaper({ companyId, report }: { companyId: string; report: Student
         ))}
       </dl>
 
+      <SectionScores sections={karneSections(report, scaled.scale)} />
+
       <div className="grid gap-3 px-4 py-4 sm:px-5">
         <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Cevaplar</h3>
         {report.answers.length === 0 ? (
@@ -404,7 +534,12 @@ function ResultPaper({ companyId, report }: { companyId: string; report: Student
               {answer.sectionTitle && answer.sectionTitle !== report.answers[index - 1]?.sectionTitle ? (
                 <p className="pt-1 text-xs font-semibold tracking-[0.12em] text-ilc-teal uppercase">{answer.sectionTitle}</p>
               ) : null}
-              <AnswerCard companyId={companyId} applicationId={report.applicationId} answer={answer} />
+              <AnswerCard
+                companyId={companyId}
+                applicationId={report.applicationId}
+                answer={answer}
+                answerMediaSrc={answerMediaSrc}
+              />
             </div>
           ))
         )}
@@ -419,10 +554,12 @@ function AnswerCard({
   companyId,
   applicationId,
   answer,
+  answerMediaSrc,
 }: {
   companyId: string;
   applicationId: string;
   answer: AnswerView;
+  answerMediaSrc?: (mediaId: string) => string;
 }) {
   const verdict = VERDICT[answer.verdict] ?? VERDICT.BLANK;
   const label = getTemplate(answer.interactionType)?.label ?? answer.interactionType;
@@ -445,11 +582,16 @@ function AnswerCard({
         </div>
         {answer.stimulusHtml ? <RichText value={answer.stimulusHtml} className="mt-3 text-ilc-navy" /> : null}
         {answer.promptHtml ? <RichText value={answer.promptHtml} className="mt-2 text-ilc-navy" /> : null}
+        {answer.sceneMediaId ? (
+          <div className="mt-3">
+            <CatalogMedia mediaId={answer.sceneMediaId} kind={answer.sceneMediaKind} large alt="Soru görseli" />
+          </div>
+        ) : null}
         {answer.choices.length > 0 ? (
           <ul className="mt-3 grid gap-1.5">
             {answer.choices.map((choice, index) => (
               <li
-                key={`${choice.html}-${index}`}
+                key={`${choice.html}-${choice.mediaId ?? ""}-${index}`}
                 className={cn(
                   "flex min-h-11 items-start gap-2.5 rounded-md px-2.5 py-2 ring-1 ring-inset",
                   choice.selected && choice.correct && "bg-success-bg ring-success/30",
@@ -462,7 +604,7 @@ function AnswerCard({
                   {String.fromCharCode(65 + index)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <RichText value={choice.html || "—"} className="text-ilc-navy" />
+                  <AnswerPiece html={choice.html} mediaId={choice.mediaId} mediaKind={choice.mediaKind} />
                   {choice.selected ? (
                     <span className="mt-0.5 block text-xs font-medium text-ilc-navy/70">
                       {choice.correct ? "Öğrencinin cevabı, doğru" : "Öğrencinin cevabı"}
@@ -477,11 +619,11 @@ function AnswerCard({
         {answer.lines.length > 0 ? (
           <ul className="mt-3 grid gap-1.5">
             {answer.lines.map((line, index) => (
-              <li key={`${line.label}-${index}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md bg-ilc-paper/80 px-2.5 py-2">
-                <span className="min-w-0 text-sm">
-                  <span className="text-ilc-navy/55">{line.label}</span>
-                  <span className="mx-1.5 text-ilc-navy/30">→</span>
-                  <span className="font-medium">{line.value}</span>
+              <li key={`${line.label}-${line.labelMediaId ?? ""}-${index}`} className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md bg-ilc-paper/80 px-2.5 py-2">
+                <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+                  <AnswerPiece text={line.label} mediaId={line.labelMediaId} mediaKind={line.labelMediaKind} />
+                  <span className="text-ilc-navy/30" aria-hidden>→</span>
+                  <AnswerPiece text={line.value} mediaId={line.valueMediaId} mediaKind={line.valueMediaKind} emphasize />
                 </span>
                 {line.ok == null ? null : (
                   <span className={cn("text-xs font-semibold", line.ok ? "text-success" : "text-danger")}>{line.ok ? "Doğru" : "Yanlış"}</span>
@@ -499,7 +641,7 @@ function AnswerCard({
               <MediaPiece
                 key={mediaId}
                 type={answer.interactionType}
-                src={mediaSrc(companyId, applicationId, mediaId)}
+                src={answerMediaSrc ? answerMediaSrc(mediaId) : mediaSrc(companyId, applicationId, mediaId)}
               />
             ))}
           </div>
@@ -521,11 +663,108 @@ function AnswerCard({
   );
 }
 
+function AnswerPiece({
+  text,
+  html,
+  mediaId,
+  mediaKind,
+  emphasize,
+}: {
+  text?: string;
+  html?: string;
+  mediaId?: string | null;
+  mediaKind?: string | null;
+  emphasize?: boolean;
+}) {
+  const caption = (text ?? "").trim();
+  const hasCaption = caption.length > 0 && caption !== "Boş";
+  const hasHtml = Boolean(html && html.trim());
+  if (!mediaId && !hasCaption && !hasHtml) {
+    return <span className="text-ilc-navy/45">Boş</span>;
+  }
+  return (
+    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2">
+      {mediaId ? <CatalogMedia mediaId={mediaId} kind={mediaKind} alt={hasCaption ? caption : "Öğrenci cevabı"} /> : null}
+      {hasHtml ? <RichText value={html!} className="text-ilc-navy" /> : null}
+      {!hasHtml && hasCaption ? (
+        <span className={cn("min-w-0", emphasize ? "font-medium text-ilc-navy" : "text-ilc-navy/80")}>{caption}</span>
+      ) : null}
+    </span>
+  );
+}
+
+function CatalogMedia({
+  mediaId,
+  kind,
+  alt,
+  large,
+}: {
+  mediaId: string;
+  kind?: string | null;
+  alt: string;
+  large?: boolean;
+}) {
+  const src = catalogSrc(mediaId);
+  const token = (kind ?? "IMAGE").toUpperCase();
+  if (token === "AUDIO") {
+    return <audio controls preload="none" src={src} className="h-11 w-full max-w-xs min-w-0" />;
+  }
+  if (token === "VIDEO") {
+    return (
+      <video
+        controls
+        preload="metadata"
+        src={src}
+        className={cn("rounded-md bg-black object-contain", large ? "max-h-48 w-full" : "h-16 max-w-40")}
+      />
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={cn(
+        "rounded-md bg-white object-contain ring-1 ring-ilc-line",
+        large ? "max-h-48 w-auto max-w-full" : "h-12 w-auto max-w-28",
+      )}
+    />
+  );
+}
+
 function MediaPiece({ type, src }: { type: string; src: string }) {
   if (type === "AUDIO_RESPONSE") return <audio controls preload="none" src={src} className="w-full" />;
   if (type === "VIDEO_RESPONSE") return <video controls preload="metadata" src={src} className="max-h-80 w-full rounded-md bg-black" />;
   if (type === "IMAGE_RESPONSE") return <img src={src} alt="Öğrencinin yüklediği görsel" className="max-h-80 w-full rounded-md object-contain" />;
   return null;
+}
+
+function SectionScores({ sections }: { sections: SectionView[] }) {
+  if (sections.length === 0) return null;
+  return (
+    <section className="border-b border-ilc-line px-4 py-4 sm:px-5">
+      <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Bölümler</h3>
+      <ul className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+        {sections.map((section, index) => {
+          const earned = num(section.earned);
+          const available = num(section.available);
+          const ratio = available > 0 ? Math.min(100, Math.round((earned / available) * 100)) : 0;
+          return (
+            <li key={`${section.title}-${index}`} className="min-w-0 rounded-lg bg-white/80 px-3 py-2.5 ring-1 ring-ilc-line ring-inset">
+              <p className="truncate text-xs font-semibold tracking-wide text-ilc-navy/60 uppercase">{section.title || "Bölüm"}</p>
+              <p className="numeric mt-1 font-display text-xl leading-none font-semibold">
+                {points(earned)}
+                <span className="text-sm font-medium text-ilc-navy/45">/{points(available)}</span>
+              </p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${section.title} %${ratio}`}>
+                <div className="h-full rounded-full bg-ilc-teal" style={{ width: `${ratio}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }
 
 function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {

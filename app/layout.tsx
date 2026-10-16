@@ -5,7 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ILC Center Exams",
-  description: "Sınav ve değerlendirme platformu",
+  description: "İngiliz Kültür Koleji sınav merkezi",
+  applicationName: "ILC Center Exams",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

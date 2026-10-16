@@ -85,7 +85,7 @@ export function ShortAnswerView({
     const hasAccepted = preview && (accepted[id]?.length ?? 0) > 0;
 
     return (
-      <span key={key ?? id} className="mx-0.5 inline-flex flex-col align-middle leading-tight">
+      <span key={key ?? id} className="my-1 flex w-full min-w-0 flex-col">
         <input
           type="text"
           disabled={disabled}
@@ -95,10 +95,9 @@ export function ShortAnswerView({
           maxLength={limitMode === "HARD" && meta?.maxChars != null ? meta.maxChars : undefined}
           onChange={(e) => setBlank(id, e.target.value, meta)}
           placeholder="Write here"
-          // Genişlik yazılana göre büyür (en az 8, en çok 24 karakter).
-          style={{ width: `${Math.min(24, Math.max(8, value.length + 2))}ch` }}
           className={cn(
             epBlankInline,
+            "box-border min-h-11 w-full min-w-0",
             hasAccepted
               ? "border-solid border-emerald-500 bg-emerald-50 text-emerald-800"
               : softWarn
@@ -154,7 +153,7 @@ export function ShortAnswerView({
 
   return (
     <div className="space-y-3">
-      <div className="text-base leading-[2.4] text-exam-slate-800">
+      <div className="w-full text-base leading-relaxed text-exam-slate-800">
         {segments.map((seg, i) =>
           seg.kind === "text" ? (
             <span key={i} className="prose-section" dangerouslySetInnerHTML={{ __html: seg.html }} />

@@ -21,7 +21,7 @@ const HELP: Record<string, Help> = {
   HOTSPOT_SELECT: { label: "Tap on the picture", how: "Look at the picture. Tap the correct place." },
   HOTSPOT_PLACE: { label: "Put on the picture", how: "Drag each card to the correct place on the picture. Or tap a card, then tap a place." },
   OPEN_ENDED: { label: "Writing", how: "Write your answer in the box. Then tap Save answer." },
-  AUDIO_RESPONSE: { label: "Speaking", how: "Tap Record and speak. Tap Stop when you finish." },
+  AUDIO_RESPONSE: { label: "Speaking", how: "Tap Record. Wait for 3, 2, 1. Then speak. Tap Stop when you finish." },
   VIDEO_RESPONSE: { label: "Video answer", how: "Upload a video of your answer." },
   IMAGE_RESPONSE: { label: "Picture answer", how: "Take a photo of your work or choose a picture. Then upload it." },
 };

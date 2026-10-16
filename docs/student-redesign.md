@@ -609,3 +609,12 @@ Doğrulandı: tip kontrolü temiz; değişen dosyalarda lint 0; **üretim derlem
 - **Yeni bulunan:** Android'de dosya seçici / kamera ayrı ekran açar → `visibilitychange` (gizli) → `VISIBILITY_HIDDEN` odak kaybı ihlali yazılıyordu ("You left the test screen", hak düşüyordu). Beklenen çıkış penceresi içindeki gizlenme ve eşleşen görünür olayı artık gönderilmiyor; süre yine duruyor.
 - **Çözülemeyen / platform sınırı:** iPhone Safari öğe tam ekranını desteklemez (kapı "desteklenmiyor" der); iPad'de tam ekran sırasında Safari'nin kendi uyarı/çıkış davranışları sürüme göre değişir; tam ekrana dönüş her zaman bir dokunuş ister (tarayıcı kuralı).
 - **Bilinçli ödün:** iOS'ta yazı alanı odaktayken ve medya/kayıt sürerken beklenen çıkış penceresi dolmaz; bu sırada gerçek bir çıkış da ihlal sayılmaz.
+
+## 36 — focus-guard sinyalleri sınav akışına alındı (2026-10-15)
+
+- Kaynak: repo kökündeki `full-screen/` (focus-guard). Bileşen olduğu gibi takılmadı: her tam ekran çıkışında engelleyici katman açıyor, bu da kaldırılan "Back to full screen" kapısını ve sürükle-bırak sorununu geri getirirdi. Yalnız algılama sinyalleri `src/features/exam-flow/focusSignals.ts` içine taşındı; hiçbiri sınavı durdurmaz, olaylar mevcut kuyruk → heartbeat yoluyla gider.
+- **Sayılan (hak düşer, STRICT'te otomatik teslim):** `FOCUS_LOST` — sayfa görünürken odak 1,5 sn'den uzun başka yerde (yan pencere, ikinci ekran, iPad Slide Over, ayrı pencere DevTools). `document.hasFocus()` yoklaması macOS/iPadOS'ta gelmeyen blur'u yakalar. Beklenen çıkış penceresinde (izin, dosya seçici) sayılmaz. Ardından gelen gizlenme `duringFocusLoss` ile işaretlenir, sunucu ikinci kez saymaz.
+- **Yalnız kayıt:** `FOCUS_RESTORED` (awayMs), `SPLIT_SCREEN` (genişlik %15+ daraldı; yön değişimi ve tam ekran geçişinde taban yeniden alınır), `PICTURE_IN_PICTURE`, `BLOCKED_SHORTCUT`, `PRINT_ATTEMPT`, `MULTI_SCREEN`.
+- **Engellenen (STANDARD/STRICT, `blockCopyPaste` ile):** Ctrl/Cmd+P/S/U/F, F12, DevTools kısayolları. Yenileme açık bırakıldı.
+- **Wake Lock:** hoş geldin/bitiş dışındaki aşamalarda ekran kararmaz; tablet kendiliğinden kilitlenip odak kaybı sayılmaz.
+- Alınmayanlar: engelleyici katman, `maxViolations` (sunucuda zaten var), metin seçimi engeli (tablette sürükle-bırakı bozar), outer/inner farkıyla DevTools tahmini (tarayıcı yakınlaştırmasında yanlış pozitif), sahte tam ekran.

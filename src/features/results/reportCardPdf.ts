@@ -12,6 +12,12 @@ export type ReportOutcome = {
   pendingQuestions: number;
 };
 
+export type ReportSection = {
+  title: string;
+  earned: number | string | null;
+  available: number | string | null;
+};
+
 export type ReportCard = {
   studentId: string;
   firstName: string;
@@ -28,6 +34,7 @@ export type ReportCard = {
   partial: number;
   pending: number;
   outcomes: ReportOutcome[];
+  sections?: ReportSection[];
 };
 
 export type ReportDeck = {
@@ -37,6 +44,7 @@ export type ReportDeck = {
   academicYearName: string;
   gradeName: string;
   branchName: string;
+  examTotal?: number | string | null;
   cards: ReportCard[];
 };
 
@@ -74,7 +82,8 @@ export function reportFileName(deck: ReportDeck) {
 }
 
 export async function downloadReportCards(deck: ReportDeck) {
-  const bytes = renderReportPdf(deck, await loadFonts());
+  const [fonts, logo] = await Promise.all([loadFonts(), loadLogo()]);
+  const bytes = renderReportPdf(deck, fonts, logo);
   const blob = new Blob([bytes], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -86,7 +95,7 @@ export async function downloadReportCards(deck: ReportDeck) {
   URL.revokeObjectURL(url);
 }
 
-export function renderReportPdf(deck: ReportDeck, fonts: Fonts) {
+export function renderReportPdf(deck: ReportDeck, fonts: Fonts, logo: string | null = null) {
   if (deck.cards.length === 0) {
     throw new Error("Bu şubede karnesi çıkarılacak öğrenci yok");
   }
@@ -103,19 +112,20 @@ export function renderReportPdf(deck: ReportDeck, fonts: Fonts) {
 
   deck.cards.forEach((card, index) => {
     if (index > 0) doc.addPage();
-    drawCard(doc, deck, card);
+    drawCard(doc, deck, card, logo);
   });
   stampPages(doc);
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
-function drawCard(doc: jsPDF, deck: ReportDeck, card: ReportCard) {
+function drawCard(doc: jsPDF, deck: ReportDeck, card: ReportCard, logo: string | null) {
   const startPage = doc.getCurrentPageInfo().pageNumber;
-  drawBanner(doc, deck.examTitle);
-  let y = 32;
+  let y = drawBanner(doc, deck.examTitle, logo);
   y = drawIdentity(doc, deck, card, y);
-  y = drawStats(doc, card, y + 2);
-  y = drawOutcomeIntro(doc, card, y + 8);
+  const examScale = examHeadline(num(card.score), num(card.maxScore), num(deck.examTotal)).scale;
+  y = drawStats(doc, card, num(deck.examTotal), y + 1.5);
+  y = drawSections(doc, sectionsOnExamScale(card.sections ?? [], examScale), y + 3);
+  y = drawOutcomeIntro(doc, card, y + 5);
   if (card.outcomes.length === 0) return;
 
   const student = fullName(card);
@@ -167,78 +177,136 @@ function drawCard(doc: jsPDF, deck: ReportDeck, card: ReportCard) {
   });
 }
 
-function drawBanner(doc: jsPDF, examTitle: string) {
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, PAGE_W, 22, "F");
-  doc.setFillColor(...TEAL);
-  doc.rect(0, 22, PAGE_W, 1.4, "F");
-  doc.setTextColor(255, 255, 255);
+const LOGO_H = 11;
+const LOGO_W = LOGO_H * (375 / 175);
+
+function drawBanner(doc: jsPDF, examTitle: string, logo: string | null) {
+  const top = 4;
+  if (logo) doc.addImage(logo, "PNG", MARGIN, top, LOGO_W, LOGO_H);
+  const textLeft = MARGIN + (logo ? LOGO_W + 3.2 : 0);
+  const baseline = top + LOGO_H * 0.62;
   doc.setFont("NotoSans", "bold");
-  doc.setFontSize(14);
-  doc.text("Karne", MARGIN, 14);
+  doc.setFontSize(13);
+  doc.setTextColor(...NAVY);
+  doc.text("Karne", textLeft, baseline);
+  const titleRoom = PAGE_W - MARGIN - (textLeft + doc.getTextWidth("Karne") + 6);
   doc.setFont("NotoSans", "normal");
-  doc.setFontSize(10);
-  doc.text(ellipsize(doc, examTitle || "Sınav", 118), PAGE_W - MARGIN, 14, { align: "right" });
+  doc.setFontSize(9);
+  doc.text(ellipsize(doc, examTitle || "Sınav", Math.max(36, titleRoom)), PAGE_W - MARGIN, baseline, { align: "right" });
+  const rule = top + LOGO_H + 2.4;
+  doc.setDrawColor(...TEAL);
+  doc.setLineWidth(0.7);
+  doc.line(0, rule, PAGE_W, rule);
+  return rule + 5.5;
 }
 
 function drawIdentity(doc: jsPDF, deck: ReportDeck, card: ReportCard, y: number) {
-  doc.setTextColor(...NAVY);
-  doc.setFont("NotoSans", "bold");
-  doc.setFontSize(18);
-  const nameLines = linesOf(doc, fullName(card) || "Öğrenci", CONTENT_W).slice(0, 2);
-  doc.text(nameLines, MARGIN, y);
-  y += nameLines.length * 7.2 + 1.5;
-
+  const name = fullName(card) || "Öğrenci";
+  const phase = phaseLabel(card);
   doc.setFont("NotoSans", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(8);
+  const phaseWidth = doc.getTextWidth(phase);
+  doc.setFont("NotoSans", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...NAVY);
+  const nameRoom = Math.max(40, CONTENT_W - phaseWidth - 4);
+  const fittedName = ellipsize(doc, name, nameRoom);
+  const drawnName = doc.getTextWidth(fittedName);
+  doc.text(fittedName, MARGIN, y);
+  doc.setFont("NotoSans", "normal");
+  doc.setFontSize(8);
   doc.setTextColor(...TEAL);
-  doc.text(phaseLabel(card), MARGIN, y);
-  y += 8;
+  doc.text(phase, MARGIN + drawnName + 3, y);
+  y += 4.2;
 
-  y = drawFact(doc, "Kurum", deck.companyName, MARGIN, y, CONTENT_W);
-  const facts = [
-    ["Kampüs", deck.instituteName],
-    ["Sezon", deck.academicYearName],
-    ["Seviye", deck.gradeName],
-    ["Şube", deck.branchName],
-    ["Sınav", deck.examTitle],
-    ["Durum", phaseLabel(card)],
-  ] as const;
-  const colW = (CONTENT_W - 8) / 2;
-  for (let i = 0; i < facts.length; i += 2) {
-    const leftH = factHeight(doc, facts[i][1], colW);
-    const rightH = factHeight(doc, facts[i + 1][1], colW);
-    drawFact(doc, facts[i][0], facts[i][1], MARGIN, y, colW);
-    drawFact(doc, facts[i + 1][0], facts[i + 1][1], MARGIN + colW + 8, y, colW);
-    y += Math.max(leftH, rightH);
-  }
-  return y;
+  const grade = [deck.gradeName, deck.branchName].map((part) => (part ?? "").trim()).filter(Boolean).join(" / ");
+  const bits = [
+    labeled("Kurum", deck.companyName),
+    labeled("Kampüs", deck.instituteName),
+    labeled("Sezon", deck.academicYearName),
+    grade ? `Seviye ${grade}` : "",
+  ].filter(Boolean);
+  doc.setFont("NotoSans", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...NAVY);
+  const lines = linesOf(doc, bits.join("   ·   "), CONTENT_W).slice(0, 2);
+  doc.text(lines, MARGIN, y);
+  return y + lines.length * 3.5 + 1.2;
 }
 
-function drawStats(doc: jsPDF, card: ReportCard, y: number) {
-  const score = num(card.score);
-  const max = num(card.maxScore);
+function drawStats(doc: jsPDF, card: ReportCard, examTotal: number, y: number) {
+  const scaled = examHeadline(num(card.score), num(card.maxScore), examTotal);
   const counts = `Doğru ${card.correct}    Yanlış ${card.wrong}    Boş ${card.blank}    Kısmi ${card.partial}    Bekleyen ${card.pending}`;
-  const boxH = 36;
+  const boxH = 28;
   doc.setFillColor(...PAPER);
   doc.roundedRect(MARGIN, y, CONTENT_W, boxH, 2, 2, "F");
 
   doc.setFont("NotoSans", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(20);
   doc.setTextColor(...NAVY);
-  doc.text(`${points(score)} / ${points(max)}`, MARGIN + 4, y + 8);
-  doc.setFontSize(11);
+  doc.text(`${points(scaled.shown)} / ${points(scaled.scale)}`, MARGIN + 4, y + 9);
+  doc.setFontSize(12);
   doc.setTextColor(...TEAL);
-  doc.text(`%${percent(score, max)}`, PAGE_W - MARGIN - 4, y + 8, { align: "right" });
+  doc.text(`%${percent(scaled.shown, scaled.scale)}`, PAGE_W - MARGIN - 4, y + 9, { align: "right" });
 
   doc.setFont("NotoSans", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...NAVY);
   doc.text(counts, MARGIN + 4, y + 16);
 
-  drawStatLine(doc, "Sınava giriş", when(card.startedAt), MARGIN + 4, y + 23);
-  drawStatLine(doc, "Teslim", when(card.submittedAt), MARGIN + 4, y + 30);
+  drawStatLine(doc, "Sınava giriş", when(card.startedAt), MARGIN + 4, y + 22);
+  drawStatLine(doc, "Teslim", when(card.submittedAt), MARGIN + 4, y + 26.5);
   return y + boxH;
+}
+
+function sectionsOnExamScale(sections: ReportSection[], scale: number): ReportSection[] {
+  const target = Math.round(scale);
+  const sum = sections.reduce((total, section) => total + num(section.available), 0);
+  if (sections.length === 0 || sum <= 0 || target <= 0) return sections;
+  let assigned = 0;
+  return sections.map((section, index) => {
+    const raw = num(section.available);
+    const share = (raw / sum) * target;
+    const available = index === sections.length - 1
+      ? Math.max(0, target - assigned)
+      : Math.max(0, Math.round(share));
+    assigned += available;
+    const earned = raw <= 0 ? 0 : Math.min(available, Math.round((num(section.earned) / raw) * available));
+    return { ...section, earned, available };
+  });
+}
+
+function drawSections(doc: jsPDF, sections: ReportSection[], y: number) {
+  if (sections.length === 0) return y;
+  doc.setFont("NotoSans", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...NAVY);
+  doc.text("Bölümler", MARGIN, y);
+  y += 4.8;
+
+  const gap = 8;
+  const colW = (CONTENT_W - gap) / 2;
+  const rowH = 5.2;
+  for (let index = 0; index < sections.length; index++) {
+    const section = sections[index];
+    const x = MARGIN + (index % 2) * (colW + gap);
+    const lineY = y + Math.floor(index / 2) * rowH;
+    const score = `${points(section.earned)} / ${points(section.available)}`;
+    doc.setFont("NotoSans", "bold");
+    doc.setFontSize(9);
+    const scoreW = doc.getTextWidth(score);
+    doc.setFont("NotoSans", "normal");
+    const separator = " : ";
+    const separatorW = doc.getTextWidth(separator);
+    doc.setTextColor(...NAVY);
+    const title = ellipsize(doc, section.title?.trim() || "Bölüm", Math.max(16, colW - scoreW - separatorW));
+    const label = `${title}${separator}`;
+    const labelW = doc.getTextWidth(label);
+    doc.text(label, x, lineY);
+    doc.setFont("NotoSans", "bold");
+    doc.text(score, x + labelW, lineY);
+  }
+  return y + Math.ceil(sections.length / 2) * rowH + 1;
 }
 
 function drawStatLine(doc: jsPDF, label: string, value: string, x: number, y: number) {
@@ -274,24 +342,15 @@ function drawOutcomeIntro(doc: jsPDF, card: ReportCard, y: number) {
   return y;
 }
 
-function drawFact(doc: jsPDF, label: string, value: string, x: number, y: number, width: number) {
-  doc.setFont("NotoSans", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...MUTED);
-  doc.text(label, x, y);
-  doc.setFont("NotoSans", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...NAVY);
-  const lines = linesOf(doc, shown(value), width).slice(0, 2);
-  doc.text(lines, x, y + 4.6);
-  return y + factHeight(doc, value, width);
+function labeled(label: string, value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  return text ? `${label} ${text}` : "";
 }
 
-function factHeight(doc: jsPDF, value: string, width: number) {
-  doc.setFont("NotoSans", "bold");
-  doc.setFontSize(11);
-  const count = Math.min(2, linesOf(doc, shown(value), width).length);
-  return 4.6 + count * 4.8 + 2.4;
+function examHeadline(score: number, max: number, examTotal: number) {
+  const scale = Math.round(examTotal > 0 ? examTotal : 100);
+  if (max <= 0 || scale <= 0) return { shown: 0, scale };
+  return { shown: Math.round((score / max) * scale), scale };
 }
 
 function outcomeCell(row: ReportOutcome) {
@@ -359,6 +418,37 @@ function percent(score: number, max: number) {
 function ratioLabel(earned: number, available: number) {
   if (available <= 0) return "—";
   return `%${Math.round((earned / available) * 100)}`;
+}
+
+let logoPromise: Promise<string | null> | null = null;
+
+async function loadLogo() {
+  logoPromise ??= fetchLogo();
+  return logoPromise;
+}
+
+async function fetchLogo() {
+  try {
+    const response = await fetch("/brand/logo.png");
+    if (!response.ok) return null;
+    return flattenLogo(await response.blob());
+  } catch {
+    return null;
+  }
+}
+
+async function flattenLogo(blob: Blob) {
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const context = canvas.getContext("2d");
+  if (!context) return bufferToBase64(await blob.arrayBuffer());
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return canvas.toDataURL("image/png");
 }
 
 async function loadFonts(): Promise<Fonts> {

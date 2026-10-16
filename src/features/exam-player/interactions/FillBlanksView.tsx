@@ -1,7 +1,7 @@
 "use client";
 
 import { splitBlankHtml } from "@/src/features/exam-player/html";
-import { DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
 import { PreviewAnswerBanner, previewLabel } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -289,8 +289,8 @@ export function FillInTheBlanksView({
             return w ? <span className="font-bold" dangerouslySetInnerHTML={{ __html: htmlOf(w.text) || w.id }} /> : null;
           }}
         >
-          <div className="space-y-4">
-            {text}
+          <BoardLayout
+            pool={
             <DragPool
               title="Words"
               hint="Drag a word to a gap. Or tap a word, then tap a gap."
@@ -311,7 +311,10 @@ export function FillInTheBlanksView({
                 </DragItem>
               ))}
             </DragPool>
-          </div>
+            }
+          >
+            {text}
+          </BoardLayout>
         </PlaceBoard>
       ) : (
         text

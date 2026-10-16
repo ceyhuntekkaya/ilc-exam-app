@@ -1,7 +1,7 @@
 "use client";
 
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type AnswerSaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -17,24 +17,37 @@ export function useAnswerSync(
   const session = useExamSession();
   const json = JSON.stringify(payload);
   const [result, setResult] = useState<{ json: string; ok: boolean } | null>(null);
-  const active = enabled && !!itemId && !!payload && !!session?.saveAnswer;
+  const save = session?.saveAnswer;
+  const applicationId = session?.applicationId;
+  const active = enabled && !!itemId && !!payload && !!save;
   const status: AnswerSaveStatus = !active
     ? result?.ok ? "saved" : "idle"
     : result?.json === json
       ? result.ok ? "saved" : "error"
       : "saving";
 
+  // Her kayıt oturum nesnesini yeniler (answersRevision artar). Effect oturum kimliğine bağlanırsa kaydet → yenilen →
+  // yeniden kaydet döngüsü oluşur ("Maximum update depth exceeded", sınav çöker). Kayıt yalnız cevap değişince gider.
+  const saveRef = useRef(save);
+  const sentRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!enabled || !itemId || !payload || !session?.saveAnswer) return;
-    const save = session.saveAnswer;
+    saveRef.current = save;
+  }, [save]);
+
+  useEffect(() => {
+    const current = saveRef.current;
+    if (!enabled || !itemId || !payload || !current) return;
+    const key = `${applicationId}|${itemId}|${json}`;
+    if (sentRef.current === key) return;
+    sentRef.current = key;
     const sent = json;
-    void Promise.resolve(save(itemId, payload)).then(
+    void Promise.resolve(current(itemId, payload)).then(
       () => setResult({ json: sent, ok: true }),
       () => setResult({ json: sent, ok: false }),
     );
     // payload kimliği json ile takip edilir
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, itemId, json, session]);
+  }, [enabled, itemId, json, applicationId, active]);
 
   return status;
 }

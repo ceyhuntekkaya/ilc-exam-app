@@ -2,19 +2,17 @@
 
 import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } from "@/src/features/exam-flow/api";
 import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
-import { FullscreenGate } from "@/src/features/exam-flow/FullscreenGate";
+import { isFocusLossOpen, useExamFocusSignals } from "@/src/features/exam-flow/focusSignals";
 import {
+  canRequestFullscreen,
   clearExpectedExit,
   enterExamFullscreen,
   exitExamFullscreen,
-  expectedExitRemainingMs,
   expectFullscreenExit,
-  holdExamMedia,
   isAppleTouchDevice,
   isExamFullscreen,
   isFullscreenExitExpected,
   lockExamEscape,
-  releaseExamMediaHold,
   settleExpectedExitSoon,
 } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
@@ -22,7 +20,6 @@ import { holdExamTab, otherTabIsOpen } from "@/src/features/exam-flow/examTabs";
 import { clearSession, readSession, stageHref, writeSession } from "@/src/features/exam-flow/session";
 import { startAnswerOutbox } from "@/src/features/exam-player/session/answerOutboxClient";
 import { resumeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
-import { isMediaActive } from "@/src/features/exam-player/session/playerGuard";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -42,11 +39,9 @@ type FlowContextValue = {
   error: string | null;
   conflict: boolean;
   held: boolean;
-  /** Get Ready sonrası tam ekrandan çıkıldı. Sayaç da bu yüzden durur. */
-  fullscreenBlocked: boolean;
   reload: () => void;
   applyState: (next: ExamState) => void;
-  /** Tıklamanın içinde tam ekran ister. Söz verilmeden önce çağrılmalı. */
+  /** Tıklamanın içinde tam ekran ister (ilk await'ten önce çağrılmalı). Açılmazsa sınav yine sürer. */
   engageFullscreen: () => Promise<void>;
   takeOver: () => Promise<void>;
   /** Biten denemeden çık, yeni deneme için hoş geldin ekranına dön (giriş hakkı varsa). */
@@ -74,17 +69,9 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const linkDownRef = useRef(false);
   const seenFocusLoss = useRef<number | null>(null);
   const [focusWarning, setFocusWarning] = useState<number | null>(null);
-  const [fullscreenBlocked, setFullscreenBlocked] = useState(false);
-  const fullscreenBlockedRef = useRef(false);
-  // Beklenen çıkış (izin penceresi / dosya seçici): sınav durmaz, ihlal yazılmaz; sonraki dokunuşta tam ekrana döner.
-  const [softExit, setSoftExit] = useState(false);
   const enterPromiseRef = useRef<Promise<void> | null>(null);
   const lastNav = useRef<{ to: string; at: number; count: number }>({ to: "", at: 0, count: 0 });
   const needsFullscreen = state != null && state.stage !== "WELCOME" && state.stage !== "FINISHED";
-  const shouldBlockFullscreen = needsFullscreen && !isExamFullscreen() && !softExit;
-  if (fullscreenBlocked !== shouldBlockFullscreen) {
-    setFullscreenBlocked(shouldBlockFullscreen);
-  }
 
   /**
    * Aşamaya uygun adrese tek seferlik yönlendirme. Her router.replace sunucuya bir istek demek; bu yüzden:
@@ -216,8 +203,8 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       heldRef.current = paused;
       setHeld(paused);
     };
-    const mark = (type: string) => {
-      enqueueEvent(session.applicationId, type);
+    const mark = (type: string, payload: Record<string, unknown> = {}) => {
+      enqueueEvent(session.applicationId, type, payload);
       syncHeld();
       if (document.hidden) flushEventsKeepalive(session.applicationId, session.sessionToken);
     };
@@ -239,7 +226,9 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
         syncHeld();
         return;
       }
-      mark(document.hidden ? "VISIBILITY_HIDDEN" : "VISIBILITY_VISIBLE");
+      // Önce başka pencereye geçip (FOCUS_LOST sayıldı) sonra sekmeyi gizlemek tek çıkıştır.
+      if (document.hidden) mark("VISIBILITY_HIDDEN", isFocusLossOpen() ? { duringFocusLoss: true } : {});
+      else mark("VISIBILITY_VISIBLE");
     };
     const onOff = () => mark("CONNECTION_LOST");
     const onOn = () => mark("CONNECTION_RESTORED");
@@ -288,61 +277,41 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
   }, [state?.proctoring, state?.stage]);
 
+  useExamFocusSignals({
+    applicationId: state?.applicationId ?? null,
+    inSection: state?.stage === "IN_SECTION",
+    active: needsFullscreen,
+    blockShortcuts: Boolean(state?.proctoring.blockCopyPaste),
+  });
+
   const engageFullscreen = useCallback(() => {
-    const pending = enterExamFullscreen().then(() => {
-      const blocked = !isExamFullscreen();
-      fullscreenBlockedRef.current = blocked;
-      setFullscreenBlocked(blocked);
-      if (!blocked) {
-        releaseExamMediaHold();
-        void lockExamEscape();
-      }
-    });
+    if (enterPromiseRef.current) return enterPromiseRef.current;
+    const pending = enterExamFullscreen();
     enterPromiseRef.current = pending;
-    void pending.finally(() => {
-      if (enterPromiseRef.current === pending) enterPromiseRef.current = null;
-    });
+    void pending
+      .catch(() => undefined)
+      .finally(() => {
+        if (enterPromiseRef.current === pending) enterPromiseRef.current = null;
+      });
     return pending;
   }, []);
 
-  useEffect(() => {
-    fullscreenBlockedRef.current = shouldBlockFullscreen;
-  }, [shouldBlockFullscreen]);
-
+  // Tam ekran sınavı hiçbir zaman durdurmaz ve ekranı kapatmaz. Çıkış yalnız kayda (öğretmen raporu) yazılır;
+  // izin penceresi / dosya seçici / iPad klavyesi gibi öğrencinin başlattığı çıkışlar yazılmaz.
   useEffect(() => {
     if (!needsFullscreen) return;
-    const wasOn = { current: isExamFullscreen() };
-    if (wasOn.current) void lockExamEscape();
-    else holdExamMedia();
+    let wasOn = isExamFullscreen();
+    if (wasOn) void lockExamEscape();
     const onChange = () => {
       const on = isExamFullscreen();
-      if (wasOn.current && !on && isFullscreenExitExpected()) {
-        // Öğrencinin başlattığı izin/dosya işlemi tarayıcıyı tam ekrandan çıkardı: ihlal değil.
-        wasOn.current = false;
-        fullscreenBlockedRef.current = false;
-        setSoftExit(true);
-        return;
-      }
       if (on) {
         clearExpectedExit();
-        setSoftExit(false);
-      }
-      if (wasOn.current && !on) {
-        const session = readSession(recipientId);
-        if (session) {
-          enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
-          flushEventsKeepalive(session.applicationId, session.sessionToken);
-        }
-      }
-      wasOn.current = on;
-      fullscreenBlockedRef.current = !on;
-      setFullscreenBlocked(!on);
-      if (on) {
-        releaseExamMediaHold();
         void lockExamEscape();
-      } else {
-        holdExamMedia();
+      } else if (wasOn && !isFullscreenExitExpected()) {
+        const session = readSession(recipientId);
+        if (session) enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
       }
+      wasOn = on;
     };
     document.addEventListener("fullscreenchange", onChange);
     document.addEventListener("webkitfullscreenchange", onChange);
@@ -355,15 +324,11 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   // iPad/iPhone: yazı alanına odaklanınca ekran klavyesi tam ekrandan çıkarır — ihlal değil, beklenen çıkış.
   useEffect(() => {
     if (!needsFullscreen || !isAppleTouchDevice()) return;
-    const editable = (target: EventTarget | null) =>
-      target instanceof HTMLTextAreaElement ||
-      (target instanceof HTMLInputElement && !["button", "checkbox", "radio", "range", "file", "submit", "reset"].includes(target.type)) ||
-      (target instanceof HTMLElement && target.isContentEditable);
     const onFocusIn = (event: FocusEvent) => {
-      if (editable(event.target)) expectFullscreenExit();
+      if (isEditable(event.target)) expectFullscreenExit();
     };
     const onFocusOut = (event: FocusEvent) => {
-      if (editable(event.target)) settleExpectedExitSoon();
+      if (isEditable(event.target)) settleExpectedExitSoon();
     };
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
@@ -373,54 +338,36 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
   }, [needsFullscreen]);
 
-  // Yumuşak mod: öğrencinin sonraki dokunuşu/tuşu tam ekranı geri açar (tarayıcı tam ekranı yalnız kullanıcı hareketiyle açar).
-  // Pencere içinde dönülmezse eski kural: çıkış ihlal olarak yazılır ve sınav durur (kapı).
+  // Tarayıcı tam ekranı yalnız kullanıcı hareketinin içinde açar (yenileme, Esc, iPad klavyesi, izin penceresinden sonra
+  // sayfa kendiliğinden açamaz). Öğrenci sayfadayken her dokunuşu/tuşu tam ekranı sessizce geri açar; aynı dokunuş
+  // işini de yapar (cevap seçer, kart bırakır). Uyarı, kapı ya da bekleme yok.
+  // Dokunmatikte `click` her zaman gelmez (sürükle-bırak dokunuşu yutar); tarayıcının kullanıcı hareketi saydığı olaylar
+  // pointerup (dokunma/kalem), touchend, click, keydown. pointerdown kullanılmaz: tam ekrana geçişteki boyut değişimi
+  // başlayan sürüklemeyi iptal ederdi.
   useEffect(() => {
-    if (!softExit || !needsFullscreen) return;
-    // Dokunmatikte `click` her zaman gelmez (sürükle-bırak dokunuşu yutar, kaydırma iptal eder); tarayıcının kullanıcı
-    // hareketi saydığı olaylar: pointerup (dokunma/kalem), touchend, click, keydown. Hangisi önce gelirse dener.
+    if (!needsFullscreen || !canRequestFullscreen()) return;
     const resume = (event: Event) => {
-      if (isExamFullscreen() || enterPromiseRef.current) return;
-      // Yazı alanında klavye açıkken iOS tam ekrana izin vermez; yazmayı bölmeyelim.
-      if (event.type === "keydown" && isAppleTouchDevice()) return;
+      if (isExamFullscreen() || enterPromiseRef.current || document.hidden) return;
+      if (event instanceof KeyboardEvent) {
+        // Esc kullanıcı hareketi sayılmaz; iPad'de yazarken tam ekran açılmaz (klavye kapatır).
+        if (event.key === "Escape" || isAppleTouchDevice()) return;
+      }
+      // Tam ekran isteği dokunuşun iznini tüketir: dosya seçici / ses-video oynatma o izne muhtaç, onlar önce çalışsın.
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("[data-keep-gesture], [data-media-trigger], input[type='file']")) return;
+      // iPad/iPhone: yazı alanındayken ekran klavyesi tam ekranı yine kapatır; geri açmak yazmayı böler.
+      if (isAppleTouchDevice() && (isEditable(target) || isEditing())) return;
       void engageFullscreen().catch(() => undefined);
     };
     const RESUME_EVENTS = ["pointerup", "touchend", "click", "keydown"] as const;
     RESUME_EVENTS.forEach((type) => document.addEventListener(type, resume, true));
-    let timer = 0;
-    const expire = () => {
-      if (isExamFullscreen()) return;
-      // Yumuşak modda yeni bir izin/dosya işlemi pencereyi uzattıysa bekle (kapı erken açılmasın).
-      if (isFullscreenExitExpected()) {
-        timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
-        return;
-      }
-      // Kayıt sürüyor / ses-video çalıyor ya da yazı yazılıyor: öğrenci dokunmadan uzun süre geçebilir (konuşma kaydı
-      // 90 sn'yi aşabilir). Bu sırada kapı açılıp kaydı kesmesin; bitince pencere yeniden başlar.
-      if (isMediaActive() || (isAppleTouchDevice() && isEditing())) {
-        expectFullscreenExit();
-        timer = window.setTimeout(expire, 5_000);
-        return;
-      }
-      const session = readSession(recipientId);
-      if (session) {
-        enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
-        flushEventsKeepalive(session.applicationId, session.sessionToken);
-      }
-      clearExpectedExit();
-      holdExamMedia();
-      setSoftExit(false);
-    };
-    timer = window.setTimeout(expire, expectedExitRemainingMs() + 50);
     return () => {
       RESUME_EVENTS.forEach((type) => document.removeEventListener(type, resume, true));
-      window.clearTimeout(timer);
     };
-  }, [softExit, needsFullscreen, engageFullscreen, recipientId]);
+  }, [needsFullscreen, engageFullscreen]);
 
   useEffect(() => {
     if (needsFullscreen || enterPromiseRef.current) return;
-    releaseExamMediaHold();
     if (isExamFullscreen()) void exitExamFullscreen();
   }, [needsFullscreen]);
 
@@ -442,7 +389,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     };
     const tick = async () => {
       if (stopped) return;
-      if (document.hidden || !navigator.onLine || fullscreenBlockedRef.current) {
+      if (document.hidden || !navigator.onLine) {
         schedule(1000);
         return;
       }
@@ -499,33 +446,19 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       error,
       conflict,
       held,
-      fullscreenBlocked,
       reload: () => void load(),
       applyState,
       engageFullscreen,
       takeOver,
       startOver,
     }),
-    [applyState, conflict, engageFullscreen, error, fullscreenBlocked, held, load, loading, recipientId, startOver, state, takeOver],
+    [applyState, conflict, engageFullscreen, error, held, load, loading, recipientId, startOver, state, takeOver],
   );
 
   return (
     <FlowContext.Provider value={value}>
-      <div className={fullscreenBlocked ? "invisible flex min-h-0 flex-1 flex-col" : "contents"} aria-hidden={fullscreenBlocked || undefined}>
-        {children}
-      </div>
-      {fullscreenBlocked ? <FullscreenGate onResume={engageFullscreen} /> : null}
-      {softExit && needsFullscreen && !fullscreenBlocked ? (
-        // Sınavı kapatmayan küçük şerit: herhangi bir dokunuş tam ekranı geri açar.
-        <button
-          type="button"
-          onClick={() => void engageFullscreen().catch(() => undefined)}
-          className="fixed inset-x-0 top-2 z-40 mx-auto flex w-max max-w-[calc(100%-2rem)] items-center gap-2 rounded-full bg-primary-700 px-4 py-2 text-sm font-semibold text-white shadow-lg"
-        >
-          Tap anywhere to go back to full screen
-        </button>
-      ) : null}
-      {focusWarning != null && !fullscreenBlocked ? (
+      {children}
+      {focusWarning != null ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
             <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">You left the test screen</h2>
@@ -594,6 +527,15 @@ async function hasAttemptsLeft(recipientId: string) {
 
 function currentPath() {
   return typeof window === "undefined" ? "" : window.location.pathname.replace(/\/$/, "");
+}
+
+/** Ekran klavyesini açan alan mı. */
+function isEditable(target: EventTarget | null) {
+  return (
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && !["button", "checkbox", "radio", "range", "file", "submit", "reset"].includes(target.type)) ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
 }
 
 /** Odak bir yazı alanında mı (iOS'ta ekran klavyesi açık demek). */

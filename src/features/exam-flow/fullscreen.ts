@@ -2,6 +2,8 @@
  * Sınav tam ekranı. Tarayıcı tam ekranı yalnızca bir tıklamanın içinde açar;
  * Esc ile çıkışı kalıcı kilitlemez. Chrome ve Edge'de Esc, tam ekrandayken
  * keyboard.lock ile zorlaşır. Safari ve Firefox bu kilidi desteklemez.
+ * Tam ekran sınavı hiçbir zaman durdurmaz: çıkılırsa öğrencinin sonraki dokunuşu geri açar (ExamFlowProvider).
+ * Desteklemeyen tarayıcıda (iPhone Safari) sınav normal pencerede sürer.
  */
 
 type FullscreenElement = HTMLElement & {
@@ -18,16 +20,15 @@ type KeyboardLock = {
   unlock: () => void;
 };
 
-let mediaHeld = false;
 let expectedExitUntil = 0;
 
-/** Beklenen çıkış penceresi: bu süre içinde dönülmezse çıkış ihlal sayılır ve sınav durur. */
+/** Beklenen çıkış penceresi: bu süre içindeki çıkış kayda (FULLSCREEN_EXIT) yazılmaz. */
 export const EXPECTED_EXIT_MS = 90_000;
 
 /**
  * Tarayıcı izin penceresi (mikrofon/kamera) ve dosya seçici açılırken güvenlik gereği tam ekrandan çıkar; sayfa bunu
- * engelleyemez. Öğrencinin kendi başlattığı bu işlemlerden ÖNCE çağrılır: bu süre içindeki çıkış ihlal sayılmaz,
- * sınav durmaz ve öğrencinin bir sonraki dokunuşunda tam ekran geri açılır (ExamFlowProvider).
+ * engelleyemez. Öğrencinin kendi başlattığı bu işlemlerden ÖNCE çağrılır: bu süre içindeki çıkış kayda yazılmaz;
+ * öğrencinin bir sonraki dokunuşunda tam ekran geri açılır (ExamFlowProvider).
  */
 export function expectFullscreenExit() {
   // Koşulsuz: öğrenci yumuşak moddayken (tam ekran dışı) yükle'ye basarsa, aynı dokunuşla geri açılan tam ekran
@@ -79,14 +80,6 @@ export function clearExpectedExit() {
   expectedExitUntil = 0;
 }
 
-export function expectedExitRemainingMs() {
-  return Math.max(0, expectedExitUntil - Date.now());
-}
-
-export function isExamMediaHeld() {
-  return mediaHeld;
-}
-
 export function isExamFullscreen() {
   if (typeof document === "undefined") return false;
   const doc = document as WebkitDocument;
@@ -97,28 +90,6 @@ export function canRequestFullscreen() {
   if (typeof document === "undefined") return false;
   const node = document.documentElement as FullscreenElement;
   return typeof node.requestFullscreen === "function" || typeof node.webkitRequestFullscreen === "function";
-}
-
-/** Çalan ses/videoyu dondurur. Oynatıcı, sınav kilidi varken kendiliğinden devam ettirmez. */
-export function holdExamMedia() {
-  mediaHeld = true;
-  if (typeof document === "undefined") return;
-  document.querySelectorAll("audio, video").forEach((node) => {
-    if (!(node instanceof HTMLMediaElement) || node.paused || node.ended) return;
-    node.dataset.examHold = "1";
-    node.pause();
-  });
-}
-
-/** Tam ekrana dönünce, çıkışta duran medyayı kaldığı yerden sürdürür. */
-export function releaseExamMediaHold() {
-  mediaHeld = false;
-  if (typeof document === "undefined") return;
-  document.querySelectorAll("audio, video").forEach((node) => {
-    if (!(node instanceof HTMLMediaElement) || node.dataset.examHold !== "1") return;
-    delete node.dataset.examHold;
-    void node.play().catch(() => undefined);
-  });
 }
 
 export async function enterExamFullscreen() {
@@ -145,7 +116,6 @@ export async function enterExamFullscreen() {
 }
 
 export async function exitExamFullscreen() {
-  releaseExamMediaHold();
   unlockExamEscape();
   if (!isExamFullscreen()) return;
   const doc = document as WebkitDocument;

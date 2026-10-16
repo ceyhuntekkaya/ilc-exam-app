@@ -4,6 +4,7 @@ import { useExamSession } from "@/src/features/exam-player/session/ExamSessionCo
 import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
 import { enqueueRecording, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
 import { applicationMediaContentUrl, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
@@ -343,6 +344,7 @@ function UploadDrop({
       />
       <button
         type="button"
+        data-keep-gesture=""
         disabled={disabled || busy}
         onClick={() => {
           // Dosya seçici tarayıcıyı tam ekrandan çıkarabilir: ihlal sayılmasın, sonraki dokunuşta geri dönülür.
@@ -399,6 +401,9 @@ function useUploader(itemId: string | undefined) {
   return { session, busy, error, setError, uploadOne, run };
 }
 
+/** Kayıt hemen açılır; ilk saniyeler sessiz kalır, dalga bu sürede geri sayar. */
+const RECORDING_LEAD_IN_SEC = 3;
+
 export function AudioResponseView({
   interaction,
   disabled,
@@ -426,6 +431,10 @@ export function AudioResponseView({
   const startedAt = useRef(0);
   const intentRef = useRef<string | null>(null);
   const mounted = useRef(true);
+  const liveRef = useRef<{ ctx: AudioContext; stream: MediaStream } | null>(null);
+  const leadInTimer = useRef<number | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const lockId = useId();
   const params = useParams<{ recipientId?: string }>();
   const { session, busy, error, setError } = useUploader(itemId);
@@ -438,6 +447,22 @@ export function AudioResponseView({
     return subscribeMediaUploads(() => setUploadProblem(mediaUploadError(itemId)));
   }, [itemId]);
 
+  function clearLeadIn() {
+    if (leadInTimer.current != null) {
+      window.clearInterval(leadInTimer.current);
+      leadInTimer.current = null;
+    }
+  }
+
+  function closeWave() {
+    clearLeadIn();
+    const live = liveRef.current;
+    liveRef.current = null;
+    setAnalyser(null);
+    setCountdown(null);
+    void live?.ctx.close().catch(() => undefined);
+  }
+
   // Soru kapanırsa kayıt durur ve parça yükleme kuyruğuna verilir. onstop silinmez.
   useEffect(() => {
     mounted.current = true;
@@ -445,34 +470,59 @@ export function AudioResponseView({
       mounted.current = false;
       const recorder = mediaRecorderRef.current;
       if (recorder && recorder.state !== "inactive") recorder.stop();
-      else releaseMedia(lockId);
+      else {
+        releaseMedia(lockId);
+        const live = liveRef.current;
+        liveRef.current = null;
+        live?.stream.getTracks().forEach((t) => t.stop());
+        void live?.ctx.close().catch(() => undefined);
+      }
       if (stopTimer.current) window.clearTimeout(stopTimer.current);
+      if (leadInTimer.current != null) {
+        window.clearInterval(leadInTimer.current);
+        leadInTimer.current = null;
+      }
     };
   }, [lockId]);
 
   async function startRecording() {
     setError(null);
     setUploadProblem(null);
+    // Dokunuşun içinde aç: iOS, await sonrasında açılan AudioContext'i susturabiliyor.
+    const audioCtx = new AudioContext();
+    void audioCtx.resume();
+    const abandonWave = () => {
+      void audioCtx.close().catch(() => undefined);
+    };
     if (!preview && session && itemId && params.recipientId) {
       try {
         intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
       } catch (err) {
+        abandonWave();
         setError(err instanceof Error ? err.message : "We could not start the recording. Please try again.");
         return;
       }
     }
     // Kayıt sürerken başka ses çalmasın ve soru geçişi kilitli olsun (önizlemede kilit yok).
-    if (!preview && !claimMedia(lockId)) return;
+    if (!preview && !claimMedia(lockId)) {
+      abandonWave();
+      return;
+    }
+    let stream: MediaStream | null = null;
     try {
       // İzin penceresi tam ekrandan çıkarabilir (ilk kez sorulunca): beklenen çıkış.
-      const stream = await withExpectedExit(() => navigator.mediaDevices.getUserMedia({ audio: true }));
+      stream = await withExpectedExit(() => navigator.mediaDevices.getUserMedia({ audio: true }));
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
+        stream?.getTracks().forEach((t) => t.stop());
+        const live = liveRef.current;
+        liveRef.current = null;
+        if (mounted.current) setAnalyser(null);
+        void live?.ctx.close().catch(() => undefined);
         const durationMs = Date.now() - startedAt.current;
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         // iOS Safari audio/mp4, Chrome/Android audio/webm üretir: uzantı türle uyumlu olsun.
@@ -505,12 +555,45 @@ export function AudioResponseView({
         }
       };
       mediaRecorderRef.current = recorder;
+      const tracks = stream.getAudioTracks();
+      // Geri sayım boyunca iz sessiz: dosyanın başında 3 saniye boşluk kalır.
+      for (const track of tracks) track.enabled = false;
       recorder.start();
       startedAt.current = Date.now();
       setRecording(true);
-      // Süre sınırı dolunca kayıt kendiliğinden durur.
-      if (maxDur != null && maxDur > 0) stopTimer.current = window.setTimeout(stopRecording, maxDur * 1000);
+      let leadMs = 0;
+      try {
+        const source = audioCtx.createMediaStreamSource(stream);
+        const node = audioCtx.createAnalyser();
+        node.fftSize = 2048;
+        node.smoothingTimeConstant = 0.72;
+        source.connect(node);
+        liveRef.current = { ctx: audioCtx, stream };
+        setAnalyser(node);
+        setCountdown(RECORDING_LEAD_IN_SEC);
+        leadMs = RECORDING_LEAD_IN_SEC * 1000;
+        const leadStarted = Date.now();
+        leadInTimer.current = window.setInterval(() => {
+          const left = RECORDING_LEAD_IN_SEC - Math.floor((Date.now() - leadStarted) / 1000);
+          if (left <= 0) {
+            clearLeadIn();
+            for (const track of tracks) track.enabled = true;
+            if (mounted.current) setCountdown(null);
+            return;
+          }
+          if (mounted.current) setCountdown(left);
+        }, 200);
+      } catch {
+        for (const track of tracks) track.enabled = true;
+        abandonWave();
+      }
+      // Süre sınırı konuşma süresidir; baştaki sessizlik bu süreden düşülmez.
+      if (maxDur != null && maxDur > 0) stopTimer.current = window.setTimeout(stopRecording, maxDur * 1000 + leadMs);
     } catch {
+      clearLeadIn();
+      setCountdown(null);
+      stream?.getTracks().forEach((t) => t.stop());
+      abandonWave();
       releaseMedia(lockId);
       setError("We need your microphone. Please allow the microphone and try again.");
     }
@@ -524,6 +607,7 @@ export function AudioResponseView({
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") recorder.stop();
     setRecording(false);
+    closeWave();
   }
 
   const attemptsExhausted = !preview && shownAttempts >= maxAttempts;
@@ -549,6 +633,7 @@ export function AudioResponseView({
         >
           {recording ? "Stop" : busy || uploading ? "Saving…" : entry ? "Record again" : "Record"}
         </button>
+        {analyser ? <RecordingWave analyser={analyser} countdown={countdown} /> : null}
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
         ) : null}
@@ -558,19 +643,21 @@ export function AudioResponseView({
             Try upload again
           </button>
         ) : null}
-        <p className="text-sm text-exam-slate-500">
-          {preview
-            ? "Önizleme · sınırsız deneme"
-            : recording
-              ? "Recording… Tap Stop when you finish."
-              : uploading
-                ? "Saving your recording…"
-                : entry?.mediaId
-                  ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
-                  : left != null
-                    ? `Tries left: ${left}`
-                    : ""}
-        </p>
+        {recording && analyser ? null : (
+          <p className="text-sm text-exam-slate-500">
+            {preview
+              ? "Önizleme · sınırsız deneme"
+              : recording
+                ? "Recording… Tap Stop when you finish."
+                : uploading
+                  ? "Saving your recording…"
+                  : entry?.mediaId
+                    ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
+                    : left != null
+                      ? `Tries left: ${left}`
+                      : ""}
+          </p>
+        )}
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
     </div>

@@ -7,8 +7,10 @@ import { formatDuration } from "@/src/features/exam-flow/format";
 import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import { examGroup, examStatus, finishedAttempts, firstName, friendlyWhen, type FinishedAttempt } from "@/src/features/student/status";
 import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
+import type { ReportDeck } from "@/src/features/results/reportCardPdf";
 import { cn } from "@/src/lib/utils/cn";
-import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
+import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconDownload, IconFile, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Result = {
@@ -17,6 +19,7 @@ type Result = {
   totalScore?: number | null;
   cefrLevel?: string | null;
   skillScores?: Record<string, number> | null;
+  sections?: { title: string; earned: number | string | null }[] | null;
 };
 
 const SKILL_LABEL: Record<string, string> = {
@@ -179,9 +182,9 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
 function Block({ title, count, id, children }: { title: string; count?: number; id: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="space-y-3">
-      <h2 id={id} className="flex items-center gap-2.5 text-lg font-bold text-neutral-900">
+      <h2 id={id} className="flex items-center gap-2.5 text-lg font-bold text-white">
         {title}
-        {count ? <span className="grid h-6 min-w-6 place-items-center rounded-full bg-neutral-200 px-2 text-sm text-neutral-700">{count}</span> : null}
+        {count ? <span className="grid h-6 min-w-6 place-items-center rounded-full bg-white/20 px-2 text-sm text-white">{count}</span> : null}
       </h2>
       {children}
     </section>
@@ -281,36 +284,86 @@ function DoneRow({ row }: { row: AssignmentCard }) {
 }
 
 function ResultCard({ row }: { row: Result }) {
-  const skills = Object.entries(row.skillScores ?? {});
+  const sections = (row.sections ?? []).filter((section) => section.title);
+  const skills = sections.length
+    ? sections.map((section) => [section.title, section.earned] as const)
+    : Object.entries(row.skillScores ?? {});
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadPdf() {
+    setPdfError(null);
+    setDownloading(true);
+    try {
+      const response = await customInstance<{ data: ReportDeck }>(`/me/results/${row.applicationId}/report-card`);
+      const { downloadReportCards } = await import("@/src/features/results/reportCardPdf");
+      await downloadReportCards(response.data);
+    } catch {
+      setPdfError("The PDF could not be downloaded. Try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <KidCard as="li" className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-        {row.cefrLevel ? <StatusPill tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
+          {row.cefrLevel ? <StatusPill className="mt-1" tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          <Link
+            href={`/student/results/${row.applicationId}`}
+            aria-label="Report card"
+            title="Report card"
+            className={iconAction}
+          >
+            <IconFile aria-hidden />
+          </Link>
+          <button
+            type="button"
+            aria-label="Download PDF"
+            title="Download PDF"
+            className={iconAction}
+            disabled={downloading}
+            aria-busy={downloading}
+            onClick={() => void downloadPdf()}
+          >
+            <IconDownload aria-hidden />
+          </button>
+        </div>
       </div>
       <p className="mt-2 text-neutral-600">
         Your score: <strong className="font-kid text-xl text-neutral-900">{row.totalScore ?? "—"}</strong>
       </p>
       {skills.length ? (
         <ul className="mt-3 space-y-2.5">
-          {skills.map(([skill, score]) => (
-            <li key={skill}>
-              <div className="flex justify-between text-sm font-semibold text-neutral-700">
-                <span>{SKILL_LABEL[skill] ?? skill}</span>
-                <span className="numeric">{String(score)}</span>
-              </div>
-              {typeof score === "number" && score >= 0 && score <= 100 ? (
-                <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-100">
-                  <div className="h-full rounded-full bg-(--kid-grape)" style={{ width: `${score}%` }} />
+          {skills.map(([skill, score], index) => {
+            const value = typeof score === "number" ? score : Number(score);
+            const shown = Number.isFinite(value) ? value : score;
+            return (
+              <li key={`${skill}-${index}`}>
+                <div className="flex justify-between text-sm font-semibold text-neutral-700">
+                  <span>{SKILL_LABEL[skill] ?? skill}</span>
+                  <span className="numeric">{String(shown)}</span>
                 </div>
-              ) : null}
-            </li>
-          ))}
+                {Number.isFinite(value) && value >= 0 && value <= 100 ? (
+                  <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                    <div className="h-full rounded-full bg-(--kid-grape)" style={{ width: `${value}%` }} />
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       ) : null}
+      {pdfError ? <p className="mt-2 text-sm text-(--kid-coral)">{pdfError}</p> : null}
     </KidCard>
   );
 }
+
+const iconAction = "grid size-11 place-items-center rounded-xl bg-white text-primary-800 ring-2 ring-primary-200 hover:bg-primary-50 disabled:opacity-45 [&>svg]:size-5";
 
 function Empty({ icon, title, text, tone = "mint" }: { icon: ReactNode; title: string; text: string; tone?: "mint" | "grape" }) {
   return (

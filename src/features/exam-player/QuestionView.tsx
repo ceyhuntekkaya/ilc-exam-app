@@ -31,6 +31,8 @@ export function QuestionView({
   // Tüm bölümler aynı türdeyse tür yönergesi bir kez, en üstte; değilse her bölümün başında.
   const hintKey = (p: (typeof parts)[number]) => `${p.interactionType}:${String(p.interaction?.supply ?? "")}`;
   const sharedHint = parts.length && parts.every((p) => hintKey(p) === hintKey(parts[0])) ? { type: parts[0].interactionType, interaction: parts[0].interaction } : null;
+  // Sürükle-bırak soruları tam satır: kendi içinde kart | kutu sütunlarına ayrılır (BoardLayout); metin üstte durur.
+  const fullRow = parts.length > 0 && parts.every(isBoardPart);
 
   const body = (
     <div
@@ -77,7 +79,7 @@ export function QuestionView({
           "grid gap-6",
           // Metin + soru yan yana yalnız alan ≥ 48rem iken (tablet yatay / masaüstü). @md'de (28rem) tablet dikeyde
           // iki ~320px sütuna sıkışıyordu (sürükle-bırak havuzu ve kutular daralıyordu); dikeyde alt alta.
-          hasStimulus ? "@3xl:grid-cols-2 @3xl:items-start" : "grid-cols-1",
+          hasStimulus && !fullRow ? "@3xl:grid-cols-2 @3xl:items-start" : "grid-cols-1",
         )}
       >
         {hasStimulus ? (
@@ -121,10 +123,17 @@ export function QuestionView({
   return <PlayerPreviewProvider preview={preview}>{body}</PlayerPreviewProvider>;
 }
 
+function isBoardPart(part: QuestionViewModel["parts"][number]) {
+  const type = part.interactionType;
+  if (type === "MATCHING" || type === "GROUPING" || type === "HOTSPOT_PLACE") return true;
+  return type === "FILL_IN_THE_BLANKS" && part.interaction?.supply === "WORD_BANK";
+}
+
 /** Soru kabı: öğrenci sınav ekranı, admin/staff soru önizlemesi ve sınav önizlemesi aynı kabı kullanır. */
 export function QuestionFrame({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("w-full overflow-hidden rounded-lg border border-exam-slate-200 bg-white shadow-sm", className)}>
+    // overflow-clip (hidden değil): hidden kaydırma kabı sayılır ve sürükle-bırak kart sütununun sticky'sini bozar.
+    <div className={cn("w-full overflow-clip rounded-lg border border-exam-slate-200 bg-white shadow-sm", className)}>
       <div className="px-4 py-4 sm:px-6">{children}</div>
     </div>
   );

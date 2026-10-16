@@ -10,23 +10,23 @@ import type { ReactNode } from "react";
 /**
  * Öğrenci kabuğu. Menü yok: tek ana sayfa (/student) her şeyi gösterir.
  * - Ana sayfa: logo + isim + Çıkış.
- * - Sınav hazırlık / bölüm ekranları: logo + "Ana sayfa" (çıkış yok, yanlışlıkla oturum kapanmasın).
+ * - Sınav hazırlık, bölüm ve karne ekranları: logo + "Ana sayfa" (çıkış yok, yanlışlıkla oturum kapanmasın).
  * - Soru ekranı: kabuk tamamen gizli, dikkat yalnız soruda.
  */
 export function StudentShell({ children }: { children: ReactNode }) {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
-  const inExam = pathname.startsWith("/student/exams/");
+  const inExam = pathname.startsWith("/student/exams/") || pathname.startsWith("/student/results/");
   const inQuestion = /\/student\/exams\/[^/]+\/sections\/[^/]+$/.test(pathname);
   const name = loading ? "" : firstName(user?.displayName || user?.username);
 
   return (
-    <div data-panel="student" lang="en" className="flex min-h-dvh flex-1 flex-col bg-bg text-fg">
+    <div data-panel="student" lang="en" className="student-canvas flex min-h-dvh flex-1 flex-col text-fg">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow">
         Skip to content
       </a>
       {inQuestion ? null : (
-        <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/85 backdrop-blur">
+        <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white">
           <div className="student-container flex h-14 items-center justify-between gap-3">
             <Logo />
             {inExam ? (

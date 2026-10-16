@@ -2,7 +2,7 @@
 
 import { HtmlInline } from "@/src/features/exam-player/html";
 import { OptionContent, OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
-import { DragItem, DragPool, DropZone, EmptySlot, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { BoardLayout, DragItem, DragPool, DropZone, EmptySlot, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
 import { PreviewAnswerBanner, previewLabel } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { htmlOf, type HtmlValue, type OptionFormat, type PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -57,11 +57,32 @@ export function GroupingView({
         return it ? <OptionContent option={it} format={itemFormat} size="sm" /> : null;
       }}
     >
-      <div className="@container space-y-4">
+      <div className="space-y-4">
+        <BoardLayout
+          pool={
+            <DragPool
+              hint="Drag each card to the correct group. Or tap a card, then tap a group."
+              pickedHint="Now tap a group to put the card there."
+              isEmpty={unassigned.length === 0}
+              listClassName={poolListClass(itemFormat)}
+              footer={
+                unassigned.length < items.length ? (
+                  <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+                    <StartOver disabled={disabled} onReset={() => { setTouched(true); setGroupOf({}); }} />
+                  </div>
+                ) : null
+              }
+            >
+              {unassigned.map((it) => (
+                <OptionDragItem key={it.id} id={it.id} option={it} format={itemFormat} label={htmlOf(it.text) || "Card"} />
+              ))}
+            </DragPool>
+          }
+        >
         <div
           className={cn(
             "grid gap-3",
-            cols >= 2 && "@md:grid-cols-2",
+            cols >= 2 && "@sm:grid-cols-2",
             cols >= 3 && "@3xl:grid-cols-3",
             cols >= 4 && "@5xl:grid-cols-4",
           )}
@@ -115,24 +136,7 @@ export function GroupingView({
             );
           })}
         </div>
-
-        <DragPool
-          hint="Drag each card to the correct group. Or tap a card, then tap a group."
-          pickedHint="Now tap a group to put the card there."
-          isEmpty={unassigned.length === 0}
-          listClassName={poolListClass(itemFormat)}
-          footer={
-            unassigned.length < items.length ? (
-              <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
-                <StartOver disabled={disabled} onReset={() => { setTouched(true); setGroupOf({}); }} />
-              </div>
-            ) : null
-          }
-        >
-          {unassigned.map((it) => (
-            <OptionDragItem key={it.id} id={it.id} option={it} format={itemFormat} label={htmlOf(it.text) || "Card"} />
-          ))}
-        </DragPool>
+        </BoardLayout>
 
         {preview && Object.keys(correctGroupOf).length > 0 ? (
           <PreviewAnswerBanner>

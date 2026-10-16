@@ -664,7 +664,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         </ol>
       </nav>
 
-      <div className="grid items-start gap-6 @min-[60rem]:grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)] @min-[90rem]:grid-cols-[minmax(0,1fr)_minmax(26rem,38rem)]">
+      <div className="grid items-start gap-6 @min-[60rem]:grid-cols-2">
       <div className="@container/form min-w-0 space-y-6">
         {openPanel === 0 ? (
           <FormCard title="Soru tipi" description="Seçili part'ın etkileşim tipi. Tip değişirse part içeriği sıfırlanır.">

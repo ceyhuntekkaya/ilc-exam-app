@@ -204,6 +204,16 @@ export function IconFile(props: IconProps) {
   );
 }
 
+export function IconDownload(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 4v10" />
+      <path d="m8 10 4 4 4-4" />
+      <path d="M5 19h14" />
+    </svg>
+  );
+}
+
 export function IconPlay(props: IconProps) {
   return (
     <svg {...base} fill="currentColor" stroke="none" {...props}>

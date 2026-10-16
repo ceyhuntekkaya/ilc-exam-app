@@ -23,6 +23,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -35,7 +36,8 @@ import { createPortal } from "react-dom";
  * Yerleştirme tahtası — sürükle-bırak soruların (eşleştirme, gruplama, kelime havuzu, görsel üstüne yerleştirme) ortak altyapısı.
  *
  * İki yol, aynı sonuç:
- * 1) Sürükle: fare 6px hareketle, dokunmada kısa basılı tutunca başlar (hızlı kaydırma sayfayı kaydırır).
+ * 1) Sürükle: fare 6px, dokunma 5px hareketle hemen başlar. Kartın üstünde sayfa kaymaz (touch-action: none): basılı tutma
+ *    beklenirken parmak kayınca tarayıcı sayfayı kaydırıp sürüklemeyi iptal ediyordu. Sayfa kartların dışından kaydırılır.
  * 2) Dokun: kartı seç (vurgulanır, kutular parlar) → kutuya dokun.
  * Geri alma: yerleşmiş karta dokun ya da havuza sürükle → kart havuza döner. "Start over" hepsini sıfırlar.
  * Sürüklenen kartın yeri boş kalmaz (soluk kopya) → düzen kaymaz; sürüklenen kopya body'ye portal (kırpılmaz).
@@ -102,6 +104,9 @@ export const followPointer: Modifier = ({ activatorEvent, activeNodeRect, overla
   };
 };
 
+/** Dokunmada sürükleme: bekleme yok, 5px hareketle başlar (sürüklenebilir kartlar touch-action: none). */
+export const TOUCH_ACTIVATION = { distance: 5 } as const;
+
 /** Kopyanın kutusu kaynak kartın boyunu almasın (dnd-kit kullanıcı stilini en son uygular). */
 export const OVERLAY_STYLE = { width: "auto", height: "auto" } as const;
 
@@ -131,11 +136,12 @@ export function PlaceBoard({
   overlay: (itemId: string) => ReactNode;
   children: ReactNode;
 }) {
+  const dndId = useId();
   const [picked, setPicked] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_ACTIVATION }),
   );
 
   // Esc seçimi bırakır.
@@ -192,6 +198,7 @@ export function PlaceBoard({
 
   return (
     <DndContext
+      id={dndId}
       sensors={sensors}
       collisionDetection={collision}
       onDragStart={onDragStart}
@@ -296,7 +303,7 @@ export function DragItem({
         e.stopPropagation();
         pick(id);
       }}
-      style={{ touchAction: "manipulation" } as CSSProperties}
+      style={{ touchAction: disabled ? "manipulation" : "none" } as CSSProperties}
       className={cn(
         "group/item relative select-none text-left outline-none [-webkit-touch-callout:none] transition-[transform,box-shadow,border-color,background-color,opacity] duration-150",
         "focus-visible:ring-4 focus-visible:ring-exam-sky-200",
@@ -321,7 +328,7 @@ export function DragItem({
         className,
       )}
     >
-      {!placed && !tile ? <IconGrip className="size-4 shrink-0 text-exam-slate-300" aria-hidden /> : null}
+      {!placed && !tile && !locked ? <IconGrip className="size-4 shrink-0 text-exam-slate-300" aria-hidden /> : null}
       <Inner className={fill && placed ? "block size-full" : plain && placed ? "inline" : "min-w-0 flex-1"}>
         {children}
         {locked && lockedHint && !tile ? (
@@ -481,6 +488,25 @@ export function DragPool({
   );
 }
 
+/**
+ * Sürükle-bırak sorusunun düzeni. Geniş alanda (yatay tablet / masaüstü) kartlar solda ve sayfa kaysa da ekranda kalır
+ * (sticky), kutular sağda: kart ile kutu hep birlikte görünür, sürüklerken sayfa kaydırmak gerekmez.
+ * Dar alanda (dikey tablet / telefon) kartlar üstte, kutular altta. Her sütun kendi @container'ı (iç ızgaralar sütuna göre).
+ * Sticky için atalarda overflow: hidden olmamalı (QuestionFrame overflow-clip kullanır).
+ */
+export function BoardLayout({ pool, children }: { pool: ReactNode; children: ReactNode }) {
+  return (
+    <div className="@container">
+      <div className="grid gap-4 @2xl:grid-cols-[minmax(13rem,2fr)_minmax(0,3fr)] @2xl:items-start @2xl:gap-5">
+        <div className="@container min-w-0 @2xl:sticky @2xl:top-16 @2xl:max-h-[calc(100dvh-10rem)] @2xl:overflow-y-auto @2xl:overscroll-contain">
+          {pool}
+        </div>
+        <div className="@container min-w-0">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /** Havuz ızgarası (görsel kartlar): dar alanda 2, genişte 3–4 sütun. */
 export const POOL_IMAGE_GRID = "grid grid-cols-2 gap-2 @lg:grid-cols-3 @2xl:grid-cols-4";
 /**
@@ -488,6 +514,8 @@ export const POOL_IMAGE_GRID = "grid grid-cols-2 gap-2 @lg:grid-cols-3 @2xl:grid
  * Sabit 2 sütun yerine otomatik dolan eşit sütunlar: 3 video genişte tek satır, dar alanda düzenli kırılır (2 + 1 tek başına büyümez).
  */
 export const POOL_VIDEO_GRID = "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-2";
+/** Havuz ızgarası (ses kartları): dar kart sütununda da yan yana 2'şer (alt alta dizilip sütunu uzatmasın). */
+export const POOL_AUDIO_GRID = "grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-2";
 
 /** "Start over": iki adımlı (yanlış dokunuşla cevaplar silinmesin). 5 sn içinde onaylanmazsa kapanır. */
 export function StartOver({ onReset, disabled }: { onReset: () => void; disabled?: boolean }) {

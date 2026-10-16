@@ -15,8 +15,8 @@ import { IconArrowRight, IconCheck, IconClock, IconFlag, IconLock } from "@/src/
 import { useState, useSyncExternalStore } from "react";
 
 export default function SectionListPage() {
-  const { recipientId, state, applyState, held, fullscreenBlocked } = useExamFlow();
-  const remaining = useExamClock(held || fullscreenBlocked, state?.clock ?? null);
+  const { recipientId, state, applyState, held } = useExamFlow();
+  const remaining = useExamClock(held, state?.clock ?? null);
   const [pending, setPending] = useState<string | null>(null);
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,8 +80,8 @@ export default function SectionListPage() {
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Parts of the test</h1>
-          <p className="mt-1 text-base text-neutral-700">Choose a part. On this page, the timer stops.</p>
+          <h1 className="text-2xl font-bold text-white">Parts of the test</h1>
+          <p className="mt-1 text-base text-white/80">Choose a part. On this page, the timer stops.</p>
         </div>
         {/* Süre sınırı yoksa sayaç gösterilmez. */}
         {examLeft != null ? (

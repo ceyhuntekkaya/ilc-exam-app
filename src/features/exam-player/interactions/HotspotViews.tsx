@@ -3,7 +3,7 @@
 import { IconCheck } from "@/src/ui/icons";
 import { OptionContent, OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
 import { MediaImageSlot } from "@/src/features/exam-player/media/MediaContext";
-import { DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
 
 import { htmlOf, type OptionFormat, type PlayerOption, type Region, type Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -235,9 +235,31 @@ export function HotspotPlaceView({
         return d ? <OptionContent option={d} format={format} size="sm" /> : null;
       }}
     >
-      <div className="@container space-y-4">
-        <div className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-xl border-2 border-exam-slate-200">
-          <MediaImageSlot mediaId={mediaId} className="block w-full" />
+      <BoardLayout
+        pool={
+          <DragPool
+            hint="Drag each card to the correct place on the picture. Or tap a card, then tap a place."
+            pickedHint="Now tap a place on the picture."
+            isEmpty={unplaced.length === 0}
+            listClassName={poolListClass(format)}
+            footer={
+              unplaced.length < draggables.length ? (
+                <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+                  <StartOver disabled={disabled} onReset={() => { setTouched(true); setZoneOf({}); }} />
+                </div>
+              ) : null
+            }
+          >
+            {unplaced.map((d) => (
+              <OptionDragItem key={d.id} id={d.id} option={d} format={format} label={htmlOf(d.text) || "Card"} />
+            ))}
+          </DragPool>
+        }
+      >
+        {/* Resim ekran yüksekliğine sığar: tüm alanlar aynı anda görünür, sürüklerken sayfa kaydırmak gerekmez.
+            Kap resim kadar (w-fit); alanlar yüzdeyle konumlandığı için küçülünce de yerinde kalır. */}
+        <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-xl border-2 border-exam-slate-200">
+          <MediaImageSlot mediaId={mediaId} className="block h-auto max-h-[calc(100dvh-11rem)] w-auto max-w-full" />
           {zones.map((z, index) => {
             const members = draggables.filter((d) => zoneOf[d.id] === z.id);
             return (
@@ -277,25 +299,7 @@ export function HotspotPlaceView({
             );
           })}
         </div>
-
-        <DragPool
-          hint="Drag each card to the correct place on the picture. Or tap a card, then tap a place."
-          pickedHint="Now tap a place on the picture."
-          isEmpty={unplaced.length === 0}
-          listClassName={poolListClass(format)}
-          footer={
-            unplaced.length < draggables.length ? (
-              <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
-                <StartOver disabled={disabled} onReset={() => { setTouched(true); setZoneOf({}); }} />
-              </div>
-            ) : null
-          }
-        >
-          {unplaced.map((d) => (
-            <OptionDragItem key={d.id} id={d.id} option={d} format={format} label={htmlOf(d.text) || "Card"} />
-          ))}
-        </DragPool>
-      </div>
+      </BoardLayout>
     </PlaceBoard>
   );
 }

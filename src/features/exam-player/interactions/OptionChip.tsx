@@ -1,6 +1,6 @@
 "use client";
 
-import { DragItem, POOL_IMAGE_GRID, POOL_VIDEO_GRID } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { DragItem, POOL_AUDIO_GRID, POOL_IMAGE_GRID, POOL_VIDEO_GRID } from "@/src/features/exam-player/dnd/PlaceBoard";
 import { HtmlInline } from "@/src/features/exam-player/html";
 import { usePlayerPreview } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
@@ -50,6 +50,7 @@ function VideoThumb({ mediaId, className }: { mediaId?: string | null; className
 export function poolListClass(format: OptionFormat): string | undefined {
   if (format === "IMAGE") return POOL_IMAGE_GRID;
   if (format === "VIDEO") return POOL_VIDEO_GRID;
+  if (format === "AUDIO") return POOL_AUDIO_GRID;
   return undefined;
 }
 
@@ -67,14 +68,19 @@ export function OptionDragItem({
 }) {
   const lock = useOptionLock(option, format);
   const video = format === "VIDEO";
+  // Ses kartları havuzda 2'şer dar sütunda: uzun cümle 3 satıra bölünüyordu, kısa not tek satır.
+  const hint = lock && format === "AUDIO" ? "Listen first" : lock;
   return (
-    <DragItem id={id} label={label} locked={!!lock} lockedHint={lock ?? undefined} tile={video} className={poolListClass(format) ? "w-full" : undefined}>
+    <DragItem id={id} label={label} locked={!!lock} lockedHint={hint ?? undefined} tile={video} className={poolListClass(format) ? "w-full" : undefined}>
       <OptionContent option={option} format={format} size="lg" note={video ? lockNote(lock) : undefined} />
     </DragItem>
   );
 }
 
-/** Seçenek içeriği. size: lg = havuz/inceleme (büyük görsel), md = varsayılan, sm = kutuya yerleşmiş (küçük önizleme). */
+/**
+ * Seçenek içeriği. size: lg = havuz/inceleme (büyük görsel), md = varsayılan, sm = kutuya yerleşmiş (küçük önizleme),
+ * row = eşleştirme satırındaki görsel (kendi oranında; üstte/altta boş şerit yok, satır alçak kalır).
+ */
 export function OptionContent({
   option,
   format,
@@ -86,7 +92,7 @@ export function OptionContent({
   /** Video kartı kilitliyken kapak altında gösterilen kısa metin. */
   note?: string | null;
   /** fill: kabı tamamen kaplar (kutuya yerleşmiş görsel/video). */
-  size?: "sm" | "md" | "lg" | "fill";
+  size?: "sm" | "md" | "lg" | "fill" | "row";
 }) {
   const caption = option.text ? (
     <HtmlInline value={option.text} className={cn("block", size === "sm" ? "text-xs" : "text-sm")} />
@@ -112,6 +118,14 @@ export function OptionContent({
       return (
         <span className="flex items-center gap-2">
           <MediaImageSlot mediaId={option.mediaId} alt={htmlOf(option.text)} className="size-12 shrink-0 rounded-md bg-exam-slate-50 object-contain" />
+          {caption}
+        </span>
+      );
+    }
+    if (size === "row") {
+      return (
+        <span className="block space-y-1">
+          <MediaImageSlot mediaId={option.mediaId} alt={htmlOf(option.text)} className="block h-auto max-h-24 w-auto max-w-full rounded-lg" />
           {caption}
         </span>
       );

@@ -40,17 +40,12 @@ export default function ExamWelcomePage() {
 
   async function accept() {
     if (!preview) return;
-    // requestFullscreen bu tıklamanın içinde, ilk await'ten önce çağrılmalı.
-    const fullscreen = engageFullscreen();
+    // requestFullscreen bu tıklamanın içinde, ilk await'ten önce çağrılmalı. Açılmazsa (desteklemeyen tarayıcı) sınav
+    // yine başlar; sonraki dokunuşlar tam ekranı yeniden dener.
+    const fullscreen = engageFullscreen().catch(() => undefined);
     setBusy(true);
     setError(null);
-    try {
-      await fullscreen;
-    } catch {
-      setError("Full screen is required to start the test. Please allow it and try again.");
-      setBusy(false);
-      return;
-    }
+    await fullscreen;
     try {
       const digest = await sha256Hex(preview.welcomeHtml || "");
       const started = await startAttempt(recipientId, {
@@ -83,10 +78,10 @@ export default function ExamWelcomePage() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
       <div className="space-y-6">
         <header>
-          <p className="font-semibold text-primary-700">{isRetry ? `Try ${card.attemptsUsed + 1} of ${card.attemptsTotal}` : "Get ready for the test"}</p>
-          <h1 className="mt-1 text-2xl font-bold text-neutral-900">{card.examTitle}</h1>
+          <p className="font-semibold text-white/85">{isRetry ? `Try ${card.attemptsUsed + 1} of ${card.attemptsTotal}` : "Get ready for the test"}</p>
+          <h1 className="mt-1 text-2xl font-bold text-white">{card.examTitle}</h1>
           {card.availableUntil ? (
-            <p className="mt-2 flex items-center gap-1.5 text-neutral-600 [&>svg]:size-4">
+            <p className="mt-2 flex items-center gap-1.5 text-white/80 [&>svg]:size-4">
               <IconCalendar aria-hidden />
               Open until {friendlyWhen(card.availableUntil)}
             </p>
@@ -110,7 +105,7 @@ export default function ExamWelcomePage() {
 
         {preview.sections.length ? (
           <section aria-labelledby="bolumler" className="space-y-3">
-            <h2 id="bolumler" className="text-base font-bold text-neutral-900">Parts of the test</h2>
+            <h2 id="bolumler" className="text-base font-bold text-white">Parts of the test</h2>
             <ol className="grid gap-3 sm:grid-cols-2">
               {preview.sections.map((section, index) => (
                 <li key={section.sectionId} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-neutral-200">

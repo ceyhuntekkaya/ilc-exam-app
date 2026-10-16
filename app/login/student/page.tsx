@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { entryButtonClass, entryFieldClass, EntryFrame } from "@/src/components/brand/entry-frame";
 import { useStudentLogin } from "@/src/api/generated/auth/auth";
 import { useAuth } from "@/src/components/auth-provider";
-import { kidButtonClass } from "@/src/features/student/ui";
 import type { SessionUserType } from "@/src/lib/auth-constants";
 import { IconAlert, IconArrowRight, IconUser } from "@/src/ui/icons";
+import Link from "next/link";
+import { useState, type FormEvent } from "react";
 
 export default function StudentLoginPage() {
   const { establishSession } = useAuth();
@@ -36,66 +36,58 @@ export default function StudentLoginPage() {
   }
 
   return (
-    <div data-panel="student" lang="en" className="relative flex min-h-dvh flex-1 items-center justify-center overflow-hidden bg-primary-600 px-4 py-10">
-      {/* Gökyüzü süsleri: güneş + bulutlar. */}
-      <span aria-hidden className="absolute -top-16 -right-16 size-64 rounded-full bg-secondary-400" />
-      <span aria-hidden className="absolute top-24 left-[8%] h-14 w-40 rounded-full bg-white/15" />
-      <span aria-hidden className="absolute bottom-16 right-[10%] h-16 w-52 rounded-full bg-white/10" />
-      <span aria-hidden className="absolute -bottom-24 -left-20 size-72 rounded-full bg-primary-500" />
-
-      <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center gap-3 text-white">
-          <span aria-hidden className="grid size-10 place-items-center rounded-xl bg-white font-kid text-base font-bold text-primary-700 shadow-[0_3px_0_var(--color-primary-800)]">
-            ILC
-          </span>
-          <span className="font-kid text-xl font-bold">My tests</span>
-        </div>
-        <form onSubmit={onSubmit} className="rounded-4xl bg-white p-6 shadow-[0_8px_0_var(--color-primary-800)] sm:p-8">
-          <h1 className="text-2xl font-bold text-neutral-900">Welcome!</h1>
-          <p className="mt-1 text-base text-neutral-700">Write the username from your teacher.</p>
-
-          <label htmlFor="username" className="mt-6 block text-base font-semibold text-neutral-900">
-            Your username
-          </label>
-          <div className="relative mt-2">
-            <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-neutral-400" />
-            <input
-              id="username"
-              type="text"
-              required
-              autoFocus
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="e.g. ayse.kaya"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? "login-error" : undefined}
-              className="min-h-12 w-full rounded-xl border-2 border-neutral-200 bg-neutral-50 pr-4 pl-12 text-base text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-100"
-            />
-          </div>
-
-          {error ? (
-            <p id="login-error" role="alert" className="mt-4 flex items-start gap-2 rounded-2xl bg-(--kid-coral-bg) px-4 py-3 font-medium text-(--kid-coral) [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
-              <IconAlert aria-hidden />
-              {error}
-            </p>
-          ) : null}
-
-          <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${kidButtonClass({ size: "lg", full: true })} mt-6`}>
-            {loginMutation.isPending ? "Logging in…" : "Log in"}
-            {loginMutation.isPending ? null : <IconArrowRight aria-hidden />}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-white">
+    <EntryFrame
+      lang="en"
+      panel="student"
+      logoHref="/"
+      footer={
+        <>
           Are you a teacher or school staff?{" "}
           <Link href="/login" className="font-semibold text-white underline underline-offset-4">
             Staff login
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="mt-7">
+        <h1 className="text-2xl font-bold text-[#241f4a]">Welcome!</h1>
+        <p className="mt-1 text-base text-[#3c3960]/80">Write the username from your teacher.</p>
+
+        <label htmlFor="username" className="mt-6 block text-base font-semibold text-[#241f4a]">
+          Your username
+        </label>
+        <div className="relative mt-2">
+          <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-[#8a87a3]" />
+          <input
+            id="username"
+            type="text"
+            required
+            autoFocus
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="e.g. ayse.kaya"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "login-error" : undefined}
+            className={`${entryFieldClass} mt-0 pr-4 pl-12`}
+          />
+        </div>
+
+        {error ? (
+          <p id="login-error" role="alert" className="mt-4 flex items-start gap-2 rounded-2xl bg-[#ffe9e4] px-4 py-3 font-medium text-[#9f2d1c] [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
+            <IconAlert aria-hidden />
+            {error}
+          </p>
+        ) : null}
+
+        <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${entryButtonClass} mt-6`}>
+          {loginMutation.isPending ? "Logging in…" : "Log in"}
+          {loginMutation.isPending ? null : <IconArrowRight aria-hidden />}
+        </button>
+      </form>
+    </EntryFrame>
   );
 }

@@ -43,8 +43,8 @@ export default function DeviceCheckPage() {
   return (
     <section className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-neutral-900">Let us check your device</h1>
-        <p className="mt-2 max-w-2xl text-base text-neutral-700">
+        <h1 className="text-2xl font-bold text-white">Let us check your device</h1>
+        <p className="mt-2 max-w-2xl text-base text-white/85">
           In this test, you will use your {state.requiresCamera && state.requiresMicrophone ? "microphone and camera" : state.requiresCamera ? "camera" : "microphone"}.
           Make a short test recording. Then listen or watch. If it is OK, you can go to the parts.
         </p>
@@ -63,7 +63,7 @@ export default function DeviceCheckPage() {
           {busy ? "Saving…" : "Go to the parts"}
           {busy ? null : <IconArrowRight aria-hidden />}
         </KidButton>
-        {!micOk || !camOk ? <p className="text-neutral-600">First, finish the checks above.</p> : null}
+        {!micOk || !camOk ? <p className="text-white/75">First, finish the checks above.</p> : null}
       </div>
     </section>
   );

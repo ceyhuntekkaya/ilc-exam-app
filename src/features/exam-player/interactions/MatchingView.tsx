@@ -1,7 +1,7 @@
 "use client";
 
 import { OptionContent, OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
-import { DragItem, DragPool, DropZone, EmptySlot, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { BoardLayout, DragItem, DragPool, DropZone, EmptySlot, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
 import { PreviewAnswerBanner, previewLabel } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { htmlOf, type OptionFormat, type PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -31,6 +31,7 @@ export function MatchingView({
   const right = useMemo(() => (interaction.right as PlayerOption[]) || [], [interaction.right]);
   const reusable = !!interaction.rightReusable;
   const tiles = rightFormat === "IMAGE" || rightFormat === "VIDEO";
+  const audio = rightFormat === "AUDIO";
   const correctPairs = useMemo(() => {
     if (!preview) return {} as Record<string, string>;
     return (answerKey?.pairs as Record<string, string>) || {};
@@ -75,9 +76,30 @@ export function MatchingView({
   };
 
 
+  const pool = (
+    <DragPool
+      title="Answers"
+      hint="Drag an answer to a box. Or tap an answer, then tap a box."
+      isEmpty={poolItems.length === 0}
+      listClassName={poolListClass(rightFormat)}
+      footer={
+        usedRight.size ? (
+          <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+            <StartOver disabled={disabled} onReset={() => update(() => ({}))} />
+          </div>
+        ) : null
+      }
+    >
+      {poolItems.map((r) => (
+        <OptionDragItem key={r.id} id={fromPool(r.id)} option={r} format={rightFormat} label={htmlOf(r.text) || "Answer"} />
+      ))}
+    </DragPool>
+  );
+
   return (
     <PlaceBoard disabled={disabled} onPlace={onPlace} overlay={rightOverlay}>
-      <div className="@container space-y-4">
+      <div className="space-y-4">
+        <BoardLayout pool={pool}>
         <ol className="space-y-2.5">
           {left.map((l, index) => {
             const rightId = pairs[l.id];
@@ -87,16 +109,18 @@ export function MatchingView({
               <li
                 key={l.id}
                 className={cn(
-                  "grid items-stretch gap-2 rounded-xl border-2 bg-white p-2 @md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @md:gap-3",
+                  "grid items-stretch gap-2 rounded-xl border-2 bg-white p-2",
+                  // Ses cevabı: kutu ses kartı kadar dar, satırın sağında; sol taraf kalan genişliği alır.
+                  audio ? "grid-cols-[minmax(0,1fr)_auto] @md:gap-3" : "@xs:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @md:gap-3",
                   isCorrect ? "border-emerald-400" : "border-exam-slate-200",
                 )}
               >
-                <div className="flex min-w-0 items-center gap-2.5 px-1.5 py-1">
+                <div className={cn("flex min-w-0 items-center gap-2.5 px-1.5", leftFormat === "IMAGE" ? "py-0" : "py-1")}>
                   <span className="grid size-7 shrink-0 place-items-center rounded-full bg-exam-navy-700 text-sm font-bold text-white" aria-hidden>
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1 text-exam-slate-800">
-                    <OptionContent option={l} format={leftFormat} />
+                    <OptionContent option={l} format={leftFormat} size={leftFormat === "IMAGE" ? "row" : "md"} />
                   </div>
                 </div>
                 <DropZone
@@ -104,7 +128,13 @@ export function MatchingView({
                   filled={!!matched}
                   label={`box ${index + 1}`}
                   correct={!!isCorrect}
-                  className={tiles ? "flex h-32 items-center p-1.5 @md:h-36" : "flex min-h-14 items-center p-1.5"}
+                  className={
+                    tiles
+                      ? "flex h-32 items-center p-1.5 @md:h-36"
+                      : audio
+                        ? "flex min-h-14 w-fit min-w-36 items-center self-center p-1.5"
+                        : "flex min-h-14 items-center p-1.5"
+                  }
                 >
                   {matched ? (
                     tiles ? (
@@ -125,24 +155,7 @@ export function MatchingView({
             );
           })}
         </ol>
-
-        <DragPool
-            title="Answers"
-            hint="Drag an answer to a box. Or tap an answer, then tap a box."
-            isEmpty={poolItems.length === 0}
-            listClassName={poolListClass(rightFormat)}
-            footer={
-              usedRight.size ? (
-                <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
-                  <StartOver disabled={disabled} onReset={() => update(() => ({}))} />
-                </div>
-              ) : null
-            }
-          >
-            {poolItems.map((r) => (
-              <OptionDragItem key={r.id} id={fromPool(r.id)} option={r} format={rightFormat} label={htmlOf(r.text) || "Answer"} />
-            ))}
-          </DragPool>
+        </BoardLayout>
 
         {preview && Object.keys(correctPairs).length > 0 ? (
           <PreviewAnswerBanner>

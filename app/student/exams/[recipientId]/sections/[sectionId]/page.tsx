@@ -23,8 +23,8 @@ type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; par
 
 export default function SectionQuestionPage() {
   const params = useParams<{ recipientId: string; sectionId: string }>();
-  const { state, applyState, held, fullscreenBlocked } = useExamFlow();
-  const timerHeld = held || fullscreenBlocked;
+  const { state, applyState, held } = useExamFlow();
+  const timerHeld = held;
   const remaining = useExamClock(timerHeld, state?.clock ?? null);
   // Sınavın geneli için ayrı sayaç (bölüm süresi yok sayılır).
   const clock = state?.clock ?? null;
@@ -192,10 +192,10 @@ export default function SectionQuestionPage() {
 
   return (
     <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken}>
-      <div className="relative flex min-h-dvh flex-1 flex-col">
+      <div className="exam-sitting relative flex min-h-dvh flex-1 flex-col">
         {/* İnce üst çubuk (48px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
-        <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
-          <div className="student-container flex h-12 items-center justify-between gap-3">
+        <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
+          <div className={cn("flex h-12 items-center justify-between gap-3", STAGE_INSET)}>
             <p className="min-w-0 truncate text-sm font-semibold text-neutral-800">
               {section.title}
               <span className="font-normal text-neutral-500"> · Question {items.length ? index + 1 : 0}/{items.length}</span>
@@ -253,46 +253,48 @@ export default function SectionQuestionPage() {
           ) : null}
         </header>
 
-        {/* Soru alanı: ekranın büyük kısmı. */}
-        <div className="student-container flex-1 py-3 sm:py-4 lg:px-24 xl:px-28">
-          {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
-          <QuestionFrame className={cn(held && "pointer-events-none blur-sm")}>
-            {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
-          </QuestionFrame>
-          {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
-          {item && answered && !mediaBusy && !held ? (
-            <div className="mt-2 flex justify-end">
-              <KidButton variant="ghost" className="min-h-11 text-sm" onClick={() => setConfirmReset(true)}>
-                <IconRefresh aria-hidden />
-                Start again
-              </KidButton>
-            </div>
-          ) : null}
+        {/* Soru alanı: laptopta (1920×1080) oklarla birlikte ekranı doldurur. Kart max-width almaz. */}
+        <div className={cn("flex w-full flex-1 flex-col py-3", STAGE_INSET)}>
+          <div className="relative flex w-full flex-1 flex-col">
+            {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
+            <QuestionFrame className={cn("min-h-[calc(100dvh-9.5rem)]", held && "pointer-events-none blur-sm")}>
+              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+            </QuestionFrame>
+            {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
+            {item && answered && !mediaBusy && !held ? (
+              <div className="absolute right-3 bottom-3">
+                <KidButton variant="soft" className="min-h-11 text-sm shadow-sm" onClick={() => setConfirmReset(true)}>
+                  <IconRefresh aria-hidden />
+                  Start again
+                </KidButton>
+              </div>
+            ) : null}
+          </div>
           {error ? <div className="mt-3"><KidNotice tone="coral">{error}</KidNotice></div> : null}
         </div>
 
         {/* Alt çubuk: solda Önceki, ortada soru takibi, sağda Sonraki / Bitir. */}
-        <footer className="pb-safe sticky bottom-0 z-30 border-t border-neutral-200 bg-white/95 pt-2 backdrop-blur">
+        <footer className="pb-safe sticky bottom-0 z-30 border-t border-neutral-200 bg-white pt-2">
           {mediaBusy ? (
-            <p className="student-container flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-primary-700 [&>svg]:size-4" aria-live="polite">
+            <p className={cn("flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-primary-700 [&>svg]:size-4", STAGE_INSET)} aria-live="polite">
               <IconVolume aria-hidden />
               Please wait. Finish listening, watching or recording first.
             </p>
           ) : saving ? (
-            <p className="student-container pb-1.5 text-center text-xs font-semibold text-primary-700" aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-primary-700", STAGE_INSET)} aria-live="polite">
               Saving your answers…
             </p>
           ) : !canNext ? (
-            <p className="student-container pb-1.5 text-center text-xs font-semibold text-(--kid-sun)">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--kid-sun)", STAGE_INSET)}>
               {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
             </p>
           ) : section.allowSkip && item && !answered && !guard.unsaved.size ? (
             // "Soru atlayabilir" açık: boş bırakılabildiğini söyle (yoksa çocuk cevaplamak zorunda sanıyor).
-            <p className="student-container pb-1.5 text-center text-xs font-semibold text-neutral-500" aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-neutral-500", STAGE_INSET)} aria-live="polite">
               {last ? "You can leave this question blank." : "You can skip this question. Tap Next."}
             </p>
           ) : null}
-          <div className="student-container flex items-center gap-2 sm:gap-3">
+          <div className={cn("flex w-full items-center gap-2 sm:gap-3", STAGE_INSET)}>
             <KidButton
               variant="soft"
               disabled={!section.allowBack || index === 0 || mediaBusy}
@@ -356,10 +358,10 @@ export default function SectionQuestionPage() {
           </div>
         </footer>
 
-        {/* Geniş ekranda gezinme: sayfanın sol/sağ kenarında, dikeyde ortalı ve sabit. Telefonda alt çubukta. */}
+        {/* Geniş ekranda gezinme: ekran kenarından 16px, dikeyde ortalı. Soru kartı 96px içeride biter → ok ile kart arası ~24px. */}
         {items.length ? (
-          <div className="pointer-events-none fixed inset-x-0 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
-            <div className="student-container flex items-center justify-between">
+          <div className="pointer-events-none fixed inset-x-4 top-1/2 z-20 hidden -translate-y-1/2 lg:block">
+            <div className="flex w-full items-center justify-between">
             {section.allowBack ? (
               <SideNav side="left" label="Back" disabled={index === 0 || mediaBusy} onClick={() => goTo(index - 1)} />
             ) : null}
@@ -504,7 +506,7 @@ function SideNav({
       >
         {tone === "sun" ? <IconFlag aria-hidden /> : side === "left" ? <IconArrowLeft aria-hidden /> : <IconArrowRight aria-hidden />}
       </span>
-      <span className="text-xs font-semibold text-neutral-600">{label}</span>
+      <span className="text-xs font-semibold text-white drop-shadow-[0_1px_2px_rgb(0_0_0/0.45)]">{label}</span>
     </button>
   );
 }
@@ -512,7 +514,14 @@ function SideNav({
 /**
  * Alt çubuk düğmeleri (lg altı): hepsi aynı genişlik ve yükseklikte, böylece ortadaki soru numaraları tam ortada kalır.
  * Telefonda 44px kare ikon (Finish yazılı); tablette 7.5rem eşit genişlik ikon + metin. lg+ kenar düğmeleri devralır.
+ *
+ * Soru sahnesi yatay boşluğu.
+ * Hedef: sıradan laptop 1920×1080. lg+ kenar oku 16px içeride ve 56px geniş (biter: 72px).
+ * Kart 96px içeriden başlar; ok ile beyaz alan arasında ~24px kalır. Max-width yok, ekran dolar.
+ * 1366×768 aynı boşlukla dolar. lg altında ok yok; telefon ve dar tablette gutter yeterli.
  */
+const STAGE_INSET = "px-4 sm:px-6 lg:px-24";
+
 const FOOTER_BTN = "h-11 shrink-0 sm:w-30 sm:px-3! lg:hidden";
 /** Telefonda yalnız ikon: 44px kare. */
 const FOOTER_ICON = "w-11 px-0!";
