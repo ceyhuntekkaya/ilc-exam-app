@@ -1,100 +1,142 @@
 /*
-  Öğrenci teması — "gökyüzü + güneş". Hedef: ilkokul / ortaokul (7–14 yaş).
+  Öğrenci teması — "Skorbord". Hedef: 9–15 yaş, tablet + okul masaüstü.
   Kapsam: yalnız `[data-panel="student"]` (StudentShell + öğrenci girişi). Admin,
   staff, landing bu dosyadan etkilenmez. Her zaman açık tema.
 
-  Paletler:
-    primary   → Gökyüzü mavisi. Tek ana eylem (Başla, Devam, Sonraki), odak, link.
-    secondary → Güneş sarısı. "Devam ediyor", vurgu, kutlama.
-    neutral   → Hafif mavimsi gri. Metin, çizgi, yüzey.
-  Durum tonları (renk + ikon + metin birlikte; yalnız renkle anlam verilmez):
-    --kid-mint   tamamlandı / doğru
-    --kid-sun    devam ediyor / yarım kaldı
-    --kid-coral  süre azaldı / dikkat (kırmızıdan yumuşak, panik yaratmaz)
-    --kid-grape  sonuçlar / seviye
-    --kid-sky    açık / girilebilir
-  Kontrast: metin tonları beyaz ve -bg yüzeyleri üzerinde WCAG AA (≥4.5:1).
+  Dil: mürekkep (ink) + tek aksan "volt". Volt hiçbir zaman açık zeminde metin olmaz;
+  ya mürekkep üstünde metin ya mürekkep metinli yüzeydir. Derinlik sert ofset gölge.
+  Sınav ekranı (.exam-sitting) sakin moddur: volt, ofset gölge ve hareket kalkar.
+
+  Beceri renkleri theme-colors.css içindeki --color-skill-* (raporlarla ortak).
+  Kontrast: tüm metin/zemin çiftleri WCAG AA (≥4.5:1); input kenarlığı ≥3:1.
 */
 
 [data-panel][data-panel="student"] {
-  --color-primary-50: #eff7ff;
-  --color-primary-100: #dbedff;
-  --color-primary-200: #bfdfff;
-  --color-primary-300: #93caff;
-  --color-primary-400: #5fabfb;
-  --color-primary-500: #3a8bf5;
-  --color-primary-600: #236ce9;
-  --color-primary-700: #1c57d4;
-  --color-primary-800: #1d47ab;
-  --color-primary-900: #1d3f87;
-  --color-primary-950: #172852;
+  --sb-bg: #f6f6f4;
+  --sb-surface: #ffffff;
+  --sb-sunken: #e9e9e4;
+  --sb-tint: #f0f0ec;
+  --sb-line: #cfcfc7;
+  --sb-line-strong: #8a8a82;
+  --sb-fg-muted: #5f5f58;
+  --sb-fg-strong: #2a2a26;
+  --sb-ink: #0e0e0c;
+  --sb-volt: #d7ff3a;
 
-  --color-secondary-50: #fffbeb;
-  --color-secondary-100: #fff3c6;
-  --color-secondary-200: #ffe788;
-  --color-secondary-300: #ffd54a;
-  --color-secondary-400: #ffc220;
-  --color-secondary-500: #f9a007;
-  --color-secondary-600: #dd7902;
-  --color-secondary-700: #b75406;
-  --color-secondary-800: #94400c;
-  --color-secondary-900: #7a350d;
-  --color-secondary-950: #461a02;
+  /* Birincil buton: mürekkep zemin üstünde volt (sınavda beyaz). */
+  --sb-on-ink: var(--sb-volt);
+  /* "Devam et" vurgusu (sun): panelde volt yüzey + sert gölge, sınavda beyaz. */
+  --sb-sun-bg: var(--sb-volt);
+  --sb-sun-hover: #e4ff7a;
 
-  --color-neutral-50: #f6f9fc;
-  --color-neutral-100: #edf2f8;
-  --color-neutral-200: #dce4ee;
-  --color-neutral-300: #c2cedc;
-  --color-neutral-400: #8d9cb0;
-  --color-neutral-500: #66768c;
-  --color-neutral-600: #4e5d72;
-  --color-neutral-700: #3d4a5d;
-  --color-neutral-800: #2a3546;
-  --color-neutral-900: #1b2433;
-  --color-neutral-950: #101722;
+  --sb-success: #0e7c3a;
+  --sb-success-bg: #e3f3e8;
+  --sb-warning: #a15c00;
+  --sb-warning-bg: #fff1db;
+  --sb-danger: #c8102e;
+  --sb-danger-bg: #fde8eb;
 
-  --bg: #f4f8fd;
+  --sb-r-xs: 4px;
+  --sb-r-sm: 6px;
+  --sb-r-md: 10px;
+  --sb-r-lg: 14px;
+
+  --sb-e1: 3px 3px 0 var(--sb-ink);
+  --sb-e2: 5px 5px 0 var(--sb-ink);
+  --sb-e-overlay: 0 24px 48px rgb(14 14 12 / 18%);
+
+  --sb-fast: 120ms;
+  --sb-base: 200ms;
+  --sb-slow: 320ms;
+  --sb-ease: cubic-bezier(0.2, 0, 0, 1);
+  --sb-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Eski sınıflar (primary-*, secondary-*, neutral-*, --kid-*) yeni dile bağlanır. */
+  --color-primary-50: #f0f0ec;
+  --color-primary-100: #e9e9e4;
+  --color-primary-200: #cfcfc7;
+  --color-primary-300: #8a8a82;
+  --color-primary-400: #5f5f58;
+  --color-primary-500: #2a2a26;
+  --color-primary-600: #0e0e0c;
+  --color-primary-700: #2a2a26;
+  --color-primary-800: #0e0e0c;
+  --color-primary-900: #0e0e0c;
+  --color-primary-950: #0e0e0c;
+
+  --color-secondary-50: #fbffe8;
+  --color-secondary-100: #f4ffc4;
+  --color-secondary-200: #ebff94;
+  --color-secondary-300: #e4ff7a;
+  --color-secondary-400: #d7ff3a;
+  --color-secondary-500: #c6f01c;
+  --color-secondary-600: #0e0e0c;
+  --color-secondary-700: #0e0e0c;
+  --color-secondary-800: #0e0e0c;
+  --color-secondary-900: #0e0e0c;
+  --color-secondary-950: #0e0e0c;
+
+  --color-neutral-50: #f6f6f4;
+  --color-neutral-100: #e9e9e4;
+  --color-neutral-200: #dcdcd5;
+  --color-neutral-300: #cfcfc7;
+  --color-neutral-400: #8a8a82;
+  --color-neutral-500: #6b6b63;
+  --color-neutral-600: #5f5f58;
+  --color-neutral-700: #45453f;
+  --color-neutral-800: #2a2a26;
+  --color-neutral-900: #1a1a17;
+  --color-neutral-950: #0e0e0c;
+
+  --bg: var(--sb-bg);
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --border: var(--color-neutral-200);
-  --border-strong: var(--color-neutral-300);
-  --fg: var(--color-neutral-900);
-  --fg-muted: var(--color-neutral-600);
-  --fg-subtle: var(--color-neutral-500);
-  --primary: var(--color-primary-600);
+  --border: var(--sb-line);
+  --border-strong: var(--sb-line-strong);
+  --fg: var(--sb-ink);
+  --fg-muted: var(--sb-fg-muted);
+  --fg-subtle: var(--sb-fg-muted);
+  --primary: var(--sb-ink);
   --primary-fg: #ffffff;
-  --primary-hover: var(--color-primary-700);
-  --focus: var(--color-primary-500);
-  --shadow: 0 1px 2px rgb(16 23 34 / 5%), 0 6px 20px rgb(35 108 233 / 7%);
+  --primary-hover: var(--sb-fg-strong);
+  --focus: var(--sb-ink);
+  --shadow: none;
 
-  --kid-sky: #1c57d4;
-  --kid-sky-bg: #e6f1ff;
-  --kid-sun: #8a4b00;
-  --kid-sun-bg: #fff3c6;
-  --kid-sun-solid: #ffc220;
-  --kid-mint: #0d7a55;
-  --kid-mint-bg: #ddf7ec;
-  --kid-mint-solid: #1fb57f;
-  --kid-coral: #c2412d;
-  --kid-coral-bg: #ffe9e4;
-  --kid-coral-solid: #f26b52;
-  --kid-grape: #6d3fc0;
-  --kid-grape-bg: #f0e9ff;
+  --kid-sky: var(--sb-ink);
+  --kid-sky-bg: var(--sb-tint);
+  --kid-sun: var(--sb-ink);
+  --kid-sun-bg: var(--sb-volt);
+  --kid-sun-solid: var(--sb-volt);
+  --kid-mint: var(--sb-success);
+  --kid-mint-bg: var(--sb-success-bg);
+  --kid-mint-solid: var(--sb-success);
+  --kid-coral: var(--sb-danger);
+  --kid-coral-bg: var(--sb-danger-bg);
+  --kid-coral-solid: var(--sb-danger);
+  --kid-grape: var(--sb-ink);
+  --kid-grape-bg: var(--sb-tint);
 
-  /* Konteyner: okunabilir satır uzunluğu için ortalı, en fazla 72rem. */
-  --student-max: 72rem;
+  --student-max: 76rem;
   --gutter: 1rem;
-
 }
 
-/* Varsayılan yüzey, metin ve font base katmanında: sayfadaki bg- ve text- sınıfları (ör. girişin mavi zemini) bunları ezebilsin. */
+/* Sınav: güven modu. Aksan mürekkebe iner, gölge ve sıçrama yok. */
+[data-panel][data-panel="student"] .exam-sitting {
+  --sb-on-ink: #ffffff;
+  --sb-sun-bg: #ffffff;
+  --sb-sun-hover: var(--sb-tint);
+  --sb-e1: none;
+  --sb-e2: none;
+  --kid-sun-bg: var(--sb-warning-bg);
+  --kid-sun: var(--sb-warning);
+}
+
 @layer base {
   [data-panel][data-panel="student"] {
-    --font-lexend: "Lexend";
-    --font-nunito: "Nunito";
-    font-family: var(--font-lexend), var(--font-source-sans), "Segoe UI", sans-serif;
-    background: var(--bg);
-    color: var(--fg);
+    font-family: "Inter", var(--font-source-sans), "Segoe UI", sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    background: var(--sb-bg);
+    color: var(--sb-ink);
   }
 }
 
@@ -110,27 +152,8 @@
   }
 }
 
-/*
-  Öğrenci paneli ve sınav uygulama ekranı zemini. Quizo v15’teki lacivert alan + nokta dalgası
-  + kenar daireleri; ticari görsel dosyası kullanılmaz, düzen public/student/canvas-bg.svg içindedir.
-  Soru kartı, üst ve alt çubuk beyaz kalır; zemin onların arasında görünür.
-*/
 .student-canvas {
-  background-color: #1c2448;
-  isolation: isolate;
-}
-
-.student-canvas::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-color: #1c2448;
-  background-image: url("/student/canvas-bg.svg");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
+  background-color: var(--sb-bg);
 }
 
 @utility student-container {
@@ -140,20 +163,109 @@
   padding-inline: var(--gutter);
 }
 
-/* Başlıklar: yuvarlak, sıcak (Nunito). */
+/* Başlık ve iri sayı: Archivo. `.font-kid` eski adıyla kalır, bileşenler onu kullanıyor. */
 [data-panel][data-panel="student"] :where(h1, h2, h3, .font-kid) {
-  font-family: var(--font-nunito), var(--font-lexend), sans-serif;
+  font-family: "Archivo", "Inter", sans-serif;
   letter-spacing: -0.01em;
 }
 
+/* Skor tabelası rakamı: dar kesim, kalın, sabit genişlik. */
+@utility sb-display {
+  font-family: "Archivo", "Inter", sans-serif;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Durum etiketi ve tablo başlığı. */
+@utility sb-overline {
+  font-family: "Archivo", "Inter", sans-serif;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 [data-panel][data-panel="student"] :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--sb-ink);
   outline-offset: 2px;
 }
 
 [data-panel][data-panel="student"] ::selection {
-  background: var(--color-secondary-200);
-  color: var(--color-neutral-950);
+  background: var(--sb-volt);
+  color: var(--sb-ink);
+}
+
+/* Dört beceri renginde çapraz pist şeritleri (yalnız karşılama bandı). */
+.sb-lanes {
+  background-image: repeating-linear-gradient(
+    -55deg,
+    var(--color-skill-reading) 0 10px,
+    transparent 10px 22px,
+    var(--color-skill-listening) 22px 32px,
+    transparent 32px 44px,
+    var(--color-skill-writing) 44px 54px,
+    transparent 54px 66px,
+    var(--color-skill-speaking) 66px 76px,
+    transparent 76px 88px
+  );
+}
+
+/* Yükleme iskeleti: soldan sağa ince parıltı. */
+.sb-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--sb-sunken);
+}
+
+.sb-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 55%), transparent);
+  animation: sb-shimmer 1.2s linear infinite;
+}
+
+@keyframes sb-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Modal girişi: 16px yukarı kayma + opaklık. */
+@keyframes sb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes sb-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.sb-rise {
+  animation: sb-rise var(--sb-base) var(--sb-ease) both;
+}
+
+.sb-fade {
+  animation: sb-fade var(--sb-base) var(--sb-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-skeleton::after {
+    animation: none;
+    display: none;
+  }
+
+  .sb-rise {
+    animation-name: sb-fade;
+  }
 }
 
 /* Soru içeriği (.exam-player) burada ezilmez: öğrenci ekranı admin "Öğrenci önizlemesi" ile birebir aynı olmalı.

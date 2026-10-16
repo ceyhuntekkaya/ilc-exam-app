@@ -112,7 +112,7 @@ export function OrderingView({
           <button
             type="button"
             onClick={() => setTouched(true)}
-            className="inline-flex h-11 items-center gap-1.5 rounded-lg border-2 border-exam-slate-200 bg-white px-3 text-sm font-bold text-exam-slate-700 hover:border-exam-sky-300 [&>svg]:size-4"
+            className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border-2 border-exam-slate-200 bg-white px-3 text-sm font-bold text-exam-slate-700 hover:border-exam-sky-300 [&>svg]:size-4"
           >
             <IconCheck aria-hidden strokeWidth={3} />
             Keep this order
@@ -156,7 +156,7 @@ export function OrderingView({
               <DragOverlay dropAnimation={{ duration: 160, easing: "ease-out" }} zIndex={80} modifiers={[followPointer]} style={OVERLAY_STYLE}>
                 {active ? (
                   <div className="exam-player">
-                    <div className="flex min-h-14 w-max max-w-[min(20rem,80vw)] cursor-grabbing items-center gap-2 rounded-xl border-2 border-exam-sky-500 bg-white px-3 py-2 text-sm shadow-xl ring-4 ring-exam-sky-100">
+                    <div className="flex min-h-14 w-max max-w-[min(20rem,80vw)] cursor-grabbing items-center gap-2 rounded-[10px] border-2 border-exam-sky-500 bg-white px-3 py-2 text-sm shadow-xl">
                       <IconGrip className="size-4 text-exam-sky-500" aria-hidden />
                       <OptionContent option={active} format={format} size="sm" />
                     </div>
@@ -206,14 +206,14 @@ function SortableRow({
   const disabled = boardDisabled || !!lock;
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id, disabled });
   const stepBtn =
-    "grid size-11 place-items-center rounded-lg border border-exam-slate-200 bg-white text-exam-slate-600 enabled:hover:border-exam-sky-300 enabled:hover:text-exam-sky-700 disabled:opacity-30 [&>svg]:size-4";
+    "grid size-11 place-items-center rounded-[6px] border border-exam-slate-200 bg-white text-exam-slate-600 enabled:hover:border-exam-sky-300 enabled:hover:text-exam-sky-700 disabled:opacity-30 [&>svg]:size-4";
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition, touchAction: "manipulation" }}
       className={cn(
-        "flex select-none items-center gap-2 rounded-xl border-2 bg-white p-2 transition-[border-color,box-shadow] [-webkit-touch-callout:none]",
-        correct ? "border-emerald-400" : "border-exam-slate-200",
+        "flex select-none items-center gap-2 rounded-[10px] border-2 bg-white p-2 transition-[border-color,box-shadow] [-webkit-touch-callout:none]",
+        correct ? "border-exam-ok" : "border-exam-slate-200",
         // Sürüklenen kartın yeri soluk kalır (diğerleri yer açar, düzen zıplamaz).
         isDragging && "opacity-30",
       )}
@@ -224,12 +224,12 @@ function SortableRow({
         role="button"
         tabIndex={-1}
         aria-label={`Card ${index + 1}. Drag to move.`}
-        className={cn("flex min-w-0 flex-1 items-center gap-2 rounded-lg px-1 py-1", disabled ? "cursor-default" : "cursor-grab hover:bg-exam-slate-50")}
+        className={cn("flex min-w-0 flex-1 items-center gap-2 rounded-[6px] px-1 py-1", disabled ? "cursor-default" : "cursor-grab hover:bg-exam-slate-50")}
       >
         <span
           className={cn(
             "grid size-7 shrink-0 place-items-center rounded-full text-sm font-bold",
-            correct ? "bg-emerald-600 text-white" : "bg-exam-navy-700 text-white",
+            correct ? "bg-exam-ok text-white" : "bg-exam-navy-900 text-white",
           )}
           aria-hidden
         >
@@ -239,7 +239,7 @@ function SortableRow({
         <div className="min-w-0 flex-1 text-exam-slate-800">
           {children}
           {lock ? (
-            <span className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200 [&>svg]:size-3.5 [&>svg]:shrink-0">
+            <span className="mt-2 flex items-center gap-1.5 rounded-[6px] bg-exam-warn-bg px-2 py-1.5 text-xs font-bold text-exam-warn ring-1 ring-exam-warn-line [&>svg]:size-3.5 [&>svg]:shrink-0">
               <IconLock aria-hidden />
               {lock}
             </span>

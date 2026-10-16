@@ -22,26 +22,26 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
   return (
     <div data-panel="student" lang="en" className="student-canvas flex min-h-dvh flex-1 flex-col text-fg">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:shadow">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-(--sb-r-sm) focus:border-2 focus:border-(--sb-ink) focus:bg-white focus:px-4 focus:py-2">
         Skip to content
       </a>
       {inQuestion ? null : (
-        <header className="sticky top-0 z-30 border-b border-neutral-200/70 bg-white">
-          <div className="student-container flex h-14 items-center justify-between gap-3">
+        <header className="sticky top-0 z-30 border-b-2 border-(--sb-ink) bg-white">
+          <div className="student-container flex h-16 items-center justify-between gap-3">
             <Logo />
             {inExam ? (
               <Link
                 href="/student"
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-primary-800 hover:bg-primary-50 [&>svg]:size-5"
+                className="inline-flex min-h-11 items-center gap-2 rounded-(--sb-r-md) px-3 text-[15px] font-semibold text-(--sb-ink) transition-colors duration-120 hover:bg-(--sb-sunken) [&>svg]:size-5 [&>svg]:stroke-[2.25]"
               >
                 <IconHome aria-hidden />
                 Home
               </Link>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {name ? (
-                  <span className="hidden items-center gap-2 font-semibold text-neutral-800 sm:inline-flex">
-                    <span aria-hidden className="grid size-8 place-items-center rounded-full bg-secondary-300 font-kid text-neutral-950">
+                  <span className="hidden items-center gap-2.5 font-semibold text-(--sb-ink) sm:inline-flex">
+                    <span aria-hidden className="grid size-9 place-items-center rounded-(--sb-r-sm) bg-(--sb-volt) font-kid text-base font-extrabold text-(--sb-ink) ring-2 ring-(--sb-ink)">
                       {name.charAt(0).toLocaleUpperCase("tr-TR")}
                     </span>
                     {name}
@@ -50,7 +50,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => void signOut()}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-[15px] font-semibold text-neutral-700 hover:bg-neutral-100 [&>svg]:size-5"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-(--sb-r-md) px-3 text-[15px] font-semibold text-(--sb-fg-strong) transition-colors duration-120 hover:bg-(--sb-sunken) [&>svg]:size-5 [&>svg]:stroke-[2.25]"
                 >
                   <IconLogout aria-hidden />
                   Log out
@@ -60,7 +60,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
           </div>
         </header>
       )}
-      <main id="main" tabIndex={-1} className={inQuestion ? "flex min-h-0 flex-1 flex-col" : "student-container flex-1 pt-5 pb-10 sm:pt-6"}>
+      <main id="main" tabIndex={-1} className={inQuestion ? "flex min-h-0 flex-1 flex-col" : "student-container flex-1 pt-6 pb-12 sm:pt-8"}>
         {children}
       </main>
     </div>
@@ -69,11 +69,11 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
 export function Logo() {
   return (
-    <Link href="/student" className="inline-flex items-center gap-2.5 rounded-xl" aria-label="ILC — home">
-      <span aria-hidden className="grid size-9 place-items-center rounded-lg bg-primary-600 font-kid text-xs font-bold tracking-wide text-white shadow-[0_3px_0_var(--color-primary-800)]">
+    <Link href="/student" className="inline-flex min-h-11 items-center gap-3 rounded-(--sb-r-sm)" aria-label="ILC — home">
+      <span aria-hidden className="sb-display grid h-9 place-items-center rounded-(--sb-r-sm) bg-(--sb-ink) px-2 text-base tracking-wide text-(--sb-volt)">
         ILC
       </span>
-      <span className="font-kid text-base font-bold text-neutral-900">My tests</span>
+      <span className="font-kid text-lg font-extrabold tracking-tight text-(--sb-ink)">My tests</span>
     </Link>
   );
 }

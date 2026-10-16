@@ -125,7 +125,7 @@ export function OptionContent({
     if (size === "row") {
       return (
         <span className="block space-y-1">
-          <MediaImageSlot mediaId={option.mediaId} alt={htmlOf(option.text)} className="block h-auto max-h-24 w-auto max-w-full rounded-lg" />
+          <MediaImageSlot mediaId={option.mediaId} alt={htmlOf(option.text)} className="block h-auto max-h-24 w-auto max-w-full rounded-[6px]" />
           {caption}
         </span>
       );
@@ -135,7 +135,7 @@ export function OptionContent({
         <MediaImageSlot
           mediaId={option.mediaId}
           alt={htmlOf(option.text)}
-          className={cn("mx-auto w-full rounded-lg bg-exam-slate-50 object-contain", size === "lg" ? "h-28 @sm:h-36" : "h-32 @sm:h-40")}
+          className={cn("mx-auto w-full rounded-[6px] bg-exam-slate-50 object-contain", size === "lg" ? "h-28 @sm:h-36" : "h-32 @sm:h-40")}
         />
         {caption}
       </span>
@@ -225,13 +225,13 @@ export function OptionButton({
     <span
       aria-hidden
       className={cn(
-        "flex size-7 shrink-0 items-center justify-center text-sm font-bold transition-colors",
-        multi ? "rounded-md" : "rounded-full",
+        "flex size-7 shrink-0 items-center justify-center text-sm font-bold transition-colors duration-120",
+        multi ? "rounded-[4px]" : "rounded-full",
         correct
-          ? "bg-emerald-600 text-white"
+          ? "bg-exam-ok text-white"
           : selected
-            ? "bg-exam-navy-700 text-white"
-            : "border-2 border-exam-slate-300 bg-white text-exam-slate-600",
+            ? "bg-exam-navy-900 text-white"
+            : "border-2 border-exam-slate-300 bg-white text-exam-slate-700",
       )}
     >
       {selected && !correct ? <IconCheck className="size-4" strokeWidth={3} /> : marker}
@@ -250,15 +250,15 @@ export function OptionButton({
       }}
       onKeyDown={pressOnKey}
       className={cn(
-        "relative flex w-full select-none rounded-xl border-2 text-left outline-none transition-[border-color,background-color,box-shadow] duration-150",
-        "focus-visible:ring-4 focus-visible:ring-exam-sky-200",
+        "relative flex w-full select-none rounded-[10px] border-2 text-left outline-none transition-[border-color,background-color] duration-120",
+        "focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
         tile ? "h-full flex-col gap-2 p-2.5" : "min-h-14 flex-wrap items-center gap-3 px-3.5 py-3",
         correct
-          ? "border-emerald-500 bg-emerald-50 ring-1 ring-emerald-200"
+          ? "border-exam-ok bg-exam-ok-bg"
           : selected
-            ? "border-exam-navy-500 bg-exam-navy-50 shadow-[0_0_0_3px_var(--color-exam-navy-100)]"
-            : "border-exam-slate-200 bg-white hover:border-exam-navy-300 hover:bg-exam-navy-50/40",
-        disabled ? "cursor-default opacity-60" : lock ? "cursor-default" : "cursor-pointer active:scale-[0.99]",
+            ? "border-exam-navy-900 bg-exam-navy-50"
+            : "border-exam-slate-200 bg-white hover:border-exam-slate-400",
+        disabled ? "cursor-default opacity-60" : lock ? "cursor-default" : "cursor-pointer",
       )}
     >
       {tile ? (
@@ -266,7 +266,7 @@ export function OptionButton({
           <div className="flex items-center justify-between gap-2">
             {markerEl}
             {selected && !correct ? (
-              <span className="rounded-full bg-exam-navy-700 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+              <span className="rounded-[4px] bg-exam-navy-900 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-white">
                 Chosen
               </span>
             ) : null}
@@ -282,13 +282,13 @@ export function OptionButton({
         </>
       )}
       {lock && format !== "VIDEO" ? (
-        <p className="flex basis-full items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200 [&>svg]:size-3.5 [&>svg]:shrink-0">
+        <p className="flex basis-full items-center gap-1.5 rounded-[6px] bg-exam-warn-bg px-2 py-1.5 text-xs font-bold text-exam-warn ring-1 ring-exam-warn-line [&>svg]:size-3.5 [&>svg]:shrink-0">
           <IconLock aria-hidden />
           {lock}
         </p>
       ) : null}
       {correct ? (
-        <p className="basis-full text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Doğru cevap</p>
+        <p className="basis-full text-[11px] font-semibold uppercase tracking-wide text-exam-ok-ink">Doğru cevap</p>
       ) : null}
     </div>
   );

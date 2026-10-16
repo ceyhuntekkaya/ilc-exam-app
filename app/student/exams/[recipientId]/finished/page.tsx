@@ -37,23 +37,24 @@ export default function FinishedPage() {
         : "Your answers went to your teacher. You will see your results on your home page.";
 
   return (
-    <section className="mx-auto max-w-2xl space-y-6 text-center">
-      <div className="relative overflow-hidden rounded-4xl bg-white px-5 py-8 shadow-sm ring-1 ring-neutral-200">
-        <span aria-hidden className="absolute -top-8 -left-8 size-28 rounded-full bg-secondary-200" />
-        <span aria-hidden className="absolute -right-6 -bottom-10 size-32 rounded-full bg-primary-100" />
-        <span className={`relative mx-auto grid size-16 place-items-center rounded-full text-white [&>svg]:size-8 ${automatic ? "bg-secondary-500" : "bg-(--kid-mint-solid)"}`}>
+    <section className="mx-auto max-w-3xl space-y-6">
+      <div className={`relative overflow-hidden rounded-(--sb-r-lg) px-6 py-10 text-center sm:px-10 sm:py-12 [&_:focus-visible]:outline-(--sb-volt) ${automatic ? "border-2 border-(--sb-ink) bg-white" : "bg-(--sb-ink) text-white"}`}>
+        {automatic ? null : <div aria-hidden className="sb-lanes absolute inset-x-0 top-0 h-3" />}
+        <span
+          className={`relative mx-auto grid size-16 place-items-center rounded-(--sb-r-sm) [&>svg]:size-9 [&>svg]:stroke-[2.5] ${automatic ? "bg-(--sb-warning-bg) text-(--sb-warning)" : "bg-(--sb-volt) text-(--sb-ink)"}`}
+        >
           {automatic ? <IconClock aria-hidden /> : <IconCheck aria-hidden />}
         </span>
-        <h1 className="relative mt-5 text-2xl font-bold text-neutral-900">{title}</h1>
-        <p className="relative mx-auto mt-3 max-w-md text-base text-neutral-700">{line}</p>
+        <h1 className={`sb-display relative mt-6 text-4xl leading-[0.95] sm:text-5xl ${automatic ? "text-(--sb-ink)" : ""}`}>{title}</h1>
+        <p className={`relative mx-auto mt-4 max-w-md text-lg ${automatic ? "text-(--sb-fg-strong)" : "text-white/85"}`}>{line}</p>
       </div>
-      <ul className="divide-y divide-neutral-200 overflow-hidden rounded-3xl bg-white text-left ring-1 ring-neutral-200">
+      <ul className="divide-y divide-(--sb-sunken) overflow-hidden rounded-(--sb-r-md) border border-(--sb-line) bg-white">
         {state.sections.map((section) => {
           const tone = sectionTone(section.status);
           return (
-            <li key={section.sectionId} className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
-              <span className="font-kid text-base font-bold text-neutral-900">{section.title}</span>
-              <span className="flex items-center gap-3 text-neutral-600">
+            <li key={section.sectionId} className="flex min-h-16 flex-wrap items-center justify-between gap-2 px-5 py-4">
+              <span className="font-kid text-lg font-bold text-(--sb-ink)">{section.title}</span>
+              <span className="flex items-center gap-3 text-sm text-(--sb-fg-muted)">
                 {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}
                 <StatusPill tone={tone.tone}>{tone.label}</StatusPill>
               </span>

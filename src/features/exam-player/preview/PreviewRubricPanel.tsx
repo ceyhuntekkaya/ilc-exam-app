@@ -78,7 +78,7 @@ function RubricItems({ items }: { items: RubricItem[] }) {
               return (
                 <li
                   key={item.id}
-                  className="rounded-lg border border-border bg-bg/60 px-3 py-2 text-sm"
+                  className="rounded-[6px] border border-border bg-bg/60 px-3 py-2 text-sm"
                 >
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-fg-muted uppercase">
@@ -121,7 +121,7 @@ function ManualHints({ answerKey }: { answerKey?: Record<string, unknown> | null
   const notes = String(answerKey.raterNotes ?? "");
   if (!samples.length && !notes) return null;
   return (
-    <div className="mt-3 space-y-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+    <div className="mt-3 space-y-2 rounded-[6px] border border-border bg-surface px-3 py-2 text-sm">
       {samples.length ? (
         <div>
           <p className="mb-1 text-xs font-semibold text-fg-muted">Örnek cevaplar</p>
@@ -220,7 +220,7 @@ export function PreviewRubricPanel({
   if (!manualParts.length) return null;
 
   return (
-    <section className="space-y-3 rounded-xl border border-border bg-surface p-4 shadow-sm">
+    <section className="space-y-3 rounded-[10px] border border-border bg-surface p-4">
       <div>
         <h3 className="text-sm font-semibold text-fg">Rubrik önizlemesi</h3>
         <p className="text-xs text-fg-muted">
@@ -235,7 +235,7 @@ export function PreviewRubricPanel({
           const detail = part.rubricVersionId ? details[part.rubricVersionId] : null;
           const items = detail?.definition?.items ?? [];
           return (
-            <div key={part.partId} className="space-y-2 rounded-lg border border-border p-3">
+            <div key={part.partId} className="space-y-2 rounded-[6px] border border-border p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm font-medium text-fg">
                   Part {part.position} · {getTemplate(part.interactionType)?.label || part.interactionType}
@@ -249,7 +249,7 @@ export function PreviewRubricPanel({
               </div>
 
               {!part.rubricVersionId ? (
-                <p className="text-sm text-amber-700">Rubrik seçilmemiş.</p>
+                <p className="text-sm text-exam-warn">Rubrik seçilmemiş.</p>
               ) : detail ? (
                 <RubricItems items={items} />
               ) : loading ? null : (

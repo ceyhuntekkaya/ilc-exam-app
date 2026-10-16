@@ -109,7 +109,7 @@ function SelectionCount({ min, max, count }: { min?: number | null; max?: number
   const need = min != null && max != null && min === max ? `Choose ${max}.` : [min != null ? `Choose at least ${min}.` : "", max != null ? `You can choose up to ${max}.` : ""].filter(Boolean).join(" ");
   return (
     <p className="text-sm font-semibold text-exam-slate-600">
-      {need} <span className="text-exam-navy-700">Chosen: {count}{max != null ? ` / ${max}` : ""}</span>
+      {need} <span className="text-exam-navy-900">Chosen: {count}{max != null ? ` / ${max}` : ""}</span>
     </p>
   );
 }

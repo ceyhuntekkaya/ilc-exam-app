@@ -1,8 +1,9 @@
 "use client";
 
-import { entryButtonClass, entryFieldClass, EntryFrame } from "@/src/components/brand/entry-frame";
+import { EntryFrame } from "@/src/components/brand/entry-frame";
 import { useStudentLogin } from "@/src/api/generated/auth/auth";
 import { useAuth } from "@/src/components/auth-provider";
+import { kidButtonClass } from "@/src/features/student/ui";
 import type { SessionUserType } from "@/src/lib/auth-constants";
 import { IconAlert, IconArrowRight, IconUser } from "@/src/ui/icons";
 import Link from "next/link";
@@ -43,21 +44,21 @@ export default function StudentLoginPage() {
       footer={
         <>
           Are you a teacher or school staff?{" "}
-          <Link href="/login" className="font-semibold text-white underline underline-offset-4">
+          <Link href="/login" className="inline-flex min-h-11 items-center font-bold text-(--sb-ink) underline decoration-2 underline-offset-4">
             Staff login
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} className="mt-7">
-        <h1 className="text-2xl font-bold text-[#241f4a]">Welcome!</h1>
-        <p className="mt-1 text-base text-[#3c3960]/80">Write the username from your teacher.</p>
+        <h1 className="sb-display text-5xl leading-[0.95] text-(--sb-ink)">Welcome!</h1>
+        <p className="mt-2 text-lg text-(--sb-fg-muted)">Write the username from your teacher.</p>
 
-        <label htmlFor="username" className="mt-6 block text-base font-semibold text-[#241f4a]">
+        <label htmlFor="username" className="mt-7 block text-base font-bold text-(--sb-ink)">
           Your username
         </label>
         <div className="relative mt-2">
-          <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-[#8a87a3]" />
+          <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-(--sb-fg-muted)" />
           <input
             id="username"
             type="text"
@@ -72,18 +73,18 @@ export default function StudentLoginPage() {
             onChange={(e) => setUsername(e.target.value)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "login-error" : undefined}
-            className={`${entryFieldClass} mt-0 pr-4 pl-12`}
+            className="min-h-14 w-full rounded-(--sb-r-md) border-2 border-(--sb-line-strong) bg-white pr-4 pl-12 text-lg text-(--sb-ink) outline-none transition-colors duration-120 placeholder:text-(--sb-fg-muted) focus:border-(--sb-ink) aria-invalid:border-(--sb-danger)"
           />
         </div>
 
         {error ? (
-          <p id="login-error" role="alert" className="mt-4 flex items-start gap-2 rounded-2xl bg-[#ffe9e4] px-4 py-3 font-medium text-[#9f2d1c] [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
+          <p id="login-error" role="alert" className="mt-4 flex items-start gap-2 rounded-(--sb-r-sm) border-l-4 border-(--sb-danger) bg-(--sb-danger-bg) px-4 py-3 font-medium text-(--sb-danger) [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
             <IconAlert aria-hidden />
             {error}
           </p>
         ) : null}
 
-        <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${entryButtonClass} mt-6`}>
+        <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${kidButtonClass({ variant: "sun", size: "lg", full: true })} mt-6`}>
           {loginMutation.isPending ? "Logging in…" : "Log in"}
           {loginMutation.isPending ? null : <IconArrowRight aria-hidden />}
         </button>

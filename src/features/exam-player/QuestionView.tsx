@@ -43,7 +43,7 @@ export function QuestionView({
       )}
     >
       {preview ? (
-        <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
+        <div className="mb-3 rounded-md border border-exam-warn-line bg-exam-warn-bg px-3 py-1.5 text-xs text-exam-warn">
           Önizleme modu · dinleme/izleme serbest · doğru cevaplar işaretli · veritabanına kayıt yok
         </div>
       ) : null}
@@ -92,7 +92,7 @@ export function QuestionView({
           {parts.map((part, idx) => (
             <section key={part.id} className="space-y-4">
               {parts.length > 1 ? (
-                <p className="text-xs font-semibold uppercase tracking-wide text-exam-slate-500">
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-exam-slate-500">
                   Part {idx + 1} of {parts.length}
                 </p>
               ) : null}
@@ -133,7 +133,7 @@ function isBoardPart(part: QuestionViewModel["parts"][number]) {
 export function QuestionFrame({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     // overflow-clip (hidden değil): hidden kaydırma kabı sayılır ve sürükle-bırak kart sütununun sticky'sini bozar.
-    <div className={cn("w-full overflow-clip rounded-lg border border-exam-slate-200 bg-white shadow-sm", className)}>
+    <div className={cn("w-full overflow-clip rounded-[10px] border border-exam-slate-200 border-t-4 border-t-exam-navy-900 bg-white", className)}>
       <div className="px-4 py-4 sm:px-6">{children}</div>
     </div>
   );

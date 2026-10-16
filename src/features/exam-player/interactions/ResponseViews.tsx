@@ -143,13 +143,13 @@ export function OpenEndedView({
         className={cn(
           "min-h-48 w-full text-base leading-relaxed",
           over && limitMode === "SOFT"
-            ? "rounded-lg border border-rose-400 bg-white px-4 py-3 text-exam-slate-800 outline-none focus:ring-2 focus:ring-rose-100"
+            ? "rounded-[6px] border border-exam-bad bg-white px-4 py-3 text-exam-slate-800 outline-none focus:ring-2 focus:ring-exam-bad-bg"
             : epInput,
         )}
         placeholder="Write your answer here…"
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className={cn("text-sm font-semibold", over ? "text-rose-600" : under ? "text-amber-700" : "text-exam-slate-500")}>
+        <p className={cn("text-sm font-semibold", over ? "text-exam-bad" : under ? "text-exam-warn" : "text-exam-slate-500")}>
           {words} {words === 1 ? "word" : "words"}
           {minWords != null && maxWords != null
             ? ` · write ${minWords}–${maxWords} words`
@@ -163,7 +163,7 @@ export function OpenEndedView({
           <div className="flex items-center gap-3">
             <span
               aria-live="polite"
-              className={cn("flex items-center gap-1 text-sm font-semibold", saveError ? "text-rose-700" : dirty ? "text-amber-700" : "text-emerald-700")}
+              className={cn("flex items-center gap-1 text-sm font-semibold", saveError ? "text-exam-bad-ink" : dirty ? "text-exam-warn" : "text-exam-ok-ink")}
             >
               {saveError ? (
                 saveError
@@ -180,7 +180,7 @@ export function OpenEndedView({
               type="button"
               disabled={!dirty}
               onClick={() => saveRef.current()}
-              className="inline-flex h-11 items-center gap-1.5 rounded-xl bg-exam-sky-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-exam-sky-700 disabled:bg-exam-slate-200 disabled:text-exam-slate-500 disabled:shadow-none"
+              className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white transition hover:bg-exam-navy-600 disabled:bg-exam-slate-200 disabled:text-exam-slate-500 disabled:shadow-none"
             >
               <IconCheck className="size-4" strokeWidth={3} aria-hidden />
               Save answer
@@ -283,10 +283,10 @@ function RemoveButton({ onRemove, label }: { onRemove: () => void; label: string
     return (
       <div className="flex items-center gap-1.5">
         <span className="text-sm font-semibold text-exam-slate-700">Remove?</span>
-        <button type="button" onClick={onRemove} className="h-11 rounded-lg bg-rose-600 px-4 text-sm font-bold text-white hover:bg-rose-700">
+        <button type="button" onClick={onRemove} className="h-11 rounded-[6px] bg-exam-bad px-4 text-sm font-bold text-white hover:bg-exam-bad-ink">
           Yes
         </button>
-        <button type="button" onClick={() => setAsk(false)} className="h-11 rounded-lg border border-exam-slate-200 bg-white px-4 text-sm font-bold text-exam-slate-700 hover:bg-exam-slate-50">
+        <button type="button" onClick={() => setAsk(false)} className="h-11 rounded-[6px] border border-exam-slate-200 bg-white px-4 text-sm font-bold text-exam-slate-700 hover:bg-exam-slate-50">
           No
         </button>
       </div>
@@ -297,7 +297,7 @@ function RemoveButton({ onRemove, label }: { onRemove: () => void; label: string
       type="button"
       onClick={() => setAsk(true)}
       aria-label={label}
-      className="inline-flex h-11 items-center gap-1.5 rounded-lg border border-exam-slate-200 bg-white px-3 text-sm font-semibold text-exam-slate-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 [&>svg]:size-4"
+      className="inline-flex h-11 items-center gap-1.5 rounded-[6px] border border-exam-slate-200 bg-white px-3 text-sm font-semibold text-exam-slate-600 hover:border-exam-bad-line hover:bg-exam-bad-bg hover:text-exam-bad-ink [&>svg]:size-4"
     >
       <IconTrash aria-hidden />
       Remove
@@ -354,12 +354,12 @@ function UploadDrop({
           window.addEventListener("focus", settleExpectedExitSoon, { once: true });
           inputRef.current?.click();
         }}
-        className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-exam-sky-300 bg-exam-sky-50 px-4 py-7 text-center transition enabled:hover:border-exam-sky-500 enabled:hover:bg-exam-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full flex-col items-center gap-2 rounded-[10px] border-2 border-dashed border-exam-slate-300 bg-exam-navy-50 px-4 py-7 text-center transition enabled:hover:border-exam-navy-900 enabled:hover:bg-exam-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className="grid size-12 place-items-center rounded-full bg-white text-exam-sky-700 shadow-sm [&>svg]:size-6">
-          {busy ? <span className="size-5 animate-spin rounded-full border-2 border-exam-sky-200 border-t-exam-sky-600" aria-hidden /> : icon}
+        <span className="grid size-12 place-items-center rounded-full bg-white text-exam-navy-900 [&>svg]:size-6">
+          {busy ? <span className="size-5 animate-spin rounded-full border-2 border-exam-slate-200 border-t-exam-navy-900" aria-hidden /> : icon}
         </span>
-        <span className="text-base font-bold text-exam-sky-800">{busy ? "Uploading… Please wait." : title}</span>
+        <span className="text-base font-bold text-exam-navy-900">{busy ? "Uploading… Please wait." : title}</span>
         {!busy ? <span className="text-sm text-exam-slate-500">{hint}</span> : null}
       </button>
     </>
@@ -615,7 +615,7 @@ export function AudioResponseView({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-3 rounded-xl border-2 border-exam-slate-200 bg-exam-slate-50 px-4 py-6 text-center">
+      <div className="space-y-3 rounded-[10px] border-2 border-exam-slate-200 bg-exam-slate-50 px-4 py-6 text-center">
         {prep != null || maxDur != null ? (
           <p className="text-sm font-semibold text-exam-slate-600">
             {prep != null ? `Think for ${prep} seconds. ` : ""}
@@ -637,9 +637,9 @@ export function AudioResponseView({
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
         ) : null}
-        {error || uploadProblem ? <p className="text-sm font-semibold text-rose-600">{error || uploadProblem}</p> : null}
+        {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
         {uploadProblem && itemId ? (
-          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-xl bg-exam-sky-600 px-4 text-sm font-bold text-white">
+          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">
             Try upload again
           </button>
         ) : null}
@@ -800,7 +800,7 @@ export function VideoResponseView({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-3 rounded-xl border-2 border-exam-slate-200 bg-exam-slate-50 px-4 py-6 text-center">
+      <div className="space-y-3 rounded-[10px] border-2 border-exam-slate-200 bg-exam-slate-50 px-4 py-6 text-center">
         {prep != null || maxDur != null ? (
           <p className="text-sm font-semibold text-exam-slate-600">
             {prep != null ? `Think for ${prep} seconds. ` : ""}
@@ -811,23 +811,23 @@ export function VideoResponseView({
           ref={liveRef}
           muted
           playsInline
-          className={cn("mx-auto aspect-video max-h-72 w-full rounded-lg bg-black object-contain", recording ? "block" : "hidden")}
+          className={cn("mx-auto aspect-video max-h-72 w-full rounded-[6px] bg-black object-contain", recording ? "block" : "hidden")}
         />
         {recording ? (
           <button type="button" onClick={stopRecording} className={cn(epRecordStop, "min-h-12")}>
             Stop
           </button>
         ) : entry ? (
-          <div className="space-y-2 rounded-xl border-2 border-exam-slate-200 bg-white p-3 text-left">
+          <div className="space-y-2 rounded-[10px] border-2 border-exam-slate-200 bg-white p-3 text-left">
             <video
               controls
               playsInline
               src={entry.url}
               onLoadedMetadata={fixInfiniteDuration}
-              className="mx-auto aspect-video max-h-72 w-full rounded-lg bg-black object-contain"
+              className="mx-auto aspect-video max-h-72 w-full rounded-[6px] bg-black object-contain"
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-exam-ok-ink">
                 {entry.mediaId ? <IconCheck className="size-4" strokeWidth={3} aria-hidden /> : null}
                 {entry.mediaId ? "Your video is saved." : entry.name}
               </p>
@@ -885,9 +885,9 @@ export function VideoResponseView({
             ) : null}
           </div>
         )}
-        {error || uploadProblem ? <p className="text-sm font-semibold text-rose-600">{error || uploadProblem}</p> : null}
+        {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
         {uploadProblem && itemId ? (
-          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-xl bg-exam-sky-600 px-4 text-sm font-bold text-white">
+          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">
             Try upload again
           </button>
         ) : null}
@@ -946,13 +946,13 @@ export function ImageResponseView({
       {entries.length ? (
         <ul className={cn("grid gap-3", maxFiles > 1 && "sm:grid-cols-2")}>
           {entries.map((f, i) => (
-            <li key={f.key} className="space-y-2 rounded-xl border-2 border-exam-slate-200 bg-white p-2.5">
-              <div className="grid aspect-4/3 place-items-center overflow-hidden rounded-lg bg-exam-slate-50">
+            <li key={f.key} className="space-y-2 rounded-[10px] border-2 border-exam-slate-200 bg-white p-2.5">
+              <div className="grid aspect-4/3 place-items-center overflow-hidden rounded-[6px] bg-exam-slate-50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={f.url} alt={`Your picture ${i + 1}`} className="max-h-full max-w-full object-contain" />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-emerald-700">
+                <p className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-exam-ok-ink">
                   {f.mediaId ? <IconCheck className="size-4 shrink-0" strokeWidth={3} aria-hidden /> : null}
                   <span className="truncate">{f.mediaId ? "Saved" : f.name}</span>
                 </p>
@@ -984,7 +984,7 @@ export function ImageResponseView({
           }}
         />
       ) : null}
-      {error ? <p className="text-sm font-semibold text-rose-600">{error}</p> : null}
+      {error ? <p className="text-sm font-semibold text-exam-bad">{error}</p> : null}
       {preview ? <p className="text-xs text-exam-slate-500">Önizleme · yükleme serbest, kayıt yok</p> : null}
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
     </div>

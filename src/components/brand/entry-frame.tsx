@@ -31,6 +31,29 @@ export function EntryFrame({
     />
   );
 
+  if (panel === "student") {
+    return (
+      <div lang={lang} data-panel={panel} className="relative flex min-h-dvh flex-1 flex-col overflow-x-hidden bg-(--sb-bg) px-4 py-6 sm:px-8 md:py-10">
+        <div className={cn("relative m-auto w-full", wide ? "max-w-2xl" : "max-w-lg")}>
+          <div className="overflow-hidden rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white shadow-(--sb-e2)">
+            <div aria-hidden className="sb-lanes h-2.5" />
+            <div className="px-5 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
+              {logoHref ? (
+                <Link href={logoHref} aria-label="İngiliz Kültür Koleji, ana sayfa" className="mx-auto block w-fit rounded-(--sb-r-sm)">
+                  {logo}
+                </Link>
+              ) : (
+                logo
+              )}
+              {children}
+            </div>
+          </div>
+          {footer ? <div className="mt-6 px-2 text-center text-base text-(--sb-fg-strong)">{footer}</div> : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       lang={lang}

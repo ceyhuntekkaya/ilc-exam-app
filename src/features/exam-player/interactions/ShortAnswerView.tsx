@@ -99,17 +99,17 @@ export function ShortAnswerView({
             epBlankInline,
             "box-border min-h-11 w-full min-w-0",
             hasAccepted
-              ? "border-solid border-emerald-500 bg-emerald-50 text-emerald-800"
+              ? "border-solid border-exam-ok bg-exam-ok-bg text-exam-ok-ink"
               : softWarn
-                ? "border-solid border-rose-500 bg-rose-50 text-rose-700"
+                ? "border-solid border-exam-bad bg-exam-bad-bg text-exam-bad-ink"
                 : value
-                  ? "border-solid border-exam-navy-500 bg-transparent text-exam-navy-900"
+                  ? "border-solid border-exam-navy-900 bg-transparent text-exam-navy-900"
                   : "border-dashed border-exam-sky-400 bg-exam-sky-50 text-exam-navy-900",
           )}
           aria-label={`Gap ${gapNo}`}
         />
         {meta?.maxWords != null || meta?.minWords != null ? (
-          <span className={cn("mt-0.5 text-[11px] font-semibold", softWarn ? "text-rose-600" : "text-exam-slate-500")}>
+          <span className={cn("mt-0.5 text-[11px] font-semibold", softWarn ? "text-exam-bad" : "text-exam-slate-500")}>
             {words}
             {meta.maxWords != null ? ` / ${meta.maxWords}` : ""} {words === 1 ? "word" : "words"}
           </span>
@@ -124,7 +124,7 @@ export function ShortAnswerView({
         <ul className="space-y-1 text-xs">
           {Object.entries(accepted).map(([id, list]) => (
             <li key={id}>
-              <span className="font-mono text-emerald-700">{id}</span>
+              <span className="font-mono text-exam-ok-ink">{id}</span>
               {": "}
               {(list || []).join(" · ") || "—"}
             </li>

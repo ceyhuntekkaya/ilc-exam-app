@@ -111,4 +111,34 @@
   --color-info-800: #224169;
   --color-info-900: #1f3249;
   --color-info-950: #1c2631;
+
+  /*
+    Beceri renkleri — öğrenci, öğretmen ve yönetici raporlarında aynı.
+    Grammar, Vocabulary ve Use of English tek "language" rengini paylaşır.
+    Yalnız beceri işareti (nokta, şerit, çubuk) olarak, adıyla birlikte kullanılır;
+    buton, link veya durum etiketi beceri rengi almaz (panelin birincil ve hata renkleriyle karışır).
+      solid → çubuk/şerit (zeminde ≥3:1)   ink  → beyaz/tint üstünde metin (≥4.5:1)
+      tint  → açık yüzey                    on   → solid üstünde metin (≥4.5:1)
+    reportCardPdf.ts içindeki SKILL_RGB bu değerlerle aynı kalmalı.
+  */
+  --color-skill-reading: #1f6bff;
+  --color-skill-reading-ink: #1a4fd1;
+  --color-skill-reading-tint: #e6eeff;
+  --color-skill-reading-on: #ffffff;
+  --color-skill-listening: #009a6b;
+  --color-skill-listening-ink: #00704f;
+  --color-skill-listening-tint: #e0f5ee;
+  --color-skill-listening-on: #0e0e0c;
+  --color-skill-writing: #df6a00;
+  --color-skill-writing-ink: #a84a00;
+  --color-skill-writing-tint: #fff0e0;
+  --color-skill-writing-on: #0e0e0c;
+  --color-skill-speaking: #d6136f;
+  --color-skill-speaking-ink: #b0106a;
+  --color-skill-speaking-tint: #fce7f2;
+  --color-skill-speaking-on: #ffffff;
+  --color-skill-language: #7c4dff;
+  --color-skill-language-ink: #5b2fd6;
+  --color-skill-language-tint: #efe9ff;
+  --color-skill-language-on: #ffffff;
 }

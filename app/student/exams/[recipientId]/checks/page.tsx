@@ -41,15 +41,15 @@ export default function DeviceCheckPage() {
   const camOk = !state.requiresCamera || state.checksPassed.includes("CAMERA");
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-white">Let us check your device</h1>
-        <p className="mt-2 max-w-2xl text-base text-white/85">
+        <h1 className="sb-display text-4xl leading-[0.95] text-(--sb-ink) sm:text-5xl">Let us check your device</h1>
+        <p className="mt-3 max-w-2xl text-lg text-(--sb-fg-muted)">
           In this test, you will use your {state.requiresCamera && state.requiresMicrophone ? "microphone and camera" : state.requiresCamera ? "camera" : "microphone"}.
           Make a short test recording. Then listen or watch. If it is OK, you can go to the parts.
         </p>
       </header>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         {state.requiresMicrophone ? (
           <DeviceCard recipientId={recipientId} title="Microphone" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />
         ) : null}
@@ -58,12 +58,12 @@ export default function DeviceCheckPage() {
         ) : null}
       </div>
       {error ? <KidNotice tone="coral">{error}</KidNotice> : null}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
         <KidButton size="lg" disabled={!micOk || !camOk || busy} onClick={() => void finish()} className="w-full sm:w-auto">
           {busy ? "Saving…" : "Go to the parts"}
           {busy ? null : <IconArrowRight aria-hidden />}
         </KidButton>
-        {!micOk || !camOk ? <p className="text-white/75">First, finish the checks above.</p> : null}
+        {!micOk || !camOk ? <p className="text-(--sb-fg-muted)">First, finish the checks above.</p> : null}
       </div>
     </section>
   );
@@ -343,14 +343,14 @@ function DeviceCard({
       ? (kind === "CAMERA" ? "Can you see yourself and hear your voice?" : "Can you hear your voice?")
       : (kind === "CAMERA" ? "Watch your video" : "Listen to your recording"),
   }[phase];
-  const statusTone = phase === "recording" ? "text-(--kid-coral)" : phase === "denied" ? "text-(--kid-coral)" : phase === "idle" ? "text-neutral-700" : "text-primary-700";
-  const stageBg = kind === "CAMERA" && (phase === "countdown" || phase === "recording" || phase === "review") ? "bg-black" : "bg-(--kid-sky-bg)";
+  const statusTone = phase === "recording" || phase === "denied" ? "text-(--sb-danger)" : phase === "idle" ? "text-(--sb-fg-strong)" : "text-(--sb-ink)";
+  const stageBg = kind === "CAMERA" && (phase === "countdown" || phase === "recording" || phase === "review") ? "bg-black" : "bg-(--sb-tint)";
 
   return (
-    <article className={cn("flex flex-col rounded-3xl bg-white p-5 shadow-sm ring-1 sm:p-6", passed ? "ring-2 ring-(--kid-mint-solid)" : "ring-neutral-200")}>
+    <article className={cn("flex flex-col rounded-(--sb-r-md) border-2 bg-white p-5 sm:p-6", passed ? "border-(--sb-success)" : "border-(--sb-ink) shadow-(--sb-e1)")}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-3 text-base font-bold text-neutral-900">
-          <span className="grid size-10 place-items-center rounded-xl bg-(--kid-sky-bg) text-(--kid-sky) [&>svg]:size-5">
+        <h2 className="flex items-center gap-3 text-xl font-extrabold text-(--sb-ink)">
+          <span className="grid size-11 place-items-center rounded-(--sb-r-sm) bg-(--sb-ink) text-(--sb-volt) [&>svg]:size-5 [&>svg]:stroke-[2.25]">
             {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
           </span>
           {title}
@@ -366,21 +366,21 @@ function DeviceCard({
             role="status"
             aria-live="polite"
           >
-            {phase === "recording" ? <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-(--kid-coral-solid)" /> : null}
+            {phase === "recording" ? <span aria-hidden className="size-3 shrink-0 rounded-full bg-(--sb-danger)" /> : null}
             <span className="truncate">{statusText}</span>
           </p>
 
           {/* Sahne: tüm aşamalarda aynı ölçü (kamera 16:9, mikrofon sabit yükseklik). */}
-          <div className={cn("relative mt-3 overflow-hidden rounded-2xl", kind === "CAMERA" ? "aspect-video" : "h-44", stageBg)}>
+          <div className={cn("relative mt-3 overflow-hidden rounded-(--sb-r-md)", kind === "CAMERA" ? "aspect-video" : "h-44", stageBg, phase === "recording" && "ring-3 ring-(--sb-danger) ring-inset")}>
             {(phase === "idle" || phase === "denied") ? (
-              <ol className="absolute inset-0 flex flex-col justify-center gap-2 p-4 text-[15px] text-neutral-700 sm:p-5">
+              <ol className="absolute inset-0 flex flex-col justify-center gap-2.5 p-4 text-[15px] text-(--sb-fg-strong) sm:p-5">
                 {[
                   "Tap the button. We count 3, 2, 1.",
                   kind === "CAMERA" ? `Look at the camera and wave (${limit} seconds).` : `Say “one, two, three” out loud (${limit} seconds).`,
                   kind === "CAMERA" ? "Watch your recording." : "Listen to your recording.",
                 ].map((step, index) => (
                   <li key={step} className="flex items-center gap-3">
-                    <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-primary-700 ring-1 ring-primary-200">{index + 1}</span>
+                    <span aria-hidden className="sb-display grid size-7 shrink-0 place-items-center rounded-(--sb-r-xs) bg-(--sb-ink) text-sm text-(--sb-volt)">{index + 1}</span>
                     {step}
                   </li>
                 ))}
@@ -389,13 +389,13 @@ function DeviceCard({
 
             {phase === "requesting" || phase === "uploading" ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                <span className="relative grid size-14 place-items-center rounded-full bg-white text-(--kid-sky) shadow-sm [&>svg]:size-6">
+                <span className="relative grid size-14 place-items-center rounded-full bg-white text-(--sb-ink) [&>svg]:size-6 [&>svg]:stroke-[2.25]">
                   {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
-                  <span aria-hidden className="absolute -inset-1 animate-spin rounded-full border-2 border-transparent border-t-(--kid-sky) [animation-duration:1.2s]" />
+                  <span aria-hidden className="absolute -inset-1 animate-spin rounded-full border-3 border-transparent border-t-(--sb-ink) [animation-duration:1.2s]" />
                 </span>
-                <p className="max-w-xs text-[15px] text-neutral-700">
+                <p className="max-w-xs text-[15px] text-(--sb-fg-strong)">
                   {phase === "requesting"
-                    ? <>If the browser asks, tap <strong className="font-semibold text-neutral-900">“Allow”</strong>.</>
+                    ? <>If the browser asks, tap <strong className="font-bold text-(--sb-ink)">“Allow”</strong>.</>
                     : "This can take a few seconds."}
                 </p>
               </div>
@@ -406,14 +406,14 @@ function DeviceCard({
                 <>
                   <LiveVideo stream={live} />
                   {phase === "countdown" ? (
-                    <span aria-hidden className="absolute inset-0 grid place-items-center bg-black/35 text-7xl font-bold text-white">{count}</span>
+                    <span aria-hidden className="sb-display absolute inset-0 grid place-items-center bg-black/40 text-8xl text-white">{count}</span>
                   ) : (
-                    <span aria-hidden className="absolute top-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-sm font-semibold text-white tabular-nums">{secondsLeft} sn</span>
+                    <span aria-hidden className="sb-display absolute top-3 right-3 rounded-(--sb-r-xs) bg-(--sb-ink) px-2.5 py-1 text-lg text-white">{secondsLeft} sn</span>
                   )}
                 </>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-5">
-                  <span aria-hidden className={cn("text-5xl font-bold tabular-nums", phase === "recording" ? "text-(--kid-coral)" : "text-primary-700")}>
+                  <span aria-hidden className={cn("sb-display text-6xl leading-none", phase === "recording" ? "text-(--sb-danger)" : "text-(--sb-ink)")}>
                     {phase === "countdown" ? count : secondsLeft}
                   </span>
                   <div className="w-full"><LevelMeter stream={live} /></div>
@@ -426,7 +426,7 @@ function DeviceCard({
                 <video className="absolute inset-0 size-full bg-black object-contain" src={previewUrl} controls playsInline onPlay={() => setPlayed(true)} onLoadedMetadata={fixInfiniteDuration} />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-5">
-                  <span aria-hidden className="grid size-14 place-items-center rounded-full bg-white text-(--kid-sky) shadow-sm [&>svg]:size-6">
+                  <span aria-hidden className="grid size-14 place-items-center rounded-full bg-white text-(--sb-ink) [&>svg]:size-6 [&>svg]:stroke-[2.25]">
                     {played ? <IconCheck /> : <IconMic />}
                   </span>
                   <audio className="w-full" src={previewUrl} controls onPlay={() => setPlayed(true)} onLoadedMetadata={fixInfiniteDuration} />
@@ -437,7 +437,7 @@ function DeviceCard({
             {/* Kayıt ilerlemesi sahnenin alt kenarında; düzeni kaydırmaz. */}
             {phase === "recording" ? (
               <div className="absolute inset-x-0 bottom-0 h-1.5 bg-black/10" aria-hidden>
-                <div className="h-full bg-(--kid-coral-solid) transition-[width] duration-100" style={{ width: `${Math.min(100, (elapsed / (limit * 1000)) * 100)}%` }} />
+                <div className="h-full bg-(--sb-danger) transition-[width] duration-100" style={{ width: `${Math.min(100, (elapsed / (limit * 1000)) * 100)}%` }} />
               </div>
             ) : null}
           </div>
@@ -546,8 +546,8 @@ function LevelMeter({ stream }: { stream: MediaStream }) {
   }, [stream]);
 
   return (
-    <div ref={meterRef} className="h-4 overflow-hidden rounded-full bg-neutral-100" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Sound level">
-      <div ref={barRef} className="h-full w-0 rounded-full bg-(--kid-mint-solid) transition-[width] duration-75" />
+    <div ref={meterRef} className="h-4 overflow-hidden rounded-[2px] bg-white ring-1 ring-(--sb-line) ring-inset" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Sound level">
+      <div ref={barRef} className="h-full w-0 bg-(--sb-success) transition-[width] duration-75" />
     </div>
   );
 }

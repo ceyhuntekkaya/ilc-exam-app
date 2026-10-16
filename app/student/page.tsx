@@ -8,6 +8,7 @@ import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import { examGroup, examStatus, finishedAttempts, firstName, friendlyWhen, type FinishedAttempt } from "@/src/features/student/status";
 import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
 import type { ReportDeck } from "@/src/features/results/reportCardPdf";
+import { skillClass, skillFamily } from "@/src/features/results/skill";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconDownload, IconFile, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
 import Link from "next/link";
@@ -19,7 +20,7 @@ type Result = {
   totalScore?: number | null;
   cefrLevel?: string | null;
   skillScores?: Record<string, number> | null;
-  sections?: { title: string; earned: number | string | null }[] | null;
+  sections?: { title: string; skill?: string | null; earned: number | string | null }[] | null;
 };
 
 const SKILL_LABEL: Record<string, string> = {
@@ -84,19 +85,19 @@ export default function StudentHomePage() {
   const name = authLoading ? "" : firstName(user?.displayName || user?.username);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <Hello name={name} rows={rows} now={groups.now} />
 
       {error ? <KidError title="We could not load your tests" message="Check your internet and try again." onRetry={retry} /> : null}
 
       {/* Tablet+: iki sütun; ilk ekranda karşılama + kartlar + sonuçlar kesilmeden görünür, fazlası sayfada kayar. */}
-      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_17rem] md:items-start lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-5">
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
+        <div className="space-y-8">
           <Block title="Tests you can take now" count={groups.now.length} id="simdi">
             {rows == null && !error ? (
               <KidLoading label="Loading your tests…" />
             ) : groups.now.length ? (
-              <ul className="grid gap-4 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
+              <ul className="grid gap-5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
                 {groups.now.map((row) => <NowCard key={row.recipientId} row={row} />)}
               </ul>
             ) : rows ? (
@@ -106,7 +107,7 @@ export default function StudentHomePage() {
 
           {groups.soon.length ? (
             <Block title="Coming soon" count={groups.soon.length} id="yakinda">
-              <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
+              <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
                 {groups.soon.map((row) => <SoonCard key={row.recipientId} row={row} />)}
               </ul>
             </Block>
@@ -114,7 +115,7 @@ export default function StudentHomePage() {
 
           {finished.length || closedOnly.length ? (
             <Block title="Finished tests" count={finished.length + closedOnly.length} id="biten">
-              <ul className="divide-y divide-neutral-200 overflow-hidden rounded-3xl bg-white ring-1 ring-neutral-200">
+              <ul className="divide-y divide-(--sb-sunken) overflow-hidden rounded-(--sb-r-md) border border-(--sb-line) bg-white">
                 {finished.map((row) => <FinishedRow key={row.key} row={row} />)}
                 {closedOnly.map((row) => <DoneRow key={row.recipientId} row={row} />)}
               </ul>
@@ -122,7 +123,7 @@ export default function StudentHomePage() {
           ) : null}
         </div>
 
-        <aside className="space-y-5">
+        <aside className="space-y-8">
           <Block title="My results" count={results?.length} id="sonuclar">
             {results == null ? (
               <KidLoading rows={1} label="Loading your results…" />
@@ -131,7 +132,7 @@ export default function StudentHomePage() {
                 {results.map((row) => <ResultCard key={row.applicationId} row={row} />)}
               </ul>
             ) : (
-              <Empty icon={<IconTrophy />} title="No results yet" text="When your teacher shares your results, you will see them here." tone="grape" />
+              <Empty icon={<IconTrophy />} title="No results yet" text="When your teacher shares your results, you will see them here." />
             )}
           </Block>
         </aside>
@@ -158,18 +159,18 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
           : "You have no tests now. Great!";
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-primary-600 px-5 py-5 text-white shadow-[0_4px_0_var(--color-primary-800)] sm:px-6 sm:py-4">
-      {/* Süs: güneş ve bulut şekilleri — dikkat dağıtmayacak kadar soluk. */}
-      <span aria-hidden className="absolute -top-12 -right-12 size-32 rounded-full bg-secondary-400 opacity-90 sm:size-36" />
-      
-      
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:pr-16">
+    <section className="relative overflow-hidden rounded-(--sb-r-lg) bg-(--sb-ink) text-white [&_:focus-visible]:outline-(--sb-volt)">
+      {/* Dört beceri renginde pist şeritleri: tek dekoratif öğe, metnin arkasına girmez. */}
+      <div aria-hidden className="sb-lanes absolute inset-y-0 right-0 hidden w-36 mask-[linear-gradient(90deg,transparent,#000_45%)] md:block lg:w-52" />
+      <div className="relative flex flex-col gap-6 px-5 py-7 sm:px-8 sm:py-9 md:pr-44 lg:flex-row lg:items-end lg:justify-between lg:pr-60">
         <div className="min-w-0">
-        <h1 className="text-2xl font-bold">Hello{name ? `, ${name}` : ""}!</h1>
-        <p className="mt-1 text-base text-white/90">{line}</p>
+          <h1 className="sb-display text-[2.75rem] leading-[0.95] sm:text-6xl lg:text-7xl">
+            Hello{name ? <>, <span className="text-(--sb-volt)">{name}</span></> : ""}!
+          </h1>
+          <p className="mt-3 max-w-xl text-lg text-white/85">{line}</p>
         </div>
         {resume ? (
-          <KidButtonLink href={`/student/exams/${resume.recipientId}`} variant="sun" className="max-w-full min-w-0 shrink-0 sm:max-w-[45%]">
+          <KidButtonLink href={`/student/exams/${resume.recipientId}`} variant="sun" size="lg" className="max-w-full min-w-0 shrink-0 self-start lg:max-w-[22rem] lg:self-auto">
             <span className="min-w-0 truncate">Continue: {resume.examTitle}</span>
             <IconArrowRight aria-hidden />
           </KidButtonLink>
@@ -181,10 +182,10 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
 
 function Block({ title, count, id, children }: { title: string; count?: number; id: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="space-y-3">
-      <h2 id={id} className="flex items-center gap-2.5 text-lg font-bold text-white">
+    <section aria-labelledby={id} className="space-y-4">
+      <h2 id={id} className="flex items-center gap-3 text-2xl leading-tight font-extrabold tracking-tight text-(--sb-ink)">
         {title}
-        {count ? <span className="grid h-6 min-w-6 place-items-center rounded-full bg-white/20 px-2 text-sm text-white">{count}</span> : null}
+        {count ? <span className="sb-display grid h-7 min-w-7 place-items-center rounded-(--sb-r-xs) bg-(--sb-ink) px-1.5 text-base text-(--sb-volt)">{count}</span> : null}
       </h2>
       {children}
     </section>
@@ -196,26 +197,26 @@ function NowCard({ row }: { row: AssignmentCard }) {
   const resume = row.cta === "RESUME";
   const until = friendlyWhen(row.availableUntil);
   return (
-    <li className={cn("flex flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1", resume ? "ring-2 ring-secondary-400" : "ring-neutral-200")}>
-      <span aria-hidden className={cn("h-2", resume ? "bg-secondary-400" : "bg-primary-500")} />
-      <div className="flex flex-1 flex-col p-4">
+    <li className="flex flex-col overflow-hidden rounded-(--sb-r-md) border-2 border-(--sb-ink) bg-white shadow-(--sb-e1)">
+      <span aria-hidden className={cn("h-2", resume ? "bg-(--sb-volt)" : "bg-(--sb-ink)")} />
+      <div className="flex flex-1 flex-col p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 className="min-w-0 text-base font-bold text-neutral-900">{row.examTitle}</h3>
+          <h3 className="min-w-0 text-xl leading-tight font-extrabold text-(--sb-ink)">{row.examTitle}</h3>
           <StatusPill tone={status.tone}>{status.label}</StatusPill>
         </div>
         {until ? (
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-600 [&>svg]:size-4 [&>svg]:shrink-0">
+          <p className="mt-1.5 flex items-center gap-1.5 text-sm text-(--sb-fg-muted) [&>svg]:size-4 [&>svg]:shrink-0">
             <IconCalendar aria-hidden />
             Open until {until}
           </p>
         ) : null}
-        <ul className="mt-3 flex flex-wrap gap-2">
+        <dl className="mt-5 grid auto-cols-fr grid-flow-col divide-x divide-(--sb-sunken) border-y border-(--sb-sunken) py-3">
           <Fact icon={<IconClock />} label="Time">{row.timingMode === "UNTIMED" ? "No limit" : formatDuration(row.durationSeconds)}</Fact>
           <Fact icon={<IconLayers />} label="Parts">{row.sectionCount}</Fact>
           <Fact icon={<IconQuestion />} label="Questions">{row.questionCount}</Fact>
           {row.attemptsTotal > 1 ? <Fact icon={<IconCheck />} label="Tries left">{row.attemptsLeft} / {row.attemptsTotal}</Fact> : null}
-        </ul>
-        <div className="mt-auto pt-4">
+        </dl>
+        <div className="mt-auto pt-5">
           <KidButtonLink href={`/student/exams/${row.recipientId}`} variant={resume ? "sun" : "primary"} full>
             {resume ? "Continue the test" : row.attemptsUsed > 0 ? "Try again" : "Start the test"}
             <IconArrowRight aria-hidden />
@@ -228,23 +229,26 @@ function NowCard({ row }: { row: AssignmentCard }) {
 
 function Fact({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <li className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1 text-sm text-neutral-700 [&>svg]:size-4 [&>svg]:text-neutral-500">
-      {icon}
-      {label}: <strong className="font-kid text-neutral-900">{children}</strong>
-    </li>
+    <div className="min-w-0 px-3 first:pl-0 last:pr-0">
+      <dt className="flex items-center gap-1 text-(--sb-fg-muted) [&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:stroke-[2.25]">
+        {icon}
+        <span className="sb-overline truncate">{label}</span>
+      </dt>
+      <dd className="sb-display mt-1.5 truncate text-2xl leading-none text-(--sb-ink)">{children}</dd>
+    </div>
   );
 }
 
 function SoonCard({ row }: { row: AssignmentCard }) {
   return (
-    <li className="flex items-center gap-4 rounded-3xl bg-white p-4 ring-1 ring-neutral-200 sm:p-5">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-neutral-100 text-neutral-600 [&>svg]:size-5">
+    <li className="flex items-center gap-4 rounded-(--sb-r-md) border-2 border-dashed border-(--sb-line-strong) bg-white p-4 sm:p-5">
+      <span className="grid size-11 shrink-0 place-items-center rounded-(--sb-r-sm) bg-(--sb-sunken) text-(--sb-fg-strong) [&>svg]:size-5 [&>svg]:stroke-[2.25]">
         <IconCalendar aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-        <p className="text-neutral-600">
-          {friendlyWhen(row.availableFrom) ? <>Opens: <strong className="text-neutral-800">{friendlyWhen(row.availableFrom)}</strong></> : "The opening date is not ready yet"}
+        <p className="font-kid text-lg leading-tight font-bold text-(--sb-ink)">{row.examTitle}</p>
+        <p className="mt-0.5 text-(--sb-fg-muted)">
+          {friendlyWhen(row.availableFrom) ? <>Opens: <strong className="font-semibold text-(--sb-ink)">{friendlyWhen(row.availableFrom)}</strong></> : "The opening date is not ready yet"}
         </p>
       </div>
     </li>
@@ -255,14 +259,14 @@ function FinishedRow({ row }: { row: FinishedAttempt }) {
   const when = friendlyWhen(row.finishedAt);
   const until = row.sharedTitle ? friendlyWhen(row.availableUntil) : null;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+    <li className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-5 py-4">
       <div className="min-w-0">
-        <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-        <p className="text-neutral-600">
+        <p className="font-kid text-base font-bold text-(--sb-ink)">{row.examTitle}</p>
+        <p className="text-sm text-(--sb-fg-muted)">
           {row.attemptsTotal > 1 ? <>Try {row.attemptNo} of {row.attemptsTotal} · </> : null}
           {when ? <>Finished: {when}</> : "Finished"}
         </p>
-        {until ? <p className="text-neutral-600">Open until {until}</p> : null}
+        {until ? <p className="text-sm text-(--sb-fg-muted)">Open until {until}</p> : null}
       </div>
       <StatusPill tone="mint">Done</StatusPill>
     </li>
@@ -273,10 +277,10 @@ function DoneRow({ row }: { row: AssignmentCard }) {
   const status = examStatus(row);
   const last = [...row.attempts].reverse().find((attempt) => attempt.finishedAt);
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+    <li className="flex min-h-16 flex-wrap items-center justify-between gap-3 px-5 py-4">
       <div className="min-w-0">
-        <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-        {last?.finishedAt ? <p className="text-neutral-600">Finished: {friendlyWhen(last.finishedAt)}</p> : null}
+        <p className="font-kid text-base font-bold text-(--sb-ink)">{row.examTitle}</p>
+        {last?.finishedAt ? <p className="text-sm text-(--sb-fg-muted)">Finished: {friendlyWhen(last.finishedAt)}</p> : null}
       </div>
       <StatusPill tone={status.tone}>{status.label}</StatusPill>
     </li>
@@ -286,8 +290,8 @@ function DoneRow({ row }: { row: AssignmentCard }) {
 function ResultCard({ row }: { row: Result }) {
   const sections = (row.sections ?? []).filter((section) => section.title);
   const skills = sections.length
-    ? sections.map((section) => [section.title, section.earned] as const)
-    : Object.entries(row.skillScores ?? {});
+    ? sections.map((section) => [section.title, section.earned, section.skill] as const)
+    : Object.entries(row.skillScores ?? {}).map(([skill, score]) => [skill, score, skill] as const);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -306,13 +310,10 @@ function ResultCard({ row }: { row: Result }) {
   }
 
   return (
-    <KidCard as="li" className="p-4">
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="font-kid text-base font-bold text-neutral-900">{row.examTitle}</p>
-          {row.cefrLevel ? <StatusPill className="mt-1" tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
-        </div>
-        <div className="flex shrink-0 gap-1.5">
+    <KidCard as="li" className="p-5 sm:p-5">
+      <div className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 font-kid text-lg leading-tight font-extrabold text-(--sb-ink)">{row.examTitle}</p>
+        <div className="flex shrink-0 gap-2">
           <Link
             href={`/student/results/${row.applicationId}`}
             aria-label="Report card"
@@ -334,23 +335,31 @@ function ResultCard({ row }: { row: Result }) {
           </button>
         </div>
       </div>
-      <p className="mt-2 text-neutral-600">
-        Your score: <strong className="font-kid text-xl text-neutral-900">{row.totalScore ?? "—"}</strong>
-      </p>
+      <div className="mt-4 flex items-end justify-between gap-3 border-t-2 border-(--sb-ink) pt-4">
+        <div>
+          <p className="sb-overline text-(--sb-fg-muted)">Your score</p>
+          <p className="sb-display mt-1 text-5xl leading-none text-(--sb-ink)">{row.totalScore ?? "—"}</p>
+        </div>
+        {row.cefrLevel ? <StatusPill className="h-8 px-2.5 text-sm" tone="grape" icon={<IconTrophy aria-hidden />}>{row.cefrLevel}</StatusPill> : null}
+      </div>
       {skills.length ? (
-        <ul className="mt-3 space-y-2.5">
-          {skills.map(([skill, score], index) => {
+        <ul className="mt-5 space-y-3.5">
+          {skills.map(([skill, score, skillKey], index) => {
             const value = typeof score === "number" ? score : Number(score);
             const shown = Number.isFinite(value) ? value : score;
+            const family = skillFamily(skillKey);
             return (
               <li key={`${skill}-${index}`}>
-                <div className="flex justify-between text-sm font-semibold text-neutral-700">
-                  <span>{SKILL_LABEL[skill] ?? skill}</span>
-                  <span className="numeric">{String(shown)}</span>
+                <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-(--sb-fg-strong)">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span aria-hidden className={cn("size-2.5 shrink-0", family ? skillClass[family].solid : "bg-(--sb-ink)")} />
+                    <span className="truncate">{SKILL_LABEL[skill] ?? skill}</span>
+                  </span>
+                  <span className="sb-display text-lg leading-none text-(--sb-ink)">{String(shown)}</span>
                 </div>
                 {Number.isFinite(value) && value >= 0 && value <= 100 ? (
-                  <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-neutral-100">
-                    <div className="h-full rounded-full bg-(--kid-grape)" style={{ width: `${value}%` }} />
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-[2px] bg-(--sb-sunken)">
+                    <div className={cn("h-full transition-[width] duration-320 ease-(--sb-ease)", family ? skillClass[family].solid : "bg-(--sb-ink)")} style={{ width: `${value}%` }} />
                   </div>
                 ) : null}
               </li>
@@ -358,22 +367,22 @@ function ResultCard({ row }: { row: Result }) {
           })}
         </ul>
       ) : null}
-      {pdfError ? <p className="mt-2 text-sm text-(--kid-coral)">{pdfError}</p> : null}
+      {pdfError ? <p role="alert" className="mt-3 text-sm font-medium text-(--sb-danger)">{pdfError}</p> : null}
     </KidCard>
   );
 }
 
-const iconAction = "grid size-11 place-items-center rounded-xl bg-white text-primary-800 ring-2 ring-primary-200 hover:bg-primary-50 disabled:opacity-45 [&>svg]:size-5";
+const iconAction = "grid size-11 place-items-center rounded-(--sb-r-sm) border-2 border-(--sb-ink) bg-white text-(--sb-ink) transition-colors duration-120 hover:bg-(--sb-volt) disabled:border-(--sb-line) disabled:text-(--sb-fg-muted) [&>svg]:size-5 [&>svg]:stroke-[2.25]";
 
-function Empty({ icon, title, text, tone = "mint" }: { icon: ReactNode; title: string; text: string; tone?: "mint" | "grape" }) {
+function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-3xl bg-white p-4 ring-1 ring-neutral-200">
-      <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl [&>svg]:size-5", tone === "mint" ? "bg-(--kid-mint-bg) text-(--kid-mint)" : "bg-(--kid-grape-bg) text-(--kid-grape)")}>
+    <div className="flex items-center gap-4 rounded-(--sb-r-md) border-2 border-dashed border-(--sb-line-strong) bg-white/60 p-5">
+      <span className="grid size-11 shrink-0 place-items-center rounded-(--sb-r-sm) border-2 border-(--sb-ink) bg-white text-(--sb-ink) [&>svg]:size-5 [&>svg]:stroke-[2.25]">
         {icon}
       </span>
       <div>
-        <p className="font-kid text-base font-bold text-neutral-900">{title}</p>
-        <p className="text-neutral-600">{text}</p>
+        <p className="font-kid text-lg font-bold text-(--sb-ink)">{title}</p>
+        <p className="text-(--sb-fg-muted)">{text}</p>
       </div>
     </div>
   );

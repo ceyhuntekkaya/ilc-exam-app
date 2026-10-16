@@ -100,11 +100,11 @@ export function TrueFalseView({
                       setAnswers((prev) => ({ ...prev, [s.id]: c.value }));
                     }}
                     className={cn(
-                      "inline-flex min-h-11 min-w-[6rem] items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-2 text-[15px] font-semibold transition-all duration-150",
+                      "inline-flex min-h-11 min-w-[6rem] items-center justify-center gap-1.5 rounded-[10px] border-2 px-3 py-2 text-[15px] font-semibold transition-all duration-150",
                       isCorrect
                         ? epOption.correct
                         : active
-                          ? "border-exam-navy-500 bg-exam-navy-50 text-exam-navy-900 shadow-[0_0_0_3px_var(--color-exam-navy-100)]"
+                          ? "border-exam-navy-900 bg-exam-navy-50 text-exam-navy-900"
                           : epOption.idle,
                     )}
                   >

@@ -77,37 +77,40 @@ export default function SectionListPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Parts of the test</h1>
-          <p className="mt-1 text-base text-white/80">Choose a part. On this page, the timer stops.</p>
+          <h1 className="sb-display text-4xl leading-[0.95] text-(--sb-ink) sm:text-5xl">Parts of the test</h1>
+          <p className="mt-2 text-lg text-(--sb-fg-muted)">Choose a part. On this page, the timer stops.</p>
         </div>
         {/* Süre sınırı yoksa sayaç gösterilmez. */}
         {examLeft != null ? (
-          <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-neutral-200 [&>svg]:size-5 [&>svg]:text-primary-600">
+          <div className="flex items-center gap-3 rounded-(--sb-r-md) bg-(--sb-ink) px-4 py-3 text-white [&>svg]:size-6 [&>svg]:text-(--sb-volt) [&>svg]:stroke-[2.25]">
             <IconClock aria-hidden />
             <div>
-              <p className="text-sm text-neutral-600">Time left for the test</p>
-              <p className="numeric font-kid text-base font-bold text-neutral-900">{formatClock(remaining ?? examLeft)}</p>
+              <p className="sb-overline text-white/75">Time left for the test</p>
+              <p className="sb-display mt-0.5 text-3xl leading-none" role="timer">{formatClock(remaining ?? examLeft)}</p>
             </div>
           </div>
         ) : null}
       </header>
 
-      <div className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
-        <div className="flex items-center justify-between font-semibold text-neutral-800">
-          <span>Progress</span>
-          <span>{doneCount} / {total} parts finished</span>
+      <div className="rounded-(--sb-r-md) border border-(--sb-line) bg-white p-4 sm:p-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="sb-overline text-(--sb-fg-muted)">Progress</span>
+          <span className="font-semibold text-(--sb-fg-strong)"><span className="sb-display text-2xl text-(--sb-ink)">{doneCount} / {total}</span> parts finished</span>
         </div>
-        <div className="mt-2 h-3 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Finished parts">
-          <div className="h-full rounded-full bg-(--kid-mint-solid) transition-[width]" style={{ width: total ? `${(doneCount / total) * 100}%` : 0 }} />
+        {/* Segmentli çubuk: her bölüm bir segment. */}
+        <div className="mt-3 flex h-3 gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Finished parts">
+          {state.sections.map((section, index) => (
+            <span key={section.sectionId} className={cn("flex-1 rounded-[2px] transition-colors duration-320", index < doneCount ? "bg-(--sb-ink)" : "bg-(--sb-sunken)")} />
+          ))}
         </div>
       </div>
 
       {timeUp ? <KidNotice tone="coral">The test time is up. You cannot open the parts now.</KidNotice> : null}
 
-      <ol className="grid gap-4 md:grid-cols-2">
+      <ol className="grid gap-5 md:grid-cols-2">
         {state.sections.map((section, index) => {
           const tone = sectionTone(section.status);
           const done = section.status === "COMPLETED" || section.status === "EXPIRED";
@@ -117,30 +120,30 @@ export default function SectionListPage() {
             <li
               key={section.sectionId}
               className={cn(
-                "flex flex-col rounded-3xl bg-white p-5 shadow-sm ring-1 sm:p-6",
-                resume ? "ring-2 ring-secondary-400" : "ring-neutral-200",
-                (done || locked) && "bg-neutral-50 shadow-none",
+                "flex flex-col rounded-(--sb-r-md) p-5 sm:p-6",
+                done || locked ? "border border-(--sb-line) bg-(--sb-tint)" : "border-2 border-(--sb-ink) bg-white shadow-(--sb-e1)",
+                resume && "bg-[linear-gradient(var(--sb-volt),var(--sb-volt))] bg-size-[100%_8px] bg-no-repeat",
               )}
             >
               <div className="flex items-start gap-4">
                 <span
                   className={cn(
-                    "grid size-10 shrink-0 place-items-center rounded-xl font-kid text-base font-bold [&>svg]:size-5",
-                    done ? "bg-(--kid-mint-bg) text-(--kid-mint)" : locked ? "bg-neutral-100 text-neutral-500" : "bg-primary-50 text-primary-700",
+                    "sb-display grid size-12 shrink-0 place-items-center rounded-(--sb-r-sm) text-2xl [&>svg]:size-6 [&>svg]:stroke-[2.5]",
+                    done ? "bg-(--sb-success-bg) text-(--sb-success)" : locked ? "bg-(--sb-sunken) text-(--sb-fg-muted)" : "bg-(--sb-ink) text-(--sb-volt)",
                   )}
                 >
                   {done ? <IconCheck aria-hidden /> : locked ? <IconLock aria-hidden /> : index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h2 className="text-base font-bold text-neutral-900">{section.title}</h2>
+                    <h2 className="text-xl leading-tight font-extrabold text-(--sb-ink)">{section.title}</h2>
                     <StatusPill tone={tone.tone}>{tone.label}</StatusPill>
                   </div>
-                  <p className="mt-1 text-neutral-600">
+                  <p className="mt-1 text-(--sb-fg-muted)">
                     {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}{section.durationMs == null ? "" : ` · ${formatDuration(section.durationMs / 1000)}`}
                     {section.remainingMs != null && resume ? ` · ${formatClock(section.remainingMs)} left` : ""}
                   </p>
-                  {section.lockReason ? <p className="mt-2 text-neutral-600">{section.lockReason}</p> : null}
+                  {section.lockReason ? <p className="mt-2 text-(--sb-fg-muted)">{section.lockReason}</p> : null}
                 </div>
               </div>
               {!finished && section.canEnter ? (
@@ -158,20 +161,20 @@ export default function SectionListPage() {
 
       {!finished && state.canFinish ? (
         incomplete ? (
-          <div className="flex flex-col gap-3 rounded-3xl bg-white p-5 ring-1 ring-neutral-200 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-neutral-700">When you finish all the parts, you will send your test here.</p>
+          <div className="flex flex-col gap-4 rounded-(--sb-r-md) border-2 border-dashed border-(--sb-line-strong) bg-white/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-(--sb-fg-strong)">When you finish all the parts, you will send your test here.</p>
             <KidButton variant="soft" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
               {saving ? "Saving…" : "Finish the test now"}
             </KidButton>
           </div>
         ) : (
-          <KidCard className="flex flex-col gap-4 bg-(--kid-mint-bg) ring-0 sm:flex-row sm:items-center sm:justify-between">
+          <KidCard className="flex flex-col gap-5 border-2 border-(--sb-ink) bg-(--sb-volt) shadow-(--sb-e1) sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xl font-bold text-neutral-900">You finished all the parts!</p>
-              <p className="text-base text-neutral-700">Last step: send your test.</p>
+              <p className="sb-display text-3xl leading-none text-(--sb-ink) sm:text-4xl">You finished all the parts!</p>
+              <p className="mt-2 text-lg font-medium text-(--sb-ink)">Last step: send your test.</p>
             </div>
-            <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)}>
+            <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)} className="shrink-0">
               <IconFlag aria-hidden />
               {saving ? "Saving…" : "Send my test"}
             </KidButton>
@@ -186,7 +189,7 @@ export default function SectionListPage() {
           body={
             <ul className="space-y-1.5">
               <li>The timer starts when you open this part.</li>
-              {pendingSection.allowReturnAfterLeave === false ? <li className="font-semibold text-neutral-900">When you leave this part, you cannot come back.</li> : null}
+              {pendingSection.allowReturnAfterLeave === false ? <li className="font-semibold text-(--sb-ink)">When you leave this part, you cannot come back.</li> : null}
               {!pendingSection.allowBack ? <li>You cannot go back to a question.</li> : null}
             </ul>
           }

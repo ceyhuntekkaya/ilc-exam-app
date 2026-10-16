@@ -135,7 +135,7 @@ export function HotspotSelectView({
   return (
     <div className="space-y-2">
       <div
-        className="relative mx-auto w-full max-w-2xl cursor-pointer overflow-hidden rounded-xl border-2 border-exam-slate-200"
+        className="relative mx-auto w-full max-w-2xl cursor-pointer overflow-hidden rounded-[10px] border-2 border-exam-slate-200"
         onClick={onImageClick}
       >
         <MediaImageSlot mediaId={mediaId} className="block w-full" />
@@ -154,17 +154,17 @@ export function HotspotSelectView({
                 toggleRegion(r.id);
               }}
               className={cn(
-                "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-exam-sky-200",
+                "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
                 isCorrect
-                  ? "border-emerald-500 bg-emerald-500/35"
+                  ? "border-exam-ok bg-exam-ok/35"
                   : isSelected
-                    ? "border-exam-navy-600 bg-exam-sky-500/35"
+                    ? "border-exam-navy-900 bg-exam-sky-500/35"
                     : "border-dashed border-white bg-black/10 hover:bg-exam-sky-500/20",
               )}
               style={shapeStyle(r.shape)}
             >
               {isSelected || isCorrect ? (
-                <span className="grid size-7 place-items-center rounded-full bg-exam-navy-700 text-white shadow" aria-hidden>
+                <span className="grid size-7 place-items-center rounded-[6px] bg-exam-navy-900 text-white" aria-hidden>
                   <IconCheck className="size-4" strokeWidth={3} />
                 </span>
               ) : null}
@@ -173,7 +173,7 @@ export function HotspotSelectView({
         })}
       </div>
       {preview && correctIds.size > 0 ? (
-        <p className="text-center text-xs font-medium text-emerald-700">Doğru bölgeler: {[...correctIds].join(", ")}</p>
+        <p className="text-center text-xs font-medium text-exam-ok-ink">Doğru bölgeler: {[...correctIds].join(", ")}</p>
       ) : (
         <p className="text-center text-sm font-semibold text-exam-slate-500" aria-live="polite">
           {selected.length
@@ -258,7 +258,7 @@ export function HotspotPlaceView({
       >
         {/* Resim ekran yüksekliğine sığar: tüm alanlar aynı anda görünür, sürüklerken sayfa kaydırmak gerekmez.
             Kap resim kadar (w-fit); alanlar yüzdeyle konumlandığı için küçülünce de yerinde kalır. */}
-        <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-xl border-2 border-exam-slate-200">
+        <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-[10px] border-2 border-exam-slate-200">
           <MediaImageSlot mediaId={mediaId} className="block h-auto max-h-[calc(100dvh-11rem)] w-auto max-w-full" />
           {zones.map((z, index) => {
             const members = draggables.filter((d) => zoneOf[d.id] === z.id);
@@ -291,7 +291,7 @@ export function HotspotPlaceView({
                   ),
                 )}
                 {!members.length ? (
-                  <span className="grid size-6 place-items-center rounded-full bg-exam-sky-600 text-xs font-bold text-white shadow" aria-hidden>
+                  <span className="grid size-6 place-items-center rounded-full bg-exam-sky-600 text-xs font-bold text-white" aria-hidden>
                     {index + 1}
                   </span>
                 ) : null}

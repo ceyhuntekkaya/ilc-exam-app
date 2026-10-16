@@ -459,11 +459,11 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     <FlowContext.Provider value={value}>
       {children}
       {focusWarning != null ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg">
-            <h2 id="focus-warning-title" className="text-lg font-semibold text-ilc-navy">You left the test screen</h2>
-            <p className="mt-2 text-sm text-ilc-navy/80">Please stay on the test screen. Chances left: {focusWarning}.</p>
-            <button type="button" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-ilc-navy px-4 text-sm font-medium text-white" onClick={() => setFocusWarning(null)}>
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-(--sb-ink)/55 p-4 sm:items-center">
+          <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white p-6">
+            <h2 id="focus-warning-title" className="text-xl font-extrabold text-(--sb-ink)">You left the test screen</h2>
+            <p className="mt-2 text-base text-(--sb-fg-strong)">Please stay on the test screen. Chances left: <span className="font-bold text-(--sb-warning)">{focusWarning}</span>.</p>
+            <button type="button" className="mt-5 inline-flex min-h-12 items-center rounded-(--sb-r-md) bg-(--sb-ink) px-5 text-base font-semibold text-white transition-colors duration-120 hover:bg-(--sb-fg-strong)" onClick={() => setFocusWarning(null)}>
               Back to the test
             </button>
           </div>

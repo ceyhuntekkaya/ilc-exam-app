@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ReportDeck } from "./reportCardPdf";
+import { skillClass, skillFamily } from "./skill";
 
 type StudentRow = {
   studentId: string;
@@ -109,6 +110,7 @@ export type StudentReport = {
 
 type SectionView = {
   title: string;
+  skill?: string | null;
   earned: number | string | null;
   available: number | string | null;
 };
@@ -174,7 +176,7 @@ function wholeSections(sections: SectionView[], scale: number): SectionView[] {
     const earned = rawAvailable <= 0
       ? 0
       : Math.min(available, Math.round((num(section.earned) / rawAvailable) * available));
-    return { title: section.title, earned, available };
+    return { title: section.title, skill: section.skill, earned, available };
   });
 }
 
@@ -749,15 +751,20 @@ function SectionScores({ sections }: { sections: SectionView[] }) {
           const earned = num(section.earned);
           const available = num(section.available);
           const ratio = available > 0 ? Math.min(100, Math.round((earned / available) * 100)) : 0;
+          const family = skillFamily(section.skill);
+          const tone = family ? skillClass[family] : null;
           return (
             <li key={`${section.title}-${index}`} className="min-w-0 rounded-lg bg-white/80 px-3 py-2.5 ring-1 ring-ilc-line ring-inset">
-              <p className="truncate text-xs font-semibold tracking-wide text-ilc-navy/60 uppercase">{section.title || "Bölüm"}</p>
+              <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ilc-navy/60 uppercase">
+                {tone ? <span aria-hidden className={cn("size-2 shrink-0 rounded-full", tone.solid)} /> : null}
+                <span className="truncate">{section.title || "Bölüm"}</span>
+              </p>
               <p className="numeric mt-1 font-display text-xl leading-none font-semibold">
                 {points(earned)}
                 <span className="text-sm font-medium text-ilc-navy/45">/{points(available)}</span>
               </p>
               <div className="mt-2 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${section.title} %${ratio}`}>
-                <div className="h-full rounded-full bg-ilc-teal" style={{ width: `${ratio}%` }} />
+                <div className={cn("h-full rounded-full", tone?.solid ?? "bg-ilc-teal")} style={{ width: `${ratio}%` }} />
               </div>
             </li>
           );

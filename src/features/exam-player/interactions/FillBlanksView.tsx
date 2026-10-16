@@ -36,13 +36,13 @@ function InlineWord({ html }: { html: string }) {
 export function gapClass(state: "empty" | "filled" | "open" | "correct") {
   return cn(
     "mx-0.5 inline-block rounded border-0 bg-transparent px-0.5 text-center align-baseline text-[length:inherit] leading-normal whitespace-nowrap",
-    "decoration-2 underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-exam-sky-200",
+    "decoration-2 underline-offset-4 focus:outline-none focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
     state === "correct"
-      ? "font-semibold text-emerald-900 underline decoration-emerald-600"
+      ? "font-semibold text-exam-ok-ink underline decoration-exam-ok"
       : state === "open"
         ? "font-semibold text-exam-navy-900 underline decoration-exam-sky-500"
         : state === "filled"
-          ? "font-semibold text-exam-navy-900 underline decoration-exam-navy-500 hover:decoration-exam-sky-500"
+          ? "font-semibold text-exam-navy-900 underline decoration-exam-navy-900 hover:decoration-exam-sky-500"
           : "min-w-[4.5rem] text-exam-sky-700",
   );
 }
@@ -114,7 +114,7 @@ function BlankPicker({
               ref={panelRef}
               role="listbox"
               aria-label={`Words for gap ${n}`}
-              className="exam-player max-h-80 min-w-48 max-w-[min(22rem,88vw)] overflow-y-auto rounded-xl border border-exam-slate-200 bg-white p-1.5 text-exam-slate-800 shadow-xl"
+              className="exam-player max-h-80 min-w-48 max-w-[min(22rem,88vw)] overflow-y-auto rounded-[10px] border border-exam-slate-200 bg-white p-1.5 text-exam-slate-800 shadow-xl"
             >
               <p className="px-2.5 pb-1.5 pt-1 text-xs font-bold uppercase tracking-wide text-exam-slate-500">Gap {n} · Choose a word</p>
               {choices.map((c) => {
@@ -126,7 +126,7 @@ function BlankPicker({
                     role="option"
                     aria-selected={active}
                     className={cn(
-                      "flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[15px] transition",
+                      "flex min-h-11 w-full items-center gap-2 rounded-[6px] px-2.5 text-left text-[15px] transition",
                       active ? "bg-exam-navy-50 font-bold text-exam-navy-900" : "hover:bg-exam-sky-50",
                     )}
                     onClick={() => {
@@ -136,14 +136,14 @@ function BlankPicker({
                     }}
                   >
                     <span className="min-w-0 flex-1" dangerouslySetInnerHTML={{ __html: htmlOf(c.text) || c.id }} />
-                    {active ? <IconCheck className="size-4 shrink-0 text-exam-navy-700" aria-hidden /> : null}
+                    {active ? <IconCheck className="size-4 shrink-0 text-exam-navy-900" aria-hidden /> : null}
                   </button>
                 );
               })}
               {selected ? (
                 <button
                   type="button"
-                  className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-lg border-t border-exam-slate-100 px-2.5 text-left text-sm font-semibold text-exam-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                  className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-[6px] border-t border-exam-slate-100 px-2.5 text-left text-sm font-semibold text-exam-slate-500 hover:bg-exam-bad-bg hover:text-exam-bad-ink"
                   onClick={() => {
                     onSelect(null);
                     setOpen(false);
@@ -328,7 +328,7 @@ export function FillInTheBlanksView({
               const choice = blank?.choices?.find((c) => c.id === choiceId) || wordById.get(choiceId);
               return (
                 <li key={blankId}>
-                  <span className="font-mono text-emerald-700">{blankId}</span>
+                  <span className="font-mono text-exam-ok-ink">{blankId}</span>
                   {" → "}
                   {previewLabel(choice?.text, choiceId)}
                 </li>

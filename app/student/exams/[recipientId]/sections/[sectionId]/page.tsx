@@ -192,36 +192,36 @@ export default function SectionQuestionPage() {
 
   return (
     <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken}>
-      <div className="exam-sitting relative flex min-h-dvh flex-1 flex-col">
-        {/* İnce üst çubuk (48px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
-        <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white">
-          <div className={cn("flex h-12 items-center justify-between gap-3", STAGE_INSET)}>
-            <p className="min-w-0 truncate text-sm font-semibold text-neutral-800">
+      <div className="exam-sitting relative flex min-h-dvh flex-1 flex-col bg-(--sb-bg)">
+        {/* İnce üst çubuk (52px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
+        <header className="sticky top-0 z-30 border-b border-(--sb-line) bg-white">
+          <div className={cn("flex h-13 items-center justify-between gap-3", STAGE_INSET)}>
+            <p className="min-w-0 truncate text-sm font-semibold text-(--sb-ink)">
               {section.title}
-              <span className="font-normal text-neutral-500"> · Question {items.length ? index + 1 : 0}/{items.length}</span>
+              <span className="font-normal text-(--sb-fg-muted)"> · Question <span className="numeric font-semibold text-(--sb-ink)">{items.length ? index + 1 : 0}/{items.length}</span></span>
             </p>
             <div className="flex shrink-0 items-center gap-1.5">
               {/* Sınav geneli kalan süre: bölüm süresinden farklıysa geniş ekranda ayrıca gösterilir. */}
               {examLeft != null && remaining != null && state.clock.sectionRemainingMs != null ? (
-                <p className="numeric hidden h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-neutral-500 sm:flex" aria-label={`Time left for the whole test ${formatClock(examLeft)}`}>
+                <p className="numeric hidden h-9 items-center gap-1 rounded-(--sb-r-sm) px-2 text-xs font-semibold text-(--sb-fg-muted) sm:flex" aria-label={`Time left for the whole test ${formatClock(examLeft)}`}>
                   Test {formatClock(examLeft)}
                 </p>
               ) : null}
-              {/* Süre sınırı varsa geri sayım; yoksa sayaç hiç gösterilmez (çocuk acele etmesin). */}
+              {/* Süre sınırı varsa geri sayım; yoksa sayaç hiç gösterilmez (çocuk acele etmesin). Yanıp sönme yok. */}
               {remaining != null ? (
                 <p
                   className={cn(
-                    "numeric flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold [&>svg]:size-4",
-                    timeTone === "calm" && "bg-primary-50 text-primary-800",
-                    timeTone === "warn" && "bg-(--kid-sun-bg) text-(--kid-sun)",
-                    timeTone === "critical" && "bg-(--kid-coral-bg) text-(--kid-coral) ring-1 ring-(--kid-coral)",
+                    "flex h-9 items-center gap-1.5 rounded-(--sb-r-sm) border px-2.5 text-sm font-semibold transition-colors duration-200 [&>svg]:size-4 [&>svg]:stroke-[2.25]",
+                    timeTone === "calm" && "border-(--sb-line) bg-white text-(--sb-ink)",
+                    timeTone === "warn" && "border-transparent bg-(--sb-warning-bg) text-(--sb-warning)",
+                    timeTone === "critical" && "border-(--sb-danger) bg-(--sb-danger-bg) text-(--sb-danger)",
                   )}
                   role="timer"
                   aria-label={`Time left ${formatClock(remaining)}`}
                 >
                   <IconClock aria-hidden />
                   <span className="hidden text-xs font-semibold opacity-80 sm:inline">Time left</span>
-                  {formatClock(remaining)}
+                  <span className="sb-display text-lg leading-none">{formatClock(remaining)}</span>
                   {timeTone !== "calm" ? <span className="hidden font-semibold sm:inline">· hurry up</span> : null}
                 </p>
               ) : null}
@@ -231,7 +231,7 @@ export default function SectionQuestionPage() {
                   onClick={() => go(() => setConfirm("leave"))}
                   disabled={mediaBusy}
                   aria-label="Take a break"
-                  className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-neutral-600 hover:bg-neutral-100 disabled:opacity-40 [&>svg]:size-5"
+                  className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-(--sb-r-sm) px-2.5 text-sm font-semibold text-(--sb-fg-strong) transition-colors duration-120 hover:bg-(--sb-sunken) disabled:opacity-40 [&>svg]:size-5 [&>svg]:stroke-[2.25]"
                 >
                   <IconPause aria-hidden />
                   <span className="hidden sm:inline">{saving ? "Saving…" : "Break"}</span>
@@ -241,11 +241,11 @@ export default function SectionQuestionPage() {
           </div>
           {/* Süre çubuğu: bölüm süresinin ne kadarının kaldığını bir bakışta gösterir. */}
           {remaining != null && timeTotal ? (
-            <div aria-hidden className="h-1 bg-neutral-100">
+            <div aria-hidden className="h-1 bg-(--sb-sunken)">
               <div
                 className={cn(
                   "h-full transition-[width] duration-1000 ease-linear",
-                  timeTone === "calm" ? "bg-primary-500" : timeTone === "warn" ? "bg-(--kid-sun-solid)" : "bg-(--kid-coral-solid)",
+                  timeTone === "calm" ? "bg-(--sb-ink)" : timeTone === "warn" ? "bg-(--sb-warning)" : "bg-(--sb-danger)",
                 )}
                 style={{ width: `${Math.max(0, Math.min(100, (remaining / timeTotal) * 100))}%` }}
               />
@@ -263,7 +263,7 @@ export default function SectionQuestionPage() {
             {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
             {item && answered && !mediaBusy && !held ? (
               <div className="absolute right-3 bottom-3">
-                <KidButton variant="soft" className="min-h-11 text-sm shadow-sm" onClick={() => setConfirmReset(true)}>
+                <KidButton variant="soft" className="min-h-11 text-sm" onClick={() => setConfirmReset(true)}>
                   <IconRefresh aria-hidden />
                   Start again
                 </KidButton>
@@ -274,23 +274,23 @@ export default function SectionQuestionPage() {
         </div>
 
         {/* Alt çubuk: solda Önceki, ortada soru takibi, sağda Sonraki / Bitir. */}
-        <footer className="pb-safe sticky bottom-0 z-30 border-t border-neutral-200 bg-white pt-2">
+        <footer className="pb-safe sticky bottom-0 z-30 border-t border-(--sb-line) bg-white pt-2">
           {mediaBusy ? (
-            <p className={cn("flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-primary-700 [&>svg]:size-4", STAGE_INSET)} aria-live="polite">
+            <p className={cn("flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-(--sb-ink) [&>svg]:size-4", STAGE_INSET)} aria-live="polite">
               <IconVolume aria-hidden />
               Please wait. Finish listening, watching or recording first.
             </p>
           ) : saving ? (
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-primary-700", STAGE_INSET)} aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-fg-strong)", STAGE_INSET)} aria-live="polite">
               Saving your answers…
             </p>
           ) : !canNext ? (
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--kid-sun)", STAGE_INSET)}>
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-warning)", STAGE_INSET)}>
               {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
             </p>
           ) : section.allowSkip && item && !answered && !guard.unsaved.size ? (
             // "Soru atlayabilir" açık: boş bırakılabildiğini söyle (yoksa çocuk cevaplamak zorunda sanıyor).
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-neutral-500", STAGE_INSET)} aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-fg-muted)", STAGE_INSET)} aria-live="polite">
               {last ? "You can leave this question blank." : "You can skip this question. Tap Next."}
             </p>
           ) : null}
@@ -299,7 +299,7 @@ export default function SectionQuestionPage() {
               variant="soft"
               disabled={!section.allowBack || index === 0 || mediaBusy}
               onClick={() => goTo(index - 1)}
-              className={cn(FOOTER_BTN, FOOTER_ICON, "shadow-[0_3px_0_var(--color-primary-200)]", !section.allowBack && "invisible")}
+              className={cn(FOOTER_BTN, FOOTER_ICON, !section.allowBack && "invisible")}
               aria-label="Previous question"
             >
               <IconArrowLeft aria-hidden />
@@ -322,18 +322,18 @@ export default function SectionQuestionPage() {
                         aria-label={`Question ${position + 1}, ${label}`}
                         className={cn(
                           // Dokunma hedefi ≥ 44px (çocuk, tablet).
-                          "relative grid size-11 place-items-center rounded-lg text-sm font-bold transition disabled:cursor-default",
-                          current && "bg-primary-600 text-white",
-                          !current && phase === "confirmed" && "bg-(--kid-mint-bg) text-(--kid-mint)",
-                          !current && phase === "failed" && "bg-rose-100 text-rose-700",
-                          !current && (phase === "empty" || phase === "pending") && "bg-neutral-100 text-neutral-500",
-                          !current && "enabled:hover:ring-2 enabled:hover:ring-primary-300",
+                          "relative grid size-11 place-items-center rounded-(--sb-r-sm) text-sm font-bold tabular-nums transition-colors duration-120 disabled:cursor-default",
+                          current && "bg-(--sb-ink) text-white",
+                          !current && phase === "confirmed" && "bg-(--sb-success-bg) text-(--sb-success)",
+                          !current && phase === "failed" && "bg-(--sb-danger-bg) text-(--sb-danger)",
+                          !current && (phase === "empty" || phase === "pending") && "bg-white text-(--sb-fg-muted) ring-1 ring-(--sb-line) ring-inset",
+                          !current && "enabled:hover:ring-2 enabled:hover:ring-(--sb-ink)",
                         )}
                       >
                         {position + 1}
-                        {phase === "pending" ? <span className="absolute right-1 top-1 size-2 rounded-full bg-primary-500" aria-hidden /> : null}
+                        {phase === "pending" ? <span className="absolute top-1 right-1 size-2 rounded-full bg-(--sb-ink)" aria-hidden /> : null}
                         {phase === "failed" ? (
-                          <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-rose-600 text-[10px] leading-none font-bold text-white" aria-hidden>
+                          <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-(--sb-danger) text-[10px] leading-none font-bold text-white" aria-hidden>
                             !
                           </span>
                         ) : null}
@@ -496,17 +496,17 @@ function SideNav({
     >
       <span
         className={cn(
-          "grid size-14 place-items-center rounded-full shadow-md ring-1 transition group-hover:scale-105 group-active:scale-95 [&>svg]:size-6",
+          "grid size-14 place-items-center rounded-full border-2 transition-colors duration-120 [&>svg]:size-6 [&>svg]:stroke-[2.25]",
           tone === "sun"
-            ? "bg-secondary-400 text-neutral-950 ring-secondary-500"
+            ? "border-(--sb-ink) bg-white text-(--sb-ink) group-hover:bg-(--sb-tint)"
             : side === "left"
-              ? "bg-white text-primary-700 ring-neutral-200 group-hover:ring-primary-300"
-              : "bg-primary-600 text-white ring-primary-700",
+              ? "border-(--sb-line-strong) bg-white text-(--sb-ink) group-hover:border-(--sb-ink)"
+              : "border-(--sb-ink) bg-(--sb-ink) text-white group-hover:bg-(--sb-fg-strong)",
         )}
       >
         {tone === "sun" ? <IconFlag aria-hidden /> : side === "left" ? <IconArrowLeft aria-hidden /> : <IconArrowRight aria-hidden />}
       </span>
-      <span className="text-xs font-semibold text-white drop-shadow-[0_1px_2px_rgb(0_0_0/0.45)]">{label}</span>
+      <span className="text-xs font-semibold text-(--sb-fg-strong)">{label}</span>
     </button>
   );
 }

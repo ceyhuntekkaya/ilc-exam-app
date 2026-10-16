@@ -15,11 +15,11 @@ export function PreviewAnswerBanner({
   return (
     <div
       className={cn(
-        "rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-emerald-900",
+        "rounded-[6px] border border-exam-ok-line bg-exam-ok-bg/80 px-3 py-2 text-sm text-exam-ok-ink",
         className,
       )}
     >
-      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-exam-ok-ink">
         Önizleme · doğru cevap
       </p>
       {children}

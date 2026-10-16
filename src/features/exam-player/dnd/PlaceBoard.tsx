@@ -212,7 +212,7 @@ export function PlaceBoard({
             <DragOverlay dropAnimation={{ duration: 160, easing: "ease-out" }} zIndex={80} modifiers={[followPointer]} style={OVERLAY_STYLE}>
               {dragging ? (
                 <div className="exam-player">
-                  <div className="w-max max-w-[min(18rem,80vw)] cursor-grabbing rounded-xl border-2 border-exam-sky-500 bg-white px-3 py-2 text-sm text-exam-slate-800 shadow-xl ring-4 ring-exam-sky-100 rotate-[1.5deg]">
+                  <div className="w-max max-w-[min(18rem,80vw)] cursor-grabbing rounded-[10px] border-2 border-exam-sky-500 bg-white px-3 py-2 text-sm text-exam-slate-800 shadow-xl rotate-[1.5deg]">
                     {overlay(dragging)}
                   </div>
                 </div>
@@ -306,20 +306,20 @@ export function DragItem({
       style={{ touchAction: disabled ? "manipulation" : "none" } as CSSProperties}
       className={cn(
         "group/item relative select-none text-left outline-none [-webkit-touch-callout:none] transition-[transform,box-shadow,border-color,background-color,opacity] duration-150",
-        "focus-visible:ring-4 focus-visible:ring-exam-sky-200",
+        "focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
         placed && plain ? "inline-block align-baseline" : "flex items-center",
         placed && plain
-          ? "rounded px-0.5 font-semibold text-exam-navy-900 underline decoration-exam-navy-500 decoration-2 underline-offset-4 hover:decoration-exam-sky-500"
+          ? "rounded px-0.5 font-semibold text-exam-navy-900 underline decoration-exam-navy-900 decoration-2 underline-offset-4 hover:decoration-exam-sky-500"
           : placed && fill
-          ? "overflow-hidden rounded-lg bg-exam-slate-100 p-0 text-exam-slate-800 shadow-sm ring-2 ring-exam-navy-300"
+          ? "overflow-hidden rounded-[6px] bg-exam-slate-100 p-0 text-exam-slate-800 ring-2 ring-exam-navy-300"
           : placed
           ? cn(
-              "gap-2 rounded-lg border-2 border-exam-navy-200 bg-white text-exam-slate-800 shadow-sm",
+              "gap-2 rounded-[6px] border-2 border-exam-navy-200 bg-white text-exam-slate-800",
               compact ? "py-0.5 pl-1.5 pr-7 text-xs" : "min-h-10 py-1.5 pl-2.5 pr-8 text-sm",
             )
           : isPicked
-            ? "min-h-12 -translate-y-0.5 gap-2 rounded-xl border-2 border-exam-sky-500 bg-exam-sky-50 py-2 pl-1.5 pr-3 text-sm text-exam-slate-800 shadow-md ring-4 ring-exam-sky-100"
-            : "min-h-12 gap-2 rounded-xl border-2 border-exam-slate-200 bg-white py-2 pl-1.5 pr-3 text-sm text-exam-slate-800 shadow-[0_2px_0_var(--color-exam-slate-200)] hover:border-exam-sky-300",
+            ? "min-h-12 gap-2 rounded-[10px] border-2 border-exam-sky-500 bg-exam-sky-50 py-2 pl-1.5 pr-3 text-sm text-exam-slate-800"
+            : "min-h-12 gap-2 rounded-[10px] border-2 border-exam-slate-200 bg-white py-2 pl-1.5 pr-3 text-sm text-exam-slate-800 hover:border-exam-sky-300",
         // Video kartı: dikey, eşit yükseklik (h-full), eşit iç boşluk.
         tile && !placed && "h-full items-stretch p-1.5",
         locked ? "cursor-default" : disabled ? "cursor-default opacity-60" : placed ? "cursor-pointer" : "cursor-grab",
@@ -332,21 +332,21 @@ export function DragItem({
       <Inner className={fill && placed ? "block size-full" : plain && placed ? "inline" : "min-w-0 flex-1"}>
         {children}
         {locked && lockedHint && !tile ? (
-          <span className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200 [&>svg]:size-3.5 [&>svg]:shrink-0">
+          <span className="mt-2 flex items-center gap-1.5 rounded-[6px] bg-exam-warn-bg px-2 py-1.5 text-xs font-bold text-exam-warn ring-1 ring-exam-warn-line [&>svg]:size-3.5 [&>svg]:shrink-0">
             <IconLock aria-hidden />
             {lockedHint}
           </span>
         ) : null}
       </Inner>
       {placed && plain && !disabled ? (
-        <IconX aria-hidden className="ml-1 inline-block size-3.5 align-middle text-exam-slate-400 group-hover/item:text-rose-600" />
+        <IconX aria-hidden className="ml-1 inline-block size-3.5 align-middle text-exam-slate-400 group-hover/item:text-exam-bad" />
       ) : placed && !disabled ? (
         <span
           aria-hidden
           className={cn(
-            "absolute grid place-items-center rounded-full transition group-hover/item:bg-rose-100 group-hover/item:text-rose-600",
+            "absolute grid place-items-center rounded-full transition group-hover/item:bg-exam-bad-bg group-hover/item:text-exam-bad",
             fill
-              ? "right-1 top-1 size-6 bg-white/95 text-exam-slate-600 shadow ring-1 ring-exam-slate-200"
+              ? "right-1 top-1 size-6 bg-white/95 text-exam-slate-600 ring-1 ring-exam-slate-200"
               : "right-1.5 top-1/2 size-5 -translate-y-1/2 bg-exam-slate-100 text-exam-slate-500",
           )}
         >
@@ -408,9 +408,9 @@ export function DropZone({
           ? "cursor-pointer bg-exam-sky-100"
           : "bg-transparent"
     : correct
-    ? "border-solid border-emerald-500 bg-emerald-50"
+    ? "border-solid border-exam-ok bg-exam-ok-bg"
     : state === "over"
-      ? "border-solid border-exam-sky-500 bg-exam-sky-100 ring-4 ring-exam-sky-100"
+      ? "border-solid border-exam-sky-500 bg-exam-sky-100"
       : state === "ready"
         ? "cursor-pointer border-dashed border-exam-sky-400 bg-exam-sky-50"
         : pool
@@ -439,7 +439,7 @@ export function DropZone({
         gap ? "rounded border-0" : "border-2",
         "transition-[border-color,background-color,box-shadow] duration-150",
         // Görsel üstü alanların köşesi şekilden (style) gelir.
-        variant === "overlay" || gap ? null : inline ? "rounded-lg" : "rounded-xl",
+        variant === "overlay" || gap ? null : inline ? "rounded-[6px]" : "rounded-[10px]",
         look,
         className,
       )}
@@ -537,14 +537,14 @@ export function StartOver({ onReset, disabled }: { onReset: () => void; disabled
             setAsk(false);
             onReset();
           }}
-          className="h-11 rounded-lg bg-rose-600 px-4 text-sm font-bold text-white hover:bg-rose-700"
+          className="h-11 rounded-[6px] bg-exam-bad px-4 text-sm font-bold text-white hover:bg-exam-bad-ink"
         >
           Yes
         </button>
         <button
           type="button"
           onClick={() => setAsk(false)}
-          className="h-11 rounded-lg border border-exam-slate-200 bg-white px-4 text-sm font-bold text-exam-slate-700 hover:bg-exam-slate-50"
+          className="h-11 rounded-[6px] border border-exam-slate-200 bg-white px-4 text-sm font-bold text-exam-slate-700 hover:bg-exam-slate-50"
         >
           No
         </button>
@@ -555,7 +555,7 @@ export function StartOver({ onReset, disabled }: { onReset: () => void; disabled
     <button
       type="button"
       onClick={() => setAsk(true)}
-      className="inline-flex h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-exam-slate-600 hover:bg-exam-slate-100 [&>svg]:size-4"
+      className="inline-flex h-11 items-center gap-1.5 rounded-[6px] px-3 text-sm font-semibold text-exam-slate-600 hover:bg-exam-slate-100 [&>svg]:size-4"
     >
       <IconUndo aria-hidden />
       Start over

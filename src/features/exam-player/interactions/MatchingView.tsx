@@ -109,14 +109,14 @@ export function MatchingView({
               <li
                 key={l.id}
                 className={cn(
-                  "grid items-stretch gap-2 rounded-xl border-2 bg-white p-2",
+                  "grid items-stretch gap-2 rounded-[10px] border-2 bg-white p-2",
                   // Ses cevabı: kutu ses kartı kadar dar, satırın sağında; sol taraf kalan genişliği alır.
                   audio ? "grid-cols-[minmax(0,1fr)_auto] @md:gap-3" : "@xs:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] @md:gap-3",
-                  isCorrect ? "border-emerald-400" : "border-exam-slate-200",
+                  isCorrect ? "border-exam-ok" : "border-exam-slate-200",
                 )}
               >
                 <div className={cn("flex min-w-0 items-center gap-2.5 px-1.5", leftFormat === "IMAGE" ? "py-0" : "py-1")}>
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-exam-navy-700 text-sm font-bold text-white" aria-hidden>
+                  <span className="grid size-7 shrink-0 place-items-center rounded-[6px] bg-exam-navy-900 text-sm font-bold text-white" aria-hidden>
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1 text-exam-slate-800">

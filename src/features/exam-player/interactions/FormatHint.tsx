@@ -44,10 +44,10 @@ export function FormatHint({
   if (!help) return null;
   return (
     <div className={cn("flex flex-wrap items-center gap-x-2.5 gap-y-1", className)}>
-      <span className="inline-flex h-7 items-center rounded-full bg-exam-navy-700 px-3 text-xs font-bold uppercase tracking-wide text-white">
+      <span className="inline-flex h-7 items-center rounded-[4px] bg-exam-navy-900 px-2.5 text-xs font-bold uppercase tracking-[0.08em] text-white">
         {help.label}
       </span>
-      <span className="text-sm font-semibold text-exam-slate-600">{help.how}</span>
+      <span className="text-sm font-semibold text-exam-slate-700">{help.how}</span>
     </div>
   );
 }

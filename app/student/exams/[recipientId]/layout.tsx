@@ -27,12 +27,12 @@ function FlowChrome({ children }: { children: ReactNode }) {
 
   if (conflict) {
     return wrap(
-      <section className="mx-auto max-w-xl rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-neutral-200 sm:p-8">
-        <span className="mx-auto grid size-12 place-items-center rounded-xl bg-(--kid-sun-bg) text-(--kid-sun) [&>svg]:size-6">
+      <section className="mx-auto max-w-xl rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white p-6 text-center shadow-(--sb-e1) sm:p-8">
+        <span className="mx-auto grid size-14 place-items-center rounded-(--sb-r-sm) border-2 border-(--sb-ink) bg-(--sb-volt) text-(--sb-ink) [&>svg]:size-7 [&>svg]:stroke-[2.25]">
           <IconMonitor aria-hidden />
         </span>
-        <h1 className="mt-4 text-xl font-bold text-neutral-900">This test is open on another screen</h1>
-        <p className="mt-2 text-base text-neutral-700">
+        <h1 className="mt-5 text-2xl leading-tight font-extrabold text-(--sb-ink)">This test is open on another screen</h1>
+        <p className="mt-2 text-base text-(--sb-fg-strong)">
           Your test is open in another tab or on another device. If you continue here, the other screen will close.
         </p>
         <KidButton
@@ -58,7 +58,7 @@ function FlowChrome({ children }: { children: ReactNode }) {
   const screen = <ScreenRecovery fallback={wrap(<KidLoading label="Getting your test ready…" />)}>{children}</ScreenRecovery>;
   if (inQuestion) return screen;
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 sm:space-y-8">
       <ExamSteps />
       {screen}
     </div>
@@ -119,29 +119,29 @@ function ExamSteps() {
   const current = Math.max(0, steps.findIndex((step) => step.key === stage));
 
   return (
-    <nav aria-label="Test steps" className="rounded-xl bg-white px-3 ring-1 ring-neutral-200 sm:px-4">
-      {/* Tek satır, ~44px: [● Hazırlık] ——— [● Bölümler] ——— [● Bitti]. Çizgiler ayrı esnek öğe; konumlandırma yok, üst üste binmez. */}
-      <ol className="flex h-11 items-center">
+    <nav aria-label="Test steps" className="rounded-(--sb-r-md) border border-(--sb-line) bg-white px-3 sm:px-5">
+      {/* Tek satır, ~52px: [■ Hazırlık] ━━━ [■ Bölümler] ━━━ [■ Bitti]. Çizgiler ayrı esnek öğe; konumlandırma yok, üst üste binmez. */}
+      <ol className="flex h-13 items-center">
         {steps.map((step, index) => {
           const done = index < current || (stage === "FINISHED" && index === current);
           const active = index === current && !done;
           return (
             <Fragment key={step.key}>
               {index > 0 ? (
-                <li aria-hidden className={cn("mx-2 h-0.5 min-w-3 flex-1 rounded-full sm:mx-3", index <= current ? "bg-(--kid-mint-solid)" : "bg-neutral-200")} />
+                <li aria-hidden className={cn("mx-2 h-1 min-w-3 flex-1 sm:mx-3", index <= current ? "bg-(--sb-ink)" : "bg-(--sb-sunken)")} />
               ) : null}
-              <li className="flex shrink-0 items-center gap-1.5" aria-current={active ? "step" : undefined}>
+              <li className="flex shrink-0 items-center gap-2" aria-current={active ? "step" : undefined}>
                 <span
                   className={cn(
-                    "grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold [&>svg]:size-3.5",
-                    done && "bg-(--kid-mint-solid) text-white",
-                    active && "bg-primary-600 text-white",
-                    !done && !active && "bg-neutral-100 text-neutral-500",
+                    "sb-display grid size-7 shrink-0 place-items-center rounded-(--sb-r-xs) text-sm [&>svg]:size-4 [&>svg]:stroke-[2.75]",
+                    done && "bg-(--sb-ink) text-(--sb-volt)",
+                    active && "border-2 border-(--sb-ink) bg-(--sb-volt) text-(--sb-ink)",
+                    !done && !active && "bg-(--sb-sunken) text-(--sb-fg-muted)",
                   )}
                 >
                   {done ? <IconCheck aria-hidden /> : index + 1}
                 </span>
-                <span className={cn("text-xs font-semibold whitespace-nowrap sm:text-sm", active ? "text-primary-700" : done ? "text-neutral-700" : "text-neutral-500", !active && "max-[379px]:sr-only")}>
+                <span className={cn("text-sm font-semibold whitespace-nowrap sm:text-[15px]", active ? "font-bold text-(--sb-ink)" : done ? "text-(--sb-fg-strong)" : "text-(--sb-fg-muted)", !active && "max-[379px]:sr-only")}>
                   <span className="sm:hidden">{step.short ?? step.label}</span>
                   <span className="hidden sm:inline">{step.label}</span>
                 </span>

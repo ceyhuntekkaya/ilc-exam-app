@@ -119,8 +119,8 @@ export function RecordingWave({
       ctx.lineTo(0, h);
       ctx.closePath();
       const fill = ctx.createLinearGradient(0, mid - amp, 0, h);
-      fill.addColorStop(0, speaking ? "rgba(31, 159, 233, 0.28)" : "rgba(31, 159, 233, 0.08)");
-      fill.addColorStop(1, "rgba(0, 53, 89, 0.02)");
+      fill.addColorStop(0, speaking ? "rgba(31, 107, 255, 0.22)" : "rgba(31, 107, 255, 0.06)");
+      fill.addColorStop(1, "rgba(14, 14, 12, 0.02)");
       ctx.fillStyle = fill;
       ctx.fill();
 
@@ -128,9 +128,8 @@ export function RecordingWave({
       ctx.moveTo(xs[0]!, ys[0]!);
       for (let i = 1; i < xs.length; i++) ctx.lineTo(xs[i]!, ys[i]!);
       const stroke = ctx.createLinearGradient(0, 0, w, 0);
-      stroke.addColorStop(0, "#073559");
-      stroke.addColorStop(0.55, "#1f9fe9");
-      stroke.addColorStop(1, "#e9ba00");
+      stroke.addColorStop(0, "#0e0e0c");
+      stroke.addColorStop(1, "#1f6bff");
       ctx.strokeStyle = stroke;
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
@@ -148,12 +147,12 @@ export function RecordingWave({
 
   return (
     <div className="space-y-2 text-left">
-      <div className="overflow-hidden rounded-xl border border-exam-sky-200 bg-linear-to-b from-exam-sky-50 to-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="overflow-hidden rounded-[10px] border border-exam-slate-200 bg-white">
         <div ref={wrapRef} className="relative h-28 w-full @sm:h-36">
           <canvas ref={canvasRef} className="block size-full" aria-hidden />
           {countdown != null ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white/75">
-              <span className="text-6xl font-black tabular-nums leading-none text-exam-navy-900 @sm:text-7xl" aria-hidden>
+              <span className="sb-display text-7xl leading-none text-exam-navy-900 @sm:text-8xl" aria-hidden>
                 {countdown}
               </span>
             </div>
@@ -168,11 +167,8 @@ export function RecordingWave({
       ) : (
         <>
           <div className="flex items-center justify-center gap-2">
-            <span className="relative flex size-2.5" aria-hidden>
-              <span className="absolute inline-flex size-full rounded-full bg-red-500 opacity-50 motion-safe:animate-ping" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-red-600 ring-2 ring-red-200" />
-            </span>
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-red-700">Recording</span>
+            <span className="inline-flex size-2.5 rounded-full bg-exam-bad" aria-hidden />
+            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-exam-bad-ink">Recording</span>
           </div>
           <p className="text-center text-sm font-semibold text-exam-slate-700" aria-live="polite">
             {heard ? "We can hear you. Tap Stop when you finish." : "Speak closer to the microphone. The line moves when we hear you."}

@@ -54,7 +54,7 @@ function Placeholder({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-exam-slate-200 bg-exam-slate-50 px-3 py-4 text-center text-xs text-exam-slate-500",
+        "flex flex-col items-center justify-center gap-1 rounded-[6px] border border-dashed border-exam-slate-200 bg-exam-slate-50 px-3 py-4 text-center text-xs text-exam-slate-500",
         className,
       )}
     >
@@ -82,7 +82,7 @@ export function MediaImageSlot({
       src={url}
       alt={alt || ""}
       draggable={false}
-      className={className ?? "max-h-64 w-full rounded-lg object-contain"}
+      className={className ?? "max-h-64 w-full rounded-[6px] object-contain"}
     />
   );
 }
@@ -204,7 +204,7 @@ function PlaysLeft({ max, remaining, className }: { max: number; remaining: numb
     <span className={cn("flex items-center gap-1.5", className)} aria-label={`${remaining} of ${max} plays left`}>
       <span className="flex gap-1" aria-hidden>
         {Array.from({ length: max }, (_, i) => (
-          <span key={i} className={cn("size-2 rounded-full", i < remaining ? "bg-exam-sky-500" : "bg-exam-slate-200")} />
+          <span key={i} className={cn("size-2 rounded-[2px]", i < remaining ? "bg-exam-navy-900" : "bg-exam-slate-200")} />
         ))}
       </span>
       <span className="text-xs font-semibold text-exam-slate-500">
@@ -271,10 +271,10 @@ export function MediaAudio({
           }}
           aria-label={p.playing ? "Listening to the instructions" : "Listen to the instructions"}
           className={cn(
-            "inline-flex h-11 items-center gap-2 rounded-full border-2 px-4 text-sm font-bold transition",
+            "inline-flex h-11 items-center gap-2 rounded-[10px] border-2 px-4 text-sm font-bold transition-colors duration-120",
             p.playing
-              ? "border-exam-sky-500 bg-exam-sky-500 text-white"
-              : "border-exam-sky-300 bg-white text-exam-sky-750 enabled:hover:bg-exam-sky-50",
+              ? "border-exam-navy-900 bg-exam-navy-900 text-white"
+              : "border-exam-navy-900 bg-white text-exam-navy-900 enabled:hover:bg-exam-navy-50",
             "disabled:cursor-not-allowed",
             !p.playing && disabled && "opacity-50",
           )}
@@ -304,7 +304,7 @@ export function MediaAudio({
           aria-label={label}
           className={cn(
             "grid size-11 shrink-0 place-items-center rounded-full transition",
-            p.playing ? "bg-exam-sky-500 text-white ring-4 ring-exam-sky-100" : disabled ? "bg-exam-slate-300 text-white" : "bg-exam-sky-600 text-white hover:bg-exam-sky-700",
+            p.playing ? "bg-exam-navy-900 text-white" : disabled ? "bg-exam-slate-300 text-white" : "bg-exam-navy-900 text-white hover:bg-exam-navy-600",
             disabled ? "cursor-[inherit]" : "cursor-pointer",
           )}
         >
@@ -320,8 +320,8 @@ export function MediaAudio({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border-2 p-3 transition",
-        p.playing ? "border-exam-sky-400 bg-exam-sky-50 ring-4 ring-exam-sky-100" : "border-exam-slate-200 bg-white",
+        "flex items-center gap-3 rounded-[10px] border-2 p-3 transition",
+        p.playing ? "border-exam-navy-900 bg-exam-navy-50" : "border-exam-slate-200 bg-white",
         p.waiting && "opacity-50",
         className,
       )}
@@ -334,8 +334,8 @@ export function MediaAudio({
         onClick={() => p.start(ref.current)}
         aria-label={label}
         className={cn(
-          "grid size-14 shrink-0 place-items-center rounded-full text-white shadow-sm transition",
-          p.playing ? "bg-exam-sky-500" : disabled ? "bg-exam-slate-300" : "bg-exam-sky-600 shadow-sm hover:bg-exam-sky-700 active:scale-95",
+          "grid size-14 shrink-0 place-items-center rounded-full text-white transition",
+          p.playing ? "bg-exam-navy-900" : disabled ? "bg-exam-slate-300" : "bg-exam-navy-900 hover:bg-exam-navy-600",
           "disabled:cursor-not-allowed",
         )}
       >
@@ -354,8 +354,8 @@ export function MediaAudio({
           </p>
           {p.max != null ? <PlaysLeft max={p.max} remaining={p.remaining ?? 0} /> : null}
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-exam-slate-100" aria-hidden>
-          <div className="h-full rounded-full bg-exam-sky-500 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
+        <div className="h-1.5 overflow-hidden rounded-[2px] bg-exam-slate-100" aria-hidden>
+          <div className="h-full bg-exam-navy-900 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
         </div>
         {p.preview && !unlimited && playback?.maxPlays != null ? (
           <p className="text-[11px] text-exam-slate-500">Önizleme · sınırsız (öğrenci limiti {playback.maxPlays})</p>
@@ -461,7 +461,7 @@ export function MediaVideoPopup({
         }}
         aria-label={p.blocked && !p.preview ? "Video watched. No more plays." : "Watch the video"}
         className={cn(
-          "group relative grid aspect-video shrink-0 place-items-center overflow-hidden rounded-lg bg-exam-slate-800 text-white",
+          "group relative grid aspect-video shrink-0 place-items-center overflow-hidden rounded-[6px] bg-exam-slate-800 text-white",
           // Devre dışıyken imleç kartınkini alır (sürüklenebilir kartta "tut").
           disabled ? "cursor-[inherit]" : "cursor-pointer",
           tile ? "w-full" : "w-32 @sm:w-40",
@@ -471,10 +471,10 @@ export function MediaVideoPopup({
         <span className="absolute inset-0 bg-black/30" aria-hidden />
         <span
           className={cn(
-            "relative grid place-items-center rounded-full shadow transition ",
+            "relative grid place-items-center rounded-full transition ",
             !disabled && "group-hover:scale-105",
             "size-10 [&>svg]:size-5",
-            disabled ? "bg-white/70 text-exam-slate-500" : "bg-white text-exam-sky-700",
+            disabled ? "bg-white/70 text-exam-slate-500" : "bg-white text-exam-navy-900",
           )}
           aria-hidden
         >
@@ -492,7 +492,7 @@ export function MediaVideoPopup({
           <p
             className={cn(
               "flex h-5 items-center gap-1 text-xs font-bold [&>svg]:size-3.5 [&>svg]:shrink-0",
-              note ? "text-amber-700" : p.blocked && !p.preview ? "text-emerald-700" : "text-exam-slate-600",
+              note ? "text-exam-warn" : p.blocked && !p.preview ? "text-exam-ok-ink" : "text-exam-slate-600",
             )}
           >
             {note ? <IconLock aria-hidden /> : p.blocked && !p.preview ? <IconCheck aria-hidden /> : <IconPlay aria-hidden />}
@@ -503,7 +503,7 @@ export function MediaVideoPopup({
       ) : (
         <div className="min-w-0 flex-1 space-y-1">
           {caption}
-          <p className={cn("flex items-center gap-1 text-xs font-bold [&>svg]:size-3.5", note ? "text-amber-700" : "text-exam-slate-600")}>
+          <p className={cn("flex items-center gap-1 text-xs font-bold [&>svg]:size-3.5", note ? "text-exam-warn" : "text-exam-slate-600")}>
             {note ? <IconLock aria-hidden /> : null}
             {note ?? status}
           </p>
@@ -536,7 +536,7 @@ export function MediaVideoPopup({
                 if (e.target === e.currentTarget) close();
               }}
             >
-              <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="w-full max-w-3xl overflow-hidden rounded-[14px] bg-white shadow-2xl">
                 <div className="bg-black">
                   <video
                     ref={ref}
@@ -551,7 +551,7 @@ export function MediaVideoPopup({
                   />
                 </div>
                 <div className="h-1 bg-exam-slate-100" aria-hidden>
-                  <div className="h-full bg-exam-sky-500 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
+                  <div className="h-full bg-exam-navy-900 transition-[width] duration-300 ease-linear" style={{ width: `${p.progress * 100}%` }} />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <p className="flex items-center gap-2 text-sm font-bold text-exam-slate-800" aria-live="polite">
@@ -562,7 +562,7 @@ export function MediaVideoPopup({
                     type="button"
                     disabled={!canClose}
                     onClick={close}
-                    className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-exam-sky-600 px-4 text-sm font-bold text-white enabled:hover:bg-exam-sky-700 disabled:bg-exam-slate-300 [&>svg]:size-4"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-[6px] bg-exam-navy-900 px-4 text-sm font-bold text-white enabled:hover:bg-exam-navy-600 disabled:bg-exam-slate-300 [&>svg]:size-4"
                   >
                     {canClose ? <IconX aria-hidden /> : <IconLock aria-hidden />}
                     Close

@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import { skillFamily, type SkillFamily } from "./skill";
 
 export type ReportOutcome = {
   id: string;
@@ -14,6 +15,7 @@ export type ReportOutcome = {
 
 export type ReportSection = {
   title: string;
+  skill?: string | null;
   earned: number | string | null;
   available: number | string | null;
 };
@@ -64,6 +66,15 @@ const TEAL: [number, number, number] = [15, 118, 110];
 const MUTED: [number, number, number] = [90, 104, 120];
 const PAPER: [number, number, number] = [247, 244, 239];
 const LINE: [number, number, number] = [214, 206, 196];
+
+/** theme-colors.css `--color-skill-*` ile aynı kalmalı. */
+const SKILL_RGB: Record<SkillFamily, [number, number, number]> = {
+  reading: [31, 107, 255],
+  listening: [0, 154, 107],
+  writing: [223, 106, 0],
+  speaking: [214, 19, 111],
+  language: [124, 77, 255],
+};
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -289,8 +300,14 @@ function drawSections(doc: jsPDF, sections: ReportSection[], y: number) {
   const rowH = 5.2;
   for (let index = 0; index < sections.length; index++) {
     const section = sections[index];
-    const x = MARGIN + (index % 2) * (colW + gap);
+    const family = skillFamily(section.skill);
+    const markW = family ? 3.2 : 0;
+    const x = MARGIN + (index % 2) * (colW + gap) + markW;
     const lineY = y + Math.floor(index / 2) * rowH;
+    if (family) {
+      doc.setFillColor(...SKILL_RGB[family]);
+      doc.rect(x - markW, lineY - 2, 2, 2, "F");
+    }
     const score = `${points(section.earned)} / ${points(section.available)}`;
     doc.setFont("NotoSans", "bold");
     doc.setFontSize(9);
@@ -299,7 +316,7 @@ function drawSections(doc: jsPDF, sections: ReportSection[], y: number) {
     const separator = " : ";
     const separatorW = doc.getTextWidth(separator);
     doc.setTextColor(...NAVY);
-    const title = ellipsize(doc, section.title?.trim() || "Bölüm", Math.max(16, colW - scoreW - separatorW));
+    const title = ellipsize(doc, section.title?.trim() || "Bölüm", Math.max(16, colW - markW - scoreW - separatorW));
     const label = `${title}${separator}`;
     const labelW = doc.getTextWidth(label);
     doc.text(label, x, lineY);

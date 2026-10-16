@@ -1,42 +1,55 @@
 /*
-  Exam-player (öğrenci soru) paleti — tomer-exam-app görsel diline yakın.
+  Exam-player (öğrenci soru) paleti — Skorbord "güven" modu: mürekkep, sıcak nötr, kobalt.
   Admin primary (turuncu) ile karışmasın diye `exam-*` öneki kullanılır.
+  Admin "Öğrenci önizlemesi" de bu paleti kullanır; iki taraf aynı görünür.
 */
 
 @theme {
-  --color-exam-navy-50: #e8f1f8;
-  --color-exam-navy-100: #c5d9ea;
-  --color-exam-navy-200: #9fbfdb;
-  --color-exam-navy-300: #78a5cc;
-  --color-exam-navy-400: #4e8bbd;
-  --color-exam-navy-500: #2671ae;
-  --color-exam-navy-600: #1a5e98;
-  --color-exam-navy-700: #104c82;
-  --color-exam-navy-800: #073559;
-  --color-exam-navy-900: #003559;
+  --color-exam-navy-50: #f0f0ec;
+  --color-exam-navy-100: #e2e2dc;
+  --color-exam-navy-200: #c9c9c1;
+  --color-exam-navy-300: #a5a59c;
+  --color-exam-navy-400: #5f5f58;
+  --color-exam-navy-500: #45453f;
+  --color-exam-navy-600: #2a2a26;
+  --color-exam-navy-700: #1f1f1c;
+  --color-exam-navy-800: #161614;
+  --color-exam-navy-900: #0e0e0c;
 
-  --color-exam-sky-50: #edf7fe;
-  --color-exam-sky-100: #d2ecfb;
-  --color-exam-sky-200: #a8d9f7;
-  --color-exam-sky-300: #7ec6f3;
-  --color-exam-sky-400: #54b3ef;
-  --color-exam-sky-500: #1f9fe9;
-  --color-exam-sky-600: #1788cc;
-  --color-exam-sky-700: #1171aa;
-  --color-exam-sky-750: #1a5d92;
-  --color-exam-sky-800: #0b5a88;
-  --color-exam-sky-900: #064366;
+  --color-exam-sky-50: #f0f5ff;
+  --color-exam-sky-100: #e0eaff;
+  --color-exam-sky-200: #bfd3ff;
+  --color-exam-sky-300: #93b4ff;
+  --color-exam-sky-400: #5c8dff;
+  --color-exam-sky-500: #1f6bff;
+  --color-exam-sky-600: #1a5ce6;
+  --color-exam-sky-700: #1a4fd1;
+  --color-exam-sky-750: #1844b5;
+  --color-exam-sky-800: #173c9e;
+  --color-exam-sky-900: #142f78;
 
-  --color-exam-slate-50: #f8fafb;
-  --color-exam-slate-100: #eef2f5;
-  --color-exam-slate-200: #d9e2e8;
-  --color-exam-slate-300: #b8c9d4;
-  --color-exam-slate-400: #8aa3b3;
-  --color-exam-slate-500: #66869b;
-  --color-exam-slate-600: #517084;
-  --color-exam-slate-700: #3f5868;
-  --color-exam-slate-800: #2f4250;
-  --color-exam-slate-900: #1e2c36;
+  --color-exam-slate-50: #fafaf8;
+  --color-exam-slate-100: #f0f0ec;
+  --color-exam-slate-200: #dcdcd5;
+  --color-exam-slate-300: #c2c2ba;
+  --color-exam-slate-400: #8a8a82;
+  --color-exam-slate-500: #6b6b63;
+  --color-exam-slate-600: #55554f;
+  --color-exam-slate-700: #3f3f3a;
+  --color-exam-slate-800: #2a2a26;
+  --color-exam-slate-900: #1a1a17;
+
+  --color-exam-ok-bg: #e3f3e8;
+  --color-exam-ok-line: #b9e0c6;
+  --color-exam-ok: #0e7c3a;
+  --color-exam-ok-ink: #0a5c2b;
+  --color-exam-bad-bg: #fde8eb;
+  --color-exam-bad-line: #f5b5c0;
+  --color-exam-bad: #c8102e;
+  --color-exam-bad-ink: #9e0c24;
+  --color-exam-warn-bg: #fff1db;
+  --color-exam-warn-line: #f2d29b;
+  --color-exam-warn: #a15c00;
 
   --color-exam-gold-400: #e9ba00;
   --color-exam-cream: #fbf1cc;
@@ -44,7 +57,7 @@
 
 .exam-player .prose-section {
   line-height: 1.55;
-  color: #1e293b;
+  color: #2a2a26;
   overflow-wrap: anywhere;
 }
 
@@ -53,7 +66,7 @@
 }
 
 .exam-player .prose-section :where(strong, b, h1, h2, h3, h4, h5, h6) {
-  color: #0f172a;
+  color: #0e0e0c;
   font-weight: 600;
 }
 
@@ -77,7 +90,7 @@
   width: 3px;
   height: 100%;
   border-radius: 2px;
-  background: var(--color-exam-sky-600);
+  background: var(--color-exam-navy-900);
   transform-origin: bottom;
   animation: ep-bar 1.2s ease-in-out infinite;
 }
