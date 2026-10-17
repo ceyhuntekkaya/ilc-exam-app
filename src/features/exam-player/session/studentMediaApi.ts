@@ -98,12 +98,36 @@ function uploadError(status: number, body: unknown) {
   return error;
 }
 
-export function applicationMediaContentUrl(
+export async function openAnswerContentTicket(
   applicationId: string,
+  sessionToken: string,
   mediaId: string,
-  sessionToken?: string,
-): string {
+): Promise<string> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Session-Token": sessionToken,
+  };
+  const token = getClientAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let res: Response;
+  try {
+    res = await fetch(`/api/backend/applications/${applicationId}/media/${mediaId}/content-ticket`, {
+      method: "POST",
+      headers,
+    });
+  } catch {
+    throw Object.assign(new Error(studentErrorMessage({ status: 0 }, "upload")), { status: 0 });
+  }
+  const data = await readJson(res);
+  if (!res.ok) throw uploadError(res.status, data);
+  const ticket = data && typeof data === "object" ? (data as { ticket?: unknown }).ticket : undefined;
+  if (typeof ticket !== "string" || ticket.length === 0) {
+    throw uploadError(502, data);
+  }
+  return ticket;
+}
+
+export function applicationMediaContentUrl(applicationId: string, mediaId: string, ticket: string): string {
   const base = `/api/backend/applications/${applicationId}/media/${mediaId}/content`;
-  if (!sessionToken) return base;
-  return `${base}?sessionToken=${encodeURIComponent(sessionToken)}`;
+  return `${base}?contentTicket=${encodeURIComponent(ticket)}`;
 }

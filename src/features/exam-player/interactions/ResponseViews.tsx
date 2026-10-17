@@ -5,7 +5,7 @@ import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync
 import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
 import { enqueueRecording, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
-import { applicationMediaContentUrl, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
+import { applicationMediaContentUrl, openAnswerContentTicket, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
 import { type HtmlValue } from "@/src/features/exam-player/types";
@@ -13,7 +13,7 @@ import { expectFullscreenExit, settleExpectedExitSoon, withExpectedExit } from "
 import { cn } from "@/src/lib/utils/cn";
 import { IconCheck, IconImage, IconTrash, IconUpload } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 
 function ManualAnswerHints({
   answerKey,
@@ -234,22 +234,49 @@ function savedMediaIds(saved: Record<string, unknown> | undefined): string[] {
   return typeof saved?.mediaId === "string" && saved.mediaId ? [saved.mediaId] : [];
 }
 
-function entriesFromSaved(session: ReturnType<typeof useExamSession>, saved: Record<string, unknown> | undefined): UploadEntry[] {
-  if (!session) return [];
+function entriesFromSaved(saved: Record<string, unknown> | undefined): Array<Omit<UploadEntry, "url"> & { mediaId: string }> {
   return savedMediaIds(saved).map((mediaId, i) => ({
     key: mediaId,
     name: `File ${i + 1}`,
-    url: applicationMediaContentUrl(session.applicationId, mediaId, session.sessionToken),
     mediaId,
   }));
 }
 
-/** Oturumdaki medyanın adresi. Sunucu cevabı hidrasyondan sonra gelirse de dolar. */
+/** Oturumdaki medyanın adresi. Bilet adreste oturum jetonu taşımaz. */
 function useRestoredEntries(itemId: string | undefined, preview?: boolean): UploadEntry[] {
   const session = useExamSession();
   const saved = useSavedAnswer(itemId, preview);
-  return useMemo(() => entriesFromSaved(session, saved), [saved, session]);
+  const [entries, setEntries] = useState<UploadEntry[]>([]);
+  const savedIds = savedMediaIds(saved).join(",");
+  useEffect(() => {
+    const rows = entriesFromSaved(saved);
+    if (!session || rows.length === 0) {
+      setEntries([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(
+      rows.map(async (row) => {
+        const ticket = await openAnswerContentTicket(session.applicationId, session.sessionToken, row.mediaId);
+        return {
+          ...row,
+          url: applicationMediaContentUrl(session.applicationId, row.mediaId, ticket),
+        };
+      }),
+    )
+      .then((next) => {
+        if (!cancelled) setEntries(next);
+      })
+      .catch(() => {
+        if (!cancelled) setEntries([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [savedIds, session, preview]);
+  return entries;
 }
+
 
 /** Yüklenen dosyaların listesini cevap olarak kaydeder (soru "cevaplandı" sayılır; kaldırma da yansır). */
 function saveMediaAnswer(session: ReturnType<typeof useExamSession>, itemId: string | undefined, entries: UploadEntry[]) {
