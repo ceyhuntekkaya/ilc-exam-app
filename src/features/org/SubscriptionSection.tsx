@@ -58,7 +58,7 @@ export function SubscriptionSection({ companyId }: { companyId: string }) {
         columns={["Dönem", { label: "Max öğrenci", align: "right" }, "Durum", ""]}
         rows={rows.map((r) => [
           `${r.startDate ?? "—"} → ${r.endDate ?? "—"}`,
-          r.maxStudents === 0 ? "Sınırsız" : String(r.maxStudents),
+          r.maxStudents === 0 ? "sınırsız" : String(r.maxStudents),
           <Badge
             key="st"
             tone={r.status === "ACTIVE" ? "success" : r.status === "CANCELLED" ? "danger" : "warning"}
