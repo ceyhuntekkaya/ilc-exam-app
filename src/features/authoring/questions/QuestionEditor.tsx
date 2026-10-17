@@ -1335,7 +1335,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     />
                     <Button
                       size="sm"
-                      disabled={!editable || !enemyInput.trim()}
+                      disabled={!enemyInput.trim()}
                       onClick={() =>
                         void notify
                           .run(authoringApi.addEnemy(q.questionId, enemyInput), {
