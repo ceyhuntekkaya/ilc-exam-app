@@ -19,9 +19,11 @@ type Result = {
   applicationId: string;
   examTitle: string;
   totalScore?: number | null;
+  shownScore?: number | string | null;
+  shownScale?: number | string | null;
   cefrLevel?: string | null;
   skillScores?: Record<string, number> | null;
-  sections?: { title: string; skill?: string | null; earned: number | string | null }[] | null;
+  sections?: { title: string; skill?: string | null; earned: number | string | null; available?: number | string | null }[] | null;
 };
 
 const SKILL_LABEL: Record<string, string> = {
@@ -328,11 +330,19 @@ function DoneRow({ row }: { row: AssignmentCard }) {
   );
 }
 
+function headlineScore(row: Result) {
+  const shown = row.shownScore ?? row.totalScore;
+  if (shown == null || shown === "") return "—";
+  const scale = row.shownScale;
+  if (scale == null || scale === "" || Number(scale) <= 0) return String(shown);
+  return `${shown} / ${scale}`;
+}
+
 function ResultCard({ row }: { row: Result }) {
   const sections = (row.sections ?? []).filter((section) => section.title);
   const skills = sections.length
-    ? sections.map((section) => [section.title, section.earned, section.skill] as const)
-    : Object.entries(row.skillScores ?? {}).map(([skill, score]) => [skill, score, skill] as const);
+    ? sections.map((section) => [section.title, section.earned, section.skill, section.available] as const)
+    : Object.entries(row.skillScores ?? {}).map(([skill, score]) => [skill, score, skill, null] as const);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -379,7 +389,7 @@ function ResultCard({ row }: { row: Result }) {
       <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
         <div>
           <p className="sb-overline text-slate-400">Your score</p>
-          <p className="sb-display mt-0.5 text-4xl leading-none text-slate-900 sm:text-5xl">{row.totalScore ?? "—"}</p>
+          <p className="sb-display mt-0.5 text-4xl leading-none text-slate-900 sm:text-5xl">{headlineScore(row)}</p>
         </div>
         {row.cefrLevel ? (
           <StatusPill className="h-8 px-3 text-sm font-extrabold shadow-2xs" tone="grape" icon={<IconTrophy aria-hidden className="text-purple-600" />}>
@@ -389,9 +399,11 @@ function ResultCard({ row }: { row: Result }) {
       </div>
       {skills.length ? (
         <ul className="mt-5 space-y-3">
-          {skills.map(([skill, score, skillKey], index) => {
+          {skills.map(([skill, score, skillKey, available], index) => {
             const value = typeof score === "number" ? score : Number(score);
+            const cap = typeof available === "number" ? available : Number(available);
             const shown = Number.isFinite(value) ? value : score;
+            const hasCap = Number.isFinite(cap) && cap > 0 && Number.isFinite(value);
             const family = skillFamily(skillKey);
             return (
               <li key={`${skill}-${index}`}>
@@ -400,16 +412,18 @@ function ResultCard({ row }: { row: Result }) {
                     <span aria-hidden className={cn("size-2 rounded-full shrink-0", family ? skillClass[family].solid : "bg-indigo-600")} />
                     <span className="truncate">{SKILL_LABEL[skill] ?? skill}</span>
                   </span>
-                  <span className="sb-display text-base leading-none text-slate-900">{String(shown)}</span>
+                  <span className="sb-display text-base leading-none text-slate-900">
+                    {hasCap ? `${shown} / ${cap}` : String(shown)}
+                  </span>
                 </div>
-                {Number.isFinite(value) && value >= 0 && value <= 100 ? (
+                {hasCap ? (
                   <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
                       className={cn(
                         "h-full rounded-full transition-[width] duration-300 ease-out",
                         family ? skillClass[family].solid : "bg-indigo-600",
                       )}
-                      style={{ width: `${value}%` }}
+                      style={{ width: `${Math.min(100, (value / cap) * 100)}%` }}
                     />
                   </div>
                 ) : null}
