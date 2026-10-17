@@ -2,8 +2,10 @@
 
 import { AssignmentCloseActions, type AssignmentLifecycleItem } from "@/src/features/assignments/AssignmentCloseActions";
 import { AssignmentScopeFields, filtersToQuery, useAssignmentScope, type RosterPhase } from "@/src/features/assignments/assignmentScope";
+import { customInstance } from "@/src/api/mutator";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
-import { Badge, ButtonLink, ErrorState, SectionTable, SectionToolbar } from "@/src/ui";
+import { Badge, Button, ButtonLink, ErrorState, SectionTable, SectionToolbar, errorMessage, notify } from "@/src/ui";
+import { useMutation } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
@@ -36,6 +38,32 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const scope = useAssignmentScope(companyId, { includeLicensed: true });
   const { campusId, seasonId, examValue, gradeValue, branchValue, branchOptions, exams, selectedExam, assignments, rosterQ, rosterRows, gradingId, filters } = scope;
   const lifecycleItems = useMemo(() => lifecycleOf(rosterRows, assignments), [rosterRows, assignments]);
+  const openAssignmentId = useMemo(() => {
+    const open = assignments.filter(
+      (item) =>
+        item.status === "OPEN" &&
+        item.id &&
+        item.examVersionId === examValue &&
+        item.instituteId === campusId &&
+        item.academicYearId === seasonId,
+    );
+    return open.length === 1 ? open[0].id ?? null : null;
+  }, [assignments, examValue, campusId, seasonId]);
+  const addRecipient = useMutation({
+    mutationFn: (studentId: string) => {
+      if (!openAssignmentId) throw new Error("Açık atama yok");
+      return customInstance(`/assignments/${openAssignmentId}/recipients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+    },
+    onSuccess: () => {
+      notify.success("Öğrenci atamaya eklendi");
+      void rosterQ.refetch();
+    },
+    onError: (err) => notify.error(errorMessage(err, "Öğrenci eklenemedi")),
+  });
 
   if (scope.listFailed) {
     return <ErrorState error={scope.listError} onRetry={scope.refetchLists} compact />;
@@ -120,7 +148,20 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
               ) : (
                 ""
               ),
-              row.phase === "IN_PROGRESS" && row.assignmentId ? (
+              row.phase === "NONE" && openAssignmentId ? (
+                <div key="a" className="flex justify-end">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="min-h-11"
+                    loading={addRecipient.isPending && addRecipient.variables === row.studentId}
+                    disabled={addRecipient.isPending}
+                    onClick={() => addRecipient.mutate(row.studentId)}
+                  >
+                    Atamaya ekle
+                  </Button>
+                </div>
+              ) : row.phase === "IN_PROGRESS" && row.assignmentId ? (
                 <div key="a" className="flex justify-end">
                   <ButtonLink
                     href={`${hrefs.monitor(row.assignmentId)}?studentId=${encodeURIComponent(row.studentId)}&from=${encodeURIComponent(returnTo)}`}

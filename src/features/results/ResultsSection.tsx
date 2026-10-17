@@ -12,6 +12,7 @@ import { Button, EmptyState, ErrorState, IconFile, PageHeader, RichText, Skeleto
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { answerKeyVisible, choicePaint, type ChoicePaint } from "./choiceTone";
 import type { ReportDeck } from "./reportCardPdf";
 import { skillClass, skillFamily } from "./skill";
 
@@ -119,6 +120,13 @@ const PHASE: Record<string, string> = {
   IN_PROGRESS: "Sınavda",
   FINISHED: "Tamamlandı",
   EVALUATED: "Yayınlandı",
+};
+
+const CHOICE_TONE: Record<ChoicePaint, string> = {
+  success: "bg-success-bg ring-success/30",
+  danger: "bg-danger-bg ring-danger/30",
+  key: "bg-ilc-paper ring-ilc-teal/40",
+  plain: "bg-transparent ring-transparent",
 };
 
 const VERDICT: Record<string, { label: string; mark: string; tone: string }> = {
@@ -565,6 +573,7 @@ function AnswerCard({
 }) {
   const verdict = VERDICT[answer.verdict] ?? VERDICT.BLANK;
   const label = getTemplate(answer.interactionType)?.label ?? answer.interactionType;
+  const keyVisible = answerKeyVisible(answer.choices);
   return (
     <section className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg bg-white/80 p-3 ring-1 ring-ilc-line ring-inset sm:p-4">
       <div className={cn("grid size-9 place-items-center rounded-full text-sm font-semibold ring-1 ring-inset", verdict.tone)} aria-hidden>
@@ -596,10 +605,7 @@ function AnswerCard({
                 key={`${choice.html}-${choice.mediaId ?? ""}-${index}`}
                 className={cn(
                   "flex min-h-11 items-start gap-2.5 rounded-md px-2.5 py-2 ring-1 ring-inset",
-                  choice.selected && choice.correct && "bg-success-bg ring-success/30",
-                  choice.selected && !choice.correct && "bg-danger-bg ring-danger/30",
-                  !choice.selected && choice.correct && "bg-ilc-paper ring-ilc-teal/40",
-                  !choice.selected && !choice.correct && "bg-transparent ring-transparent",
+                  CHOICE_TONE[choicePaint(choice, keyVisible, answer.verdict)],
                 )}
               >
                 <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white text-xs font-semibold text-ilc-navy ring-1 ring-ilc-line">

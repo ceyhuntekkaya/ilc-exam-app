@@ -27,12 +27,12 @@ function FlowChrome({ children }: { children: ReactNode }) {
 
   if (conflict) {
     return wrap(
-      <section className="mx-auto max-w-xl rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white p-6 text-center shadow-(--sb-e1) sm:p-8">
-        <span className="mx-auto grid size-14 place-items-center rounded-(--sb-r-sm) border-2 border-(--sb-ink) bg-(--sb-volt) text-(--sb-ink) [&>svg]:size-7 [&>svg]:stroke-[2.25]">
+      <section className="mx-auto max-w-xl rounded-3xl border border-indigo-100 bg-white p-7 text-center shadow-xl shadow-indigo-950/5 sm:p-9">
+        <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-100 text-amber-700 shadow-xs [&>svg]:size-8 [&>svg]:stroke-[2.25]">
           <IconMonitor aria-hidden />
         </span>
-        <h1 className="mt-5 text-2xl leading-tight font-extrabold text-(--sb-ink)">This test is open on another screen</h1>
-        <p className="mt-2 text-base text-(--sb-fg-strong)">
+        <h1 className="mt-5 font-kid text-2xl leading-tight font-bold text-slate-900">This test is open on another screen</h1>
+        <p className="mt-2 text-base text-slate-600">
           Your test is open in another tab or on another device. If you continue here, the other screen will close.
         </p>
         <KidButton
@@ -119,8 +119,7 @@ function ExamSteps() {
   const current = Math.max(0, steps.findIndex((step) => step.key === stage));
 
   return (
-    <nav aria-label="Test steps" className="rounded-(--sb-r-md) border border-(--sb-line) bg-white px-3 sm:px-5">
-      {/* Tek satır, ~52px: [■ Hazırlık] ━━━ [■ Bölümler] ━━━ [■ Bitti]. Çizgiler ayrı esnek öğe; konumlandırma yok, üst üste binmez. */}
+    <nav aria-label="Test steps" className="rounded-2xl border border-slate-200/90 bg-white/90 px-4 py-1 shadow-2xs backdrop-blur-xs sm:px-6">
       <ol className="flex h-13 items-center">
         {steps.map((step, index) => {
           const done = index < current || (stage === "FINISHED" && index === current);
@@ -128,20 +127,32 @@ function ExamSteps() {
           return (
             <Fragment key={step.key}>
               {index > 0 ? (
-                <li aria-hidden className={cn("mx-2 h-1 min-w-3 flex-1 sm:mx-3", index <= current ? "bg-(--sb-ink)" : "bg-(--sb-sunken)")} />
+                <li
+                  aria-hidden
+                  className={cn(
+                    "mx-2.5 h-1 min-w-3 flex-1 rounded-full transition-colors duration-200 sm:mx-4",
+                    index <= current ? "bg-gradient-to-r from-indigo-600 to-indigo-500" : "bg-slate-100",
+                  )}
+                />
               ) : null}
-              <li className="flex shrink-0 items-center gap-2" aria-current={active ? "step" : undefined}>
+              <li className="flex shrink-0 items-center gap-2.5" aria-current={active ? "step" : undefined}>
                 <span
                   className={cn(
-                    "sb-display grid size-7 shrink-0 place-items-center rounded-(--sb-r-xs) text-sm [&>svg]:size-4 [&>svg]:stroke-[2.75]",
-                    done && "bg-(--sb-ink) text-(--sb-volt)",
-                    active && "border-2 border-(--sb-ink) bg-(--sb-volt) text-(--sb-ink)",
-                    !done && !active && "bg-(--sb-sunken) text-(--sb-fg-muted)",
+                    "sb-display grid size-7.5 shrink-0 place-items-center rounded-xl text-xs font-bold transition-all duration-200 [&>svg]:size-4 [&>svg]:stroke-[2.75]",
+                    done && "bg-emerald-500 text-white shadow-xs",
+                    active && "bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-sm shadow-indigo-500/30 ring-3 ring-indigo-100",
+                    !done && !active && "bg-slate-100 text-slate-400",
                   )}
                 >
                   {done ? <IconCheck aria-hidden /> : index + 1}
                 </span>
-                <span className={cn("text-sm font-semibold whitespace-nowrap sm:text-[15px]", active ? "font-bold text-(--sb-ink)" : done ? "text-(--sb-fg-strong)" : "text-(--sb-fg-muted)", !active && "max-[379px]:sr-only")}>
+                <span
+                  className={cn(
+                    "font-kid text-sm whitespace-nowrap sm:text-[15px]",
+                    active ? "font-bold text-slate-900" : done ? "font-semibold text-slate-700" : "font-medium text-slate-400",
+                    !active && "max-[379px]:sr-only",
+                  )}
+                >
                   <span className="sm:hidden">{step.short ?? step.label}</span>
                   <span className="hidden sm:inline">{step.label}</span>
                 </span>

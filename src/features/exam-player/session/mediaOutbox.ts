@@ -3,6 +3,7 @@
 import { readSession } from "@/src/features/exam-flow/session";
 import { getAnswerOutbox } from "@/src/features/exam-player/session/answerOutbox";
 import { claimMedia, releaseMedia } from "@/src/features/exam-player/session/playerGuard";
+import { jobsToPersist } from "@/src/features/exam-player/session/mediaOutboxQueue";
 import { uploadApplicationMedia } from "@/src/features/exam-player/session/studentMediaApi";
 
 type MediaJob = {
@@ -14,6 +15,7 @@ type MediaJob = {
   fileName: string;
   mimeType: string;
   durationMs: number;
+  durable: boolean;
 };
 
 const jobs: MediaJob[] = [];
@@ -80,17 +82,20 @@ export function enqueueRecording(input: {
     fileName: input.file.name,
     mimeType: input.file.type || "application/octet-stream",
     durationMs: input.durationMs,
+    durable: false,
   };
   claimMedia(lockId(job.itemId));
   jobs.push(job);
   memoryBlobs.set(job.id, input.file);
   errors.delete(job.itemId);
-  persistJobs();
   notify();
   const promise = new Promise<{ mediaId: string; url: string }>((resolve, reject) => {
     results.set(job.id, { resolve, reject });
   });
-  void idbPut(job.id, input.file).finally(() => void pump());
+  void idbPut(job.id, input.file).then((stored) => {
+    job.durable = stored;
+    if (stored) persistJobs();
+  }).finally(() => void pump());
   return promise;
 }
 
@@ -108,7 +113,7 @@ export function resumeMediaUploads(applicationId: string, recipientId: string) {
   for (const job of readJobs()) {
     if (job.applicationId !== applicationId) continue;
     if (jobs.some((item) => item.id === job.id)) continue;
-    jobs.push({ ...job, recipientId });
+    jobs.push({ ...job, recipientId, durable: true });
     claimMedia(lockId(job.itemId));
   }
   if (jobs.length) void pump();
@@ -200,8 +205,7 @@ function readJobs(): MediaJob[] {
 
 function persistJobs() {
   try {
-    const rest = readJobs().filter((job) => !jobs.some((item) => item.applicationId === job.applicationId));
-    localStorage.setItem(jobsKey(), JSON.stringify([...rest, ...jobs]));
+    localStorage.setItem(jobsKey(), JSON.stringify(jobsToPersist(readJobs(), jobs)));
   } catch {
     // bellek kuyruğu bu sayfa açıkken devam eder
   }
@@ -222,7 +226,7 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function idbPut(id: string, blob: Blob) {
+async function idbPut(id: string, blob: Blob): Promise<boolean> {
   try {
     const db = await openDb();
     await new Promise<void>((resolve, reject) => {
@@ -231,8 +235,9 @@ async function idbPut(id: string, blob: Blob) {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
+    return true;
   } catch {
-    // bellek kopyası duruyor
+    return false;
   }
 }
 

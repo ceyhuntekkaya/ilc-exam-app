@@ -6,6 +6,7 @@ import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
 import { withExpectedExit } from "@/src/features/exam-flow/fullscreen";
 import type { ExamState } from "@/src/features/exam-flow/schema";
 import { readSession } from "@/src/features/exam-flow/session";
+import { Mascot } from "@/src/features/student/mascot";
 import { KidButton, KidNotice, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCamera, IconCheck, IconMic, IconRefresh, IconX } from "@/src/ui/icons";
@@ -42,12 +43,16 @@ export default function DeviceCheckPage() {
 
   return (
     <section className="space-y-8">
-      <header>
-        <h1 className="sb-display text-4xl leading-[0.95] text-(--sb-ink) sm:text-5xl">Let us check your device</h1>
-        <p className="mt-3 max-w-2xl text-lg text-(--sb-fg-muted)">
-          In this test, you will use your {state.requiresCamera && state.requiresMicrophone ? "microphone and camera" : state.requiresCamera ? "camera" : "microphone"}.
-          Make a short test recording. Then listen or watch. If it is OK, you can go to the parts.
-        </p>
+      <header className="flex items-start gap-5">
+        <div className="min-w-0 flex-1">
+          <p className="sb-overline font-bold tracking-widest text-indigo-600">Equipment check</p>
+          <h1 className="sb-display mt-2 text-4xl leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">Let us check your device</h1>
+          <p className="mt-3 max-w-2xl text-base text-slate-500 sm:text-lg">
+            In this test, you will use your {state.requiresCamera && state.requiresMicrophone ? "microphone and camera" : state.requiresCamera ? "camera" : "microphone"}.
+            Make a short test recording. Then listen or watch. If it is OK, you can go to the parts.
+          </p>
+        </div>
+        <Mascot mood={micOk && camOk ? "thumbsUp" : "hello"} size="md" className="hidden sm:block" />
       </header>
       <div className="grid gap-5 md:grid-cols-2">
         {state.requiresMicrophone ? (
@@ -63,7 +68,7 @@ export default function DeviceCheckPage() {
           {busy ? "Saving…" : "Go to the parts"}
           {busy ? null : <IconArrowRight aria-hidden />}
         </KidButton>
-        {!micOk || !camOk ? <p className="text-(--sb-fg-muted)">First, finish the checks above.</p> : null}
+        {!micOk || !camOk ? <p className="text-sm font-medium text-slate-500">First, finish the checks above.</p> : null}
       </div>
     </section>
   );
@@ -347,41 +352,41 @@ function DeviceCard({
   const stageBg = kind === "CAMERA" && (phase === "countdown" || phase === "recording" || phase === "review") ? "bg-black" : "bg-(--sb-tint)";
 
   return (
-    <article className={cn("flex flex-col rounded-(--sb-r-md) border-2 bg-white p-5 sm:p-6", passed ? "border-(--sb-success)" : "border-(--sb-ink) shadow-(--sb-e1)")}>
+    <article className={cn("flex flex-col rounded-3xl border bg-white p-5 sm:p-6 transition-all duration-200", passed ? "border-emerald-200/90 bg-emerald-50/20 shadow-xs" : "border-slate-200/90 shadow-sm")}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex items-center gap-3 text-xl font-extrabold text-(--sb-ink)">
-          <span className="grid size-11 place-items-center rounded-(--sb-r-sm) bg-(--sb-ink) text-(--sb-volt) [&>svg]:size-5 [&>svg]:stroke-[2.25]">
+        <h2 className="flex items-center gap-3 font-kid text-lg font-bold text-slate-900 sm:text-xl">
+          <span className="grid size-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700 shadow-2xs ring-1 ring-indigo-100 [&>svg]:size-5.5 [&>svg]:stroke-[2.25]">
             {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
           </span>
           {title}
         </h2>
-        {passed ? <StatusPill tone="mint">OK</StatusPill> : null}
+        {passed ? <StatusPill tone="mint">Checked ✓</StatusPill> : null}
       </div>
 
       {!passed ? (
         <>
-          {/* Durum satırı: her aşamada tek satır, sabit yükseklik — kart zıplamaz. */}
+          {/* Durum satırı */}
           <p
-            className={cn("mt-4 flex min-h-6 items-center gap-2 text-base font-semibold", statusTone)}
+            className={cn("mt-4 flex min-h-6 items-center gap-2 text-sm font-semibold sm:text-base", statusTone)}
             role="status"
             aria-live="polite"
           >
-            {phase === "recording" ? <span aria-hidden className="size-3 shrink-0 rounded-full bg-(--sb-danger)" /> : null}
+            {phase === "recording" ? <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-rose-500 animate-pulse" /> : null}
             <span className="truncate">{statusText}</span>
           </p>
 
-          {/* Sahne: tüm aşamalarda aynı ölçü (kamera 16:9, mikrofon sabit yükseklik). */}
-          <div className={cn("relative mt-3 overflow-hidden rounded-(--sb-r-md)", kind === "CAMERA" ? "aspect-video" : "h-44", stageBg, phase === "recording" && "ring-3 ring-(--sb-danger) ring-inset")}>
+          {/* Sahne */}
+          <div className={cn("relative mt-3 overflow-hidden rounded-2xl", kind === "CAMERA" ? "aspect-video" : "h-44", stageBg, phase === "recording" && "ring-3 ring-rose-400 ring-inset")}>
             {(phase === "idle" || phase === "denied") ? (
-              <ol className="absolute inset-0 flex flex-col justify-center gap-2.5 p-4 text-[15px] text-(--sb-fg-strong) sm:p-5">
+              <ol className="absolute inset-0 flex flex-col justify-center gap-2.5 p-4 text-[14px] text-slate-700 sm:p-5 sm:text-[15px]">
                 {[
                   "Tap the button. We count 3, 2, 1.",
                   kind === "CAMERA" ? `Look at the camera and wave (${limit} seconds).` : `Say “one, two, three” out loud (${limit} seconds).`,
                   kind === "CAMERA" ? "Watch your recording." : "Listen to your recording.",
                 ].map((step, index) => (
                   <li key={step} className="flex items-center gap-3">
-                    <span aria-hidden className="sb-display grid size-7 shrink-0 place-items-center rounded-(--sb-r-xs) bg-(--sb-ink) text-sm text-(--sb-volt)">{index + 1}</span>
-                    {step}
+                    <span aria-hidden className="sb-display grid size-6.5 shrink-0 place-items-center rounded-lg bg-indigo-100 text-xs font-bold text-indigo-700">{index + 1}</span>
+                    <span>{step}</span>
                   </li>
                 ))}
               </ol>
@@ -389,13 +394,13 @@ function DeviceCard({
 
             {phase === "requesting" || phase === "uploading" ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center">
-                <span className="relative grid size-14 place-items-center rounded-full bg-white text-(--sb-ink) [&>svg]:size-6 [&>svg]:stroke-[2.25]">
+                <span className="relative grid size-14 place-items-center rounded-full bg-white text-indigo-600 shadow-sm [&>svg]:size-6 [&>svg]:stroke-[2.25]">
                   {kind === "CAMERA" ? <IconCamera aria-hidden /> : <IconMic aria-hidden />}
-                  <span aria-hidden className="absolute -inset-1 animate-spin rounded-full border-3 border-transparent border-t-(--sb-ink) [animation-duration:1.2s]" />
+                  <span aria-hidden className="absolute -inset-1 animate-spin rounded-full border-3 border-transparent border-t-indigo-600 [animation-duration:1.2s]" />
                 </span>
-                <p className="max-w-xs text-[15px] text-(--sb-fg-strong)">
+                <p className="max-w-xs text-sm text-slate-600 sm:text-[15px]">
                   {phase === "requesting"
-                    ? <>If the browser asks, tap <strong className="font-bold text-(--sb-ink)">“Allow”</strong>.</>
+                    ? <>If the browser asks, tap <strong className="font-bold text-indigo-700">“Allow”</strong>.</>
                     : "This can take a few seconds."}
                 </p>
               </div>
@@ -546,8 +551,8 @@ function LevelMeter({ stream }: { stream: MediaStream }) {
   }, [stream]);
 
   return (
-    <div ref={meterRef} className="h-4 overflow-hidden rounded-[2px] bg-white ring-1 ring-(--sb-line) ring-inset" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Sound level">
-      <div ref={barRef} className="h-full w-0 bg-(--sb-success) transition-[width] duration-75" />
+    <div ref={meterRef} className="h-3.5 overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200/90 ring-inset" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={0} aria-label="Sound level">
+      <div ref={barRef} className="h-full w-0 rounded-full bg-emerald-500 transition-[width] duration-75" />
     </div>
   );
 }

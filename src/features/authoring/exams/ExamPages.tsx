@@ -1036,7 +1036,43 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <Field label="Bölüm süresi"><Input suffix="dk" type="number" min={0} placeholder="Sınav süresi" defaultValue={section.durationSeconds == null ? "" : section.durationSeconds / 60} id="sec-dur" /></Field>
                   <Field label="Sonrasında mola"><Input suffix="dk" type="number" min={0} placeholder="Mola yok" defaultValue={section.breakAfterSeconds == null ? "" : section.breakAfterSeconds / 60} id="sec-break" /></Field>
                   <Field label="Ağırlık" hint="Yalnız ağırlıklı puanlamada"><Input suffix="%" type="number" min={0} max={100} placeholder="—" defaultValue={section.weightPercent ?? ""} id="sec-weight" /></Field>
-                  <Field label="Bölüm baraj puanı"><Input suffix="%" type="number" min={0} max={100} placeholder="Baraj yok" defaultValue={section.minPassingPercent ?? ""} id="sec-pass" /></Field>
+                  <Field label="Bölüm baraj puanı" hint="Hesap bu barajı okumaz. Doluysa kaldırın; yeni değer yazılmaz.">
+                    <div className="grid gap-2">
+                      <Input key={section.minPassingPercent == null ? "empty" : String(section.minPassingPercent)} suffix="%" type="number" min={0} max={100} placeholder="Baraj yok" defaultValue={section.minPassingPercent ?? ""} id="sec-pass" disabled />
+                      {section.minPassingPercent != null ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="min-h-11"
+                          onClick={() => {
+                            const title = (document.getElementById("sec-title") as HTMLInputElement).value;
+                            const skill = selectValue("sec-skill", section.skill);
+                            const minutes = numOrNull("sec-dur");
+                            const breakMinutes = numOrNull("sec-break");
+                            const pass = document.getElementById("sec-pass") as HTMLInputElement | null;
+                            if (pass) pass.value = "";
+                            void notify
+                              .run(
+                                authoringApi.updateSection(exam.id, section.id, {
+                                  title,
+                                  skill,
+                                  durationSeconds: minutes == null ? null : Math.round(minutes * 60),
+                                  breakAfterSeconds: breakMinutes == null ? null : Math.round(breakMinutes * 60),
+                                  weightPercent: numOrNull("sec-weight"),
+                                  minPassingPercent: null,
+                                  instructionsHtml: (document.getElementById("sec-inst") as HTMLTextAreaElement).value,
+                                }),
+                                { success: "Bölüm barajı kaldırıldı", error: "Kaydedilemedi" },
+                              )
+                              .then(setExam)
+                              .catch(() => undefined);
+                          }}
+                        >
+                          Kaldır
+                        </Button>
+                      ) : null}
+                    </div>
+                  </Field>
                 </div>
               </FormGroup>
               <Field label="Bölüm yönergesi" hint="Bölüm başında öğrenciye gösterilir.">
@@ -1833,17 +1869,24 @@ function EmbeddableEditor({
       </FormGroup>
       <FormGroup title="Puanlama ve sonuç">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Geçme notu" hint="Boş = geçti/kaldı gösterilmez">
-            <Input suffix="%" type="number" min={0} max={100} placeholder="—" defaultValue={scoring.passingPercent != null ? String(scoring.passingPercent) : ""} onBlur={(e) => void onSave({ scoring: { ...scoring, passingPercent: e.target.value === "" ? null : Number(e.target.value) } })} />
+          <Field label="Geçme notu" hint="Hesap bu notu okumaz. Doluysa kaldırın; yeni değer yazılmaz.">
+            <div className="grid gap-2">
+              <Input key={scoring.passingPercent == null ? "empty" : String(scoring.passingPercent)} suffix="%" type="number" min={0} max={100} placeholder="—" defaultValue={scoring.passingPercent != null ? String(scoring.passingPercent) : ""} disabled />
+              {scoring.passingPercent != null ? (
+                <Button type="button" variant="secondary" className="min-h-11" onClick={() => void onSave({ scoring: { ...scoring, passingPercent: null } })}>
+                  Kaldır
+                </Button>
+              ) : null}
+            </div>
           </Field>
           <Field label="Ses dinleme hakkı (sınav geneli)" hint="Boş = soru ayarı geçerli">
             <Input type="number" min={1} placeholder="—" defaultValue={media.maxAudioPlays != null ? String(media.maxAudioPlays) : ""} onBlur={(e) => void onSave({ media: { ...media, maxAudioPlays: e.target.value === "" ? null : Number(e.target.value) } })} />
           </Field>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
-          <SettingToggle label="Yanlış cevap puan düşürür" description="Negatif puanlama; tahmin etmeyi caydırır." checked={!!scoring.negativeMarking} onChange={(e) => void onSave({ scoring: { ...scoring, negativeMarking: e.target.checked } })} />
+          <SettingToggle label="Yanlış cevap puan düşürür" description="Uygulanmıyor. Açıksa kapatın; kapalıyken açılamaz." checked={!!scoring.negativeMarking} disabled={!scoring.negativeMarking} onChange={(e) => { if (!e.target.checked) void onSave({ scoring: { ...scoring, negativeMarking: false } }); }} />
           <SettingToggle label="Sonuçta CEFR seviyesi göster" description="Puan bandına bağlı seviye öğrenciye gösterilir." checked={results.showCefrLevel !== false} onChange={(e) => void onSave({ results: { ...results, showCefrLevel: e.target.checked } })} />
-          <SettingToggle label="Sertifika üret" description="Geçen öğrenciye indirilebilir sertifika." checked={!!results.certificateEnabled} onChange={(e) => void onSave({ results: { ...results, certificateEnabled: e.target.checked } })} />
+          <SettingToggle label="Sertifika üret" description="Üretilmiyor. Açıksa kapatın; kapalıyken açılamaz." checked={!!results.certificateEnabled} disabled={!results.certificateEnabled} onChange={(e) => { if (!e.target.checked) void onSave({ results: { ...results, certificateEnabled: false } }); }} />
         </div>
       </FormGroup>
       <FormGroup title="Gözetim">

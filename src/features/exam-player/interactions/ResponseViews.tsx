@@ -4,6 +4,7 @@ import { useExamSession } from "@/src/features/exam-player/session/ExamSessionCo
 import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
 import { enqueueRecording, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { MediaArt } from "@/src/features/exam-player/media/MediaArt";
 import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
 import { applicationMediaContentUrl, openAnswerContentTicket, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
@@ -223,7 +224,7 @@ function useAttempts(itemId: string | undefined, fallback: number): [number, (fn
   return [value, update];
 }
 
-type UploadEntry = { key: string; name: string; url: string; mediaId: string | null };
+type UploadEntry = { key: string; name: string; url: string; mediaId: string | null; intentId?: string | null };
 
 function savedMediaIds(saved: Record<string, unknown> | undefined): string[] {
   const many = saved?.mediaIds;
@@ -277,13 +278,13 @@ function useRestoredEntries(itemId: string | undefined, preview?: boolean): Uplo
   return entries;
 }
 
-
 /** Yüklenen dosyaların listesini cevap olarak kaydeder (soru "cevaplandı" sayılır; kaldırma da yansır). */
 function saveMediaAnswer(session: ReturnType<typeof useExamSession>, itemId: string | undefined, entries: UploadEntry[]) {
   if (!session?.saveAnswer || !itemId) return Promise.resolve();
   const mediaIds = entries.map((entry) => entry.mediaId).filter((id): id is string => !!id);
   const mediaId = mediaIds[0] ?? null;
-  return session.saveAnswer(itemId, mediaId ? { mediaId, mediaIds } : { mediaIds }, mediaId);
+  const intentId = [...entries].reverse().find((entry) => entry.intentId)?.intentId ?? null;
+  return session.saveAnswer(itemId, mediaId ? { mediaId, mediaIds } : { mediaIds }, mediaId, intentId);
 }
 
 /** MediaRecorder webm kayıtlarında süre Infinity gelir; oynatıcı çubuğu bozulmasın. */
@@ -401,8 +402,12 @@ function useUploader(itemId: string | undefined) {
   async function uploadOne(file: File, durationMs?: number | null): Promise<UploadEntry> {
     const url = URL.createObjectURL(file);
     let mediaId: string | null = null;
-    if (session && itemId) mediaId = (await session.uploadMedia(itemId, file, durationMs)).mediaId;
-    return { key: `${Date.now()}-${file.name}`, name: file.name, url, mediaId };
+    let intentId: string | null = null;
+    if (session && itemId) {
+      intentId = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
+      mediaId = (await session.uploadMedia(itemId, file, durationMs, intentId)).mediaId;
+    }
+    return { key: `${Date.now()}-${file.name}`, name: file.name, url, mediaId, intentId };
   }
 
   async function run<T>(task: () => Promise<T>): Promise<T | null> {
@@ -649,6 +654,7 @@ export function AudioResponseView({
             {maxDur != null ? `You can speak for ${maxDur} seconds.` : ""}
           </p>
         ) : null}
+        {recording ? null : <MediaArt kind="record" px={112} className="mx-auto rounded-3xl ring-1 ring-exam-slate-200" />}
         <button
           type="button"
           disabled={disabled || busy || (!recording && attemptsExhausted)}

@@ -38,7 +38,7 @@ import type {
   InvalidateRequest,
   OverrideCheck200,
   PresenceRow,
-  ResolvedStudent,
+  RecipientPreview,
   TargetRequest
 } from '../models';
 
@@ -1025,7 +1025,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getOverrideCheckMutationOptions(options), queryClient);
     }
     export type previewResponse200 = {
-  data: ResolvedStudent[]
+  data: RecipientPreview
   status: 200
 }
 

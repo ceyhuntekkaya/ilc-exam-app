@@ -7,6 +7,7 @@ import {
   type PreviewRubricPart,
 } from "@/src/features/exam-player/preview/PreviewRubricPanel";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
+import { Mascot } from "@/src/features/student/mascot";
 import { cn } from "@/src/lib/utils/cn";
 
 export function QuestionPreviewShell({
@@ -33,7 +34,7 @@ export function QuestionPreviewShell({
 
       <QuestionFrame>
         <MediaProvider resolveUrl={resolveUrl}>
-          <QuestionView model={model} preview />
+          <QuestionView model={model} preview instructionGuide={<Mascot mood="hello" size="xs" />} />
         </MediaProvider>
       </QuestionFrame>
 

@@ -16,7 +16,7 @@ export type ExamSessionContextValue = {
   /** Taslak değişince artar; soru ekranı sunucudan gelen cevabı alsın. */
   answersRevision: number;
   /** itemId = question_part.id */
-  uploadMedia: (itemId: string, file: File, durationMs?: number | null) => Promise<ExamUploadResult>;
+  uploadMedia: (itemId: string, file: File, durationMs?: number | null, intentId?: string | null) => Promise<ExamUploadResult>;
   /**
    * Cevap satırı yazılınca çözülür. Dosya yüklemesi tek başına yeterli değildir.
    * mediaId: API AnswerRequest.mediaId (konuşma/video/görsel).

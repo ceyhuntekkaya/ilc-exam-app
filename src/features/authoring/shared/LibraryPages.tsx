@@ -362,7 +362,7 @@ function MediaCard({ m, onChanged }: { m: MediaItem; onChanged: () => void }) {
 
 /* ───────── İnceleme kuyruğu ───────── */
 
-const REVIEW_TARGET: Record<string, string> = { QUESTION_VERSION: "Soru", EXAM_VERSION: "Sınav", EXAM: "Sınav" };
+const REVIEW_TARGET: Record<string, string> = { QUESTION_VERSION: "Soru", EXAM: "Sınav" };
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();

@@ -7,7 +7,13 @@ import {
   filtersToQuery,
   useAssignmentScope,
 } from "@/src/features/assignments/assignmentScope";
-import { GradingAiPrompts, aiPromptQueryKey } from "@/src/features/assignments/GradingAiPrompts";
+import {
+  GradingAiPrompts,
+  FOREIGN_EXAM_PROMPT,
+  aiPromptQueryKey,
+  promptFromAnotherExam,
+  type AiPromptItem,
+} from "@/src/features/assignments/GradingAiPrompts";
 import { GradingPrerequisites, prerequisiteQueryKey } from "@/src/features/assignments/GradingPrerequisites";
 import { GradingSystemPrompt } from "@/src/features/assignments/GradingSystemPrompt";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
@@ -49,6 +55,7 @@ type Item = {
   finalScore?: number | null;
   scored: boolean;
   published?: boolean;
+  questionVersionId?: string | null;
 };
 
 type GradingSummary = {
@@ -432,10 +439,11 @@ export function GradingSection({
     queryKey: aiPromptQueryKey(companyId, examVersionId),
     enabled: Boolean(examVersionId),
     queryFn: () =>
-      customInstance<{ data: { items: unknown[] } }>(
+      customInstance<{ data: { items: AiPromptItem[] } }>(
         `/companies/${companyId}/exam-versions/${examVersionId}/ai-prompts`,
       ),
   });
+  const promptItems = aiPrompts.data?.data.items ?? [];
 
   useEffect(() => {
     if (!examVersionId || !prerequisites.isSuccess) return;
@@ -579,7 +587,11 @@ export function GradingSection({
     setFeedback((current) => ({ ...current, [answerId]: grade.feedback ?? "" }));
   }
 
-  async function evaluateOne(item: Item, silent = false): Promise<"graded" | "audio" | "empty" | "failed"> {
+  async function evaluateOne(item: Item, silent = false): Promise<"graded" | "audio" | "empty" | "failed" | "foreign"> {
+    if (promptFromAnotherExam(item.questionVersionId, promptItems)) {
+      if (!silent) notify.error(FOREIGN_EXAM_PROMPT);
+      return "foreign";
+    }
     const ready = aiReady(item, transcripts);
     if (ready !== "ready") {
       if (!silent) {
@@ -617,6 +629,7 @@ export function GradingSection({
     runLock.current = true;
     let graded = 0;
     let skippedAudio = 0;
+    let skippedForeign = 0;
     let failed = 0;
     let lastError = "Değerlendirilemedi";
     setGradingProgress({ index: 0, total: items.length });
@@ -624,6 +637,10 @@ export function GradingSection({
       for (let index = 0; index < items.length; index += 1) {
         const item = items[index];
         setGradingProgress({ index: index + 1, total: items.length });
+        if (promptFromAnotherExam(item.questionVersionId, promptItems)) {
+          skippedForeign += 1;
+          continue;
+        }
         const ready = aiReady(item, transcripts);
         if (ready === "audio") {
           skippedAudio += 1;
@@ -657,8 +674,15 @@ export function GradingSection({
     if (skippedAudio > 0) {
       notify.error(`${skippedAudio} ses metne çevrilmediği için atlandı. Önce Sesi Tanımla kullanın.`);
     }
+    if (skippedForeign > 0) {
+      notify.error(
+        skippedForeign === 1
+          ? FOREIGN_EXAM_PROMPT
+          : `${skippedForeign} cevap başka sınavın metnini kullandığı için atlandı. AI metni sekmesinden bu sınav için yeniden oluşturun.`,
+      );
+    }
     if (failed > 0) notify.error(lastError);
-    if (graded === 0 && skippedAudio === 0 && failed === 0) {
+    if (graded === 0 && skippedAudio === 0 && skippedForeign === 0 && failed === 0) {
       notify.error("Değerlendirilecek cevap yok");
     }
   }
@@ -769,6 +793,7 @@ export function GradingSection({
   function renderCard(item: Item, index: number) {
     const lane = laneOf(item.interactionType);
     const locked = Boolean(item.published);
+    const foreignPrompt = promptFromAnotherExam(item.questionVersionId, promptItems);
     const done = isScored(item);
     const shownScore = done ? Number(scoreValue(item)) : null;
     return (
@@ -798,6 +823,11 @@ export function GradingSection({
           transcripts={transcripts}
           activeMediaId={activeMediaId}
         />
+        {foreignPrompt ? (
+          <p className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm break-words text-warning">
+            {FOREIGN_EXAM_PROMPT}
+          </p>
+        ) : null}
         <Field label="Puan" required>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <div className="min-w-36 flex-1">
@@ -817,7 +847,7 @@ export function GradingSection({
                 variant="secondary"
                 className="min-h-11 shrink-0"
                 loading={gradingAnswerId === item.answerId}
-                disabled={actionBusy && gradingAnswerId !== item.answerId}
+                disabled={foreignPrompt || (actionBusy && gradingAnswerId !== item.answerId)}
                 onClick={() => void evaluateOne(item)}
               >
                 AI ile Değerlendir

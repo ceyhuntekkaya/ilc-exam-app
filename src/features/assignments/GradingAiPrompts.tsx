@@ -23,6 +23,18 @@ export type AiPromptReport = {
   contentReady: boolean;
 };
 
+export const FOREIGN_EXAM_PROMPT =
+  "Bu metin başka bir sınav paketinden üretildi. Bu sınav için yeniden oluşturun.";
+
+export function promptFromAnotherExam(
+  questionVersionId: string | null | undefined,
+  items: AiPromptItem[],
+): boolean {
+  if (!questionVersionId) return false;
+  const row = items.find((item) => item.questionVersionId === questionVersionId);
+  return Boolean(row?.prompt?.trim()) && row?.currentExam === false;
+}
+
 export function aiPromptQueryKey(companyId: string, examVersionId: string) {
   return ["grading-ai-prompts", companyId, examVersionId] as const;
 }
@@ -126,8 +138,8 @@ export function GradingAiPrompts({
               </Button>
             </div>
             {!item.currentExam && item.prompt ? (
-              <p className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-warning">
-                Bu metin başka bir sınav paketinden üretildi. Bu sınav için yeniden oluşturun.
+              <p className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm break-words text-warning">
+                {FOREIGN_EXAM_PROMPT}
               </p>
             ) : null}
             {item.prompt ? (

@@ -10,18 +10,22 @@ import { epInstructionBanner } from "@/src/features/exam-player/styles";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
 import { htmlOf } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
+import type { ReactNode } from "react";
 
 export function QuestionView({
   model,
   disabled,
   className,
   preview = false,
+  instructionGuide,
 }: {
   model: QuestionViewModel;
   disabled?: boolean;
   className?: string;
   /** Authoring preview: unlimited media + reveal correct answers */
   preview?: boolean;
+  /** Yazılı yönergenin solunda durur (öğrenci maskotu); dar alanda gizlenir. */
+  instructionGuide?: ReactNode;
 }) {
   const hasStimulus = (model.stimulus?.length ?? 0) > 0;
   const hasMainAudio = !!model.mainAudio?.mediaId;
@@ -52,9 +56,14 @@ export function QuestionView({
         {sharedHint ? <FormatHint type={sharedHint.type} interaction={sharedHint.interaction} /> : null}
         {instructionHtml || hasInstructionAudio || preview ? (
           <div className="flex flex-col gap-2 @sm:flex-row @sm:items-start">
+            {instructionHtml && instructionGuide ? <div className="hidden @sm:block">{instructionGuide}</div> : null}
             {instructionHtml ? (
               <div className={cn(epInstructionBanner, "min-w-0 flex-1 [&_p]:m-0")}>
-                <HtmlInline value={model.instruction} />
+                <HtmlInline
+                  value={model.instruction}
+                  zoomImages
+                  className="[&_img]:my-2 [&_img]:block [&_img]:h-auto [&_img]:w-full [&_img]:max-w-full [&_img]:rounded-[6px]"
+                />
               </div>
             ) : preview ? (
               <div className={cn(epInstructionBanner, "min-w-0 flex-1 italic opacity-70")}>Yönerge yok</div>
@@ -64,7 +73,6 @@ export function QuestionView({
                 mediaId={model.instructionAudio!.mediaId}
                 playback={model.instructionAudio!.playback}
                 variant="icon"
-                unlimited
                 className="@sm:pt-1.5"
               />
             ) : null}

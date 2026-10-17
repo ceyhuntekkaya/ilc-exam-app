@@ -8,6 +8,7 @@ import { confirmCloseBatch, takeCloseBatch } from "@/src/features/exam-player/se
 import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
 import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { saveAllUnsaved } from "@/src/features/exam-player/session/playerGuard";
+import { Mascot } from "@/src/features/student/mascot";
 import { sectionTone } from "@/src/features/student/status";
 import { KidButton, KidCard, KidDialog, KidNotice, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
@@ -79,31 +80,43 @@ export default function SectionListPage() {
   return (
     <section className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="sb-display text-4xl leading-[0.95] text-(--sb-ink) sm:text-5xl">Parts of the test</h1>
-          <p className="mt-2 text-lg text-(--sb-fg-muted)">Choose a part. On this page, the timer stops.</p>
+        <div className="flex min-w-0 items-center gap-5">
+          <Mascot mood="waiting" size="md" className="hidden sm:block" />
+          <div className="min-w-0">
+            <p className="sb-overline font-bold tracking-widest text-indigo-600">Test overview</p>
+            <h1 className="sb-display mt-2 text-4xl leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">Parts of the test</h1>
+            <p className="mt-2 text-base text-slate-500 sm:text-lg">Choose a part. On this page, the timer stops.</p>
+          </div>
         </div>
         {/* Süre sınırı yoksa sayaç gösterilmez. */}
         {examLeft != null ? (
-          <div className="flex items-center gap-3 rounded-(--sb-r-md) bg-(--sb-ink) px-4 py-3 text-white [&>svg]:size-6 [&>svg]:text-(--sb-volt) [&>svg]:stroke-[2.25]">
+          <div className="flex items-center gap-3.5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 px-5 py-3.5 text-white shadow-lg shadow-indigo-950/10 [&>svg]:size-6.5 [&>svg]:text-amber-400 [&>svg]:stroke-[2.25]">
             <IconClock aria-hidden />
             <div>
-              <p className="sb-overline text-white/75">Time left for the test</p>
-              <p className="sb-display mt-0.5 text-3xl leading-none" role="timer">{formatClock(remaining ?? examLeft)}</p>
+              <p className="sb-overline text-indigo-200">Time left for test</p>
+              <p className="sb-display mt-0.5 text-3xl leading-none font-black tracking-tight" role="timer">{formatClock(remaining ?? examLeft)}</p>
             </div>
           </div>
         ) : null}
       </header>
 
-      <div className="rounded-(--sb-r-md) border border-(--sb-line) bg-white p-4 sm:p-5">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-4.5 shadow-xs sm:p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <span className="sb-overline text-(--sb-fg-muted)">Progress</span>
-          <span className="font-semibold text-(--sb-fg-strong)"><span className="sb-display text-2xl text-(--sb-ink)">{doneCount} / {total}</span> parts finished</span>
+          <span className="sb-overline text-slate-400">Progress</span>
+          <span className="font-semibold text-slate-700">
+            <span className="sb-display text-xl font-bold text-slate-900 sm:text-2xl">{doneCount} / {total}</span> parts finished
+          </span>
         </div>
         {/* Segmentli çubuk: her bölüm bir segment. */}
-        <div className="mt-3 flex h-3 gap-1" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Finished parts">
+        <div className="mt-3 flex h-3 gap-1.5" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={doneCount} aria-label="Finished parts">
           {state.sections.map((section, index) => (
-            <span key={section.sectionId} className={cn("flex-1 rounded-[2px] transition-colors duration-320", index < doneCount ? "bg-(--sb-ink)" : "bg-(--sb-sunken)")} />
+            <span
+              key={section.sectionId}
+              className={cn(
+                "flex-1 rounded-full transition-colors duration-300",
+                index < doneCount ? "bg-gradient-to-r from-indigo-600 to-indigo-500" : "bg-slate-100",
+              )}
+            />
           ))}
         </div>
       </div>
@@ -120,30 +133,41 @@ export default function SectionListPage() {
             <li
               key={section.sectionId}
               className={cn(
-                "flex flex-col rounded-(--sb-r-md) p-5 sm:p-6",
-                done || locked ? "border border-(--sb-line) bg-(--sb-tint)" : "border-2 border-(--sb-ink) bg-white shadow-(--sb-e1)",
-                resume && "bg-[linear-gradient(var(--sb-volt),var(--sb-volt))] bg-size-[100%_8px] bg-no-repeat",
+                "flex flex-col rounded-3xl p-5 transition-all duration-200 sm:p-6",
+                done
+                  ? "border border-emerald-200/90 bg-emerald-50/20 shadow-2xs"
+                  : locked
+                    ? "border border-slate-200/80 bg-slate-50/60 opacity-80"
+                    : resume
+                      ? "border-2 border-amber-400/90 bg-white shadow-md shadow-amber-500/10"
+                      : "border border-slate-200/90 bg-white shadow-xs hover:border-indigo-300 hover:shadow-lg",
               )}
             >
               <div className="flex items-start gap-4">
                 <span
                   className={cn(
-                    "sb-display grid size-12 shrink-0 place-items-center rounded-(--sb-r-sm) text-2xl [&>svg]:size-6 [&>svg]:stroke-[2.5]",
-                    done ? "bg-(--sb-success-bg) text-(--sb-success)" : locked ? "bg-(--sb-sunken) text-(--sb-fg-muted)" : "bg-(--sb-ink) text-(--sb-volt)",
+                    "sb-display grid size-12 shrink-0 place-items-center rounded-2xl text-xl font-bold transition-all [&>svg]:size-6 [&>svg]:stroke-[2.5]",
+                    done
+                      ? "bg-emerald-500 text-white shadow-xs"
+                      : locked
+                        ? "bg-slate-100 text-slate-400"
+                        : resume
+                          ? "bg-amber-100 text-amber-900 ring-2 ring-amber-300/80 font-black"
+                          : "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200/80",
                   )}
                 >
                   {done ? <IconCheck aria-hidden /> : locked ? <IconLock aria-hidden /> : index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h2 className="text-xl leading-tight font-extrabold text-(--sb-ink)">{section.title}</h2>
+                    <h2 className="font-kid text-lg leading-tight font-bold text-slate-900 sm:text-xl">{section.title}</h2>
                     <StatusPill tone={tone.tone}>{tone.label}</StatusPill>
                   </div>
-                  <p className="mt-1 text-(--sb-fg-muted)">
+                  <p className="mt-1 text-sm text-slate-500">
                     {section.questionCount} {section.questionCount === 1 ? "question" : "questions"}{section.durationMs == null ? "" : ` · ${formatDuration(section.durationMs / 1000)}`}
                     {section.remainingMs != null && resume ? ` · ${formatClock(section.remainingMs)} left` : ""}
                   </p>
-                  {section.lockReason ? <p className="mt-2 text-(--sb-fg-muted)">{section.lockReason}</p> : null}
+                  {section.lockReason ? <p className="mt-2 text-xs font-medium text-slate-400">{section.lockReason}</p> : null}
                 </div>
               </div>
               {!finished && section.canEnter ? (
@@ -161,20 +185,23 @@ export default function SectionListPage() {
 
       {!finished && state.canFinish ? (
         incomplete ? (
-          <div className="flex flex-col gap-4 rounded-(--sb-r-md) border-2 border-dashed border-(--sb-line-strong) bg-white/60 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-(--sb-fg-strong)">When you finish all the parts, you will send your test here.</p>
+          <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-slate-300/90 bg-white/70 p-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-medium text-slate-600 sm:text-base">When you finish all the parts, you will send your test here.</p>
             <KidButton variant="soft" disabled={busy} onClick={() => setConfirmFinish(true)}>
               <IconFlag aria-hidden />
               {saving ? "Saving…" : "Finish the test now"}
             </KidButton>
           </div>
         ) : (
-          <KidCard className="flex flex-col gap-5 border-2 border-(--sb-ink) bg-(--sb-volt) shadow-(--sb-e1) sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="sb-display text-3xl leading-none text-(--sb-ink) sm:text-4xl">You finished all the parts!</p>
-              <p className="mt-2 text-lg font-medium text-(--sb-ink)">Last step: send your test.</p>
+          <KidCard className="flex flex-col gap-5 rounded-3xl border border-amber-300/90 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-400 p-6 text-slate-950 shadow-xl shadow-amber-500/20 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-5">
+              <Mascot mood="celebrate" size="md" className="hidden ring-white/40 sm:block" />
+              <div className="min-w-0">
+                <p className="sb-display text-3xl leading-none font-black text-slate-950 sm:text-4xl">You finished all the parts!</p>
+                <p className="mt-2 text-base font-semibold text-slate-900 sm:text-lg">Last step: submit your test for grading.</p>
+              </div>
             </div>
-            <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)} className="shrink-0">
+            <KidButton size="lg" disabled={busy} onClick={() => setConfirmFinish(true)} className="shrink-0 bg-slate-950 text-white hover:bg-slate-900 shadow-lg shadow-black/20">
               <IconFlag aria-hidden />
               {saving ? "Saving…" : "Send my test"}
             </KidButton>
@@ -185,7 +212,7 @@ export default function SectionListPage() {
       {pendingSection ? (
         <KidDialog
           title={`Start "${pendingSection.title}"?`}
-          icon={<IconClock />}
+          mascot="waiting"
           body={
             <ul className="space-y-1.5">
               <li>The timer starts when you open this part.</li>
@@ -202,7 +229,7 @@ export default function SectionListPage() {
       {confirmFinish ? (
         <KidDialog
           title="Send your test?"
-          icon={<IconFlag />}
+          mascot="break"
           tone={incomplete ? "sun" : "primary"}
           body={
             failed

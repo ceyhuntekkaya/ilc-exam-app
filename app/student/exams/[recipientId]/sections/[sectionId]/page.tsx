@@ -13,11 +13,14 @@ import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOut
 import { resetPlayerGuard, saveAllUnsaved, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import { viewBodyOf, type QuestionViewModel } from "@/src/features/exam-player/types";
 import { readSession } from "@/src/features/exam-flow/session";
+import { Mascot } from "@/src/features/student/mascot";
 import { KidButton, KidDialog, KidLoading, KidNotice } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
-import { IconArrowLeft, IconArrowRight, IconCheck, IconClock, IconFlag, IconPause, IconRefresh, IconVolume } from "@/src/ui/icons";
+import { IconArrowLeft, IconArrowRight, IconClock, IconFlag, IconPause, IconRefresh, IconVolume } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
+
+const INSTRUCTION_GUIDE = <Mascot mood="hello" size="xs" />;
 
 type Item = { examQuestionId?: string; question: { body?: QuestionViewModel; parts: QuestionViewModel["parts"] } };
 
@@ -193,36 +196,36 @@ export default function SectionQuestionPage() {
   return (
     <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken}>
       <div className="exam-sitting relative flex min-h-dvh flex-1 flex-col bg-(--sb-bg)">
-        {/* İnce üst çubuk (52px): bölüm, sıra, süre, ara ver. Soru alanına yer kalsın. */}
-        <header className="sticky top-0 z-30 border-b border-(--sb-line) bg-white">
+        {/* Üst çubuk (52px): bölüm, sıra, süre, ara ver. Modern cam çubuk */}
+        <header className="sticky top-0 z-30 border-b border-indigo-100/80 bg-white/95 backdrop-blur-md">
           <div className={cn("flex h-13 items-center justify-between gap-3", STAGE_INSET)}>
-            <p className="min-w-0 truncate text-sm font-semibold text-(--sb-ink)">
+            <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
               {section.title}
-              <span className="font-normal text-(--sb-fg-muted)"> · Question <span className="numeric font-semibold text-(--sb-ink)">{items.length ? index + 1 : 0}/{items.length}</span></span>
+              <span className="font-normal text-slate-400"> · Question <span className="numeric font-bold text-slate-900">{items.length ? index + 1 : 0}/{items.length}</span></span>
             </p>
-            <div className="flex shrink-0 items-center gap-1.5">
-              {/* Sınav geneli kalan süre: bölüm süresinden farklıysa geniş ekranda ayrıca gösterilir. */}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* Sınav geneli kalan süre */}
               {examLeft != null && remaining != null && state.clock.sectionRemainingMs != null ? (
-                <p className="numeric hidden h-9 items-center gap-1 rounded-(--sb-r-sm) px-2 text-xs font-semibold text-(--sb-fg-muted) sm:flex" aria-label={`Time left for the whole test ${formatClock(examLeft)}`}>
+                <p className="numeric hidden h-9 items-center gap-1 rounded-xl px-2.5 text-xs font-semibold text-slate-400 sm:flex" aria-label={`Time left for the whole test ${formatClock(examLeft)}`}>
                   Test {formatClock(examLeft)}
                 </p>
               ) : null}
-              {/* Süre sınırı varsa geri sayım; yoksa sayaç hiç gösterilmez (çocuk acele etmesin). Yanıp sönme yok. */}
+              {/* Süre sınırı geri sayım */}
               {remaining != null ? (
                 <p
                   className={cn(
-                    "flex h-9 items-center gap-1.5 rounded-(--sb-r-sm) border px-2.5 text-sm font-semibold transition-colors duration-200 [&>svg]:size-4 [&>svg]:stroke-[2.25]",
-                    timeTone === "calm" && "border-(--sb-line) bg-white text-(--sb-ink)",
-                    timeTone === "warn" && "border-transparent bg-(--sb-warning-bg) text-(--sb-warning)",
-                    timeTone === "critical" && "border-(--sb-danger) bg-(--sb-danger-bg) text-(--sb-danger)",
+                    "flex h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition-colors duration-200 [&>svg]:size-4 [&>svg]:stroke-[2.25]",
+                    timeTone === "calm" && "border-slate-200/90 bg-slate-50 text-slate-800",
+                    timeTone === "warn" && "border-amber-300/80 bg-amber-50 text-amber-900 shadow-2xs",
+                    timeTone === "critical" && "border-rose-300/80 bg-rose-50 text-rose-700 shadow-2xs animate-pulse",
                   )}
                   role="timer"
                   aria-label={`Time left ${formatClock(remaining)}`}
                 >
-                  <IconClock aria-hidden />
-                  <span className="hidden text-xs font-semibold opacity-80 sm:inline">Time left</span>
-                  <span className="sb-display text-lg leading-none">{formatClock(remaining)}</span>
-                  {timeTone !== "calm" ? <span className="hidden font-semibold sm:inline">· hurry up</span> : null}
+                  <IconClock aria-hidden className={timeTone === "warn" ? "text-amber-600" : timeTone === "critical" ? "text-rose-600" : "text-indigo-600"} />
+                  <span className="hidden text-xs font-semibold opacity-75 sm:inline">Time left</span>
+                  <span className="sb-display text-base font-bold leading-none">{formatClock(remaining)}</span>
+                  {timeTone !== "calm" ? <span className="hidden font-bold sm:inline">· hurry up</span> : null}
                 </p>
               ) : null}
               {section.allowReturnAfterLeave ? (
@@ -231,7 +234,7 @@ export default function SectionQuestionPage() {
                   onClick={() => go(() => setConfirm("leave"))}
                   disabled={mediaBusy}
                   aria-label="Take a break"
-                  className="inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-(--sb-r-sm) px-2.5 text-sm font-semibold text-(--sb-fg-strong) transition-colors duration-120 hover:bg-(--sb-sunken) disabled:opacity-40 [&>svg]:size-5 [&>svg]:stroke-[2.25]"
+                  className="inline-flex h-9.5 min-w-9.5 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200/80 px-3 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 [&>svg]:size-4 [&>svg]:stroke-[2.25]"
                 >
                   <IconPause aria-hidden />
                   <span className="hidden sm:inline">{saving ? "Saving…" : "Break"}</span>
@@ -239,13 +242,13 @@ export default function SectionQuestionPage() {
               ) : null}
             </div>
           </div>
-          {/* Süre çubuğu: bölüm süresinin ne kadarının kaldığını bir bakışta gösterir. */}
+          {/* Süre çubuğu */}
           {remaining != null && timeTotal ? (
-            <div aria-hidden className="h-1 bg-(--sb-sunken)">
+            <div aria-hidden className="h-1 bg-slate-100">
               <div
                 className={cn(
                   "h-full transition-[width] duration-1000 ease-linear",
-                  timeTone === "calm" ? "bg-(--sb-ink)" : timeTone === "warn" ? "bg-(--sb-warning)" : "bg-(--sb-danger)",
+                  timeTone === "calm" ? "bg-indigo-600" : timeTone === "warn" ? "bg-amber-500" : "bg-rose-500",
                 )}
                 style={{ width: `${Math.max(0, Math.min(100, (remaining / timeTotal) * 100))}%` }}
               />
@@ -258,7 +261,7 @@ export default function SectionQuestionPage() {
           <div className="relative flex w-full flex-1 flex-col">
             {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
             <QuestionFrame className={cn("min-h-[calc(100dvh-9.5rem)]", held && "pointer-events-none blur-sm")}>
-              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} instructionGuide={INSTRUCTION_GUIDE} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
             </QuestionFrame>
             {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
             {item && answered && !mediaBusy && !held ? (
@@ -273,24 +276,23 @@ export default function SectionQuestionPage() {
           {error ? <div className="mt-3"><KidNotice tone="coral">{error}</KidNotice></div> : null}
         </div>
 
-        {/* Alt çubuk: solda Önceki, ortada soru takibi, sağda Sonraki / Bitir. */}
-        <footer className="pb-safe sticky bottom-0 z-30 border-t border-(--sb-line) bg-white pt-2">
+        {/* Alt çubuk: solda Önceki, ortada soru takibi, sağda Sonraki / Bitir */}
+        <footer className="pb-safe sticky bottom-0 z-30 border-t border-indigo-100/80 bg-white/95 backdrop-blur-md pt-2">
           {mediaBusy ? (
-            <p className={cn("flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-(--sb-ink) [&>svg]:size-4", STAGE_INSET)} aria-live="polite">
-              <IconVolume aria-hidden />
+            <p className={cn("flex items-center justify-center gap-1.5 pb-1.5 text-center text-xs font-semibold text-slate-800 [&>svg]:size-4", STAGE_INSET)} aria-live="polite">
+              <IconVolume aria-hidden className="text-indigo-600" />
               Please wait. Finish listening, watching or recording first.
             </p>
           ) : saving ? (
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-fg-strong)", STAGE_INSET)} aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-indigo-600", STAGE_INSET)} aria-live="polite">
               Saving your answers…
             </p>
           ) : !canNext ? (
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-warning)", STAGE_INSET)}>
+            <p className={cn("pb-1.5 text-center text-xs font-semibold text-amber-700", STAGE_INSET)}>
               {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
             </p>
           ) : section.allowSkip && item && !answered && !guard.unsaved.size ? (
-            // "Soru atlayabilir" açık: boş bırakılabildiğini söyle (yoksa çocuk cevaplamak zorunda sanıyor).
-            <p className={cn("pb-1.5 text-center text-xs font-semibold text-(--sb-fg-muted)", STAGE_INSET)} aria-live="polite">
+            <p className={cn("pb-1.5 text-center text-xs font-medium text-slate-400", STAGE_INSET)} aria-live="polite">
               {last ? "You can leave this question blank." : "You can skip this question. Tap Next."}
             </p>
           ) : null}
@@ -307,7 +309,7 @@ export default function SectionQuestionPage() {
             </KidButton>
 
             <nav aria-label="Questions" className="scrollbar-none min-w-0 flex-1 overflow-x-auto">
-              <ol ref={navRef} className="mx-auto flex w-max gap-1 p-1">
+              <ol ref={navRef} className="mx-auto flex w-max gap-1.5 p-1">
                 {items.map((entry, position) => {
                   const phase = phaseOf(entry);
                   const current = position === index;
@@ -321,19 +323,17 @@ export default function SectionQuestionPage() {
                         aria-current={current ? "step" : undefined}
                         aria-label={`Question ${position + 1}, ${label}`}
                         className={cn(
-                          // Dokunma hedefi ≥ 44px (çocuk, tablet).
-                          "relative grid size-11 place-items-center rounded-(--sb-r-sm) text-sm font-bold tabular-nums transition-colors duration-120 disabled:cursor-default",
-                          current && "bg-(--sb-ink) text-white",
-                          !current && phase === "confirmed" && "bg-(--sb-success-bg) text-(--sb-success)",
-                          !current && phase === "failed" && "bg-(--sb-danger-bg) text-(--sb-danger)",
-                          !current && (phase === "empty" || phase === "pending") && "bg-white text-(--sb-fg-muted) ring-1 ring-(--sb-line) ring-inset",
-                          !current && "enabled:hover:ring-2 enabled:hover:ring-(--sb-ink)",
+                          "relative grid size-11 place-items-center rounded-xl text-sm font-bold tabular-nums transition-all duration-150 disabled:cursor-default",
+                          current && "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/25 scale-[1.04]",
+                          !current && phase === "confirmed" && "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/90",
+                          !current && phase === "failed" && "bg-rose-50 text-rose-800 ring-1 ring-rose-200/90",
+                          !current && (phase === "empty" || phase === "pending") && "bg-white text-slate-600 ring-1 ring-slate-200 ring-inset enabled:hover:ring-indigo-300 enabled:hover:bg-indigo-50/50",
                         )}
                       >
                         {position + 1}
-                        {phase === "pending" ? <span className="absolute top-1 right-1 size-2 rounded-full bg-(--sb-ink)" aria-hidden /> : null}
+                        {phase === "pending" ? <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-indigo-500 animate-pulse" aria-hidden /> : null}
                         {phase === "failed" ? (
-                          <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-(--sb-danger) text-[10px] leading-none font-bold text-white" aria-hidden>
+                          <span className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-rose-500 text-[10px] leading-none font-bold text-white shadow-xs" aria-hidden>
                             !
                           </span>
                         ) : null}
@@ -389,7 +389,7 @@ export default function SectionQuestionPage() {
         {pendingNav ? (
           <KidDialog
             title="Save your answer?"
-            icon={<IconCheck />}
+            mascot="thinking"
             tone="sun"
             body="You wrote something new but you did not save it. Save it before you go."
             confirmLabel="Save and go"
@@ -407,7 +407,7 @@ export default function SectionQuestionPage() {
         {confirm === "complete" ? (
           <KidDialog
             title="Finish this section?"
-            icon={<IconFlag />}
+            mascot="break"
             tone={unanswered ? "sun" : "primary"}
             body={
               failedCount
@@ -427,7 +427,7 @@ export default function SectionQuestionPage() {
         {confirm === "leave" ? (
           <KidDialog
             title="Take a break?"
-            icon={<IconPause />}
+            mascot="break"
             body="You will go back to the sections page and the timer for this section will stop. When you are ready, you can continue from this question."
             confirmLabel={saving ? "Saving…" : "Take a break"}
             cancelLabel="Keep going"
@@ -455,7 +455,7 @@ function ResetQuestionDialog({ parts, onDone, onCancel }: { parts: string[]; onD
   return (
     <KidDialog
       title="Start this question again?"
-      icon={<IconRefresh />}
+      mascot="thinking"
       tone="sun"
       body="The question will look new again. Your last answer stays saved until you give a new one."
       confirmLabel="Start again"
@@ -496,17 +496,17 @@ function SideNav({
     >
       <span
         className={cn(
-          "grid size-14 place-items-center rounded-full border-2 transition-colors duration-120 [&>svg]:size-6 [&>svg]:stroke-[2.25]",
+          "grid size-14 place-items-center rounded-2xl transition-all duration-200 shadow-md [&>svg]:size-6 [&>svg]:stroke-[2.5]",
           tone === "sun"
-            ? "border-(--sb-ink) bg-white text-(--sb-ink) group-hover:bg-(--sb-tint)"
+            ? "bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 shadow-amber-500/25 group-hover:scale-105 group-hover:shadow-lg"
             : side === "left"
-              ? "border-(--sb-line-strong) bg-white text-(--sb-ink) group-hover:border-(--sb-ink)"
-              : "border-(--sb-ink) bg-(--sb-ink) text-white group-hover:bg-(--sb-fg-strong)",
+              ? "border border-slate-200 bg-white text-slate-700 shadow-xs group-hover:border-indigo-300 group-hover:text-indigo-900 group-hover:scale-105"
+              : "bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-indigo-500/25 group-hover:scale-105 group-hover:shadow-lg",
         )}
       >
         {tone === "sun" ? <IconFlag aria-hidden /> : side === "left" ? <IconArrowLeft aria-hidden /> : <IconArrowRight aria-hidden />}
       </span>
-      <span className="text-xs font-semibold text-(--sb-fg-strong)">{label}</span>
+      <span className="font-kid text-xs font-bold tracking-tight text-slate-700">{label}</span>
     </button>
   );
 }

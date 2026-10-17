@@ -33,13 +33,13 @@ export function EntryFrame({
 
   if (panel === "student") {
     return (
-      <div lang={lang} data-panel={panel} className="relative flex min-h-dvh flex-1 flex-col overflow-x-hidden bg-(--sb-bg) px-4 py-6 sm:px-8 md:py-10">
+      <div lang={lang} data-panel={panel} className="student-canvas relative flex min-h-dvh flex-1 flex-col overflow-x-hidden bg-(--sb-bg) px-4 py-8 sm:px-8 md:py-14">
         <div className={cn("relative m-auto w-full", wide ? "max-w-2xl" : "max-w-lg")}>
-          <div className="overflow-hidden rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white shadow-(--sb-e2)">
-            <div aria-hidden className="sb-lanes h-2.5" />
+          <div className="overflow-hidden rounded-3xl border border-indigo-100/90 bg-white/95 p-1 shadow-2xl shadow-indigo-950/10 backdrop-blur-md">
+            <div aria-hidden className="h-2 rounded-t-[20px] bg-gradient-to-r from-indigo-600 via-purple-500 to-amber-400" />
             <div className="px-5 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
               {logoHref ? (
-                <Link href={logoHref} aria-label="İngiliz Kültür Koleji, ana sayfa" className="mx-auto block w-fit rounded-(--sb-r-sm)">
+                <Link href={logoHref} aria-label="İngiliz Kültür Koleji, ana sayfa" className="mx-auto block w-fit rounded-xl transition-transform hover:scale-[1.02]">
                   {logo}
                 </Link>
               ) : (
@@ -48,7 +48,7 @@ export function EntryFrame({
               {children}
             </div>
           </div>
-          {footer ? <div className="mt-6 px-2 text-center text-base text-(--sb-fg-strong)">{footer}</div> : null}
+          {footer ? <div className="mt-6 px-2 text-center text-sm font-medium text-slate-500 sm:text-base">{footer}</div> : null}
         </div>
       </div>
     );

@@ -98,6 +98,64 @@ function uploadError(status: number, body: unknown) {
   return error;
 }
 
+export type StimulusPlayTicket = {
+  grantId: string | null;
+  playCount: number;
+  maxPlays: number | null;
+  unlimited: boolean;
+};
+
+export type StimulusPlayStatus = {
+  playCount: number;
+  maxPlays: number | null;
+  unlimited: boolean;
+};
+
+export async function stimulusPlayStatus(applicationId: string, sessionToken: string, mediaId: string): Promise<StimulusPlayStatus> {
+  const data = await sessionJson(applicationId, sessionToken, `/media/${mediaId}/plays`, "GET");
+  const body = data && typeof data === "object" ? (data as Partial<StimulusPlayStatus>) : {};
+  const count = Number(body.playCount);
+  return {
+    playCount: Number.isFinite(count) ? count : 0,
+    maxPlays: typeof body.maxPlays === "number" ? body.maxPlays : null,
+    unlimited: Boolean(body.unlimited),
+  };
+}
+
+export async function openStimulusPlay(applicationId: string, sessionToken: string, mediaId: string): Promise<StimulusPlayTicket> {
+  const data = await sessionJson(applicationId, sessionToken, `/media/${mediaId}/play`, "POST");
+  const body = data && typeof data === "object" ? (data as Partial<StimulusPlayTicket>) : {};
+  return {
+    grantId: typeof body.grantId === "string" && body.grantId ? body.grantId : null,
+    playCount: Number(body.playCount) || 0,
+    maxPlays: typeof body.maxPlays === "number" ? body.maxPlays : null,
+    unlimited: Boolean(body.unlimited),
+  };
+}
+
+export async function releaseStimulusPlay(applicationId: string, sessionToken: string, mediaId: string, grantId: string): Promise<void> {
+  await sessionJson(applicationId, sessionToken, `/media/${mediaId}/play/${grantId}/release`, "POST");
+}
+
+async function sessionJson(applicationId: string, sessionToken: string, path: string, method: "GET" | "POST"): Promise<unknown> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Session-Token": sessionToken,
+  };
+  const token = getClientAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let res: Response;
+  try {
+    res = await fetch(`/api/backend/applications/${applicationId}${path}`, { method, headers });
+  } catch {
+    throw Object.assign(new Error(studentErrorMessage({ status: 0 }, "exam")), { status: 0 });
+  }
+  if (res.status === 204) return undefined;
+  const data = await readJson(res);
+  if (!res.ok) throw uploadError(res.status, data);
+  return data;
+}
+
 export async function openAnswerContentTicket(
   applicationId: string,
   sessionToken: string,

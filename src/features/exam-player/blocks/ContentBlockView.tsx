@@ -1,7 +1,8 @@
 "use client";
 
 import { HtmlBlock, HtmlInline } from "@/src/features/exam-player/html";
-import { MediaAudio, MediaImageSlot, MediaVideo } from "@/src/features/exam-player/media/MediaContext";
+import { ZoomableMediaImage } from "@/src/features/exam-player/media/ImageLightbox";
+import { MediaAudio, MediaVideo } from "@/src/features/exam-player/media/MediaContext";
 import type { ContentBlock } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import type { CSSProperties } from "react";
@@ -9,11 +10,11 @@ import type { CSSProperties } from "react";
 export function ContentBlockView({ block }: { block: ContentBlock }) {
   switch (block.type) {
     case "TEXT":
-      return <HtmlBlock value={block.text} className="leading-relaxed" />;
+      return <HtmlBlock value={block.text} className="leading-relaxed" zoomImages />;
     case "IMAGE":
       return (
         <figure className="space-y-2">
-          <MediaImageSlot mediaId={block.mediaId} />
+          <ZoomableMediaImage mediaId={block.mediaId} />
           {block.caption ? (
             <figcaption className="text-center text-sm text-exam-slate-500">
               <HtmlInline value={block.caption} />
@@ -32,7 +33,7 @@ export function ContentBlockView({ block }: { block: ContentBlock }) {
           >
             {(block.items ?? []).map((item, i) => (
               <figure key={item.id ?? `${block.id}-${i}`} className="space-y-1">
-                <MediaImageSlot mediaId={item.mediaId} />
+                <ZoomableMediaImage mediaId={item.mediaId} />
                 {item.caption ? (
                   <figcaption className="text-center text-xs text-exam-slate-500">
                     <HtmlInline value={item.caption} />

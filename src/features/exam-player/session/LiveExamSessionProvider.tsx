@@ -29,7 +29,8 @@ export function LiveExamSessionProvider({
       sessionToken,
       hydrated,
       answersRevision: revision,
-      uploadMedia: (itemId, file, durationMs) => uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs),
+      uploadMedia: (itemId, file, durationMs, intentId) =>
+        uploadApplicationMedia(applicationId, sessionToken, itemId, file, durationMs, intentId),
       getAnswer: (itemId) => box.getAnswer(itemId),
       discardDraft: (itemId) => box.discard(itemId),
       saveAnswer: (itemId, answer, mediaId, intentId) => {

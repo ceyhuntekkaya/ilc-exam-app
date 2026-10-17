@@ -14,7 +14,7 @@ import {
   useOpen,
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
-import { TargetRequestType } from "@/src/api/generated/models";
+import { OmittedStudentReason, TargetRequestType } from "@/src/api/generated/models";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
@@ -51,6 +51,13 @@ const TARGET_HINT: Record<TargetRequestType, string> = {
   [TargetRequestType.GRADE]: "Seviyedeki tüm sınıflar ve öğrenciler.",
   [TargetRequestType.CLASS]: "Yalnız seçilen sınıfın öğrencileri.",
   [TargetRequestType.STUDENT]: "Tek öğrenci (telafi, ek oturum).",
+};
+
+const OMIT_REASON: Record<OmittedStudentReason, string> = {
+  ENROLLMENT_STATUS: "Kayıt aktif değil",
+  YEAR_OR_CAMPUS: "Kayıt yılı veya kampüsü uyuşmuyor",
+  USER_INACTIVE: "Hesap aktif değil",
+  EXCLUDED: "Hariç tutuldu",
 };
 
 function LockedChoice({ label, value }: { label: string; value: string }) {
@@ -94,6 +101,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const [until, setUntil] = useState("");
   const [attempts, setAttempts] = useState(1);
   const [previewNames, setPreviewNames] = useState<string[]>([]);
+  const [omittedRows, setOmittedRows] = useState<{ name: string; reason: string }[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -151,9 +159,16 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         data: [{ type: targetType, targetId, exclude: false }],
       });
       const seen = await preview(assignmentId);
+      const body = seen.data;
       setDraftId(assignmentId);
       setPreviewNames(
-        (seen.data ?? []).map((row) => studentName.get(row.studentId ?? "") || row.studentId || "Öğrenci"),
+        (body?.recipients ?? []).map((row) => studentName.get(row.studentId ?? "") || row.studentId || "Öğrenci"),
+      );
+      setOmittedRows(
+        (body?.omitted ?? []).map((row) => ({
+          name: studentName.get(row.studentId ?? "") || row.studentId || "Öğrenci",
+          reason: row.reason ? OMIT_REASON[row.reason] : "Elenen",
+        })),
       );
       setStep(4);
     } catch (err) {
@@ -401,21 +416,38 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
 
         {step === 4 ? (
           <>
-            <div className="rounded-lg border border-border">
-              <p className="border-b border-border bg-neutral-50/60 px-3.5 py-2 text-[13px] text-fg-muted">
-                <span className="numeric font-semibold text-fg">{previewNames.length.toLocaleString("tr-TR")}</span> öğrenci bu atamayı alacak
-              </p>
-              {previewNames.length === 0 ? (
-                <p className="px-3.5 py-4 text-sm text-fg-muted">Hedefte öğrenci yok. Hedefi değiştirmek için yeni atama başlatın.</p>
-              ) : (
-                <ul className="max-h-64 divide-y divide-border overflow-auto text-sm">
-                  {previewNames.map((name, i) => (
-                    <li key={`${name}-${i}`} className="px-3.5 py-2">
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <div className="grid gap-4">
+              <div className="rounded-lg border border-border">
+                <p className="border-b border-border bg-neutral-50/60 px-3.5 py-2 text-[13px] text-fg-muted">
+                  <span className="numeric font-semibold text-fg">{previewNames.length.toLocaleString("tr-TR")}</span> öğrenci bu atamayı alacak
+                </p>
+                {previewNames.length === 0 ? (
+                  <p className="px-3.5 py-4 text-sm text-fg-muted">Hedefte yazılacak öğrenci yok. Hedefi değiştirmek için yeni atama başlatın.</p>
+                ) : (
+                  <ul className="max-h-64 divide-y divide-border overflow-auto text-sm">
+                    {previewNames.map((name, i) => (
+                      <li key={`${name}-${i}`} className="flex min-h-11 items-center px-3.5">
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {omittedRows.length > 0 ? (
+                <div className="rounded-lg border border-border">
+                  <p className="border-b border-border bg-neutral-50/60 px-3.5 py-2 text-[13px] text-fg-muted">
+                    <span className="numeric font-semibold text-fg">{omittedRows.length.toLocaleString("tr-TR")}</span> öğrenci elendi
+                  </p>
+                  <ul className="max-h-64 divide-y divide-border overflow-auto text-sm">
+                    {omittedRows.map((row, i) => (
+                      <li key={`${row.name}-${i}`} className="flex min-h-11 flex-col justify-center gap-0.5 px-3.5 py-2 @min-[28rem]/form:flex-row @min-[28rem]/form:items-center @min-[28rem]/form:justify-between">
+                        <span className="min-w-0 truncate">{row.name}</span>
+                        <span className="shrink-0 text-[13px] text-fg-muted">{row.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </>
         ) : null}

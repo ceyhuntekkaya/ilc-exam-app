@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_TOKEN_COOKIE } from "@/src/lib/auth-constants";
 import { getApiBaseUrl } from "@/src/lib/env";
+import { proxyResponse } from "@/src/lib/server/proxyResponse";
 import { ensureAccessToken } from "@/src/lib/server/session-cookies";
 
 type RouteParams = { params: Promise<{ path: string[] }> };
@@ -85,20 +86,14 @@ async function forward(request: NextRequest, path: string[]) {
     if (!responseHeaders.has("content-length")) {
       responseHeaders.set("content-length", String(body.byteLength));
     }
-    return new NextResponse(body, {
-      status: upstream.status,
-      headers: responseHeaders,
-    });
+    return proxyResponse(upstream.status, body, responseHeaders);
   }
 
   const body = await upstream.arrayBuffer();
   const responseHeaders = new Headers();
   if (upstreamType) responseHeaders.set("content-type", upstreamType);
 
-  return new NextResponse(body, {
-    status: upstream.status,
-    headers: responseHeaders,
-  });
+  return proxyResponse(upstream.status, body, responseHeaders);
 }
 
 export async function GET(request: NextRequest, ctx: RouteParams) {

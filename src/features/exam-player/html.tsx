@@ -1,44 +1,77 @@
 "use client";
 
+import { usePictureZoom } from "@/src/features/exam-player/media/ImageLightbox";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import type { ReactNode } from "react";
+
+const ZOOM_HINT = "Tap a picture to make it bigger.";
+
+function hasImage(html: string) {
+  return /<img\b/i.test(html);
+}
 
 export function HtmlInline({
   value,
   className,
   fallback = "",
+  zoomImages = false,
 }: {
   value: HtmlValue;
   className?: string;
   fallback?: string;
+  /** Yönergedeki görsele dokununca büyüt. Seçenek metninde kapalı kalır. */
+  zoomImages?: boolean;
 }) {
   const html = htmlOf(value) || fallback;
   if (!html) return null;
-  return (
-    <span
-      className={cn("[&_p]:inline [&_p]:m-0", className)}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
+  if (zoomImages && hasImage(html)) return <ZoomHtmlInline html={html} className={className} inline />;
+  return <span className={cn("[&_p]:inline [&_p]:m-0", className)} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 export function HtmlBlock({
   value,
   className,
   fallback,
+  zoomImages = false,
 }: {
   value: HtmlValue;
   className?: string;
   fallback?: ReactNode;
+  /** Soru metnindeki görsele dokununca büyüt. */
+  zoomImages?: boolean;
 }) {
   const html = htmlOf(value);
   if (!html) return fallback ? <>{fallback}</> : null;
+  if (zoomImages && hasImage(html)) {
+    return <ZoomHtmlInline html={html} className={cn("prose-section max-w-none text-exam-slate-800 [&_img]:max-w-full", className)} />;
+  }
   return (
     <div
       className={cn("prose-section max-w-none text-exam-slate-800 [&_img]:max-w-full", className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
+  );
+}
+
+/** Görseli olan metin: dokunuş modal açar. Kanca yalnız bu dalda çalışır. */
+function ZoomHtmlInline({ html, className, inline = false }: { html: string; className?: string; inline?: boolean }) {
+  const zoom = usePictureZoom();
+  const Tag = inline ? "span" : "div";
+  return (
+    <>
+      <Tag
+        className={cn(inline && "[&_p]:m-0", "[&_img]:cursor-zoom-in", className)}
+        dangerouslySetInnerHTML={{ __html: html }}
+        onClick={zoom.onClick}
+      />
+      {inline ? (
+        <span className="mt-1 block text-xs font-bold text-exam-slate-500">{ZOOM_HINT}</span>
+      ) : (
+        <p className="mt-1.5 text-xs font-bold text-exam-slate-500">{ZOOM_HINT}</p>
+      )}
+      {zoom.dialog}
+    </>
   );
 }
 

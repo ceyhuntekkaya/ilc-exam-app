@@ -3,6 +3,7 @@
 import { EntryFrame } from "@/src/components/brand/entry-frame";
 import { useStudentLogin } from "@/src/api/generated/auth/auth";
 import { useAuth } from "@/src/components/auth-provider";
+import { Mascot, MascotWelcome } from "@/src/features/student/mascot";
 import { kidButtonClass } from "@/src/features/student/ui";
 import type { SessionUserType } from "@/src/lib/auth-constants";
 import { IconAlert, IconArrowRight, IconUser } from "@/src/ui/icons";
@@ -44,21 +45,26 @@ export default function StudentLoginPage() {
       footer={
         <>
           Are you a teacher or school staff?{" "}
-          <Link href="/login" className="inline-flex min-h-11 items-center font-bold text-(--sb-ink) underline decoration-2 underline-offset-4">
+          <Link href="/login" className="inline-flex min-h-10 items-center font-bold text-indigo-600 transition-colors hover:text-indigo-800 underline decoration-2 underline-offset-4">
             Staff login
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} className="mt-7">
-        <h1 className="sb-display text-5xl leading-[0.95] text-(--sb-ink)">Welcome!</h1>
-        <p className="mt-2 text-lg text-(--sb-fg-muted)">Write the username from your teacher.</p>
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="sb-display text-4xl leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">Welcome!</h1>
+            <p className="mt-2 text-base text-slate-500 sm:text-lg">Write the username given by your teacher.</p>
+          </div>
+          {error ? <Mascot mood="thinking" size="md" /> : <MascotWelcome className="w-28 shrink-0 sm:w-36" />}
+        </div>
 
-        <label htmlFor="username" className="mt-7 block text-base font-bold text-(--sb-ink)">
+        <label htmlFor="username" className="mt-7 block font-kid text-sm font-bold text-slate-700">
           Your username
         </label>
         <div className="relative mt-2">
-          <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-6 -translate-y-1/2 text-(--sb-fg-muted)" />
+          <IconUser aria-hidden className="pointer-events-none absolute top-1/2 left-4 size-5.5 -translate-y-1/2 text-slate-400" />
           <input
             id="username"
             type="text"
@@ -73,18 +79,22 @@ export default function StudentLoginPage() {
             onChange={(e) => setUsername(e.target.value)}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? "login-error" : undefined}
-            className="min-h-14 w-full rounded-(--sb-r-md) border-2 border-(--sb-line-strong) bg-white pr-4 pl-12 text-lg text-(--sb-ink) outline-none transition-colors duration-120 placeholder:text-(--sb-fg-muted) focus:border-(--sb-ink) aria-invalid:border-(--sb-danger)"
+            className="min-h-14 w-full rounded-2xl border border-slate-200 bg-slate-50/60 pr-4 pl-12 text-base font-medium text-slate-900 outline-none transition-all duration-150 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/15 aria-invalid:border-rose-400 aria-invalid:ring-rose-400/15"
           />
         </div>
 
         {error ? (
-          <p id="login-error" role="alert" className="mt-4 flex items-start gap-2 rounded-(--sb-r-sm) border-l-4 border-(--sb-danger) bg-(--sb-danger-bg) px-4 py-3 font-medium text-(--sb-danger) [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
-            <IconAlert aria-hidden />
+          <p id="login-error" role="alert" className="mt-4 flex items-start gap-2.5 rounded-2xl border border-rose-200/90 bg-rose-50/80 px-4 py-3 text-sm font-medium text-rose-700 [&>svg]:mt-0.5 [&>svg]:size-5 [&>svg]:shrink-0">
+            <IconAlert aria-hidden className="text-rose-600" />
             {error}
           </p>
         ) : null}
 
-        <button type="submit" disabled={loginMutation.isPending || !username.trim()} className={`${kidButtonClass({ variant: "sun", size: "lg", full: true })} mt-6`}>
+        <button
+          type="submit"
+          disabled={loginMutation.isPending || !username.trim()}
+          className={`${kidButtonClass({ variant: "sun", size: "lg", full: true })} mt-6 shadow-md shadow-amber-500/20`}
+        >
           {loginMutation.isPending ? "Logging in…" : "Log in"}
           {loginMutation.isPending ? null : <IconArrowRight aria-hidden />}
         </button>

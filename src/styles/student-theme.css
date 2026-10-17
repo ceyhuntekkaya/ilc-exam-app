@@ -1,92 +1,121 @@
 /*
-  Öğrenci teması — "Skorbord". Hedef: 9–15 yaş, tablet + okul masaüstü.
-  Kapsam: yalnız `[data-panel="student"]` (StudentShell + öğrenci girişi). Admin,
-  staff, landing bu dosyadan etkilenmez. Her zaman açık tema.
+  Öğrenci teması — "Modern Energetic Academy".
+  Kapsam: yalnız `[data-panel="student"]` (StudentShell, sınav akışı ve öğrenci girişi).
+  Admin, staff ve landing bu dosyadan etkilenmez. Her zaman açık, enerjik, modern tema.
 
-  Dil: mürekkep (ink) + tek aksan "volt". Volt hiçbir zaman açık zeminde metin olmaz;
-  ya mürekkep üstünde metin ya mürekkep metinli yüzeydir. Derinlik sert ofset gölge.
-  Sınav ekranı (.exam-sitting) sakin moddur: volt, ofset gölge ve hareket kalkar.
-
-  Beceri renkleri theme-colors.css içindeki --color-skill-* (raporlarla ortak).
-  Kontrast: tüm metin/zemin çiftleri WCAG AA (≥4.5:1); input kenarlığı ≥3:1.
+  Renk Dili:
+  - Electric Academy Indigo (#4f46e5 / #4338ca) ana marka & güven omurgası
+  - Solar Amber (#f59e0b / #f97316) motivasyon, devam et ve kutlama enerjisi
+  - Fresh Radiant Canvas (#f8faff) ve temiz beyaz kartlar (#ffffff)
+  - Çok katmanlı, yumuşak modern ışık & derinlik gölgeleri
+  - Lexend + Inter ile akıcı, dinamik ve okuma dostu tipografi
 */
 
 [data-panel][data-panel="student"] {
-  --sb-bg: #f6f6f4;
+  /* Zemin ve Yüzeyler */
+  --sb-bg: #f8faff;
   --sb-surface: #ffffff;
-  --sb-sunken: #e9e9e4;
-  --sb-tint: #f0f0ec;
-  --sb-line: #cfcfc7;
-  --sb-line-strong: #8a8a82;
-  --sb-fg-muted: #5f5f58;
-  --sb-fg-strong: #2a2a26;
-  --sb-ink: #0e0e0c;
-  --sb-volt: #d7ff3a;
+  --sb-sunken: #f1f5f9;
+  --sb-tint: #eef2ff;
+  --sb-line: #e2e8f0;
+  --sb-line-strong: #cbd5e1;
+  --sb-fg-muted: #64748b;
+  --sb-fg-strong: #1e293b;
+  --sb-ink: #0f172a;
 
-  /* Birincil buton: mürekkep zemin üstünde volt (sınavda beyaz). */
-  --sb-on-ink: var(--sb-volt);
-  /* "Devam et" vurgusu (sun): panelde volt yüzey + sert gölge, sınavda beyaz. */
-  --sb-sun-bg: var(--sb-volt);
-  --sb-sun-hover: #e4ff7a;
+  /* Enerjik Palet */
+  --sb-primary: #4f46e5;
+  --sb-primary-hover: #4338ca;
+  --sb-primary-active: #3730a3;
+  --sb-primary-tint: #eef2ff;
 
-  --sb-success: #0e7c3a;
-  --sb-success-bg: #e3f3e8;
-  --sb-warning: #a15c00;
-  --sb-warning-bg: #fff1db;
-  --sb-danger: #c8102e;
-  --sb-danger-bg: #fde8eb;
+  --sb-volt: #f59e0b; /* Solar Amber accent */
+  --sb-volt-hover: #d97706;
+  --sb-volt-light: #fef3c7;
 
-  --sb-r-xs: 4px;
-  --sb-r-sm: 6px;
-  --sb-r-md: 10px;
-  --sb-r-lg: 14px;
+  /* Buton renkleri */
+  --sb-on-ink: #ffffff;
+  --sb-sun-bg: #f59e0b;
+  --sb-sun-hover: #d97706;
 
-  --sb-e1: 3px 3px 0 var(--sb-ink);
-  --sb-e2: 5px 5px 0 var(--sb-ink);
-  --sb-e-overlay: 0 24px 48px rgb(14 14 12 / 18%);
+  /* Semantik Durumlar */
+  --sb-success: #059669;
+  --sb-success-bg: #ecfdf5;
+  --sb-success-border: #a7f3d0;
 
-  --sb-fast: 120ms;
-  --sb-base: 200ms;
-  --sb-slow: 320ms;
-  --sb-ease: cubic-bezier(0.2, 0, 0, 1);
-  --sb-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --sb-warning: #d97706;
+  --sb-warning-bg: #fffbeb;
+  --sb-warning-border: #fde68a;
 
-  /* Eski sınıflar (primary-*, secondary-*, neutral-*, --kid-*) yeni dile bağlanır. */
-  --color-primary-50: #f0f0ec;
-  --color-primary-100: #e9e9e4;
-  --color-primary-200: #cfcfc7;
-  --color-primary-300: #8a8a82;
-  --color-primary-400: #5f5f58;
-  --color-primary-500: #2a2a26;
-  --color-primary-600: #0e0e0c;
-  --color-primary-700: #2a2a26;
-  --color-primary-800: #0e0e0c;
-  --color-primary-900: #0e0e0c;
-  --color-primary-950: #0e0e0c;
+  --sb-danger: #e11d48;
+  --sb-danger-bg: #fff1f2;
+  --sb-danger-border: #fecdd3;
 
-  --color-secondary-50: #fbffe8;
-  --color-secondary-100: #f4ffc4;
-  --color-secondary-200: #ebff94;
-  --color-secondary-300: #e4ff7a;
-  --color-secondary-400: #d7ff3a;
-  --color-secondary-500: #c6f01c;
-  --color-secondary-600: #0e0e0c;
-  --color-secondary-700: #0e0e0c;
-  --color-secondary-800: #0e0e0c;
-  --color-secondary-900: #0e0e0c;
-  --color-secondary-950: #0e0e0c;
+  --sb-info: #0284c7;
+  --sb-info-bg: #f0f9ff;
+  --sb-info-border: #bae6fd;
 
-  --color-neutral-50: #f6f6f4;
-  --color-neutral-100: #e9e9e4;
-  --color-neutral-200: #dcdcd5;
-  --color-neutral-300: #cfcfc7;
-  --color-neutral-400: #8a8a82;
-  --color-neutral-500: #6b6b63;
-  --color-neutral-600: #5f5f58;
-  --color-neutral-700: #45453f;
-  --color-neutral-800: #2a2a26;
-  --color-neutral-900: #1a1a17;
-  --color-neutral-950: #0e0e0c;
+  --sb-purple: #7c3aed;
+  --sb-purple-bg: #f5f3ff;
+  --sb-purple-border: #ddd6fe;
+
+  /* Modern Yuvarlak Köşeler */
+  --sb-r-xs: 8px;
+  --sb-r-sm: 12px;
+  --sb-r-md: 16px;
+  --sb-r-lg: 24px;
+  --sb-r-xl: 32px;
+
+  /* Yumuşak & Katmanlı Gölgeler */
+  --sb-e1: 0 4px 14px -1px rgba(79, 70, 229, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --sb-e2: 0 12px 28px -4px rgba(79, 70, 229, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  --sb-e-overlay: 0 24px 50px -8px rgba(15, 23, 42, 0.22);
+  --sb-e-glow-primary: 0 8px 24px -4px rgba(79, 70, 229, 0.35);
+  --sb-e-glow-sun: 0 8px 24px -4px rgba(245, 158, 11, 0.35);
+
+  /* Mikro-Etkileşim Zamanlamaları */
+  --sb-fast: 140ms;
+  --sb-base: 220ms;
+  --sb-slow: 350ms;
+  --sb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --sb-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Tailwind Uyumluluk Eşlemeleri */
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  --color-primary-950: #1e1b4b;
+
+  --color-secondary-50: #fffbeb;
+  --color-secondary-100: #fef3c7;
+  --color-secondary-200: #fde68a;
+  --color-secondary-300: #fcd34d;
+  --color-secondary-400: #fbbf24;
+  --color-secondary-500: #f59e0b;
+  --color-secondary-600: #d97706;
+  --color-secondary-700: #b45309;
+  --color-secondary-800: #92400e;
+  --color-secondary-900: #78350f;
+  --color-secondary-950: #451a03;
+
+  --color-neutral-50: #f8faff;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
 
   --bg: var(--sb-bg);
   --surface: #ffffff;
@@ -96,16 +125,16 @@
   --fg: var(--sb-ink);
   --fg-muted: var(--sb-fg-muted);
   --fg-subtle: var(--sb-fg-muted);
-  --primary: var(--sb-ink);
+  --primary: var(--sb-primary);
   --primary-fg: #ffffff;
-  --primary-hover: var(--sb-fg-strong);
-  --focus: var(--sb-ink);
-  --shadow: none;
+  --primary-hover: var(--sb-primary-hover);
+  --focus: var(--sb-primary);
+  --shadow: var(--sb-e1);
 
-  --kid-sky: var(--sb-ink);
-  --kid-sky-bg: var(--sb-tint);
-  --kid-sun: var(--sb-ink);
-  --kid-sun-bg: var(--sb-volt);
+  --kid-sky: var(--sb-info);
+  --kid-sky-bg: var(--sb-info-bg);
+  --kid-sun: var(--sb-warning);
+  --kid-sun-bg: var(--sb-warning-bg);
   --kid-sun-solid: var(--sb-volt);
   --kid-mint: var(--sb-success);
   --kid-mint-bg: var(--sb-success-bg);
@@ -113,30 +142,28 @@
   --kid-coral: var(--sb-danger);
   --kid-coral-bg: var(--sb-danger-bg);
   --kid-coral-solid: var(--sb-danger);
-  --kid-grape: var(--sb-ink);
-  --kid-grape-bg: var(--sb-tint);
+  --kid-grape: var(--sb-purple);
+  --kid-grape-bg: var(--sb-purple-bg);
 
   --student-max: 76rem;
   --gutter: 1rem;
 }
 
-/* Sınav: güven modu. Aksan mürekkebe iner, gölge ve sıçrama yok. */
+/* Sınav Oturumu (.exam-sitting) - Odak ve Rahatlık Modu */
 [data-panel][data-panel="student"] .exam-sitting {
   --sb-on-ink: #ffffff;
-  --sb-sun-bg: #ffffff;
-  --sb-sun-hover: var(--sb-tint);
-  --sb-e1: none;
-  --sb-e2: none;
-  --kid-sun-bg: var(--sb-warning-bg);
-  --kid-sun: var(--sb-warning);
+  --sb-sun-bg: #4f46e5;
+  --sb-sun-hover: #4338ca;
+  --sb-e1: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --sb-e2: 0 4px 12px rgba(15, 23, 42, 0.07);
 }
 
 @layer base {
   [data-panel][data-panel="student"] {
-    font-family: "Inter", var(--font-source-sans), "Segoe UI", sans-serif;
-    font-feature-settings: "cv11", "ss01";
+    font-family: "Inter", "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--sb-bg);
     color: var(--sb-ink);
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -154,6 +181,10 @@
 
 .student-canvas {
   background-color: var(--sb-bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent 70%),
+    radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.04), transparent 40%);
+  background-attachment: fixed;
 }
 
 @utility student-container {
@@ -163,61 +194,52 @@
   padding-inline: var(--gutter);
 }
 
-/* Başlık ve iri sayı: Archivo. `.font-kid` eski adıyla kalır, bileşenler onu kullanıyor. */
+/* Başlık ve İfadeler: Modern ve Akıcı Lexend */
 [data-panel][data-panel="student"] :where(h1, h2, h3, .font-kid) {
-  font-family: "Archivo", "Inter", sans-serif;
-  letter-spacing: -0.01em;
-}
-
-/* Skor tabelası rakamı: dar kesim, kalın, sabit genişlik. */
-@utility sb-display {
-  font-family: "Archivo", "Inter", sans-serif;
-  font-stretch: 75%;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+  font-family: "Lexend", "Inter", sans-serif;
   letter-spacing: -0.02em;
 }
 
-/* Durum etiketi ve tablo başlığı. */
+/* Enerjik Başlık & Sayaç Rakamları */
+@utility sb-display {
+  font-family: "Lexend", "Inter", sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+/* Durum Etiketleri & Üst Başlıklar */
 @utility sb-overline {
-  font-family: "Archivo", "Inter", sans-serif;
-  font-size: 0.75rem;
+  font-family: "Lexend", "Inter", sans-serif;
+  font-size: 0.72rem;
   line-height: 1rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 [data-panel][data-panel="student"] :focus-visible {
-  outline: 3px solid var(--sb-ink);
+  outline: 3px solid #6366f1;
   outline-offset: 2px;
 }
 
 [data-panel][data-panel="student"] ::selection {
-  background: var(--sb-volt);
-  color: var(--sb-ink);
+  background: #c7d2fe;
+  color: #1e1b4b;
 }
 
-/* Dört beceri renginde çapraz pist şeritleri (yalnız karşılama bandı). */
+/* Enerjik Akademi Işıltısı (Luminous Radiant Mesh) */
 .sb-lanes {
-  background-image: repeating-linear-gradient(
-    -55deg,
-    var(--color-skill-reading) 0 10px,
-    transparent 10px 22px,
-    var(--color-skill-listening) 22px 32px,
-    transparent 32px 44px,
-    var(--color-skill-writing) 44px 54px,
-    transparent 54px 66px,
-    var(--color-skill-speaking) 66px 76px,
-    transparent 76px 88px
-  );
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(245, 158, 11, 0.35) 50%, rgba(14, 165, 233, 0.4) 100%);
+  filter: blur(28px);
+  opacity: 0.75;
 }
 
-/* Yükleme iskeleti: soldan sağa ince parıltı. */
+/* Yükleme İskeleti */
 .sb-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--sb-sunken);
+  background: #edf2f7;
 }
 
 .sb-skeleton::after {
@@ -225,8 +247,8 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 55%), transparent);
-  animation: sb-shimmer 1.2s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: sb-shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes sb-shimmer {
@@ -235,17 +257,24 @@
   }
 }
 
-/* Modal girişi: 16px yukarı kayma + opaklık. */
+/* Yumuşak Giriş Animasyonları */
 @keyframes sb-rise {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes sb-fade {
   from {
     opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -268,20 +297,12 @@
   }
 }
 
-/* Soru içeriği (.exam-player) burada ezilmez: öğrenci ekranı admin "Öğrenci önizlemesi" ile birebir aynı olmalı.
-   Tek istisna eşitleme: panel fontu yerine önizlemedeki (site geneli) font. */
+/* Soru içeriği fontu */
 [data-panel][data-panel="student"] .exam-player,
 [data-panel][data-panel="student"] .exam-player :where(h1, h2, h3, .font-kid) {
   font-family: var(--font-source-sans), "Segoe UI", sans-serif;
 }
 
-/*
-  Soru metni, öğrenci sınavı ve personel önizlemesinde aynı punto.
-  Yaklaşık +3 punto (4px): 16px → 20px, 15px → 19px, 14px → 18px, 12px → 16px.
-  .exam-player sorunun kendisi (iki tarafta da var). .exam-sitting süre, ok ve alt çubuk.
-  Punto bu kutuların köküne verilmez. @container sorgularındaki rem,
-  Safari'de kutunun kendi puntosuna bağlıdır; kök punto büyüyünce iki kolon alta düşer.
-*/
 .exam-player .prose-section,
 .exam-sitting .prose-section {
   font-size: 1.25rem;
@@ -317,7 +338,7 @@
   font-size: 15px;
 }
 
-/* Mobil alt çubuk: iPhone ana ekran çizgisinin altında kalmasın. */
+/* Mobil Alt Çubuk Güvenli Alan */
 @utility pb-safe {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }

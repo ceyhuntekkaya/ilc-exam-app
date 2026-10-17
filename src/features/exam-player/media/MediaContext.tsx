@@ -3,11 +3,14 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePlayerPreview } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
+import { applyPlayTicket, limitFromPlayStatus, playbackAsksServer } from "@/src/features/exam-player/session/playTicket";
+import { openStimulusPlay, releaseStimulusPlay, stimulusPlayStatus } from "@/src/features/exam-player/session/studentMediaApi";
 import { claimMedia, markHeard, releaseMedia, usePlayerGuard } from "@/src/features/exam-player/session/playerGuard";
 import { cn } from "@/src/lib/utils/cn";
 import { shortId, type PlaybackPolicy } from "@/src/features/exam-player/types";
-import { IconCheck, IconImage, IconLock, IconPause, IconPlay, IconVolume, IconX } from "@/src/ui/icons";
-import { createPortal } from "react-dom";
+import { MediaArt } from "@/src/features/exam-player/media/MediaArt";
+import { IconCheck, IconImage, IconLock, IconPause, IconPlay, IconX } from "@/src/ui/icons";
+import { createPortal, flushSync } from "react-dom";
 
 export type MediaResolveFn = (mediaId: string) => string | null | undefined;
 
@@ -106,7 +109,12 @@ function readPlays(key: string | null) {
   }
 }
 
-function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolicy | null | undefined, unlimited: boolean) {
+function usePlayback(
+  mediaId: string | null | undefined,
+  playback: PlaybackPolicy | null | undefined,
+  unlimited: boolean,
+  sourceUrl: string | null,
+) {
   const id = useId();
   const { preview } = usePlayerPreview();
   const session = useExamSession();
@@ -116,9 +124,31 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
   const mounted = useRef(true);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const max = preview || unlimited ? null : (playback?.maxPlays ?? null);
+  const [spent, setSpent] = useState(false);
+  const asksServer = playbackAsksServer(preview, unlimited, session != null);
+  const [serverMax, setServerMax] = useState<number | null | undefined>(undefined);
+  const localMax = preview || unlimited ? null : (playback?.maxPlays ?? null);
+  const max = asksServer && serverMax !== undefined ? serverMax : localMax;
+  const gated = asksServer && (serverMax === undefined || serverMax != null);
+  const [grantedUrl, setGrantedUrl] = useState<string | null>(null);
   const remaining = max == null ? null : Math.max(0, max - plays);
-  const blocked = remaining === 0 && !playing;
+  const blocked = (spent || remaining === 0) && !playing;
+  const applicationId = session?.applicationId;
+  const sessionToken = session?.sessionToken;
+  useEffect(() => {
+    if (!asksServer || !applicationId || !sessionToken || !mediaId) return;
+    let live = true;
+    stimulusPlayStatus(applicationId, sessionToken, mediaId)
+      .then((status) => {
+        if (!live) return;
+        setServerMax(limitFromPlayStatus(status));
+        setPlays((current) => Math.max(current, status.playCount));
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [asksServer, mediaId, applicationId, sessionToken]);
   // Hakkı biten medya "izlendi" sayılır (yarıda kesildiyse bile kart kilitli kalmasın).
   useEffect(() => {
     if (!preview && blocked) markHeard(session?.applicationId, mediaId);
@@ -135,26 +165,85 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
     };
   }, [id]);
 
-  function start(el: HTMLMediaElement | null) {
+  function refundGrant(grantId: string | null) {
+    if (!grantId || !session || !mediaId) return;
+    void releaseStimulusPlay(session.applicationId, session.sessionToken, mediaId, grantId).catch(() => undefined);
+  }
+
+  async function start(el: HTMLMediaElement | null) {
     if (!el) return;
     if (preview) {
       if (playing) el.pause();
-      else void el.play();
+      else void el.play().catch(() => undefined);
       return;
     }
     if (playing || blocked || waiting) return;
     if (!claimMedia(id)) return;
+    let next = plays + 1;
+    let counted = !asksServer;
+    let grantId: string | null = null;
+    let nextUrl: string | null = null;
+    let nextMax: number | null = null;
+    if (asksServer && session && mediaId && sourceUrl) {
+      try {
+        const ticket = await openStimulusPlay(session.applicationId, session.sessionToken, mediaId);
+        if (!mounted.current) {
+          releaseMedia(id);
+          refundGrant(ticket.grantId);
+          return;
+        }
+        const applied = applyPlayTicket(sourceUrl, ticket);
+        if (applied.grantId) {
+          nextUrl = applied.url;
+          grantId = applied.grantId;
+          next = ticket.playCount;
+          counted = true;
+          if (ticket.maxPlays != null && ticket.maxPlays > 0) nextMax = ticket.maxPlays;
+        } else {
+          counted = false;
+          next = plays;
+          if (!el.getAttribute("src")) nextUrl = applied.url;
+        }
+      } catch (err) {
+        const status = typeof err === "object" && err && "status" in err ? Number((err as { status?: number }).status) : 0;
+        if (status === 409) {
+          setSpent(true);
+          if (max != null) {
+            setPlays(max);
+            writePlays(key, max);
+          }
+        }
+        releaseMedia(id);
+        return;
+      }
+    }
     // Hak hemen düşer (hızlı çift dokunuş iki kez saymasın); çalınamazsa geri verilir.
-    const next = plays + 1;
-    setPlays(next);
+    // Adres tek yazılır ve play()'den önce yerleşir. Elle src, ardından React'in aynı adresi
+    // tekrar yazması çalmayı keser.
+    flushSync(() => {
+      if (nextUrl) setGrantedUrl(nextUrl);
+      if (nextMax != null) setServerMax(nextMax);
+      setPlays(next);
+      setPlaying(true);
+    });
     writePlays(key, next);
-    setPlaying(true);
-    el.currentTime = 0;
-    el.play().catch(() => {
-      setPlays(next - 1);
-      writePlays(key, next - 1);
+    if (el.readyState > 0) {
+      try {
+        el.currentTime = 0;
+      } catch {
+        // metadata yokken sarma geçersizdir; tarayıcı baştan başlar
+      }
+    }
+    void el.play().catch(() => {
+      if (counted) {
+        setPlays(next - 1);
+        writePlays(key, next - 1);
+      }
       setPlaying(false);
+      setGrantedUrl(null);
+      el.removeAttribute("src");
       releaseMedia(id);
+      refundGrant(grantId);
     });
   }
 
@@ -187,7 +276,7 @@ function usePlayback(mediaId: string | null | undefined, playback: PlaybackPolic
     },
   };
 
-  return { preview, max, plays, remaining, blocked, waiting, playing, progress, start, events };
+  return { preview, max, plays, remaining, blocked, waiting, playing, progress, gated, grantedUrl, start, events };
 }
 
 function writePlays(key: string | null, value: number) {
@@ -238,15 +327,17 @@ export function MediaAudio({
   className?: string;
   /** default: dinleme kartı · icon: yönerge sesi düğmesi · compact: seçenek/kart içi küçük düğme */
   variant?: "default" | "icon" | "compact";
-  /** Hak sınırı yok (ör. yönerge sesi). Çalarken durdurulamaz kuralı yine geçerli. */
+  /** Sunucu bileti istenmez. Öğrenci yönergesi bu bayrağı geçmez; sınır kâğıttan okunur. */
   unlimited?: boolean;
 }) {
   const url = useMediaUrl(mediaId);
   const ref = useRef<HTMLAudioElement>(null);
-  const p = usePlayback(mediaId, playback, unlimited);
+  const p = usePlayback(mediaId, playback, unlimited, url);
   const disabled = !url || p.blocked || p.waiting || (p.playing && !p.preview);
 
-  const audio = url ? <audio ref={ref} src={url} preload="auto" className="hidden" {...p.events} /> : null;
+  const audio = url ? (
+    <audio ref={ref} src={p.gated ? (p.grantedUrl ?? undefined) : url} preload={p.gated ? "none" : "auto"} className="hidden" {...p.events} />
+  ) : null;
   const label = p.playing
     ? p.preview
       ? "Pause"
@@ -271,7 +362,7 @@ export function MediaAudio({
           }}
           aria-label={p.playing ? "Listening to the instructions" : "Listen to the instructions"}
           className={cn(
-            "inline-flex h-11 items-center gap-2 rounded-[10px] border-2 px-4 text-sm font-bold transition-colors duration-120",
+            "inline-flex h-11 items-center gap-2 rounded-[10px] border-2 pr-4 pl-1 text-sm font-bold transition-colors duration-120",
             p.playing
               ? "border-exam-navy-900 bg-exam-navy-900 text-white"
               : "border-exam-navy-900 bg-white text-exam-navy-900 enabled:hover:bg-exam-navy-50",
@@ -279,7 +370,7 @@ export function MediaAudio({
             !p.playing && disabled && "opacity-50",
           )}
         >
-          {p.playing ? <Bars className="[&>span]:bg-white" /> : <IconVolume className="size-5" aria-hidden />}
+          {p.playing ? <span className="grid size-8 place-items-center"><Bars className="[&>span]:bg-white" /></span> : <MediaArt kind="listen" px={32} className="rounded-md" />}
           <span>{p.playing && !p.preview ? "Listening…" : "Listen"}</span>
         </button>
       </div>
@@ -303,12 +394,13 @@ export function MediaAudio({
           }}
           aria-label={label}
           className={cn(
-            "grid size-11 shrink-0 place-items-center rounded-full transition",
-            p.playing ? "bg-exam-navy-900 text-white" : disabled ? "bg-exam-slate-300 text-white" : "bg-exam-navy-900 text-white hover:bg-exam-navy-600",
+            "grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl transition",
+            p.playing ? "bg-exam-navy-900 text-white" : "bg-white ring-2 ring-exam-slate-200",
+            !p.playing && !disabled && "hover:ring-exam-navy-900",
             disabled ? "cursor-[inherit]" : "cursor-pointer",
           )}
         >
-          {p.playing ? <Bars className="h-4 [&>span]:bg-white" /> : <IconPlay className="size-5" aria-hidden />}
+          {p.playing ? <Bars className="h-4 [&>span]:bg-white" /> : <MediaArt kind="listen" px={48} done={p.blocked && !p.preview} />}
         </button>
         {p.max != null ? <PlaysLeft max={p.max} remaining={p.remaining ?? 0} className="[&>span:last-child]:hidden" /> : null}
       </div>
@@ -334,17 +426,15 @@ export function MediaAudio({
         onClick={() => p.start(ref.current)}
         aria-label={label}
         className={cn(
-          "grid size-14 shrink-0 place-items-center rounded-full text-white transition",
-          p.playing ? "bg-exam-navy-900" : disabled ? "bg-exam-slate-300" : "bg-exam-navy-900 hover:bg-exam-navy-600",
+          "grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl text-white transition",
+          p.playing ? "bg-exam-navy-900" : "bg-white ring-2 ring-exam-slate-200 enabled:hover:ring-exam-navy-900 enabled:active:scale-[0.97]",
           "disabled:cursor-not-allowed",
         )}
       >
         {p.playing ? (
-          p.preview ? <IconPause className="size-6" aria-hidden /> : <Bars className="[&>span]:bg-white" />
-        ) : p.blocked ? (
-          <IconCheck className="size-6" aria-hidden />
+          p.preview ? <IconPause className="size-7" aria-hidden /> : <Bars className="[&>span]:bg-white" />
         ) : (
-          <IconPlay className="size-6" aria-hidden />
+          <MediaArt kind="listen" px={80} done={p.blocked} />
         )}
       </button>
       <div className="min-w-0 flex-1 space-y-1.5">
@@ -393,7 +483,7 @@ export function MediaVideoPopup({
 }) {
   const url = useMediaUrl(mediaId);
   const ref = useRef<HTMLVideoElement>(null);
-  const p = usePlayback(mediaId, playback, false);
+  const p = usePlayback(mediaId, playback, false, url);
   const tile = layout === "tile";
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -467,19 +557,16 @@ export function MediaVideoPopup({
           tile ? "w-full" : "w-32 @sm:w-40",
         )}
       >
-        <video src={`${url}#t=0.1`} preload="metadata" muted playsInline tabIndex={-1} className="pointer-events-none absolute inset-0 size-full object-cover" />
+        {p.gated ? null : (
+          <video src={`${url}#t=0.1`} preload="metadata" muted playsInline tabIndex={-1} className="pointer-events-none absolute inset-0 size-full object-cover" />
+        )}
         <span className="absolute inset-0 bg-black/30" aria-hidden />
-        <span
-          className={cn(
-            "relative grid place-items-center rounded-full transition ",
-            !disabled && "group-hover:scale-105",
-            "size-10 [&>svg]:size-5",
-            disabled ? "bg-white/70 text-exam-slate-500" : "bg-white text-exam-navy-900",
-          )}
-          aria-hidden
-        >
-          {p.blocked && !p.preview ? <IconCheck /> : <IconPlay className="translate-x-0.5" />}
-        </span>
+        <MediaArt
+          kind="watch"
+          px={tile ? 64 : 52}
+          done={p.blocked && !p.preview}
+          className={cn("rounded-xl shadow-md shadow-black/30 ring-2 ring-white/80 transition", !disabled && "group-hover:scale-105")}
+        />
         {/* Kart: hak noktaları kapağın köşesinde (alt satır sabit tek satır kalsın, kartlar eşit boy). */}
         {tile && p.max != null ? (
           <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-1.5 py-1 [&_span]:ring-0">
@@ -540,7 +627,7 @@ export function MediaVideoPopup({
                 <div className="bg-black">
                   <video
                     ref={ref}
-                    src={url}
+                    src={p.gated ? (p.grantedUrl ?? undefined) : url}
                     playsInline
                     preload="metadata"
                     disablePictureInPicture

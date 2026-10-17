@@ -18,8 +18,18 @@ export function StudentResultView({ applicationId }: { applicationId: string }) 
   }, [applicationId]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    customInstance<{ data: StudentReport }>(`/me/results/${applicationId}`)
+      .then((res) => {
+        if (!cancelled) setReport(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setError("We could not open this report card.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId]);
 
   if (error) {
     return <KidError title="Report card" message={error} onRetry={load} />;

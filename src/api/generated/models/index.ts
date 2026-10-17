@@ -110,6 +110,8 @@ export * from './presenceRow';
 export * from './publish200';
 export * from './recordCheck200';
 export * from './resetPasswordRequest';
+export * from './omittedStudent';
+export * from './recipientPreview';
 export * from './resolvedStudent';
 export * from './resumeView';
 export * from './retryFailed200';
