@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { customInstance } from "@/src/api/mutator";
 import {
   getStudentsQueryKey,
   useBranches,
@@ -18,6 +19,7 @@ import { userStatusLabel } from "@/src/features/admin/labels";
 import {
   Badge,
   Button,
+  ConfirmDialog,
   ErrorState,
   Field,
   FilterTabs,
@@ -81,6 +83,37 @@ export function StudentsSection({ companyId }: { companyId: string }) {
   const [instituteId, setInstituteId] = useState("");
   const [gradeId, setGradeId] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [completing, setCompleting] = useState<StudentDto | null>(null);
+  const [moving, setMoving] = useState<StudentDto | null>(null);
+  const [moveBranch, setMoveBranch] = useState("");
+  const completeEnrollment = useMutation({
+    mutationFn: (body: { studentId: string; enrollmentId: string }) =>
+      customInstance(`/companies/${id}/students/${body.studentId}/enrollments/${body.enrollmentId}/complete`, { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      notify.success("Kayıt bitirildi");
+      setCompleting(null);
+    },
+    onError: (err) => notify.error(errorMessage(err, "Kayıt bitirilemedi")),
+  });
+  const transferEnrollment = useMutation({
+    mutationFn: (body: { studentId: string; enrollmentId: string; instituteId: string; gradeId: string; branchId: string }) =>
+      customInstance(`/companies/${id}/students/${body.studentId}/enrollments/${body.enrollmentId}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instituteId: body.instituteId, gradeId: body.gradeId, branchId: body.branchId }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      notify.success("Öğrenci nakledildi");
+      setMoving(null);
+    },
+    onError: (err) => {
+      const message = errorMessage(err, "Nakil yapılamadı");
+      setFormError(message);
+      notify.error(message);
+    },
+  });
   const branchOptions = branches.filter(
     (b) =>
       (!yearId || b.academicYearId === yearId) &&
@@ -151,10 +184,30 @@ export function StudentsSection({ companyId }: { companyId: string }) {
           <Badge key="s" tone={r.status === "ACTIVE" ? "success" : r.status === "LOCKED" ? "danger" : "warning"} dot>
             {userStatusLabel(r.status)}
           </Badge>,
-          <div key="a" className="flex justify-end">
+          <div key="a" className="flex flex-wrap justify-end gap-2">
+            {(r.enrollments ?? []).some((row) => row.status === "ACTIVE") ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="min-h-11"
+                  onClick={() => {
+                    setFormError(null);
+                    setMoveBranch("");
+                    setMoving(r);
+                  }}
+                >
+                  Nakil
+                </Button>
+                <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setCompleting(r)}>
+                  Kaydı bitir
+                </Button>
+              </>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"
+              className="min-h-11"
               onClick={() => {
                 setFormError(null);
                 setEditing(r);
@@ -312,11 +365,74 @@ export function StudentsSection({ companyId }: { companyId: string }) {
             <Input name="lastName" required defaultValue={editing?.lastName ?? ""} />
           </Field>
         </div>
-        <Field label="Durum" hint="Kilit giriş yasağıdır ve geri alınır. Pasif geri alınamaz. Açık denemesi olan öğrenci pasif yapılamaz. Pasif ve kilitli öğrenci yeni atama kadrosuna yazılmaz.">
+        <Field label="Durum" hint="Kilit giriş yasağıdır ve geri alınır. Pasif geri alınamaz ve aktif kaydı kapatır. Açık denemesi olan öğrenci pasif yapılamaz.">
           <Select name="status" defaultValue={editing?.status ?? "ACTIVE"}>
             <option value="ACTIVE">Aktif</option>
             <option value="PASSIVE">Pasif</option>
             <option value="LOCKED">Kilitli</option>
+          </Select>
+        </Field>
+      </FormDialog>
+      <ConfirmDialog
+        open={completing !== null}
+        onClose={() => setCompleting(null)}
+        title="Kayıt bitirilsin mi?"
+        confirmLabel="Bitir"
+        pending={completeEnrollment.isPending}
+        description={
+          completing
+            ? `${`${completing.firstName ?? ""} ${completing.lastName ?? ""}`.trim()} bu sezondaki kaydı kapanır. Yeni atama kadrosuna yazılmaz.`
+            : undefined
+        }
+        onConfirm={() => {
+          const enrollment = (completing?.enrollments ?? []).find((row) => row.status === "ACTIVE");
+          if (completing?.id && enrollment?.id) {
+            completeEnrollment.mutate({ studentId: completing.id, enrollmentId: enrollment.id });
+          }
+        }}
+      />
+      <FormDialog
+        open={moving !== null}
+        onClose={() => setMoving(null)}
+        title="Nakil"
+        description="Eski kayıt kapanır. Öğrenci seçilen sınıfta yeni kayıt açar."
+        submitLabel="Naklet"
+        pending={transferEnrollment.isPending}
+        error={formError}
+        onSubmit={async () => {
+          const enrollment = (moving?.enrollments ?? []).find((row) => row.status === "ACTIVE");
+          const branch = branches.find((row) => row.id === moveBranch);
+          if (!moving?.id || !enrollment?.id || !branch?.id || !branch.instituteId || !branch.gradeId) {
+            setFormError("Sınıf seçin.");
+            return;
+          }
+          setFormError(null);
+          try {
+            await transferEnrollment.mutateAsync({
+              studentId: moving.id,
+              enrollmentId: enrollment.id,
+              instituteId: branch.instituteId,
+              gradeId: branch.gradeId,
+              branchId: branch.id,
+            });
+          } catch {
+            return;
+          }
+        }}
+      >
+        <Field label="Yeni sınıf" required>
+          <Select value={moveBranch} onChange={(e) => setMoveBranch(e.target.value)} required>
+            <option value="">Seçin</option>
+            {branches
+              .filter((row) => {
+                const enrollment = (moving?.enrollments ?? []).find((item) => item.status === "ACTIVE");
+                return !enrollment?.academicYearId || row.academicYearId === enrollment.academicYearId;
+              })
+              .map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
           </Select>
         </Field>
       </FormDialog>

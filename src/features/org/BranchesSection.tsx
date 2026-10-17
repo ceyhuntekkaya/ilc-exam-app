@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { customInstance } from "@/src/api/mutator";
 import {
   getBranchesQueryKey,
   useBranches,
@@ -13,6 +14,7 @@ import {
 import { yearStatusLabel } from "@/src/features/admin/labels";
 import {
   Button,
+  ConfirmDialog,
   EmptyState,
   ErrorState,
   Field,
@@ -25,7 +27,7 @@ import {
   notify,
 } from "@/src/ui";
 
-const COLUMNS = ["Ad", "Kampüs", "Seviye"];
+const COLUMNS = ["Ad", "Kampüs", "Seviye", ""];
 
 export function BranchesSection({ companyId }: { companyId: string }) {
   const id = companyId;
@@ -52,6 +54,35 @@ export function BranchesSection({ companyId }: { companyId: string }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
+  const rename = useMutation({
+    mutationFn: (body: { id: string; name: string }) =>
+      customInstance(`/companies/${id}/branches/${body.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: body.name }),
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getBranchesQueryKey(id) });
+      notify.success("Sınıf adı güncellendi");
+      setRenaming(null);
+    },
+    onError: (err) => {
+      const message = errorMessage(err, "Sınıf adı güncellenemedi");
+      setFormError(message);
+      notify.error(message);
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (branchId: string) => customInstance(`/companies/${id}/branches/${branchId}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getBranchesQueryKey(id) });
+      notify.success("Sınıf silindi");
+      setToDelete(null);
+    },
+    onError: (err) => notify.error(errorMessage(err, "Sınıf silinemedi")),
+  });
 
   const instituteName = useMemo(() => Object.fromEntries(institutes.map((i) => [i.id!, i.name ?? ""])), [institutes]);
   const gradeName = useMemo(() => Object.fromEntries(grades.map((g) => [g.id!, g.name ?? ""])), [grades]);
@@ -143,7 +174,27 @@ export function BranchesSection({ companyId }: { companyId: string }) {
         columns={COLUMNS}
         rows={[...rows]
           .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "tr", { numeric: true }))
-          .map((r) => [r.name, instituteName[r.instituteId!] ?? "—", gradeName[r.gradeId!] ?? "—"])}
+          .map((r) => [
+            r.name,
+            instituteName[r.instituteId!] ?? "—",
+            gradeName[r.gradeId!] ?? "—",
+            <div key="a" className="flex flex-wrap justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => {
+                  setFormError(null);
+                  setRenaming({ id: r.id!, name: r.name ?? "" });
+                }}
+              >
+                Ad
+              </Button>
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setToDelete({ id: r.id!, name: r.name ?? "Sınıf" })}>
+                Sil
+              </Button>
+            </div>,
+          ])}
       />
 
       <FormDialog
@@ -204,6 +255,38 @@ export function BranchesSection({ companyId }: { companyId: string }) {
           </Field>
         </div>
       </FormDialog>
+      <FormDialog
+        open={renaming !== null}
+        onClose={() => setRenaming(null)}
+        title="Sınıf adı"
+        submitLabel="Kaydet"
+        pending={rename.isPending}
+        error={formError}
+        onSubmit={async (fd) => {
+          if (!renaming) return;
+          setFormError(null);
+          try {
+            await rename.mutateAsync({ id: renaming.id, name: String(fd.get("name") || "").trim() });
+          } catch {
+            return;
+          }
+        }}
+      >
+        <Field label="Ad" required>
+          <Input name="name" required defaultValue={renaming?.name ?? ""} />
+        </Field>
+      </FormDialog>
+      <ConfirmDialog
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Sınıf silinsin mi?"
+        confirmLabel="Sil"
+        pending={remove.isPending}
+        description={toDelete ? `"${toDelete.name}" silinir. Kayıtlı öğrencisi veya ataması varsa silinmez.` : undefined}
+        onConfirm={() => {
+          if (toDelete) remove.mutate(toDelete.id);
+        }}
+      />
     </div>
   );
 }

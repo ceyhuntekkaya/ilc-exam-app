@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getYearsQueryKey,
   useActivateYear,
   useCreateYear,
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
+import { customInstance } from "@/src/api/mutator";
 import { yearStatusLabel } from "@/src/features/admin/labels";
 import {
   Badge,
@@ -42,6 +43,37 @@ export function YearsSection({ companyId }: { companyId: string }) {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [toActivate, setToActivate] = useState<{ id: string; name?: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name?: string } | null>(null);
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [toArchive, setToArchive] = useState<{ id: string; name?: string } | null>(null);
+  const editError = editStart && editEnd && editEnd < editStart ? "Bitiş, başlangıçtan önce olamaz." : undefined;
+  const saveDates = useMutation({
+    mutationFn: () => customInstance(`/companies/${id}/academic-years/${editing?.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startDate: editStart, endDate: editEnd }),
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
+      notify.success("Sezon tarihi güncellendi");
+      setEditing(null);
+    },
+    onError: (err) => {
+      const message = errorMessage(err, "Sezon tarihi güncellenemedi");
+      setFormError(message);
+      notify.error(message);
+    },
+  });
+  const archive = useMutation({
+    mutationFn: (yearId: string) => customInstance(`/companies/${id}/academic-years/${yearId}/archive`, { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
+      notify.success("Sezon arşivlendi");
+      setToArchive(null);
+    },
+    onError: (err) => notify.error(errorMessage(err, "Sezon arşivlenemedi")),
+  });
   const active = rows.find((r) => r.status === "ACTIVE");
   const rangeError = start && end && end < start ? "Bitiş, başlangıçtan önce olamaz." : undefined;
 
@@ -77,13 +109,33 @@ export function YearsSection({ companyId }: { companyId: string }) {
           <Badge key="s" tone={r.status === "ACTIVE" ? "success" : r.status === "DRAFT" ? "info" : "neutral"} dot>
             {yearStatusLabel(r.status)}
           </Badge>,
-          r.status === "DRAFT" ? (
-            <Button key="a" size="sm" variant="secondary" onClick={() => setToActivate({ id: r.id!, name: r.name })}>
-              Aktifleştir
-            </Button>
-          ) : (
-            ""
-          ),
+          <div key="a" className="flex flex-wrap justify-end gap-2">
+            {r.status === "DRAFT" || r.status === "ACTIVE" ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => {
+                  setFormError(null);
+                  setEditing({ id: r.id!, name: r.name });
+                  setEditStart(r.startDate ?? "");
+                  setEditEnd(r.endDate ?? "");
+                }}
+              >
+                Tarih
+              </Button>
+            ) : null}
+            {r.status === "DRAFT" ? (
+              <Button size="sm" variant="secondary" className="min-h-11" onClick={() => setToActivate({ id: r.id!, name: r.name })}>
+                Aktifleştir
+              </Button>
+            ) : null}
+            {r.status === "DRAFT" || r.status === "READ_ONLY" ? (
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setToArchive({ id: r.id!, name: r.name })}>
+                Arşivle
+              </Button>
+            ) : null}
+          </div>,
         ])}
       />
       <ConfirmDialog
@@ -110,6 +162,47 @@ export function YearsSection({ companyId }: { companyId: string }) {
           }
         }}
       />
+      <ConfirmDialog
+        open={toArchive !== null}
+        onClose={() => setToArchive(null)}
+        title="Sezon arşivlensin mi?"
+        confirmLabel="Arşivle"
+        pending={archive.isPending}
+        description={`"${toArchive?.name ?? "Sezon"}" arşive alınır. Aktif sezon önce başka bir sezona bırakılır.`}
+        onConfirm={() => {
+          if (toArchive) archive.mutate(toArchive.id);
+        }}
+      />
+      <FormDialog
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Sezon tarihi"
+        description={editing?.name}
+        submitLabel="Kaydet"
+        pending={saveDates.isPending}
+        error={formError}
+        onSubmit={async () => {
+          if (editError) {
+            setFormError(editError);
+            return;
+          }
+          setFormError(null);
+          try {
+            await saveDates.mutateAsync();
+          } catch {
+            return;
+          }
+        }}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Başlangıç" required>
+            <Input type="date" required value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+          </Field>
+          <Field label="Bitiş" required error={editError}>
+            <Input type="date" required min={editStart || undefined} value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+          </Field>
+        </div>
+      </FormDialog>
       <FormDialog
         open={open}
         onClose={() => setOpen(false)}
