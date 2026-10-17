@@ -1,10 +1,12 @@
 "use client";
 
 import { customInstance } from "@/src/api/mutator";
+import { istanbulInstant } from "@/src/features/assignments/istanbulTime";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
-import { Badge, Button, ErrorState, PageHeader, Skeleton } from "@/src/ui";
-import { useQuery } from "@tanstack/react-query";
+import { Badge, Button, ConfirmDialog, ErrorState, Field, FormDialog, Input, PageHeader, Skeleton, errorMessage, notify } from "@/src/ui";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 type WatchQuestion = {
   label: string;
@@ -32,6 +34,8 @@ type WatchView = {
   studentName: string;
   examTitle: string;
   finishedAt?: string | null;
+  applicationId?: string | null;
+  applicationStatus?: string | null;
   sections: WatchSection[];
 };
 
@@ -62,6 +66,44 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
       ),
   });
   const view = query.data?.data;
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [invalidateOpen, setInvalidateOpen] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const live = view?.applicationStatus === "IN_PROGRESS";
+  const canInvalidate = Boolean(view?.applicationId) && view?.applicationStatus !== "SUBMITTED"
+    && view?.applicationStatus !== "AUTO_SUBMITTED" && view?.applicationStatus !== "INVALIDATED";
+  const extendTime = useMutation({
+    mutationFn: (deadlineAt: string) =>
+      customInstance(`/applications/${view?.applicationId}/extend-time`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deadlineAt }),
+      }),
+    onSuccess: () => {
+      notify.success("Süre uzatıldı");
+      setExtendOpen(false);
+      void query.refetch();
+    },
+    onError: (err) => {
+      const message = errorMessage(err, "Süre uzatılamadı");
+      setFormError(message);
+      notify.error(message);
+    },
+  });
+  const invalidate = useMutation({
+    mutationFn: (reason: string) =>
+      customInstance(`/applications/${view?.applicationId}/invalidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: () => {
+      notify.success("Deneme geçersiz kılındı");
+      setInvalidateOpen(false);
+      void query.refetch();
+    },
+    onError: (err) => notify.error(errorMessage(err, "Deneme geçersiz kılınamadı")),
+  });
 
   const header = (
     <PageHeader
@@ -73,9 +115,21 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
       }
       back={{ href: backHref, label: "Atamalar" }}
       actions={
-        <Button type="button" variant="secondary" loading={query.isFetching} onClick={() => void query.refetch()}>
-          Güncelle
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          {live ? (
+            <Button type="button" size="sm" className="min-h-11" onClick={() => { setFormError(null); setExtendOpen(true); }}>
+              Süre uzat
+            </Button>
+          ) : null}
+          {canInvalidate ? (
+            <Button type="button" size="sm" variant="secondary" className="min-h-11" onClick={() => setInvalidateOpen(true)}>
+              Geçersiz kıl
+            </Button>
+          ) : null}
+          <Button type="button" variant="secondary" loading={query.isFetching} onClick={() => void query.refetch()}>
+            Güncelle
+          </Button>
+        </div>
       }
     />
   );
@@ -147,6 +201,42 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
           ))}
         </div>
       )}
+      <FormDialog
+        open={extendOpen}
+        onClose={() => setExtendOpen(false)}
+        title="Süre uzat"
+        description="Yeni bitiş, öğrencinin açık denemesine yazılır. Saat dilimi İstanbul."
+        submitLabel="Uzat"
+        pending={extendTime.isPending}
+        error={formError}
+        onSubmit={async (fd) => {
+          const deadlineAt = istanbulInstant(String(fd.get("deadlineAt") || ""));
+          if (!deadlineAt) {
+            setFormError("Bitiş gerekli.");
+            return;
+          }
+          try {
+            await extendTime.mutateAsync(deadlineAt);
+          } catch {
+            return;
+          }
+        }}
+      >
+        <Field label="Yeni bitiş" required hint="Saat dilimi İstanbul.">
+          <Input name="deadlineAt" type="datetime-local" required />
+        </Field>
+      </FormDialog>
+      <ConfirmDialog
+        open={invalidateOpen}
+        onClose={() => setInvalidateOpen(false)}
+        title="Deneme geçersiz kılınsın mı?"
+        confirmLabel="Geçersiz kıl"
+        reasonRequired
+        reasonLabel="Gerekçe"
+        pending={invalidate.isPending}
+        description="Bu deneme puana girmez. Öğrencinin kalan hakkı ayrıdır."
+        onConfirm={({ reason }) => invalidate.mutate(reason)}
+      />
     </div>
   );
 }

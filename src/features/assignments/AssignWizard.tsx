@@ -15,6 +15,8 @@ import {
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { OmittedStudentReason, TargetRequestType } from "@/src/api/generated/models";
+import { customInstance } from "@/src/api/mutator";
+import { istanbulInstant, istanbulLabel } from "@/src/features/assignments/istanbulTime";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
 import {
@@ -50,7 +52,7 @@ const TARGET_LABEL: Record<TargetRequestType, string> = {
 const TARGET_HINT: Record<TargetRequestType, string> = {
   [TargetRequestType.GRADE]: "Seviyedeki tüm sınıflar ve öğrenciler.",
   [TargetRequestType.CLASS]: "Yalnız seçilen sınıfın öğrencileri.",
-  [TargetRequestType.STUDENT]: "Tek öğrenci (telafi, ek oturum).",
+  [TargetRequestType.STUDENT]: "Yalnız seçilen öğrenci.",
 };
 
 const OMIT_REASON: Record<OmittedStudentReason, string> = {
@@ -70,7 +72,7 @@ function LockedChoice({ label, value }: { label: string; value: string }) {
 }
 
 function formatDateTime(value: string) {
-  return value ? new Date(value).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" }) : "—";
+  return istanbulLabel(value) ?? "—";
 }
 
 export function AssignWizard({ companyId, grantId }: { companyId: string; grantId: string }) {
@@ -140,6 +142,9 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
     setError(null);
     setPreparing(true);
     try {
+      if (draftId) {
+        await customInstance(`/assignments/${draftId}`, { method: "DELETE" }).catch(() => undefined);
+      }
       const created = await create.mutateAsync({
         data: {
           companyId,
@@ -147,8 +152,8 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
           examVersionId: grant.examVersionId,
           examGrantId: grant.id,
           academicYearId: season,
-          availableFrom: from ? new Date(from).toISOString() : undefined,
-          availableUntil: until ? new Date(until).toISOString() : undefined,
+          availableFrom: istanbulInstant(from),
+          availableUntil: istanbulInstant(until),
           maxAttempts: attempts,
         },
       });
@@ -394,7 +399,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
 
         {step === 3 ? (
           <>
-            <FormGroup title="Sınav penceresi" hint="Boş bırakılırsa atama açıldığı andan kapatılana kadar girilebilir.">
+            <FormGroup title="Sınav penceresi" hint="Saat dilimi İstanbul. Boş bırakılırsa atama açıldığı andan kapatılana kadar girilebilir.">
               <div className="grid gap-4 @min-[28rem]/form:grid-cols-2">
                 <Field label="Açılış" hint="Öğrenciler bu andan itibaren girebilir.">
                   <Input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />

@@ -1,17 +1,19 @@
 "use client";
 
-import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
+import { getListAssignmentsQueryKey, useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
+import { customInstance } from "@/src/api/mutator";
 import { assignmentStatusLabel } from "@/src/features/admin/labels";
+import { istanbulLabel } from "@/src/features/assignments/istanbulTime";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
-import { Badge, ButtonLink, ErrorState, FilterTabs, SectionTable, SectionToolbar } from "@/src/ui";
+import { Badge, Button, ButtonLink, ConfirmDialog, ErrorState, FilterTabs, SectionTable, SectionToolbar, errorMessage, notify } from "@/src/ui";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 const COLUMNS = ["Sınav", "Paket", "Durum", "Pencere", ""];
 const STATUSES = ["OPEN", "DRAFT", "CLOSED"] as const;
 
 function formatWindow(from?: string | null, until?: string | null) {
-  const f = (value?: string | null) =>
-    value ? new Date(value).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : null;
+  const f = (value?: string | null) => istanbulLabel(value);
   const a = f(from);
   const b = f(until);
   if (!a && !b) return "Süresiz";
@@ -29,6 +31,17 @@ export function AssignmentListSection({ companyId, focus }: { companyId: string;
   const all = data?.data ?? [];
   const [status, setStatus] = useState<string | null>(null);
   const rows = status ? all.filter((row) => row.status === status) : all;
+  const queryClient = useQueryClient();
+  const [toDelete, setToDelete] = useState<string | null>(null);
+  const remove = useMutation({
+    mutationFn: (assignmentId: string) => customInstance(`/assignments/${assignmentId}`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey({ companyId }) });
+      notify.success("Taslak silindi");
+      setToDelete(null);
+    },
+    onError: (err) => notify.error(errorMessage(err, "Taslak silinemedi")),
+  });
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
 
@@ -55,6 +68,7 @@ export function AssignmentListSection({ companyId, focus }: { companyId: string;
             <ButtonLink href={hrefs.licensed} variant="secondary" size="sm">
               Yeni atama
             </ButtonLink>
+            <span className="text-xs text-fg-subtle">Pencere saatleri İstanbul</span>
           </SectionToolbar>
         }
         loading={isLoading}
@@ -83,7 +97,13 @@ export function AssignmentListSection({ companyId, focus }: { companyId: string;
               {assignmentStatusLabel(row.status)}
             </Badge>,
             <span key="w" className="whitespace-nowrap">{formatWindow(row.availableFrom, row.availableUntil)}</span>,
-            row.id ? (
+            row.id && row.status === "DRAFT" ? (
+              <div key="a" className="flex justify-end">
+                <Button type="button" size="sm" variant="secondary" className="min-h-11" onClick={() => setToDelete(row.id ?? null)}>
+                  Sil
+                </Button>
+              </div>
+            ) : row.id ? (
               <div key="a" className="flex flex-wrap justify-end gap-2">
                 <ButtonLink href={hrefs.monitor(row.id)} variant={focus === "grading" ? "ghost" : "secondary"} size="sm">
                   İzle
@@ -97,6 +117,18 @@ export function AssignmentListSection({ companyId, focus }: { companyId: string;
             ),
           ];
         })}
+      />
+      <ConfirmDialog
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Taslak silinsin mi?"
+        confirmLabel="Sil"
+        tone="danger"
+        pending={remove.isPending}
+        description="Açılmamış taslak listeden kalkar. Açık atama bu düğmeyle silinmez."
+        onConfirm={() => {
+          if (toDelete) remove.mutate(toDelete);
+        }}
       />
     </div>
   );

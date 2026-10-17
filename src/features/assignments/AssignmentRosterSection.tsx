@@ -3,11 +3,12 @@
 import { AssignmentCloseActions, type AssignmentLifecycleItem } from "@/src/features/assignments/AssignmentCloseActions";
 import { AssignmentScopeFields, filtersToQuery, useAssignmentScope, type RosterPhase } from "@/src/features/assignments/assignmentScope";
 import { customInstance } from "@/src/api/mutator";
+import { istanbulInstant, istanbulLabel } from "@/src/features/assignments/istanbulTime";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
-import { Badge, Button, ButtonLink, ErrorState, SectionTable, SectionToolbar, errorMessage, notify } from "@/src/ui";
+import { Badge, Button, ButtonLink, ConfirmDialog, ErrorState, Field, FormDialog, Input, SectionTable, SectionToolbar, errorMessage, notify } from "@/src/ui";
 import { useMutation } from "@tanstack/react-query";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 const COLUMNS = ["Öğrenci", "Durum", "Tarih", ""];
 
@@ -20,8 +21,7 @@ const PHASE: Record<Exclude<RosterPhase, "NONE">, { label: string; tone: "neutra
 };
 
 function formatWindow(from?: string | null, until?: string | null) {
-  const stamp = (value?: string | null) =>
-    value ? new Date(value).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : null;
+  const stamp = (value?: string | null) => istanbulLabel(value);
   const start = stamp(from);
   const end = stamp(until);
   if (!start && !end) return "Süresiz";
@@ -49,6 +49,9 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
     );
     return open.length === 1 ? open[0].id ?? null : null;
   }, [assignments, examValue, campusId, seasonId]);
+  const [grantTarget, setGrantTarget] = useState<{ recipientId: string; name: string } | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<{ recipientId: string; name: string } | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const addRecipient = useMutation({
     mutationFn: (studentId: string) => {
       if (!openAssignmentId) throw new Error("Açık atama yok");
@@ -63,6 +66,33 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
       void rosterQ.refetch();
     },
     onError: (err) => notify.error(errorMessage(err, "Öğrenci eklenemedi")),
+  });
+  const grantAttempt = useMutation({
+    mutationFn: (recipientId: string) => customInstance(`/recipients/${recipientId}/grant-attempt`, { method: "POST" }),
+    onSuccess: () => {
+      notify.success("Ek deneme verildi");
+      setGrantTarget(null);
+      void rosterQ.refetch();
+    },
+    onError: (err) => notify.error(errorMessage(err, "Ek deneme verilemedi")),
+  });
+  const accessOverride = useMutation({
+    mutationFn: (body: { recipientId: string; until: string; reason: string }) =>
+      customInstance(`/recipients/${body.recipientId}/access-override`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ until: body.until, reason: body.reason }),
+      }),
+    onSuccess: () => {
+      notify.success("Erişim uzatıldı");
+      setOverrideTarget(null);
+      void rosterQ.refetch();
+    },
+    onError: (err) => {
+      const message = errorMessage(err, "Erişim uzatılamadı");
+      setFormError(message);
+      notify.error(message);
+    },
   });
 
   if (scope.listFailed) {
@@ -122,6 +152,7 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
               <ButtonLink href={hrefs.licensed} variant="secondary" size="sm">
                 Yeni atama
               </ButtonLink>
+              <span className="text-xs text-fg-subtle">Pencere saatleri İstanbul</span>
             </SectionToolbar>
           }
           rows={rosterRows.map((row) => {
@@ -148,36 +179,130 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
               ) : (
                 ""
               ),
-              row.phase === "NONE" && openAssignmentId ? (
-                <div key="a" className="flex justify-end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="min-h-11"
-                    loading={addRecipient.isPending && addRecipient.variables === row.studentId}
-                    disabled={addRecipient.isPending}
-                    onClick={() => addRecipient.mutate(row.studentId)}
-                  >
-                    Atamaya ekle
-                  </Button>
-                </div>
-              ) : row.phase === "IN_PROGRESS" && row.assignmentId ? (
-                <div key="a" className="flex justify-end">
-                  <ButtonLink
-                    href={`${hrefs.monitor(row.assignmentId)}?studentId=${encodeURIComponent(row.studentId)}&from=${encodeURIComponent(returnTo)}`}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    İzle
-                  </ButtonLink>
-                </div>
-              ) : (
-                ""
-              ),
+              <RosterActions
+                key="a"
+                row={row}
+                assignmentStatus={assignment?.status}
+                openAssignmentId={openAssignmentId}
+                adding={addRecipient.isPending && addRecipient.variables === row.studentId}
+                addDisabled={addRecipient.isPending}
+                onAdd={() => addRecipient.mutate(row.studentId)}
+                watchHref={
+                  row.phase === "IN_PROGRESS" && row.assignmentId
+                    ? `${hrefs.monitor(row.assignmentId)}?studentId=${encodeURIComponent(row.studentId)}&from=${encodeURIComponent(returnTo)}`
+                    : null
+                }
+                onGrant={() => row.recipientId && setGrantTarget({ recipientId: row.recipientId, name })}
+                onOverride={() => row.recipientId && setOverrideTarget({ recipientId: row.recipientId, name })}
+              />,
             ];
           })}
         />
       )}
+      <ConfirmDialog
+        open={grantTarget !== null}
+        onClose={() => setGrantTarget(null)}
+        title="Ek deneme verilsin mi?"
+        confirmLabel="Ver"
+        tone="primary"
+        pending={grantAttempt.isPending}
+        description={
+          grantTarget
+            ? `${grantTarget.name} yeni bir deneme hakkı alır. Girmedi sayıldıysa yeniden atanır. Kapalı pencerede ayrıca erişim uzatmak gerekir.`
+            : undefined
+        }
+        onConfirm={() => {
+          if (grantTarget) grantAttempt.mutate(grantTarget.recipientId);
+        }}
+      />
+      <FormDialog
+        open={overrideTarget !== null}
+        onClose={() => {
+          setOverrideTarget(null);
+          setFormError(null);
+        }}
+        title="Erişim uzat"
+        description={overrideTarget ? `${overrideTarget.name} bu ana kadar kapalı pencerede girebilir.` : undefined}
+        submitLabel="Uzat"
+        pending={accessOverride.isPending}
+        error={formError}
+        onSubmit={async (fd) => {
+          if (!overrideTarget) return;
+          setFormError(null);
+          const until = istanbulInstant(String(fd.get("until") || ""));
+          const reason = String(fd.get("reason") || "").trim();
+          if (!until || !reason) {
+            setFormError("Bitiş ve gerekçe gerekli.");
+            return;
+          }
+          try {
+            await accessOverride.mutateAsync({ recipientId: overrideTarget.recipientId, until, reason });
+          } catch {
+            return;
+          }
+        }}
+      >
+        <Field label="Bitiş" required hint="Saat dilimi İstanbul.">
+          <Input name="until" type="datetime-local" required />
+        </Field>
+        <Field label="Gerekçe" required>
+          <Input name="reason" required />
+        </Field>
+      </FormDialog>
+    </div>
+  );
+}
+
+function RosterActions({
+  row,
+  assignmentStatus,
+  openAssignmentId,
+  adding,
+  addDisabled,
+  onAdd,
+  watchHref,
+  onGrant,
+  onOverride,
+}: {
+  row: { phase: RosterPhase; recipientId?: string | null };
+  assignmentStatus?: string | null;
+  openAssignmentId: string | null;
+  adding: boolean;
+  addDisabled: boolean;
+  onAdd: () => void;
+  watchHref: string | null;
+  onGrant: () => void;
+  onOverride: () => void;
+}) {
+  const canGrant = Boolean(row.recipientId) && (row.phase === "ABSENT" || row.phase === "FINISHED" || row.phase === "EVALUATED");
+  const canOverride = Boolean(row.recipientId) && (row.phase === "ABSENT" || assignmentStatus === "CLOSED");
+  if (row.phase === "NONE" && openAssignmentId) {
+    return (
+      <div className="flex justify-end">
+        <Button type="button" size="sm" className="min-h-11" loading={adding} disabled={addDisabled} onClick={onAdd}>
+          Atamaya ekle
+        </Button>
+      </div>
+    );
+  }
+  if (!watchHref && !canGrant && !canOverride) return "";
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      {watchHref ? (
+        <ButtonLink href={watchHref} variant="secondary" size="sm">
+          İzle
+        </ButtonLink>
+      ) : null}
+      {canGrant ? (
+        <Button type="button" size="sm" className="min-h-11" onClick={onGrant}>
+          Ek deneme
+        </Button>
+      ) : null}
+      {canOverride ? (
+        <Button type="button" size="sm" variant="secondary" className="min-h-11" onClick={onOverride}>
+          Erişim uzat
+        </Button>
+      ) : null}
     </div>
   );
 }
