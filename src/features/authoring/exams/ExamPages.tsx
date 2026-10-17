@@ -894,8 +894,8 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                     <span className="truncate">{s.title}</span>
                     <span className="ml-auto shrink-0 text-[11px] text-fg-subtle">{skillLabel(s.skill)}</span>
                   </button>
-                  <button type="button" className="inline-flex size-7 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={si === 0} onClick={() => reorder(si, -1)} aria-label={`${s.title} bölümünü yukarı taşı`}><IconArrowUp className="size-3.5" aria-hidden /></button>
-                  <button type="button" className="inline-flex size-7 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={si === exam.sections.length - 1} onClick={() => reorder(si, 1)} aria-label={`${s.title} bölümünü aşağı taşı`}><IconArrowDown className="size-3.5" aria-hidden /></button>
+                  <button type="button" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={si === 0} onClick={() => reorder(si, -1)} aria-label={`${s.title} bölümünü yukarı taşı`}><IconArrowUp className="size-3.5" aria-hidden /></button>
+                  <button type="button" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={si === exam.sections.length - 1} onClick={() => reorder(si, 1)} aria-label={`${s.title} bölümünü aşağı taşı`}><IconArrowDown className="size-3.5" aria-hidden /></button>
                 </div>
                 <ul className="ml-4 grid gap-0.5 border-l border-border pl-2">
                   {s.subSections.map((ss) => {
@@ -906,7 +906,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                       <li key={ss.id}>
                         <button
                           type="button"
-                          className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs ${selCls(sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id)}`}
+                          className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-xs ${selCls(sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id)}`}
                           onClick={() => setSel({ kind: "sub", sectionId: s.id, subId: ss.id })}
                         >
                           <span className="truncate">{ss.title}</span>
@@ -920,7 +920,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <li>
                     <button
                       type="button"
-                      className="flex h-8 w-full items-center rounded-md px-2 text-left text-xs text-fg-subtle hover:bg-neutral-50 hover:text-primary"
+                      className="flex min-h-11 w-full items-center rounded-md px-2 text-left text-xs text-fg-subtle hover:bg-neutral-50 hover:text-primary"
                       onClick={() =>
                         void notify
                           .run(authoringApi.addSubSection(exam.id, s.id, `Alt bölüm ${s.subSections.length + 1}`), { success: "Alt bölüm eklendi", error: "Eklenemedi" })
@@ -1329,7 +1329,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
 
           <FormCard
             title="Yayın"
-            description="Sırayla: doğrula → incelemeye gönder → yayınla. Yayınlanan sınav kurumlara lisanslanabilir."
+            description="Yayınla, taslağı tek adımda yayınlar ve onay kaydı bırakır. Okulda aktif sezon yoksa yayın reddedilir."
           >
             <div className="flex flex-wrap items-center gap-2">
               {exam.status === "DRAFT" || exam.status === "IN_REVIEW" ? (

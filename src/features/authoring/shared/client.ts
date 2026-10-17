@@ -90,6 +90,7 @@ export type QuestionDetail = {
   calibrationStatus?: string;
   editable: boolean;
   liveEditNotice?: string | null;
+  reviewNote?: string | null;
 };
 
 export type ExamPreview = {
@@ -241,6 +242,8 @@ export type ReviewItem = {
   submittedBy: string;
   assignedTo?: string | null;
   submittedAt: string;
+  label?: string | null;
+  resolutionNote?: string | null;
 };
 
 export const authoringApi = {
@@ -261,6 +264,7 @@ export const authoringApi = {
     q?: string;
     skill?: string;
     currentOnly?: boolean;
+    includeArchived?: boolean;
     page?: number;
     size?: number;
   }) => {
@@ -270,6 +274,7 @@ export const authoringApi = {
     if (params?.q) sp.set("q", params.q);
     if (params?.skill) sp.set("skill", params.skill);
     if (params?.currentOnly) sp.set("currentOnly", "true");
+    if (params?.includeArchived) sp.set("includeArchived", "true");
     sp.set("page", String(params?.page ?? 0));
     sp.set("size", String(params?.size ?? 20));
     return authoringFetch<{ items: QuestionSummary[]; page: number; size: number; total: number }>(
@@ -320,9 +325,10 @@ export const authoringApi = {
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/submit-review`, {
       method: "POST",
     }),
-  approveQuestion: (versionId: string) =>
+  approveQuestion: (versionId: string, note?: string) =>
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/approve`, {
       method: "POST",
+      body: JSON.stringify({ note: note ?? null }),
     }),
   returnDraft: (versionId: string, note?: string) =>
     authoringFetch<QuestionDetail>(`/authoring/questions/versions/${versionId}/return-draft`, {
@@ -495,9 +501,9 @@ export const authoringApi = {
     }),
   mediaUsages: (id: string) => authoringFetch<MediaUsage[]>(`/authoring/media/${id}/usages`),
   deleteMedia: (id: string) => authoringFetch<void>(`/authoring/media/${id}`, { method: "DELETE" }),
-  listReviews: (status?: string, page = 0, size = 50) =>
+  listReviews: (status?: string, page = 0, size = 50, all = false) =>
     authoringFetch<Page<ReviewItem>>(
-      `/authoring/reviews?page=${page}&size=${size}${status ? `&status=${status}` : ""}`,
+      `/authoring/reviews?page=${page}&size=${size}${status ? `&status=${status}` : ""}${all ? "&all=true" : ""}`,
     ),
   listTags: () => authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string }>>("/authoring/tags"),
   createTag: (name: string) =>
@@ -591,6 +597,9 @@ export const authoringApi = {
     }),
   approveRubric: (versionId: string) =>
     authoringFetch(`/authoring/rubrics/versions/${versionId}/approve`, { method: "POST" }),
+  renameRubric: (id: string, body: { code?: string; name?: string; skill?: string }) =>
+    authoringFetch(`/authoring/rubrics/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteRubric: (id: string) => authoringFetch<void>(`/authoring/rubrics/${id}`, { method: "DELETE" }),
   listFormats: () =>
     authoringFetch<
       Array<{
@@ -608,6 +617,7 @@ export const authoringApi = {
     authoringFetch("/authoring/formats", { method: "POST", body: JSON.stringify(body) }),
   updateFormat: (id: string, body: Record<string, unknown>) =>
     authoringFetch(`/authoring/formats/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteFormat: (id: string) => authoringFetch<void>(`/authoring/formats/${id}`, { method: "DELETE" }),
   importQuestions: (rows: Array<Record<string, unknown>>) =>
     authoringFetch<{ rows: Array<{ row: number; ok: boolean; error?: string }> }>(
       "/authoring/import/questions",

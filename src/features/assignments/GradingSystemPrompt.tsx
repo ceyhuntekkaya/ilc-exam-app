@@ -1,6 +1,7 @@
 "use client";
 
 import { customInstance } from "@/src/api/mutator";
+import { usePanelRole } from "@/src/features/panel/PanelContext";
 import { Button, ErrorState, Field, Skeleton, Textarea, errorMessage, notify } from "@/src/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -16,6 +17,7 @@ export function gradingSystemPromptKey(companyId: string) {
 }
 
 export function GradingSystemPrompt({ companyId }: { companyId: string }) {
+  const canEdit = usePanelRole() === "SUPER_ADMIN";
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: gradingSystemPromptKey(companyId),
@@ -56,13 +58,17 @@ export function GradingSystemPrompt({ companyId }: { companyId: string }) {
         {view?.saved ? "" : " Kayıtlı bir metin yoksa varsayılan kullanılır."}
       </p>
       <Field label="Sistem promptu" required hint="İngilizce yazın. Model bu metinden sonra sabit JSON kuralını da okur.">
-        <Textarea rows={12} value={prompt} onChange={(event) => setDraft(event.target.value)} className="!max-h-[min(32rem,70vh)]" />
+        <Textarea rows={12} value={prompt} readOnly={!canEdit} onChange={(event) => setDraft(event.target.value)} className="!max-h-[min(32rem,70vh)]" />
       </Field>
+      {canEdit ? (
       <div className="flex justify-end">
         <Button type="button" className="min-h-11 w-full sm:w-auto" loading={saving} onClick={() => void save()}>
           Kaydet
         </Button>
       </div>
+      ) : (
+        <p className="text-sm text-fg-muted">Bu metni yalnız süper yönetici değiştirir.</p>
+      )}
       <section className="grid min-w-0 gap-2">
         <h3 className="text-sm font-semibold text-fg">Sabit çıktı kuralı</h3>
         <p className="text-xs text-fg-muted">Kodda durur. Puan, gerekçe ve geri bildirim yalnızca bu JSON ile döner.</p>

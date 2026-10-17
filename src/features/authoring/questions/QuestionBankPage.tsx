@@ -13,8 +13,11 @@ import {
   ButtonLink,
   DataGrid,
   ErrorState,
+  Field,
   FilterTabs,
+  Input,
   PageHeader,
+  Select,
   errorMessage,
   notify,
   type GridColDef,
@@ -34,26 +37,41 @@ export function QuestionBankPage() {
   const [rows, setRows] = useState<QuestionSummary[]>([]);
   const [status, setStatus] = useState("");
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [query, setQuery] = useState("");
+  const [draftQuery, setDraftQuery] = useState("");
+  const [skill, setSkill] = useState("");
+  const [cefr, setCefr] = useState("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
-    if (!tenant) return;
+    if (!tenant) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const data = await authoringApi.listQuestions({
+      const data = await authoringApi.listQuestionsPage({
         ...(status ? { status } : {}),
         ...(includeArchived ? { includeArchived: true } : {}),
+        ...(query ? { q: query } : {}),
+        ...(skill ? { skill } : {}),
+        ...(cefr ? { cefr } : {}),
+        page,
+        size: 20,
       });
-      setRows(data);
+      setRows(data.items);
+      setTotal(data.total);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
     } finally {
       setLoading(false);
     }
-  }, [tenant, status, includeArchived]);
+  }, [tenant, status, includeArchived, query, skill, cefr, page]);
 
   useEffect(() => {
     void load();
@@ -170,7 +188,7 @@ export function QuestionBankPage() {
       <PageHeader
         title="Soru Bankası"
         description="Bağımsız sorular ve setler. Kaydedilen her soru bankaya düşer."
-        count={rows.length}
+        count={total}
         actions={
           canCreate || (role === "STAFF" && canReview) ? (
           <>
@@ -198,7 +216,7 @@ export function QuestionBankPage() {
           <FilterTabs
             label="Soru durumu"
             value={status || null}
-            onChange={(value) => setStatus(value ?? "")}
+            onChange={(value) => { setStatus(value ?? ""); setPage(0); }}
             items={[
               { label: "Tümü", value: null },
               { label: "Taslak", value: "DRAFT" },
@@ -212,11 +230,36 @@ export function QuestionBankPage() {
               variant="secondary"
               className="min-h-11"
               aria-pressed={includeArchived}
-              onClick={() => setIncludeArchived((current) => !current)}
+              onClick={() => { setIncludeArchived((current) => !current); setPage(0); }}
             >
               {includeArchived ? "Arşivdekileri gizle" : "Arşivdekileri göster"}
             </Button>
           </div>
+          <form
+            className="grid gap-3 border-t border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem_8rem_auto] sm:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPage(0);
+              setQuery(draftQuery.trim());
+            }}
+          >
+            <Field label="Ara">
+              <Input value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} placeholder="Kod veya metin" />
+            </Field>
+            <Field label="Beceri">
+              <Select value={skill} onChange={(event) => { setSkill(event.target.value); setPage(0); }} aria-label="Beceri">
+                <option value="">Tümü</option>
+                {Object.entries(SKILL_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </Select>
+            </Field>
+            <Field label="Seviye">
+              <Select value={cefr} onChange={(event) => { setCefr(event.target.value); setPage(0); }} aria-label="Seviye">
+                <option value="">Tümü</option>
+                {["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"].map((level) => <option key={level} value={level}>{level}</option>)}
+              </Select>
+            </Field>
+            <Button type="submit" variant="secondary" className="min-h-11">Ara</Button>
+          </form>
         </div>
         {error ? (
           <div className="p-4">
@@ -233,14 +276,23 @@ export function QuestionBankPage() {
             emptyState={{
               title: "Henüz soru yok",
               description: "İlk sorunuzu yazarak bankayı besleyin.",
-              action: (
+              action: canCreate ? (
                 <Button onClick={() => void create()} disabled={!tenant}>
                   İlk soruyu yaz
                 </Button>
-              ),
+              ) : undefined,
             }}
           />
         )}
+        {total > 20 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2">
+            <p className="text-sm text-fg-muted">{page * 20 + 1}–{Math.min(total, (page + 1) * 20)} / {total}</p>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))}>Önceki</Button>
+              <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 20 >= total} onClick={() => setPage((current) => current + 1)}>Sonraki</Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

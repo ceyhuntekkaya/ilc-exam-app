@@ -26,7 +26,8 @@ import {
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
-import { useContentBasePath } from "@/src/features/panel/PanelContext";
+import { useCan, useContentBasePath } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
 import {
   QuestionPreviewShell,
   type ContentBlock as PlayerContentBlock,
@@ -155,6 +156,8 @@ export function QuestionTypePicker() {
 }
 
 export function QuestionEditorPage({ versionId }: { versionId: string }) {
+  const canApprove = useCan(Perm.questionEditAll, Perm.contentReviewManage);
+  const canArchive = useCan(Perm.questionEditAll);
   const basePath = useContentBasePath("questions");
   const router = useRouter();
   const { tenant } = useAuthoringTenant();
@@ -1197,7 +1200,10 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                     İncelemeye gönder
                   </Button>
                 ) : null}
-                {q.status === "IN_REVIEW" ? (
+                {q.reviewNote ? (
+                  <p className="w-full rounded-lg bg-warning-bg px-3 py-2 text-[13px] text-fg">İade gerekçesi: {q.reviewNote}</p>
+                ) : null}
+                {canApprove && q.status === "IN_REVIEW" ? (
                   <Button
                     variant="secondary"
                     onClick={() =>
@@ -1263,9 +1269,11 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 >
                   Yeni sürüm
                 </Button>
+                {canArchive ? (
                 <Button variant="danger" className="sm:ml-auto" onClick={() => setConfirm("archive")}>
                   Arşivle
                 </Button>
+                ) : null}
               </div>
               </div>
               <div className="mt-2 grid items-start gap-5 border-t border-border pt-4 @min-[46rem]/form:grid-cols-3">
@@ -1406,10 +1414,12 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 ? "Arşivle"
                 : "Taslağa döndür"
         }
+        reasonRequired={confirm === "revert" && q?.status === "IN_REVIEW"}
+        reasonLabel="İade gerekçesi"
         onClose={() => {
           if (!confirming) setConfirm(null);
         }}
-        onConfirm={() => {
+        onConfirm={({ reason }) => {
           if (!q || !confirm) return;
           const action = confirm;
           setConfirming(true);
@@ -1431,7 +1441,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                 ? authoringApi.republishQuestion(q.versionId)
                 : action === "archive"
                   ? authoringApi.archiveQuestion(q.questionId).then(() => undefined)
-                  : authoringApi.returnDraft(q.versionId);
+                  : authoringApi.returnDraft(q.versionId, q.status === "IN_REVIEW" ? reason : undefined);
           void request
             .then((next) => {
               if (action === "archive") done("Arşivlendi");

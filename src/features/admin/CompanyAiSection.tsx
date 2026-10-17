@@ -33,7 +33,7 @@ type ProviderChoice = "" | AiProvider;
 function applySettings(data: CompanyAiSettings) {
   return {
     sttBaseUrl: data.sttBaseUrl ?? "",
-    sttLanguage: data.sttLanguage === "en" ? "en" : "tr",
+    sttLanguage: data.sttLanguage?.trim() || "tr",
     provider: (data.provider ?? "") as ProviderChoice,
     ollamaBaseUrl: data.ollamaBaseUrl ?? "",
     ollamaUsername: data.ollamaUsername ?? "",
@@ -141,6 +141,9 @@ export function CompanyAiSection({ companyId }: { companyId: string }) {
           </div>
           <Field label="Dil" hint="Whisper dil kodu. Adresin sonuna eklenir.">
             <Select value={sttLanguage} onChange={(event) => setSttLanguage(event.target.value)}>
+              {LANGUAGES.some((item) => item.value === sttLanguage) ? null : (
+                <option value={sttLanguage}>{sttLanguage}</option>
+              )}
               {LANGUAGES.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}

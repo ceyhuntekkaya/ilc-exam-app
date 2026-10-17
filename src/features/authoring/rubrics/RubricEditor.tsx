@@ -5,6 +5,8 @@ import { asInlineHtmlObj, InlineHtmlField } from "@/src/features/authoring/block
 import { authoringApi } from "@/src/features/authoring/shared/client";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
 import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import {
   Button,
@@ -15,6 +17,7 @@ import {
   Input,
   PageHeader,
   Select,
+  Skeleton,
   errorMessage,
   notify,
   Textarea,
@@ -237,8 +240,10 @@ function defaultStarterItems(): RubricItem[] {
 }
 
 export function RubricsPage() {
+  const canManage = useCan(Perm.rubricManage);
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<RubricRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [skill, setSkill] = useState("WRITING");
@@ -254,8 +259,16 @@ export function RubricsPage() {
   const canApprove = !headquarters && (detail?.status === "DRAFT" || detail?.status === "IN_REVIEW");
 
   const load = useCallback(async () => {
-    if (!tenant) return;
-    setRows(await authoringApi.listRubrics());
+    if (!tenant) {
+      setLoaded(true);
+      return;
+    }
+    try {
+      setRows(await authoringApi.listRubrics());
+      setError(null);
+    } finally {
+      setLoaded(true);
+    }
   }, [tenant]);
 
   useEffect(() => {
@@ -296,6 +309,9 @@ export function RubricsPage() {
         ? await authoringApi.getRubricVersion(versionId)
         : await authoringApi.getRubric(id)) as RubricDetail;
       setDetail(next);
+      setEditCode(next.code);
+      setEditName(next.name);
+      setEditSkill(next.skill);
       const raw = (next.definition?.items ?? []) as Record<string, unknown>[];
       setItems(raw.map((r) => normalizeItem(r)));
       setError(null);
@@ -377,6 +393,9 @@ export function RubricsPage() {
 
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [editCode, setEditCode] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editSkill, setEditSkill] = useState("WRITING");
   // Sunucudaki (son açılan / kaydedilen) tanım — kaydedilmemiş değişiklik takibi.
   const savedSnapshot = useMemo(
     () => (detail ? JSON.stringify(toPayload(((detail.definition?.items ?? []) as Record<string, unknown>[]).map((r) => normalizeItem(r)))) : ""),
@@ -388,6 +407,43 @@ export function RubricsPage() {
     if (dirty && !confirm("Kaydedilmemiş değişiklikler var. Kaydetmeden başka gruba geçilsin mi?")) return;
     const row = rows.find((item) => item.id === id);
     void open(id, row?.draftVersionId);
+  }
+
+  async function removeRubric() {
+    if (!detail) return;
+    const retired = Boolean(rows.find((row) => row.id === detail.id)?.currentVersionId);
+    if (!confirm(retired ? "Onaylı rubrik emekliye ayrılsın mı? Listeden ve seçiciden kalkar." : "Taslak rubrik silinsin mi?")) return;
+    setBusy(true);
+    try {
+      await authoringApi.deleteRubric(detail.id);
+      setDetail(null);
+      setItems([]);
+      await load();
+      notify.success(retired ? "Rubrik emekliye ayrıldı" : "Rubrik silindi");
+    } catch (e) {
+      notify.error(errorMessage(e, "Silinemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rename() {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const next = (await authoringApi.renameRubric(detail.id, {
+        code: editCode,
+        name: editName,
+        skill: editSkill,
+      })) as RubricDetail;
+      setDetail({ ...detail, code: next.code ?? editCode, name: next.name ?? editName, skill: next.skill ?? editSkill });
+      await load();
+      notify.success("Kimlik kaydedildi");
+    } catch (e) {
+      notify.error(errorMessage(e, "Kaydedilemedi"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function openDraft() {
@@ -426,15 +482,15 @@ export function RubricsPage() {
         title="Rubrik grupları"
         description="Yazma ve konuşma gibi açık uçlu cevapları puanlamak için ölçütler. Her grup tam 100 puan üzerinden kurulur; onaylanınca soru editöründe seçilebilir. Genel merkez rubrikleri listede görünür, değiştirilemez."
         count={rows.length}
-        actions={
+        actions={canManage ? (
           <Button variant={showCreate ? "ghost" : "primary"} onClick={() => setShowCreate((v) => !v)}>
             {showCreate ? "Vazgeç" : "+ Yeni rubrik grubu"}
           </Button>
-        }
+        ) : undefined}
       />
       {error ? <ErrorState title="İşlem başarısız" message={error} compact /> : null}
 
-      {showCreate ? (
+      {canManage && showCreate ? (
         <FormCard
           title="Yeni rubrik grubu"
           description="Başlangıç maddeleriyle oluşturulur (kriter 40 + ölçek 60 + bir ceza); sonra düzenlersiniz."
@@ -446,7 +502,7 @@ export function RubricsPage() {
         >
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,10rem)]">
             <Field label="Kod" hint="Boş = otomatik">
-              <Input className="font-mono" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="A2-SPEAKING" />
+              <Input className="font-mono" value={code} onChange={(e) => setCode(e.target.value)} placeholder="A2-SPEAKING" />
             </Field>
             <Field label="Grup adı" required>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. A2 Konuşma Rubriği" />
@@ -465,7 +521,9 @@ export function RubricsPage() {
           <div className="border-b border-border p-2.5">
             <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ad veya kod ara" aria-label="Rubrik ara" />
           </div>
-          {shownRows.length === 0 ? (
+          {!loaded ? (
+            <Skeleton className="m-3 h-24 rounded-lg" />
+          ) : error && rows.length === 0 ? null : shownRows.length === 0 ? (
             <EmptyState embedded compact tone={rows.length ? "neutral" : "primary"} title={rows.length ? "Eşleşen grup yok" : "Henüz rubrik grubu yok"} description={rows.length ? "Aramayı değiştirin." : "Yazma ve konuşma soruları rubrikle puanlanır. Yukarıdan ilk grubu oluşturun."} />
           ) : (
             <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
@@ -519,8 +577,11 @@ export function RubricsPage() {
                         : `Onay için toplam tam ${TARGET_TOTAL} olmalı.`
                       : "Onaylı sürüm salt okunur."}
                 </span>
-                {headquarters ? null : (
+                {headquarters || !canManage ? null : (
                   <>
+                    <Button variant="ghost" disabled={busy} onClick={() => void removeRubric()}>
+                      {rows.find((row) => row.id === detail.id)?.currentVersionId ? "Emekliye ayır" : "Sil"}
+                    </Button>
                     <Button variant="secondary" disabled={!editable || busy || !dirty} onClick={() => void saveDef()}>
                       Maddeleri kaydet
                     </Button>
@@ -535,6 +596,22 @@ export function RubricsPage() {
               </>
             }
           >
+            {canManage && !headquarters && detail.status === "DRAFT" ? (
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,10rem)_auto] sm:items-end">
+                <Field label="Kod">
+                  <Input className="font-mono" value={editCode} onChange={(e) => setEditCode(e.target.value)} />
+                </Field>
+                <Field label="Grup adı">
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                </Field>
+                <Field label="Beceri">
+                  <Select value={editSkill} onChange={(e) => setEditSkill(e.target.value)}>
+                    {RUBRIC_SKILLS.map((s) => <option key={s} value={s}>{SKILL_TR[s]}</option>)}
+                  </Select>
+                </Field>
+                <Button type="button" variant="secondary" className="min-h-11" disabled={busy || !editName.trim()} onClick={() => void rename()}>Kimliği kaydet</Button>
+              </div>
+            ) : null}
             {headquarters ? (
               <p className="rounded-lg bg-neutral-50 px-3.5 py-2.5 text-[13px] text-fg-muted ring-1 ring-border ring-inset">
                 Bu rubrik genel merkeze ait. Görüntüleyebilirsiniz; değiştiremezsiniz.
@@ -544,7 +621,7 @@ export function RubricsPage() {
                 <p>
                   Bu sürüm {detail.status === "IN_REVIEW" ? "incelemede" : "onaylı"}; maddeler değiştirilemez.
                 </p>
-                {detail.status === "APPROVED" ? (
+                {canManage && detail.status === "APPROVED" ? (
                   <Button variant="secondary" className="min-h-11" disabled={busy} onClick={() => void openDraft()}>
                     Yeni sürüm
                   </Button>

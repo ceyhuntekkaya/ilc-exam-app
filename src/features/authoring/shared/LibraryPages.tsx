@@ -383,15 +383,24 @@ export function ReviewQueuePage() {
   const [rows, setRows] = useState<ReviewItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>("OPEN");
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [type, setType] = useState(requestedType === "Soru" || requestedType === "Sınav" ? requestedType : "");
 
   const load = useCallback(async () => {
-    if (!tenant) return;
+    if (!tenant) {
+      setRows([]);
+      setLoaded(true);
+      return;
+    }
     try {
-      const result = await authoringApi.listReviews(status ?? undefined, page, 50);
+      const result = await authoringApi.listReviews(
+        status && status !== "OPEN" && status !== "ALL" ? status : undefined,
+        page,
+        50,
+        status === "ALL",
+      );
       setRows(result.items);
       setTotal(result.total);
       setError(null);
@@ -406,10 +415,7 @@ export function ReviewQueuePage() {
     void load();
   }, [load]);
 
-  const statuses = useMemo(() => Array.from(new Set(rows.map((r) => r.status))), [rows]);
-  const shown = rows
-    .filter((r) => (!status || r.status === status) && (!type || (REVIEW_TARGET[r.targetType] ?? r.targetType) === type))
-    .sort((a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime());
+  const shown = rows.filter((r) => !type || (REVIEW_TARGET[r.targetType] ?? r.targetType) === type);
 
   const href = (r: ReviewItem) =>
     r.targetType === "QUESTION_VERSION" ? `${questionBasePath}/${r.targetId}` : r.targetType.startsWith("EXAM") ? `${examBasePath}/${r.targetId}` : null;
@@ -418,7 +424,7 @@ export function ReviewQueuePage() {
     <div className="space-y-5">
       <PageHeader
         title="İnceleme kuyruğu"
-        description="Yazarların incelemeye gönderdiği sorular ve sınavlar; en eski gönderim en üstte. Yazar kendi içeriğini onaylayamaz — açıp inceleyin, sonra editördeki Kaydet ve inceleme adımından onaylayın ya da taslağa döndürün."
+        description="Açık işler en eski gönderim üstte durur. Dört göz kuralı yalnız genel merkez sorusunda yazarın kendi onayını kapatır. Okulda yönetici kendi sorusunu onaylayabilir."
         count={loaded ? total : undefined}
       />
       <section className="rounded-xl border border-border bg-surface shadow-sm">
@@ -427,7 +433,14 @@ export function ReviewQueuePage() {
             label="İnceleme durumu"
             value={status}
             onChange={(value) => { setStatus(value); setPage(0); }}
-            items={[{ label: "Tümü", value: null, count: rows.length }, ...statuses.map((s) => ({ label: STATUS_TR[s] ?? s, value: s, count: rows.filter((r) => r.status === s).length }))]}
+            items={[
+              { label: "Açık", value: "OPEN" },
+              { label: "Bekliyor", value: "PENDING" },
+              { label: "İnceleniyor", value: "IN_PROGRESS" },
+              { label: "Onaylı", value: "APPROVED" },
+              { label: "İade", value: "RETURNED" },
+              { label: "Tümü", value: "ALL" },
+            ]}
           />
           <div className="px-3 pt-3 sm:w-44 sm:py-2">
             <Select value={type} onChange={(e) => setType(e.target.value)} aria-label="İçerik türü">
@@ -450,7 +463,10 @@ export function ReviewQueuePage() {
               rows={shown.map((r) => {
                 const link = href(r);
                 return [
-                  <span key="t" className="font-mono text-[13px]" title={r.targetId}>{r.targetId.slice(0, 8)}…</span>,
+                  <span key="t" className="grid gap-0.5" title={r.targetId}>
+                    <span className="text-[13px] font-medium text-fg">{r.label || "Adsız"}</span>
+                    {r.resolutionNote ? <span className="text-xs text-fg-muted">{r.resolutionNote}</span> : null}
+                  </span>,
                   <span key="k" className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-fg-muted">{REVIEW_TARGET[r.targetType] ?? r.targetType}</span>,
                   <span key="d" title={new Date(r.submittedAt).toLocaleString("tr-TR")}>{timeAgo(r.submittedAt)}</span>,
                   <StatusBadge key="s" status={r.status} />,
@@ -479,13 +495,6 @@ export function ReviewQueuePage() {
     </div>
   );
 }
-
-const STATUS_TR: Record<string, string> = {
-  PENDING: "Bekliyor",
-  IN_PROGRESS: "İnceleniyor",
-  APPROVED: "Onaylı",
-  RETURNED: "İade",
-};
 
 export { RubricsPage } from "@/src/features/authoring/rubrics/RubricEditor";
 
@@ -567,7 +576,11 @@ export function FormatsPage() {
   const [query, setQuery] = useState("");
 
   const load = useCallback(async () => {
-    if (!tenant) return;
+    if (!tenant) {
+      setRows([]);
+      setLoaded(true);
+      return;
+    }
     try {
       setRows(await authoringApi.listFormats());
       setError(null);
@@ -682,7 +695,7 @@ export function FormatsPage() {
               }}
             />
           ) : selected ? (
-            <FormatEditor key={selected.id} format={selected} onSaved={load} />
+            <FormatEditor key={selected.id} format={selected} canManage={canManage} onSaved={load} />
           ) : null}
         </div>
       )}
@@ -785,8 +798,14 @@ function FormatCreateCard({ onCancel, onCreated }: { onCancel: () => void; onCre
   );
 }
 
-function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => Promise<void> }) {
+function FormatEditor({ format, canManage, onSaved }: { format: FormatRow; canManage: boolean; onSaved: () => Promise<void> }) {
   const initial = useMemo(() => toSkeleton(format.skeleton), [format.skeleton]);
+  const [code, setCode] = useState(format.code);
+  const [name, setName] = useState(format.name);
+  const [description, setDescription] = useState(format.description ?? "");
+  const [purpose, setPurpose] = useState(format.purpose ?? "");
+  const [minLevel, setMinLevel] = useState(format.minLevel ?? "");
+  const [maxLevel, setMaxLevel] = useState(format.maxLevel ?? "");
   const [sk, setSk] = useState<SkeletonDef>(initial);
   const [json, setJson] = useState(() => JSON.stringify(initial, null, 2));
   const [jsonOpen, setJsonOpen] = useState(false);
@@ -828,6 +847,39 @@ function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => P
     }
   }
 
+  async function saveIdentity() {
+    setBusy(true);
+    try {
+      await authoringApi.updateFormat(format.id, {
+        code,
+        name,
+        description,
+        purpose: purpose || null,
+        minLevel: minLevel || null,
+        maxLevel: maxLevel || null,
+      });
+      notify.success("Format kaydedildi");
+      await onSaved();
+    } catch (e) {
+      notify.error(errorMessage(e, "Kaydedilemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await authoringApi.deleteFormat(format.id);
+      notify.success("Format pasifleştirildi");
+      await onSaved();
+    } catch (e) {
+      notify.error(errorMessage(e, "Pasifleştirilemedi"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <FormCard
       title={format.name}
@@ -838,13 +890,40 @@ function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => P
           <span className="text-xs text-fg-subtle sm:mr-auto">
             {stats.sections} bölüm · {stats.parts} alt bölüm · toplam {stats.questions} soru
           </span>
-          <Button variant="ghost" disabled={!dirty || busy} onClick={() => update(initial)}>Değişiklikleri geri al</Button>
-          <Button loading={busy} disabled={!dirty || busy} onClick={() => void save(sk)}>İskeleti kaydet</Button>
+          {canManage ? <Button variant="ghost" disabled={busy} onClick={() => void remove()}>Pasifleştir</Button> : null}
+          <Button variant="ghost" disabled={!canManage || !dirty || busy} onClick={() => update(initial)}>Değişiklikleri geri al</Button>
+          <Button loading={busy} disabled={!canManage || !dirty || busy} onClick={() => void save(sk)}>İskeleti kaydet</Button>
         </>
       }
     >
-      {format.description ? <p className="text-[13px] text-fg-muted">{format.description}</p> : null}
+      <fieldset disabled={!canManage} className="grid gap-3 disabled:opacity-80">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Kod"><Input className="font-mono" value={code} onChange={(e) => setCode(e.target.value)} /></Field>
+          <Field label="Ad"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+          <Field label="Amaç">
+            <Select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+              <option value="">—</option>
+              {FORMAT_PURPOSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            </Select>
+          </Field>
+          <Field label="Açıklama"><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+          <Field label="Alt seviye">
+            <Select value={minLevel} onChange={(e) => setMinLevel(e.target.value)}>
+              <option value="">—</option>
+              {CEFR.map((level) => <option key={level} value={level}>{level}</option>)}
+            </Select>
+          </Field>
+          <Field label="Üst seviye">
+            <Select value={maxLevel} onChange={(e) => setMaxLevel(e.target.value)}>
+              <option value="">—</option>
+              {CEFR.map((level) => <option key={level} value={level}>{level}</option>)}
+            </Select>
+          </Field>
+        </div>
+        {canManage ? <Button type="button" variant="secondary" className="min-h-11 w-fit" disabled={busy} onClick={() => void saveIdentity()}>Kimliği kaydet</Button> : null}
+      </fieldset>
 
+      <fieldset disabled={!canManage} className="grid gap-3 border-0 p-0 disabled:opacity-80">
       {sk.sections.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">İskelet boş. Aşağıdan bölüm ekleyin.</p>
       ) : (
@@ -957,6 +1036,7 @@ function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => P
           </div>
         </div>
       </details>
+      </fieldset>
     </FormCard>
   );
 }
@@ -1009,7 +1089,9 @@ const emptyOutcome = {
 };
 
 export function SettingsDictionariesPage() {
+  const canManage = useCan(Perm.dictionaryManage);
   const { tenant } = useAuthoringTenant();
+  const [loaded, setLoaded] = useState(false);
   const [tags, setTags] = useState<Array<{ id: string; name: string; ownerOrgId?: string }>>([]);
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
   const [ageBands, setAgeBands] = useState<AgeBandRow[]>([]);
@@ -1033,15 +1115,23 @@ export function SettingsDictionariesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!tenant) return;
-    const [t, o, a] = await Promise.all([
-      authoringApi.listTags(),
-      authoringApi.listOutcomes(),
-      authoringApi.listAgeBands(),
-    ]);
-    setTags(t);
-    setOutcomes(o);
-    setAgeBands(a);
+    if (!tenant) {
+      setLoaded(true);
+      return;
+    }
+    try {
+      const [t, o, a] = await Promise.all([
+        authoringApi.listTags(),
+        authoringApi.listOutcomes(),
+        authoringApi.listAgeBands(),
+      ]);
+      setTags(t);
+      setOutcomes(o);
+      setAgeBands(a);
+      setError(null);
+    } finally {
+      setLoaded(true);
+    }
   }, [tenant]);
 
   useEffect(() => {
@@ -1234,7 +1324,7 @@ export function SettingsDictionariesPage() {
           title="Etiketler"
           description="Konu, tema ya da kaynak etiketleri (ör. aile, hayvanlar, Unit 3). Soru sınıflandırmasında seçilir; soru bankasında filtrelenir. Genel merkez etiketleri salt okunur."
         >
-          <FormGroup title="Yeni etiket">
+          {canManage ? <FormGroup title="Yeni etiket">
             <form
               className="flex items-start gap-2 sm:max-w-xl"
               onSubmit={(e) => {
@@ -1251,7 +1341,7 @@ export function SettingsDictionariesPage() {
                 <Button type="submit" disabled={!tagName.trim()}>Ekle</Button>
               </FieldAction>
             </form>
-          </FormGroup>
+          </FormGroup> : null}
           <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[13px] text-fg-muted">
               <span className="font-semibold text-fg tabular-nums">{tags.length}</span> etiket
@@ -1261,7 +1351,9 @@ export function SettingsDictionariesPage() {
               <Input type="search" icon={<IconSearch />} value={tagQuery} onChange={(e) => setTagQuery(e.target.value)} placeholder="Etiket ara" aria-label="Etiket ara" />
             </div>
           </div>
-          {shownTags.length === 0 ? (
+          {!loaded ? (
+            <Skeleton className="h-24 rounded-lg" />
+          ) : shownTags.length === 0 ? (
             <EmptyState compact tone={tags.length ? "neutral" : "primary"} title={tags.length ? "Eşleşen etiket yok" : "Henüz etiket yok"} description={tags.length ? "Aramayı değiştirin." : "Soruları gruplamak için yukarıdan ilk etiketi ekleyin."} />
           ) : (
             <ul className="flex flex-wrap gap-2">
@@ -1285,7 +1377,7 @@ export function SettingsDictionariesPage() {
                     {tag.name}
                     {tag.ownerOrgId && tag.ownerOrgId !== tenant?.id ? (
                       <span className="ml-1 rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-fg-subtle">Genel merkez</span>
-                    ) : (
+                    ) : canManage ? (
                       <span className="inline-flex items-center">
                         <button
                           type="button"
@@ -1307,7 +1399,7 @@ export function SettingsDictionariesPage() {
                           <IconTrash className="size-3.5" aria-hidden />
                         </button>
                       </span>
-                    )}
+                    ) : null}
                   </li>
                 ),
               )}
@@ -1321,6 +1413,7 @@ export function SettingsDictionariesPage() {
           title="Yaş bantları"
           description="Soru sınıflandırmasındaki “Yaş bandı” listesi; sıra numarasına göre dizilir. Genel merkez bantları her zaman görünür ve değiştirilemez. Kurum kendi bandını ekleyebilir."
         >
+          {canManage ? (
           <FormGroup title="Yeni yaş bandı">
             <div className="grid items-start gap-3 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_minmax(0,7rem)_auto]">
               <Field label="Kod" hint="Kısa, boşluksuz"><Input className="font-mono" value={ageCode} onChange={(e) => setAgeCode(e.target.value)} placeholder="10-12" /></Field>
@@ -1331,7 +1424,10 @@ export function SettingsDictionariesPage() {
               </FieldAction>
             </div>
           </FormGroup>
-          {ageBands.length === 0 ? (
+          ) : null}
+          {!loaded ? (
+            <Skeleton className="h-24 rounded-lg" />
+          ) : ageBands.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-[13px] text-fg-subtle">Yaş bandı yok; HQ varsayılanları kullanılıyor.</p>
           ) : (
             <div className="overflow-x-auto rounded-lg ring-1 ring-border">
@@ -1373,7 +1469,7 @@ export function SettingsDictionariesPage() {
                           <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${owned ? "bg-primary-50 text-primary" : "bg-neutral-100 text-fg-subtle"}`}>{owned ? "Kurum" : "Genel merkez"}</span>
                         </td>
                         <td className="px-3 py-2">
-                          {owned ? (
+                          {owned && canManage ? (
                             <span className="flex justify-end gap-0.5">
                               <Button size="sm" variant="ghost" aria-label={`${band.label} düzenle`} title="Düzenle" onClick={() => { setEditingAgeId(band.id); setEditingAge({ code: band.code, label: band.label, sortOrder: String(band.sortOrder) }); }}>
                                 <IconEdit className="size-3.5" aria-hidden />
@@ -1398,13 +1494,13 @@ export function SettingsDictionariesPage() {
         <FormCard
           title="Kazanımlar (öğrenme çıktıları)"
           description="Soru editörünün Cevap ve puanlama adımında seçilir; karne ve kazanım raporları bu kayıtlarla hesaplanır. Kod ve çerçeve oluşturulduktan sonra değiştirilemez. Genel merkez kazanımları salt okunur."
-          aside={
+          aside={canManage ? (
             <Button size="sm" variant={showOutcomeForm ? "ghost" : "primary"} onClick={() => setShowOutcomeForm((v) => !v)}>
               {showOutcomeForm ? "Formu kapat" : "+ Yeni kazanım"}
             </Button>
-          }
+          ) : null}
         >
-          {showOutcomeForm ? (
+          {canManage && showOutcomeForm ? (
             <div className="rounded-lg bg-neutral-50 p-3 ring-1 ring-border ring-inset">
               <OutcomeFields
                 draft={outcomeDraft}
@@ -1426,7 +1522,9 @@ export function SettingsDictionariesPage() {
               </Select>
             </div>
           </div>
-          {shownOutcomes.length === 0 ? (
+          {!loaded ? (
+            <Skeleton className="h-24 rounded-lg" />
+          ) : shownOutcomes.length === 0 ? (
             <EmptyState compact tone={outcomes.length ? "neutral" : "primary"} title={outcomes.length ? "Filtreye uyan kazanım yok" : "Henüz kazanım yok"} description={outcomes.length ? "Filtreyi ya da aramayı değiştirin." : "Kazanımlar soruların hangi öğrenme çıktısını ölçtüğünü gösterir. Yukarıdan ilk kazanımı ekleyin."} />
           ) : (
             <ul className="divide-y divide-border rounded-lg ring-1 ring-border">
@@ -1456,7 +1554,7 @@ export function SettingsDictionariesPage() {
                           {outcome.gradeLevel != null ? <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-fg-muted">MEB {outcome.gradeLevel}. sınıf</span> : null}
                         </p>
                       </div>
-                      {outcome.ownerOrgId && outcome.ownerOrgId !== tenant?.id ? null : (
+                      {canManage && !(outcome.ownerOrgId && outcome.ownerOrgId !== tenant?.id) ? (
                       <span className="flex shrink-0 gap-0.5">
                         <Button
                           size="sm"
@@ -1481,7 +1579,7 @@ export function SettingsDictionariesPage() {
                           <IconTrash className="size-3.5" aria-hidden />
                         </Button>
                       </span>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </li>
