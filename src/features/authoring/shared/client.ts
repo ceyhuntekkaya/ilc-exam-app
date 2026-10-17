@@ -43,6 +43,7 @@ export type QuestionSummary = {
   tags?: string[];
   calibrationStatus?: string;
   exposureCount?: number;
+  archived?: boolean;
 };
 
 export type QuestionPart = {
@@ -241,13 +242,14 @@ export type ReviewItem = {
 };
 
 export const authoringApi = {
-  listQuestions: (params?: { status?: string; cefr?: string; q?: string; skill?: string; type?: string }) => {
+  listQuestions: (params?: { status?: string; cefr?: string; q?: string; skill?: string; type?: string; includeArchived?: boolean }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.set("status", params.status);
     if (params?.cefr) sp.set("cefr", params.cefr);
     if (params?.q) sp.set("q", params.q);
     if (params?.skill) sp.set("skill", params.skill);
     if (params?.type) sp.set("type", params.type);
+    if (params?.includeArchived) sp.set("includeArchived", "true");
     const qs = sp.toString();
     return authoringFetch<QuestionSummary[]>(`/authoring/questions${qs ? `?${qs}` : ""}`);
   },
@@ -539,7 +541,7 @@ export const authoringApi = {
   deleteOutcome: (id: string) => authoringFetch<void>(`/authoring/outcomes/${id}`, { method: "DELETE" }),
   listRubrics: () =>
     authoringFetch<
-      Array<{ id: string; code: string; name: string; skill: string; currentVersionId?: string | null; ownerOrgId?: string }>
+      Array<{ id: string; code: string; name: string; skill: string; currentVersionId?: string | null; ownerOrgId?: string; draftVersionId?: string | null }>
     >("/authoring/rubrics"),
   getRubric: (id: string) =>
     authoringFetch<{
@@ -554,6 +556,21 @@ export const authoringApi = {
       maxRawScore?: number;
       ownerOrgId?: string;
     }>(`/authoring/rubrics/${id}`),
+  getRubricVersion: (versionId: string) =>
+    authoringFetch<{
+      id: string;
+      code: string;
+      name: string;
+      skill: string;
+      versionId: string;
+      versionNo: number;
+      status: string;
+      definition?: unknown;
+      maxRawScore?: number;
+      ownerOrgId?: string;
+    }>(`/authoring/rubrics/versions/${versionId}`),
+  openRubricDraft: (id: string) =>
+    authoringFetch(`/authoring/rubrics/${id}/versions`, { method: "POST" }),
   createRubric: (body: Record<string, unknown>) =>
     authoringFetch("/authoring/rubrics", { method: "POST", body: JSON.stringify(body) }),
   updateRubricDefinition: (versionId: string, body: Record<string, unknown>) =>

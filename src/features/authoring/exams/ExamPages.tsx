@@ -48,13 +48,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CEFR = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"];
 const SKILL_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "READING", label: "Okuma" },
   { value: "LISTENING", label: "Dinleme" },
+  { value: "READING", label: "Okuma" },
   { value: "WRITING", label: "Yazma" },
   { value: "SPEAKING", label: "Konuşma" },
-  { value: "GRAMMAR", label: "Dilbilgisi" },
-  { value: "VOCABULARY", label: "Kelime" },
+  { value: "READING_AND_WRITING", label: "Okuma ve yazma" },
   { value: "USE_OF_ENGLISH", label: "Use of English" },
+  { value: "MIXED", label: "Karma" },
 ];
 
 const PURPOSES = [
@@ -1111,10 +1111,13 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <Button
                     variant="secondary"
                     onClick={() =>
-                      void notify
-                        .run(authoringApi.autoFill(exam.id, sub.id, 5), { success: "Bankadan 5 soru eklendi", error: "Doldurma başarısız" })
-                        .then(() => load())
-                        .catch(() => undefined)
+                      void authoringApi
+                        .autoFill(exam.id, sub.id, 5)
+                        .then((result) => {
+                          notify.success(`Bankadan ${result.added} soru eklendi`);
+                          return load();
+                        })
+                        .catch(() => notify.error("Doldurma başarısız"))
                     }
                     title="Kriterlere uyan onaylı sorulardan 5 tanesini ekler"
                   >
@@ -1389,7 +1392,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   Tekrar yayınla
                 </Button>
               ) : null}
-              {exam.status === "PUBLISHED" || exam.status === "UNPUBLISHED" ? (
+              {exam.status === "PUBLISHED" || exam.status === "UNPUBLISHED" || exam.status === "IN_REVIEW" ? (
                 <Button
                   variant="secondary"
                   className="min-h-11"

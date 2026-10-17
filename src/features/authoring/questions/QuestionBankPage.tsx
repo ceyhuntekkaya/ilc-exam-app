@@ -33,6 +33,7 @@ export function QuestionBankPage() {
   const { tenant, loading: tenantLoading } = useAuthoringTenant();
   const [rows, setRows] = useState<QuestionSummary[]>([]);
   const [status, setStatus] = useState("");
+  const [includeArchived, setIncludeArchived] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -42,14 +43,17 @@ export function QuestionBankPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await authoringApi.listQuestions(status ? { status } : undefined);
+      const data = await authoringApi.listQuestions({
+        ...(status ? { status } : {}),
+        ...(includeArchived ? { includeArchived: true } : {}),
+      });
       setRows(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
     } finally {
       setLoading(false);
     }
-  }, [tenant, status]);
+  }, [tenant, status, includeArchived]);
 
   useEffect(() => {
     void load();
@@ -134,7 +138,14 @@ export function QuestionBankPage() {
         field: "status",
         headerName: "Durum",
         width: 120,
-        renderCell: ({ row }) => <StatusBadge status={row.status} />,
+        renderCell: ({ row }) => (
+          <span className="inline-flex items-center gap-1.5">
+            <StatusBadge status={row.status} />
+            {row.archived ? (
+              <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-fg-muted">Arşiv</span>
+            ) : null}
+          </span>
+        ),
       },
     ],
     [basePath],
@@ -196,6 +207,16 @@ export function QuestionBankPage() {
               { label: "Emekli", value: "RETIRED" },
             ]}
           />
+          <div className="px-3 pb-2">
+            <Button
+              variant="secondary"
+              className="min-h-11"
+              aria-pressed={includeArchived}
+              onClick={() => setIncludeArchived((current) => !current)}
+            >
+              {includeArchived ? "Arşivdekileri gizle" : "Arşivdekileri göster"}
+            </Button>
+          </div>
         </div>
         {error ? (
           <div className="p-4">

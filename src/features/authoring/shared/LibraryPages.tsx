@@ -845,7 +845,7 @@ function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => P
                   </Field>
                   <Field label="Beceri">
                     <Select value={sec.skill} onChange={(e) => setSection(i, { skill: e.target.value })}>
-                      {SKILLS.map((s) => <option key={s} value={s}>{SKILL_LABEL[s]}</option>)}
+                      {SECTION_SKILLS.map((s) => <option key={s} value={s}>{SECTION_SKILL_LABEL[s]}</option>)}
                     </Select>
                   </Field>
                   <span className="flex items-center gap-0.5">
@@ -946,6 +946,16 @@ function FormatEditor({ format, onSaved }: { format: FormatRow; onSaved: () => P
   );
 }
 
+const SECTION_SKILLS = ["LISTENING", "READING", "WRITING", "SPEAKING", "READING_AND_WRITING", "USE_OF_ENGLISH", "MIXED"] as const;
+const SECTION_SKILL_LABEL: Record<(typeof SECTION_SKILLS)[number], string> = {
+  LISTENING: "Dinleme",
+  READING: "Okuma",
+  WRITING: "Yazma",
+  SPEAKING: "Konuşma",
+  READING_AND_WRITING: "Okuma ve yazma",
+  USE_OF_ENGLISH: "Use of English",
+  MIXED: "Karma",
+};
 const SKILLS = ["READING", "LISTENING", "WRITING", "SPEAKING", "GRAMMAR", "VOCABULARY", "USE_OF_ENGLISH"] as const;
 const SKILL_LABEL: Record<(typeof SKILLS)[number], string> = {
   READING: "Okuma",

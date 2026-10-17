@@ -49,6 +49,7 @@ type RubricRow = {
   name: string;
   skill: string;
   currentVersionId?: string | null;
+  draftVersionId?: string | null;
   ownerOrgId?: string;
 };
 
@@ -288,10 +289,12 @@ export function RubricsPage() {
     }
   }
 
-  async function open(id: string) {
+  async function open(id: string, versionId?: string | null) {
     setBusy(true);
     try {
-      const next = (await authoringApi.getRubric(id)) as RubricDetail;
+      const next = (versionId
+        ? await authoringApi.getRubricVersion(versionId)
+        : await authoringApi.getRubric(id)) as RubricDetail;
       setDetail(next);
       const raw = (next.definition?.items ?? []) as Record<string, unknown>[];
       setItems(raw.map((r) => normalizeItem(r)));
@@ -383,7 +386,28 @@ export function RubricsPage() {
 
   function guardedOpen(id: string) {
     if (dirty && !confirm("Kaydedilmemiş değişiklikler var. Kaydetmeden başka gruba geçilsin mi?")) return;
-    void open(id);
+    const row = rows.find((item) => item.id === id);
+    void open(id, row?.draftVersionId);
+  }
+
+  async function openDraft() {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const next = (await authoringApi.openRubricDraft(detail.id)) as RubricDetail;
+      setDetail(next);
+      const raw = (next.definition?.items ?? []) as Record<string, unknown>[];
+      setItems(raw.map((r) => normalizeItem(r)));
+      await load();
+      notify.success("Yeni sürüm açıldı");
+      setError(null);
+    } catch (e) {
+      const message = errorMessage(e, "Yeni sürüm açılamadı");
+      setError(message);
+      notify.error(message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!tenant) {
@@ -516,9 +540,16 @@ export function RubricsPage() {
                 Bu rubrik genel merkeze ait. Görüntüleyebilirsiniz; değiştiremezsiniz.
               </p>
             ) : !editable ? (
-              <p className="rounded-lg bg-info-bg px-3.5 py-2.5 text-[13px] text-info">
-                Bu sürüm {detail.status === "IN_REVIEW" ? "incelemede" : "onaylı"}; maddeler değiştirilemez. Değişiklik için yeni sürüm gerekir.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-info-bg px-3.5 py-2.5 text-[13px] text-info">
+                <p>
+                  Bu sürüm {detail.status === "IN_REVIEW" ? "incelemede" : "onaylı"}; maddeler değiştirilemez.
+                </p>
+                {detail.status === "APPROVED" ? (
+                  <Button variant="secondary" className="min-h-11" disabled={busy} onClick={() => void openDraft()}>
+                    Yeni sürüm
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
             {/* Toplam göstergesi */}

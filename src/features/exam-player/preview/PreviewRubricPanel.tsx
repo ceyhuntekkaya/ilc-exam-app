@@ -146,7 +146,6 @@ function ManualHints({ answerKey }: { answerKey?: Record<string, unknown> | null
 
 export function PreviewRubricPanel({
   parts,
-  rubricCatalog,
 }: {
   parts: PreviewRubricPart[];
   rubricCatalog: Array<{ id: string; name: string; currentVersionId?: string | null }>;
@@ -158,14 +157,6 @@ export function PreviewRubricPanel({
 
   const [details, setDetails] = useState<Record<string, RubricDetail | null>>({});
   const [loading, setLoading] = useState(false);
-
-  const versionToRubricId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rubricCatalog) {
-      if (r.currentVersionId) map.set(r.currentVersionId, r.id);
-    }
-    return map;
-  }, [rubricCatalog]);
 
   useEffect(() => {
     const versionIds = [
@@ -193,13 +184,8 @@ export function PreviewRubricPanel({
       const next: Record<string, RubricDetail | null> = {};
       await Promise.all(
         versionIds.map(async (versionId) => {
-          const rubricId = versionToRubricId.get(versionId);
-          if (!rubricId) {
-            next[versionId] = null;
-            return;
-          }
           try {
-            const detail = await authoringApi.getRubric(rubricId);
+            const detail = await authoringApi.getRubricVersion(versionId);
             next[versionId] = detail as RubricDetail;
           } catch {
             next[versionId] = null;
@@ -215,7 +201,7 @@ export function PreviewRubricPanel({
     return () => {
       cancelled = true;
     };
-  }, [manualParts, versionToRubricId]);
+  }, [manualParts]);
 
   if (!manualParts.length) return null;
 
