@@ -187,7 +187,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       const target = stageHref(recipientId, current.stage, current.currentSectionId);
       if (currentPath() !== target) {
         const session = readSession(recipientId);
-        if (session) enqueueEvent(session.applicationId, "NAV_BLOCKED", { path: window.location.pathname });
+        if (session) enqueueEvent(session.applicationId, "NAV_BLOCKED", { path: window.location.pathname }, session.sessionToken);
         navigateOnce(target, "back-button");
       }
     };
@@ -204,7 +204,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       setHeld(paused);
     };
     const mark = (type: string, payload: Record<string, unknown> = {}) => {
-      enqueueEvent(session.applicationId, type, payload);
+      enqueueEvent(session.applicationId, type, payload, session.sessionToken);
       syncHeld();
       if (document.hidden) flushEventsKeepalive(session.applicationId, session.sessionToken);
     };
@@ -238,7 +238,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     window.addEventListener("offline", onOff);
     window.addEventListener("online", onOn);
     window.addEventListener("pagehide", onPageHide);
-    enqueueEvent(session.applicationId, "PAGE_LOAD");
+    enqueueEvent(session.applicationId, "PAGE_LOAD", {}, session.sessionToken);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("offline", onOff);
@@ -309,7 +309,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
         void lockExamEscape();
       } else if (wasOn && !isFullscreenExitExpected()) {
         const session = readSession(recipientId);
-        if (session) enqueueEvent(session.applicationId, "FULLSCREEN_EXIT");
+        if (session) enqueueEvent(session.applicationId, "FULLSCREEN_EXIT", {}, session.sessionToken);
       }
       wasOn = on;
     };

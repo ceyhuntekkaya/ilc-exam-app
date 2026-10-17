@@ -39,6 +39,20 @@ type WatchView = {
   sections: WatchSection[];
 };
 
+type AuditEvent = {
+  type: string;
+  occurredAt?: string | null;
+  source?: string | null;
+  clientEventId?: string | null;
+  clientOccurredAt?: string | null;
+  payload?: Record<string, unknown> | null;
+};
+
+type AuditDump = {
+  events?: AuditEvent[];
+  eventTotal?: number;
+};
+
 /** İzleme geri linki yalnızca atama listesine ve filtre query'sine döner. */
 export function rosterReturnHref(from: string | null, fallback: string) {
   if (!from || from.includes("://") || from.includes("\\") || from.startsWith("//")) return fallback;
@@ -66,6 +80,12 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
       ),
   });
   const view = query.data?.data;
+  const [auditOpen, setAuditOpen] = useState(false);
+  const audit = useQuery({
+    queryKey: ["application-audit", view?.applicationId],
+    enabled: auditOpen && Boolean(view?.applicationId),
+    queryFn: () => customInstance<{ data: AuditDump }>(`/staff/applications/${view?.applicationId}/audit`),
+  });
   const [extendOpen, setExtendOpen] = useState(false);
   const [invalidateOpen, setInvalidateOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -126,7 +146,12 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
               Geçersiz kıl
             </Button>
           ) : null}
-          <Button type="button" variant="secondary" loading={query.isFetching} onClick={() => void query.refetch()}>
+          {view?.applicationId ? (
+            <Button type="button" variant="secondary" className="min-h-11" onClick={() => setAuditOpen((open) => !open)}>
+              Denetim
+            </Button>
+          ) : null}
+          <Button type="button" variant="secondary" className="min-h-11" loading={query.isFetching} onClick={() => void query.refetch()}>
             Güncelle
           </Button>
         </div>
@@ -201,6 +226,30 @@ export function StudentWatchSection({ assignmentId, studentId }: { assignmentId:
           ))}
         </div>
       )}
+      {auditOpen ? (
+        <section className="mt-4 min-w-0 overflow-hidden rounded-xl border border-border bg-surface p-4 shadow-sm">
+          <h2 className="text-[15px] font-semibold text-fg">Denetim dökümü</h2>
+          {audit.isLoading ? <p className="mt-2 text-sm text-fg-muted">Yükleniyor…</p> : null}
+          {audit.isError ? <p className="mt-2 text-sm text-danger">Döküm alınamadı.</p> : null}
+          <ul className="mt-3 grid gap-2">
+            {(audit.data?.data.events ?? []).map((event) => (
+              <li key={event.clientEventId ?? `${event.type}-${event.occurredAt}`} className="min-w-0 rounded-lg border border-border px-3 py-2">
+                <p className="text-sm font-medium text-fg">{event.type} · {event.source ?? "—"}</p>
+                <p className="text-xs text-fg-muted">
+                  {formatStamp(event.occurredAt)}
+                  {event.clientOccurredAt ? ` · istemci ${formatStamp(event.clientOccurredAt)}` : ""}
+                </p>
+                {event.payload ? (
+                  <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all text-xs text-fg-muted">{JSON.stringify(event.payload)}</pre>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {(audit.data?.data.events ?? []).length === 0 && !audit.isLoading ? (
+            <p className="mt-2 text-sm text-fg-muted">Olay yok.</p>
+          ) : null}
+        </section>
+      ) : null}
       <FormDialog
         open={extendOpen}
         onClose={() => setExtendOpen(false)}
