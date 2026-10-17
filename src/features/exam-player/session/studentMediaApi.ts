@@ -4,7 +4,6 @@ import { studentErrorMessage } from "@/src/features/exam-flow/studentErrors";
 export type StudentMediaUploadResult = {
   mediaId: string;
   status: string;
-  storageKey?: string;
   contentUrl?: string;
 };
 
