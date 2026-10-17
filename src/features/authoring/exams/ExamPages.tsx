@@ -120,8 +120,11 @@ export function ExamListPage() {
   const router = useRouter();
   const { tenant } = useAuthoringTenant();
   const [rows, setRows] = useState<ExamListItem[]>([]);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const pageSize = 50;
 
   const load = useCallback(async () => {
     if (!canReadExams) {
@@ -131,14 +134,16 @@ export function ExamListPage() {
     if (!tenant) return;
     setLoading(true);
     try {
-      setRows(await authoringApi.listExams());
+      const result = await authoringApi.listExams(undefined, page, pageSize);
+      setRows(result.items);
+      setTotal(result.total);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
     } finally {
       setLoading(false);
     }
-  }, [tenant, canReadExams]);
+  }, [tenant, canReadExams, page]);
 
   useEffect(() => {
     void load();
@@ -157,6 +162,9 @@ export function ExamListPage() {
             </Link>
             <span className="block font-mono text-xs text-fg-subtle">
               {row.code} · v{row.versionNumber}
+            </span>
+            <span className="block text-xs text-fg-muted">
+              {purposeLabel(row.purpose)} · {row.minLevel}–{row.maxLevel}
             </span>
           </div>
         ),
@@ -204,7 +212,7 @@ export function ExamListPage() {
           <PageHeader
             title="Sınavlar"
             description="Sınav oluşturucu ve yayın kontrolü."
-            count={rows.length}
+            count={total}
             actions={
               canCreate || showReview ? (
                 <>
@@ -239,6 +247,15 @@ export function ExamListPage() {
               />
             )}
           </div>
+          {total > pageSize ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-fg-muted">{page * pageSize + 1}–{Math.min(total, (page + 1) * pageSize)} / {total}</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
+                <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * pageSize >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : showLicensed ? (
         <PageHeader
@@ -279,7 +296,7 @@ export function ExamWizardPage() {
   const [durationSeconds, setDurationSeconds] = useState("");
   const [welcomeHtml, setWelcomeHtml] = useState("");
   const [descriptionHtml, setDescriptionHtml] = useState("");
-  const [formats, setFormats] = useState<Array<{ id: string; name: string }>>([]);
+  const [formats, setFormats] = useState<Array<{ id: string; name: string; purpose?: string | null; minLevel?: string | null; maxLevel?: string | null }>>([]);
   const [exams, setExams] = useState<ExamListItem[]>([]);
   const [formatId, setFormatId] = useState("");
   const [copyFromId, setCopyFromId] = useState("");
@@ -296,7 +313,7 @@ export function ExamWizardPage() {
   useEffect(() => {
     if (!tenant) return;
     void authoringApi.listFormats().then((f) => setFormats(f)).catch(() => setFormats([]));
-    void authoringApi.listExams().then(setExams).catch(() => setExams([]));
+    void authoringApi.listExams(undefined, 0, 100).then((result) => setExams(result.items)).catch(() => setExams([]));
   }, [tenant]);
 
   async function create() {
@@ -520,9 +537,22 @@ export function ExamWizardPage() {
             </div>
             {mode === "format" ? (
               <Field label="Sınav formatı" error={modeError} hint={formats.length ? undefined : "Henüz format yok; Sınav Formatları sayfasından oluşturabilirsiniz."}>
-                <Select value={formatId} onChange={(e) => setFormatId(e.target.value)}>
+                <Select value={formatId} onChange={(e) => {
+                  const id = e.target.value;
+                  setFormatId(id);
+                  const format = formats.find((f) => f.id === id);
+                  if (format?.purpose) setPurpose(format.purpose);
+                  if (format?.minLevel) setMinLevel(format.minLevel);
+                  if (format?.maxLevel) setMaxLevel(format.maxLevel);
+                }}>
                   <option value="">Format seçin…</option>
-                  {formats.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {formats.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                      {f.purpose ? ` · ${purposeLabel(f.purpose)}` : ""}
+                      {f.minLevel && f.maxLevel ? ` · ${f.minLevel}–${f.maxLevel}` : ""}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             ) : null}
@@ -1507,7 +1537,6 @@ const SELECTION_MODES = [
   { value: "FIXED", label: "Sabit liste", hint: "Bağladığınız sorular, bu sırayla herkese gösterilir." },
   { value: "RANDOM_SUBSET", label: "Bağlı sorulardan rastgele", hint: "Bağlı sorular arasından belirtilen sayıda rastgele seçilir." },
   { value: "BANK_QUERY", label: "Bankadan kritere göre", hint: "Banka kriterlerine uyan onaylı sorulardan her öğrenciye ayrı seçilir." },
-  { value: "BLUEPRINT", label: "Şablona göre", hint: "Şablondaki dağılıma (beceri, seviye, adet) göre seçilir." },
 ];
 
 const ROLES = [

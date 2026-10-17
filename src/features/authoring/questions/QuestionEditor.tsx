@@ -182,7 +182,6 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   const [classErrors, setClassErrors] = useState<{ cefr?: string; skill?: string; ageBand?: string }>({});
   const [estimatedTimeSec, setEstimatedTimeSec] = useState("");
   const [timeLimitSec, setTimeLimitSec] = useState("");
-  const [securityLevel, setSecurityLevel] = useState("STANDARD");
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [ageBands, setAgeBands] = useState<Array<{ id: string; code: string; label: string }>>([]);
   const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
@@ -227,7 +226,6 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       setOrphanAgeBand(data.ageBandOptionId ? "" : (data.ageBand ?? ""));
       setEstimatedTimeSec(data.estimatedTimeSec != null ? String(data.estimatedTimeSec) : "");
       setTimeLimitSec(data.timeLimitSec != null ? String(data.timeLimitSec) : "");
-      setSecurityLevel(data.securityLevel ?? "STANDARD");
       setTagIds(data.tagIds ?? []);
       const body = data.body || {};
       setInstruction(asHtmlObj(body.instruction));
@@ -437,7 +435,6 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         ageBandOptionId,
         estimatedTimeSec: estimatedTimeSec === "" ? null : Number(estimatedTimeSec),
         timeLimitSec: timeLimitSec === "" ? null : Number(timeLimitSec),
-        securityLevel,
         tagIds,
         code: codeToSave,
       });

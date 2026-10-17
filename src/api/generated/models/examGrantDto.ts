@@ -18,5 +18,6 @@ export interface ExamGrantDto {
   validUntil?: string;
   quota?: number;
   mandatory?: boolean;
+  assigned?: boolean;
   createdAt?: string;
 }

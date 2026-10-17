@@ -124,6 +124,8 @@ export type ExamGrantRow = {
   status: string;
 };
 
+export type Page<T> = { items: T[]; page: number; size: number; total: number };
+
 export type ExamListItem = {
   id: string;
   code: string;
@@ -351,8 +353,10 @@ export const authoringApi = {
     }),
   archiveQuestion: (questionId: string) =>
     authoringFetch(`/authoring/questions/${questionId}/archive`, { method: "POST" }),
-  listExams: (status?: string) =>
-    authoringFetch<ExamListItem[]>(`/authoring/exams${status ? `?status=${status}` : ""}`),
+  listExams: (status?: string, page = 0, size = 50) =>
+    authoringFetch<Page<ExamListItem>>(
+      `/authoring/exams?page=${page}&size=${size}${status ? `&status=${status}` : ""}`,
+    ),
   createExam: (body: Record<string, unknown>) =>
     authoringFetch<ExamDetail>("/authoring/exams", {
       method: "POST",
@@ -449,8 +453,13 @@ export const authoringApi = {
     authoringFetch<ExamGrantRow[]>(`/authoring/exams/${id}/grants`),
   submitExam: (id: string) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/submit-review`, { method: "POST" }),
-  listMedia: (kind?: string) =>
-    authoringFetch<MediaItem[]>(`/authoring/media${kind ? `?kind=${kind}` : ""}`),
+  listMedia: (kind?: string, q?: string, page = 0, size = 48) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    if (kind) params.set("kind", kind);
+    if (q) params.set("q", q);
+    return authoringFetch<Page<MediaItem>>(`/authoring/media?${params.toString()}`);
+  },
+  getMedia: (id: string) => authoringFetch<MediaItem>(`/authoring/media/${id}`),
   uploadMedia: async (kind: string, file: File, meta?: {
     durationMs?: number | null;
     altText?: string | null;
@@ -486,8 +495,10 @@ export const authoringApi = {
     }),
   mediaUsages: (id: string) => authoringFetch<MediaUsage[]>(`/authoring/media/${id}/usages`),
   deleteMedia: (id: string) => authoringFetch<void>(`/authoring/media/${id}`, { method: "DELETE" }),
-  listReviews: (status?: string) =>
-    authoringFetch<ReviewItem[]>(`/authoring/reviews${status ? `?status=${status}` : ""}`),
+  listReviews: (status?: string, page = 0, size = 50) =>
+    authoringFetch<Page<ReviewItem>>(
+      `/authoring/reviews?page=${page}&size=${size}${status ? `&status=${status}` : ""}`,
+    ),
   listTags: () => authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string }>>("/authoring/tags"),
   createTag: (name: string) =>
     authoringFetch<{ id: string; name: string }>("/authoring/tags", {
@@ -582,7 +593,16 @@ export const authoringApi = {
     authoringFetch(`/authoring/rubrics/versions/${versionId}/approve`, { method: "POST" }),
   listFormats: () =>
     authoringFetch<
-      Array<{ id: string; code: string; name: string; description?: string; skeleton?: unknown }>
+      Array<{
+        id: string;
+        code: string;
+        name: string;
+        description?: string;
+        purpose?: string;
+        minLevel?: string;
+        maxLevel?: string;
+        skeleton?: unknown;
+      }>
     >("/authoring/formats"),
   createFormat: (body: Record<string, unknown>) =>
     authoringFetch("/authoring/formats", { method: "POST", body: JSON.stringify(body) }),
@@ -593,20 +613,10 @@ export const authoringApi = {
       "/authoring/import/questions",
       { method: "POST", body: JSON.stringify(rows) },
     ),
-  tts: (text: string) =>
-    authoringFetch<{ message: string }>("/authoring/helpers/tts", {
-      method: "POST",
-      body: JSON.stringify({ text, locale: "en-GB" }),
-    }),
-  stt: (mediaId: string) =>
+  stt: () =>
     authoringFetch<{ transcript: string; message: string }>("/authoring/helpers/stt-transcript", {
       method: "POST",
-      body: JSON.stringify({ mediaId }),
-    }),
-  updateIrt: (versionId: string, a: number, b: number, status: string) =>
-    authoringFetch(`/authoring/questions/versions/${versionId}/irt`, {
-      method: "PUT",
-      body: JSON.stringify({ a, b, status }),
+      body: "{}",
     }),
   history: (questionId: string) =>
     authoringFetch<Array<{ action: string; summary: string; createdAt: string }>>(

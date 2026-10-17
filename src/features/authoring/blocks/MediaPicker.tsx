@@ -91,7 +91,7 @@ export function MediaPicker({
   const load = useCallback(async () => {
     if (!tenant) return;
     try {
-      setRows(await authoringApi.listMedia(filter || undefined));
+      setRows((await authoringApi.listMedia(filter || undefined, undefined, 0, 100)).items);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Medya yüklenemedi");
@@ -127,11 +127,10 @@ export function MediaPicker({
     }
     let cancelled = false;
     void authoringApi
-      .listMedia(kind || undefined)
-      .then((list) => {
+      .getMedia(value)
+      .then((item) => {
         if (cancelled) return;
-        const found = list.find((m) => m.id === value) ?? null;
-        setSelectedMeta(found);
+        setSelectedMeta(item);
       })
       .catch(() => {
         if (!cancelled) setSelectedMeta(null);

@@ -55,7 +55,7 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
           <div key="a" className="flex flex-wrap items-center justify-end gap-2">
             {row.mandatory ? (
               <Badge tone="warning" dot>
-                Zorunlu
+                {row.assigned ? "Zorunlu" : "Zorunlu, atanmadı"}
               </Badge>
             ) : null}
             {row.id ? (

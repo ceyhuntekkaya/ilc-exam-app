@@ -65,6 +65,8 @@ export function MediaLibraryPage() {
   const [loaded, setLoaded] = useState(false);
   const [filter, setFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [uploadKind, setUploadKind] = useState("IMAGE");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -75,14 +77,16 @@ export function MediaLibraryPage() {
   const load = useCallback(async () => {
     if (!tenant) return;
     try {
-      setRows(await authoringApi.listMedia(undefined));
+      const result = await authoringApi.listMedia(filter || undefined, query.trim() || undefined, page, 48);
+      setRows(result.items);
+      setTotal(result.total);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
     } finally {
       setLoaded(true);
     }
-  }, [tenant]);
+  }, [tenant, filter, query, page]);
 
   useEffect(() => {
     void load();
@@ -108,18 +112,7 @@ export function MediaLibraryPage() {
     }
   }
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { IMAGE: 0, AUDIO: 0, VIDEO: 0 };
-    for (const m of rows) c[m.kind] = (c[m.kind] ?? 0) + 1;
-    return c;
-  }, [rows]);
-
-  const term = query.trim().toLocaleLowerCase("tr-TR");
-  const shown = rows.filter(
-    (m) =>
-      (!filter || m.kind === filter) &&
-      (!term || `${m.originalFilename ?? ""} ${m.altText ?? ""} ${m.transcript ?? ""}`.toLocaleLowerCase("tr-TR").includes(term)),
-  );
+  const shown = rows;
 
   return (
     <div className="space-y-5">
@@ -135,16 +128,16 @@ export function MediaLibraryPage() {
             <FilterTabs
               label="Medya türü"
               value={filter}
-              onChange={setFilter}
+              onChange={(value) => { setFilter(value); setPage(0); }}
               items={[
-                { label: "Tümü", value: null, count: rows.length },
-                { label: "Görsel", value: "IMAGE", count: counts.IMAGE },
-                { label: "Ses", value: "AUDIO", count: counts.AUDIO },
-                { label: "Video", value: "VIDEO", count: counts.VIDEO },
+                { label: "Tümü", value: null, count: filter ? undefined : total },
+                { label: "Görsel", value: "IMAGE", count: filter === "IMAGE" ? total : undefined },
+                { label: "Ses", value: "AUDIO", count: filter === "AUDIO" ? total : undefined },
+                { label: "Video", value: "VIDEO", count: filter === "VIDEO" ? total : undefined },
               ]}
             />
             <div className="px-3 pt-3 sm:w-64 sm:py-2">
-              <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Dosya adı veya açıklama…" aria-label="Medya ara" />
+              <Input type="search" icon={<IconSearch />} value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }} placeholder="Dosya adı veya açıklama…" aria-label="Medya ara" />
             </div>
           </div>
           <div className="p-4">
@@ -169,6 +162,15 @@ export function MediaLibraryPage() {
                 ))}
               </ul>
             )}
+            {total > 48 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-fg-muted">{page * 48 + 1}–{Math.min(total, (page + 1) * 48)} / {total}</p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
+                  <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 48 >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -382,19 +384,23 @@ export function ReviewQueuePage() {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [type, setType] = useState(requestedType === "Soru" || requestedType === "Sınav" ? requestedType : "");
 
   const load = useCallback(async () => {
     if (!tenant) return;
     try {
-      setRows(await authoringApi.listReviews());
+      const result = await authoringApi.listReviews(status ?? undefined, page, 50);
+      setRows(result.items);
+      setTotal(result.total);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Yüklenemedi");
     } finally {
       setLoaded(true);
     }
-  }, [tenant]);
+  }, [tenant, status, page]);
 
   useEffect(() => {
     void load();
@@ -413,14 +419,14 @@ export function ReviewQueuePage() {
       <PageHeader
         title="İnceleme kuyruğu"
         description="Yazarların incelemeye gönderdiği sorular ve sınavlar; en eski gönderim en üstte. Yazar kendi içeriğini onaylayamaz — açıp inceleyin, sonra editördeki Kaydet ve inceleme adımından onaylayın ya da taslağa döndürün."
-        count={loaded ? rows.length : undefined}
+        count={loaded ? total : undefined}
       />
       <section className="rounded-xl border border-border bg-surface shadow-sm">
         <div className="flex flex-col-reverse gap-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
           <FilterTabs
             label="İnceleme durumu"
             value={status}
-            onChange={setStatus}
+            onChange={(value) => { setStatus(value); setPage(0); }}
             items={[{ label: "Tümü", value: null, count: rows.length }, ...statuses.map((s) => ({ label: STATUS_TR[s] ?? s, value: s, count: rows.filter((r) => r.status === s).length }))]}
           />
           <div className="px-3 pt-3 sm:w-44 sm:py-2">
@@ -449,7 +455,7 @@ export function ReviewQueuePage() {
                   <span key="d" title={new Date(r.submittedAt).toLocaleString("tr-TR")}>{timeAgo(r.submittedAt)}</span>,
                   <StatusBadge key="s" status={r.status} />,
                   link ? (
-                    <Link key="a" href={link} className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-xs font-medium text-fg hover:border-primary-300 hover:text-primary">
+                    <Link key="a" href={link} className="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-xs font-medium text-fg hover:border-primary-300 hover:text-primary">
                       İncele →
                     </Link>
                   ) : (
@@ -459,6 +465,15 @@ export function ReviewQueuePage() {
               })}
             />
           )}
+          {total > 50 ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-fg-muted">{page * 50 + 1}–{Math.min(total, (page + 1) * 50)} / {total}</p>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
+                <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 50 >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
@@ -1166,16 +1181,6 @@ export function SettingsDictionariesPage() {
     }
   }
 
-  async function ttsDemo() {
-    try {
-      const r = await authoringApi.tts("Listen and choose the correct picture.");
-      setMessage(r.message);
-      notify.info(r.message);
-    } catch (e) {
-      notify.error(errorMessage(e, "TTS başarısız"));
-    }
-  }
-
   const [section, setSection] = useState<string | null>("tags");
   const [tagQuery, setTagQuery] = useState("");
   const [outcomeQuery, setOutcomeQuery] = useState("");
@@ -1522,30 +1527,23 @@ export function SettingsDictionariesPage() {
       ) : null}
 
       {section === "dev" ? (
-        <FormCard title="Geliştirici araçları" description="Metinden sese (TTS) ve sesten metne (STT) servislerinin bağlantı testi. Sonuç bildirim olarak gösterilir; içerik değişmez.">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2 rounded-lg border border-border p-3">
-              <p className="text-[13px] font-semibold text-fg">Metinden sese (TTS)</p>
-              <p className="text-xs text-fg-muted">Örnek cümleyi seslendirme servisine gönderir.</p>
-              <Button variant="secondary" size="sm" className="w-fit" onClick={() => void ttsDemo()}>TTS’i dene</Button>
-            </div>
-            <div className="grid gap-2 rounded-lg border border-border p-3">
-              <p className="text-[13px] font-semibold text-fg">Sesten metne (STT)</p>
-              <p className="text-xs text-fg-muted">Örnek kayıt kimliğiyle yazıya çevirme servisini çağırır.</p>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-fit"
-                onClick={() =>
-                  void notify
-                    .run(authoringApi.stt("00000000-0000-0000-0000-000000000001"), { error: "STT başarısız" })
-                    .then((r) => notify.info(r.message))
-                    .catch(() => undefined)
-                }
-              >
-                STT’yi dene
-              </Button>
-            </div>
+        <FormCard title="Geliştirici araçları" description="Kurumun sesten metne adresine kısa bir deneme gönderir. Adres yoksa istek reddedilir.">
+          <div className="grid gap-2 rounded-lg border border-border p-3">
+            <p className="text-[13px] font-semibold text-fg">Sesten metne (STT)</p>
+            <p className="text-xs text-fg-muted">Kurum ayarındaki adrese sessiz bir deneme kaydı gider.</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="min-h-11 w-fit"
+              onClick={() =>
+                void notify
+                  .run(authoringApi.stt(), { error: "STT başarısız" })
+                  .then((r) => notify.info(r.transcript || r.message))
+                  .catch(() => undefined)
+              }
+            >
+              STT’yi dene
+            </Button>
           </div>
           {message ? <p className="text-[13px] text-fg-muted">Son yanıt: {message}</p> : null}
         </FormCard>

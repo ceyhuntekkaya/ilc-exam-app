@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { customInstance } from "@/src/api/mutator";
 import {
   getStaffQueryKey,
   useAddScope,
@@ -10,7 +11,6 @@ import {
   useInstitutes,
   useResetPassword,
   useRoles,
-  useStaff,
   useUpdateStaff,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import type { StaffDto } from "@/src/api/generated/models";
@@ -42,19 +42,25 @@ function fullName(r?: StaffDto | null) {
 
 export function StaffSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error, refetch } = useStaff(id);
+  const [page, setPage] = useState(0);
+  const [q, setQ] = useState("");
+  const needle = q.trim();
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["staff-page", id, page, needle],
+    queryFn: () =>
+      customInstance<{ data: { items: StaffDto[]; total: number } }>(
+        `/companies/${id}/staff?page=${page}&size=50${needle ? `&q=${encodeURIComponent(needle)}` : ""}`,
+      ),
+  });
   const roles = useRoles(id).data?.data ?? [];
   const institutesData = useInstitutes(id).data;
   const instituteName = useMemo(
     () => Object.fromEntries((institutesData?.data ?? []).map((i) => [i.id!, i.name ?? ""])),
     [institutesData],
   );
-  const all = data?.data ?? [];
-  const [q, setQ] = useState("");
-  const needle = q.trim().toLocaleLowerCase("tr-TR");
-  const rows = needle
-    ? all.filter((r) => [r.firstName, r.lastName, r.username, r.email].filter(Boolean).join(" ").toLocaleLowerCase("tr-TR").includes(needle))
-    : all;
+  const all = data?.data.items ?? [];
+  const total = data?.data.total ?? 0;
+  const rows = all;
   const create = useCreateStaff();
   const update = useUpdateStaff();
   const addScope = useAddScope();
@@ -69,7 +75,10 @@ export function StaffSection({ companyId }: { companyId: string }) {
   // Rol penceresi güncel listeden okunur: rol eklenip kaldırıldıkça yenilenir.
   const scopeFor = all.find((r) => r.id === scopeForId) ?? null;
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) });
+  const invalidate = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) }),
+    queryClient.invalidateQueries({ queryKey: ["staff-page", id] }),
+  ]);
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
 
@@ -82,11 +91,11 @@ export function StaffSection({ companyId }: { companyId: string }) {
     <div className="grid gap-4">
       <SectionTable
         toolbar={
-          <SectionToolbar count={rows.length} noun="personel" loading={isLoading}>
+          <SectionToolbar count={total} noun="personel" loading={isLoading}>
             <Input
               type="search"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => { setQ(e.target.value); setPage(0); }}
               icon={<IconSearch className="size-4" />}
               placeholder="Ad, kullanıcı adı, e-posta…"
               aria-label="Personel ara"
@@ -124,18 +133,27 @@ export function StaffSection({ companyId }: { companyId: string }) {
             {userStatusLabel(r.status)}
           </Badge>,
           <div key="a" className="flex justify-end gap-1">
-            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setScopeForId(r.id!); }}>
+            <Button size="sm" variant="ghost" className="min-h-11" onClick={() => { setFormError(null); setScopeForId(r.id!); }}>
               Roller
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setEditing(r); }}>
+            <Button size="sm" variant="ghost" className="min-h-11" onClick={() => { setFormError(null); setEditing(r); }}>
               Düzenle
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setFormError(null); setResetFor(r); }}>
+            <Button size="sm" variant="ghost" className="min-h-11" onClick={() => { setFormError(null); setResetFor(r); }}>
               Parola sıfırla
             </Button>
           </div>,
         ])}
       />
+      {total > 50 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-fg-muted">{page * 50 + 1}–{Math.min(total, (page + 1) * 50)} / {total}</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
+            <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 50 >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
+          </div>
+        </div>
+      ) : null}
 
       <FormDialog
         open={resetFor !== null}

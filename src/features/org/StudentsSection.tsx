@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { customInstance } from "@/src/api/mutator";
 import {
   getStudentsQueryKey,
@@ -9,7 +9,6 @@ import {
   useCreateStudent,
   useGrades,
   useInstitutes,
-  useStudents,
   useUpdateStudent,
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
@@ -38,7 +37,17 @@ type Status = "ACTIVE" | "PASSIVE" | "LOCKED";
 
 export function StudentsSection({ companyId }: { companyId: string }) {
   const id = companyId;
-  const { data, isLoading, isError, error, refetch } = useStudents(id);
+  const [page, setPage] = useState(0);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const needle = q.trim();
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["students-page", id, page, needle, status],
+    queryFn: () =>
+      customInstance<{ data: { items: StudentDto[]; total: number } }>(
+        `/companies/${id}/students?page=${page}&size=50${needle ? `&q=${encodeURIComponent(needle)}` : ""}${status ? `&status=${encodeURIComponent(status)}` : ""}`,
+      ),
+  });
   const years = useYears(id).data?.data ?? [];
   const institutes = useInstitutes(id).data?.data ?? [];
   const gradesData = useGrades(id).data;
@@ -50,16 +59,9 @@ export function StudentsSection({ companyId }: { companyId: string }) {
   const branches = useMemo(() => branchesData?.data ?? [], [branchesData]);
   const activeYear = years.find((y) => y.status === "ACTIVE");
 
-  const all = data?.data ?? [];
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const needle = q.trim().toLocaleLowerCase("tr-TR");
-  const rows = all.filter(
-    (r) =>
-      (!status || r.status === status) &&
-      (!needle ||
-        [r.firstName, r.lastName, r.studentNumber, r.username].filter(Boolean).join(" ").toLocaleLowerCase("tr-TR").includes(needle)),
-  );
+  const all = data?.data.items ?? [];
+  const total = data?.data.total ?? 0;
+  const rows = all;
 
   const branchName = useMemo(() => Object.fromEntries(branches.map((b) => [b.id!, b.name ?? ""])), [branches]);
   const gradeName = useMemo(() => Object.fromEntries(grades.map((g) => [g.id!, g.name ?? ""])), [grades]);
@@ -91,6 +93,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
       customInstance(`/companies/${id}/students/${body.studentId}/enrollments/${body.enrollmentId}/complete`, { method: "POST" }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      await queryClient.invalidateQueries({ queryKey: ["students-page", id] });
       notify.success("Kayıt bitirildi");
       setCompleting(null);
     },
@@ -105,6 +108,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      await queryClient.invalidateQueries({ queryKey: ["students-page", id] });
       notify.success("Öğrenci nakledildi");
       setMoving(null);
     },
@@ -132,8 +136,6 @@ export function StudentsSection({ companyId }: { companyId: string }) {
     setOpen(true);
   }
 
-  const count = (code: Status) => all.filter((r) => r.status === code).length;
-
   return (
     <div className="grid gap-4">
       <SectionTable
@@ -141,21 +143,21 @@ export function StudentsSection({ companyId }: { companyId: string }) {
           <FilterTabs
               label="Öğrenci durumu"
               value={status}
-              onChange={setStatus}
+              onChange={(value) => { setStatus(value); setPage(0); }}
               items={[
-                { label: "Tümü", value: null, count: isLoading ? undefined : all.length },
-                { label: "Aktif", value: "ACTIVE", count: isLoading ? undefined : count("ACTIVE") },
-                { label: "Pasif", value: "PASSIVE", count: isLoading ? undefined : count("PASSIVE") },
-                { label: "Kilitli", value: "LOCKED", count: isLoading ? undefined : count("LOCKED") },
+                { label: "Tümü", value: null, count: status == null && !isLoading ? total : undefined },
+                { label: "Aktif", value: "ACTIVE", count: status === "ACTIVE" && !isLoading ? total : undefined },
+                { label: "Pasif", value: "PASSIVE", count: status === "PASSIVE" && !isLoading ? total : undefined },
+                { label: "Kilitli", value: "LOCKED", count: status === "LOCKED" && !isLoading ? total : undefined },
               ]}
             />
         }
         toolbar={
-          <SectionToolbar count={rows.length} noun="öğrenci" loading={isLoading}>
+          <SectionToolbar count={total} noun="öğrenci" loading={isLoading}>
             <Input
               type="search"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => { setQ(e.target.value); setPage(0); }}
               icon={<IconSearch className="size-4" />}
               placeholder="Ad, numara, kullanıcı adı…"
               aria-label="Öğrenci ara"
@@ -218,6 +220,15 @@ export function StudentsSection({ companyId }: { companyId: string }) {
           </div>,
         ])}
       />
+      {total > 50 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-fg-muted">{page * 50 + 1}–{Math.min(total, (page + 1) * 50)} / {total}</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
+            <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 50 >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
+          </div>
+        </div>
+      ) : null}
 
       <FormDialog
         open={open}
@@ -244,6 +255,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
               },
             });
             await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      await queryClient.invalidateQueries({ queryKey: ["students-page", id] });
             setOpen(false);
             notify.success("Öğrenci eklendi");
           } catch (err) {
@@ -348,6 +360,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
               },
             });
             await queryClient.invalidateQueries({ queryKey: getStudentsQueryKey(id) });
+      await queryClient.invalidateQueries({ queryKey: ["students-page", id] });
             setEditing(null);
             notify.success("Öğrenci güncellendi");
           } catch (err) {
