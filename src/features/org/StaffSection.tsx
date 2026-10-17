@@ -192,7 +192,7 @@ export function StaffSection({ companyId }: { companyId: string }) {
               id,
               data: {
                 username: String(fd.get("username") || "").trim(),
-                password: String(fd.get("password") || "") || undefined,
+                password: String(fd.get("password") || ""),
                 firstName: String(fd.get("firstName") || "").trim(),
                 lastName: String(fd.get("lastName") || "").trim(),
                 email: String(fd.get("email") || "").trim() || undefined,
@@ -226,8 +226,8 @@ export function StaffSection({ companyId }: { companyId: string }) {
             <Field label="Kullanıcı adı" required>
               <Input name="username" required autoComplete="off" />
             </Field>
-            <Field label="Parola" hint="Boş bırakılırsa sistem üretir.">
-              <PasswordInput name="password" autoComplete="new-password" />
+            <Field label="Parola" required hint="En az 6 karakter.">
+              <PasswordInput name="password" required minLength={6} autoComplete="new-password" />
             </Field>
           </div>
         </FormGroup>
