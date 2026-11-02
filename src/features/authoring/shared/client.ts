@@ -448,6 +448,8 @@ export const authoringApi = {
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/republish`, { method: "POST" }),
   revertExamDraft: (id: string) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/revert-draft`, { method: "POST" }),
+  deleteExam: (id: string) =>
+    authoringFetch<void>(`/authoring/exams/${id}`, { method: "DELETE" }),
   setExamSecurityLevel: (id: string, securityLevel: string) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/security-level`, {
       method: "PUT",

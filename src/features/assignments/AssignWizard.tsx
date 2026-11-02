@@ -14,7 +14,7 @@ import {
   useOpen,
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
-import { OmittedStudentReason, TargetRequestType } from "@/src/api/generated/models";
+import { OmittedStudentReason, TargetRequestType, type StudentDto } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import { istanbulInstant, istanbulLabel } from "@/src/features/assignments/istanbulTime";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
@@ -75,6 +75,17 @@ function formatDateTime(value: string) {
   return istanbulLabel(value) ?? "—";
 }
 
+/** Bireysel hedef: hesap aktif ve seçilen kampüs ile sezonda açık kaydı olan öğrenci. */
+function canAssignStudent(student: StudentDto, instituteId: string, academicYearId: string) {
+  if (student.status !== "ACTIVE" || !instituteId || !academicYearId) return false;
+  return (student.enrollments ?? []).some(
+    (row) =>
+      row.status === "ACTIVE" &&
+      row.instituteId === instituteId &&
+      row.academicYearId === academicYearId,
+  );
+}
+
 export function AssignWizard({ companyId, grantId }: { companyId: string; grantId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -121,11 +132,16 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
     return map;
   }, [students]);
 
+  const assignableStudents = useMemo(
+    () => students.filter((student) => canAssignStudent(student, instituteValue, season)),
+    [students, instituteValue, season],
+  );
+
   const targets: { id?: string; name?: string }[] =
     targetType === TargetRequestType.GRADE
       ? grades
       : targetType === TargetRequestType.STUDENT
-        ? students.map((student) => ({ id: student.id, name: studentName.get(student.id ?? "") }))
+        ? assignableStudents.map((student) => ({ id: student.id, name: studentName.get(student.id ?? "") }))
         : branches.filter(
             (row) =>
               (!row.instituteId || row.instituteId === instituteValue) &&
@@ -134,8 +150,15 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
 
   const rangeError = from && until && until < from ? "Kapanış, açılıştan önce olamaz." : null;
   const attemptsError = !Number.isFinite(attempts) || attempts < 1 ? "En az 1 deneme hakkı olmalı." : null;
+  const targetKnown = targets.some((row) => row.id === targetId);
   const stepValid =
-    step === 1 ? Boolean(instituteValue && season) : step === 2 ? Boolean(targetId) : step === 3 ? !rangeError && !attemptsError : true;
+    step === 1
+      ? Boolean(instituteValue && season)
+      : step === 2
+        ? Boolean(targetId && targetKnown)
+        : step === 3
+          ? !rangeError && !attemptsError
+          : true;
 
   async function prepare() {
     if (!grant?.examVersionId || !grant.id || !season) return;
@@ -219,6 +242,17 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       <div>
         <PageHeader title="Atama aç" back={back} />
         <EmptyState title="Lisans bulunamadı" description="Bu lisans kaldırılmış ya da kurumunuza ait değil. Lisanslı sınavlar listesinden yeniden seçin." />
+      </div>
+    );
+  }
+  if (grant.examStatus && grant.examStatus !== "PUBLISHED") {
+    return (
+      <div>
+        <PageHeader title={grant.examTitle ?? "Atama aç"} back={back} />
+        <EmptyState
+          title="Bu sınav yayında değil"
+          description="Yayında olmayan sınava atama açılamaz. Sınav yeniden yayınlandıktan sonra atama açılabilir."
+        />
       </div>
     );
   }
@@ -383,9 +417,15 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
             <Field
               label={TARGET_LABEL[targetType]}
               required
-              hint={targets.length === 0 ? "Bu kampüste seçilebilecek kayıt yok. Kurum ayarlarından ekleyin." : undefined}
+              hint={
+                targets.length === 0
+                  ? targetType === TargetRequestType.STUDENT
+                    ? "Bu kampüs ve sezonda atanabilecek aktif öğrenci yok."
+                    : "Bu kampüste seçilebilecek kayıt yok. Kurum ayarlarından ekleyin."
+                  : undefined
+              }
             >
-              <Select value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <Select value={targetKnown ? targetId : ""} onChange={(e) => setTargetId(e.target.value)}>
                 <option value="">Seçin</option>
                 {targets.map((row) => (
                   <option key={row.id} value={row.id}>

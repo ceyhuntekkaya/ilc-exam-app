@@ -69,13 +69,20 @@ function grantUsable(grant: ExamGrantDto, now = Date.now()) {
   return true;
 }
 
+/** Atama listesi yalnız yayındaki sınavı gösterir. Durum gelmezse eski sunucu kabul edilir. */
+function listedForAssignment(status: string | null | undefined, publishedOnly: boolean) {
+  if (!publishedOnly || !status) return true;
+  return status === "PUBLISHED";
+}
+
 /**
  * Atama ekranındaki kampüs → sezon → sınav → seviye → şube seçimi.
  * Seçim adres çubuğunda durur; değerlendirme aynı seçimle açılır.
  * `includeLicensed`: sezonda lisansı olup henüz ataması olmayan sınavlar da listelenir.
  */
-export function useAssignmentScope(companyId: string, options?: { includeLicensed?: boolean }) {
+export function useAssignmentScope(companyId: string, options?: { includeLicensed?: boolean; publishedOnly?: boolean }) {
   const includeLicensed = options?.includeLicensed ?? false;
+  const publishedOnly = options?.publishedOnly ?? false;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -146,6 +153,7 @@ export function useAssignmentScope(companyId: string, options?: { includeLicense
       if (row.instituteId !== campusId || row.academicYearId !== seasonId || row.status === "DRAFT" || !row.examVersionId) {
         continue;
       }
+      if (!listedForAssignment(row.examStatus, publishedOnly)) continue;
       if (seen.has(row.examVersionId)) continue;
       const grant =
         grants.find((item) => item.examVersionId === row.examVersionId && item.academicYearId === seasonId) ??
@@ -162,6 +170,7 @@ export function useAssignmentScope(companyId: string, options?: { includeLicense
     if (includeLicensed) {
       for (const grant of grants) {
         if (grant.academicYearId !== seasonId || !grant.examVersionId || !grantUsable(grant)) continue;
+        if (!listedForAssignment(grant.examStatus, publishedOnly)) continue;
         if (seen.has(grant.examVersionId)) continue;
         const title = grant.examTitle ?? "Sınav";
         seen.set(grant.examVersionId, {
@@ -174,7 +183,7 @@ export function useAssignmentScope(companyId: string, options?: { includeLicense
       }
     }
     return [...seen.values()].sort((a, b) => byTr(a.title, b.title));
-  }, [assignments, grants, campusId, seasonId, includeLicensed]);
+  }, [assignments, grants, campusId, seasonId, includeLicensed, publishedOnly]);
 
   const examValue = exams.some((exam) => exam.id === examVersionId) ? examVersionId : "";
   const selectedExam = exams.find((exam) => exam.id === examValue) ?? null;

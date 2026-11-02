@@ -1,6 +1,7 @@
 "use client";
 
 import { AssignmentCloseActions, type AssignmentLifecycleItem } from "@/src/features/assignments/AssignmentCloseActions";
+import { AssignmentPlacementList } from "@/src/features/assignments/AssignmentPlacementList";
 import { AssignmentScopeFields, filtersToQuery, useAssignmentScope, type RosterPhase } from "@/src/features/assignments/assignmentScope";
 import { customInstance } from "@/src/api/mutator";
 import { istanbulInstant, istanbulLabel } from "@/src/features/assignments/istanbulTime";
@@ -35,7 +36,7 @@ function formatWindow(from?: string | null, until?: string | null) {
 export function AssignmentRosterSection({ companyId }: { companyId: string }) {
   const hrefs = useOpsHref();
   const pathname = usePathname();
-  const scope = useAssignmentScope(companyId, { includeLicensed: true });
+  const scope = useAssignmentScope(companyId, { includeLicensed: true, publishedOnly: true });
   const { campusId, seasonId, examValue, gradeValue, branchValue, branchOptions, exams, selectedExam, assignments, rosterQ, rosterRows, gradingId, filters } = scope;
   const lifecycleItems = useMemo(() => lifecycleOf(rosterRows, assignments), [rosterRows, assignments]);
   const openAssignmentId = useMemo(() => {
@@ -214,6 +215,13 @@ export function AssignmentRosterSection({ companyId }: { companyId: string }) {
         onConfirm={() => {
           if (grantTarget) grantAttempt.mutate(grantTarget.recipientId);
         }}
+      />
+      <AssignmentPlacementList
+        assignments={assignments}
+        grants={scope.grants}
+        campusId={campusId}
+        seasonId={seasonId}
+        loading={scope.listLoading}
       />
       <FormDialog
         open={overrideTarget !== null}

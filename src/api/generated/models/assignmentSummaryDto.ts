@@ -18,4 +18,15 @@ export interface AssignmentSummaryDto {
   availableFrom?: string;
   availableUntil?: string;
   createdAt?: string;
+  /** Canlı sınav durumu. Atama listesi yayında olmayanı göstermez. */
+  examStatus?: string;
+  /** Atamanın gittiği seviye, sınıf veya öğrenci. */
+  targets?: AssignmentTargetSummary[];
+}
+
+export interface AssignmentTargetSummary {
+  type?: string;
+  targetId?: string;
+  label?: string;
+  exclude?: boolean;
 }

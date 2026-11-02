@@ -20,4 +20,6 @@ export interface ExamGrantDto {
   mandatory?: boolean;
   assigned?: boolean;
   createdAt?: string;
+  /** Canlı sınav durumu. Yayında değilse yeni atama açılmaz. */
+  examStatus?: string;
 }

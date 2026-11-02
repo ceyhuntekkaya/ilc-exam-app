@@ -615,6 +615,7 @@ type Sel =
   | { kind: "question"; sectionId: string; subId: string; linkId: string };
 
 export function ExamBuilderPage({ examId }: { examId: string }) {
+  const canDeleteExam = useCan(Perm.examCreate, Perm.examPublish);
   const router = useRouter();
   const searchParams = useSearchParams();
   const hrefs = useOpsHref();
@@ -804,8 +805,28 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
         description={`${exam.code} · Sürüm ${exam.versionNumber} · ${purposeLabel(exam.purpose)} · ${exam.minLevel}–${exam.maxLevel}`}
         back={{ href: basePath, label: "Sınavlar" }}
         actions={
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
             {busy ? <span className="text-xs text-fg-subtle" aria-live="polite">Kaydediliyor…</span> : null}
+            {canDeleteExam && (exam.status === "DRAFT" || exam.status === "IN_REVIEW" || exam.status === "UNPUBLISHED") ? (
+              <Button
+                variant="danger"
+                size="sm"
+                className="min-h-11"
+                onClick={() =>
+                  ask(
+                    "Sınav silinsin mi?",
+                    `“${exam.title}” kalıcı silinir. Soru bankasındaki sorular durur. Bu sınavın bir ataması varsa silinemez.`,
+                    "Sil",
+                    () =>
+                      notify
+                        .run(authoringApi.deleteExam(exam.id), { success: "Sınav silindi", error: "Sınav silinemedi" })
+                        .then(() => router.push(basePath)),
+                  )
+                }
+              >
+                Sınavı sil
+              </Button>
+            ) : null}
             <StatusBadge status={exam.status} />
           </span>
         }
@@ -1329,7 +1350,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
 
           <FormCard
             title="Yayın"
-            description="Yayınla, taslağı tek adımda yayınlar ve onay kaydı bırakır. Okulda aktif sezon yoksa yayın reddedilir."
+            description="Yayınla, taslağı tek adımda yayınlar ve onay kaydı bırakır. Okulda aktif sezon yoksa yayın reddedilir. Silmek için sınav yayında olmamalı ve hiç ataması bulunmamalıdır."
           >
             <div className="flex flex-wrap items-center gap-2">
               {exam.status === "DRAFT" || exam.status === "IN_REVIEW" ? (

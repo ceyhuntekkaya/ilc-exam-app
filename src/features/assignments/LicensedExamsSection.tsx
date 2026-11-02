@@ -58,8 +58,10 @@ export function LicensedExamsSection({ companyId }: { companyId: string }) {
                 {row.assigned ? "Zorunlu" : "Zorunlu, atanmadı"}
               </Badge>
             ) : null}
-            {row.id ? (
-              <ButtonLink href={hrefs.assign(row.id)} variant="secondary" size="sm">
+            {row.examStatus && row.examStatus !== "PUBLISHED" ? (
+              <Badge tone="neutral">Yayında değil</Badge>
+            ) : row.id ? (
+              <ButtonLink href={hrefs.assign(row.id)} variant="secondary" size="sm" className="min-h-11">
                 Atama aç
               </ButtonLink>
             ) : null}

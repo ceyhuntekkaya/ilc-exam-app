@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <StaffPage
       title="Atamalar"
-      description="Şubedeki öğrencilerin sınav durumunu görün."
+      description="Şubedeki öğrencilerin sınav durumunu görün. Atamalar ve gittikleri yer listenin altında."
     >
       {(companyId) => (
         <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-neutral-100" />}>

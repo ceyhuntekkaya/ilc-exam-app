@@ -60,6 +60,8 @@ export function examStatusLabel(status?: string | null): string {
       return "İncelemede";
     case "PUBLISHED":
       return "Yayında";
+    case "UNPUBLISHED":
+      return "Yayından kalktı";
     case "ARCHIVED":
       return "Arşiv";
     default:
