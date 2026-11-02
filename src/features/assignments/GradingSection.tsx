@@ -53,6 +53,8 @@ type Item = {
   feedback?: string | null;
   rationale?: string | null;
   finalScore?: number | null;
+  examPoints?: number | null;
+  percent?: number | null;
   scored: boolean;
   published?: boolean;
   questionVersionId?: string | null;
@@ -80,9 +82,42 @@ type PublishResult = {
 };
 
 type AiGrade = {
-  score: number;
+  score?: number | null;
+  percent?: number | null;
+  examPoints?: number | null;
+  rationale?: string | null;
+  feedback?: string | null;
+  raw?: string | null;
+  rejectedRaw?: string | null;
+  error?: string | null;
+};
+
+type GradeDraft = {
+  score: string;
+  percent: string;
   rationale: string;
   feedback: string;
+  examPoints: number | null;
+};
+
+type ModelReply = {
+  raw: string;
+  rejectedRaw?: string | null;
+  error?: string | null;
+};
+
+/** TEMPORARY: modele giden isteğin dökümü. Panel kalkınca bu tip de kalkar. */
+type AiRequestPreview = {
+  answerId: string;
+  provider?: string | null;
+  endpoint?: string | null;
+  model?: string | null;
+  partMax?: number | null;
+  system?: string | null;
+  user?: string | null;
+  requestJson?: string | null;
+  fallbackRequestJson?: string | null;
+  error?: string | null;
 };
 
 type MediaTranscript = {
@@ -98,12 +133,12 @@ type Mode = "ai" | "manual" | "prerequisites" | "prompt" | "system";
 const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
   audio: {
     title: "Sesler",
-    hint: "Konuşma kaydı. Sesi Tanımla, kayıtları sırayla metne çevirir. Metni hazır olanlar AI ile puanlanır.",
+    hint: "Konuşma kaydı. Sesi Tanımla metne çevirir. AI ile Değerlendir puanı kaydeder.",
     empty: "Ses kaydı yok",
   },
   text: {
     title: "Metinler",
-    hint: "Yazılı cevap. AI ile değerlendir, rubriğe göre puan, gerekçe ve geri bildirim önerir.",
+    hint: "Yazılı cevap. AI ile Değerlendir puanı, gerekçeyi ve geri bildirimi kaydeder.",
     empty: "Metin cevap yok",
   },
   video: {
@@ -117,6 +152,95 @@ const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = 
     empty: "Görsel yok",
   },
 };
+
+/** TEMPORARY: her AI kartında modele giden isteği gösterir. Kaldırılacak. */
+function AiRequestDump({
+  preview,
+  loading,
+  failed,
+  errorText,
+  reply,
+}: {
+  preview?: AiRequestPreview;
+  loading: boolean;
+  failed: boolean;
+  errorText: string;
+  reply?: ModelReply;
+}) {
+  return (
+    <section className="grid min-w-0 gap-2 rounded-lg border border-dashed border-warning/40 bg-bg p-3">
+      <p className="text-xs font-semibold text-warning">Geçici kontrol — AI&apos;ya giden veri</p>
+      {failed ? (
+        <p className="text-sm break-words text-danger">{errorText}</p>
+      ) : loading && !preview ? (
+        <p className="text-sm text-fg-muted">İstek hazırlanıyor…</p>
+      ) : preview?.error ? (
+        <p className="text-sm break-words text-danger">{preview.error}</p>
+      ) : preview ? (
+        <div className="grid min-w-0 gap-2">
+          <dl className="grid min-w-0 gap-1 text-xs text-fg">
+            <div className="min-w-0">
+              <dt className="text-fg-muted">Sağlayıcı</dt>
+              <dd className="break-all">{preview.provider || "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-fg-muted">Model</dt>
+              <dd className="break-all">{preview.model || "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-fg-muted">Adres</dt>
+              <dd className="break-all">{preview.endpoint || "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-fg-muted">Sınav soru puanı</dt>
+              <dd>
+                {preview.partMax == null ? "—" : preview.partMax} — modele gitmez. Model 0–100 döner; ekranda yüzde ve bu puana
+                yuvarlanmış karşılığı yazılır.
+              </dd>
+            </div>
+          </dl>
+          <DumpBlock label="System prompt" text={preview.system || ""} />
+          <DumpBlock label="User prompt" text={preview.user || ""} />
+          <DumpBlock label="İstek gövdesi" text={preview.requestJson || ""} />
+          {preview.fallbackRequestJson ? (
+            <DumpBlock
+              label="OpenAI 400 dönerse giden gövde"
+              text={preview.fallbackRequestJson}
+            />
+          ) : null}
+          <p className="text-xs break-words text-fg-muted">
+            API anahtarı ve Ollama parolası burada yok. JSON ayrışmazsa aynı system ile user metninin sonuna red gerekçesi eklenip bir
+            kez daha istenir.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-fg-muted">Bu cevap için istek yok.</p>
+      )}
+      {reply ? (
+        <div className="grid min-w-0 gap-2 border-t border-dashed border-warning/40 pt-2">
+          {reply.rejectedRaw ? <DumpBlock label="İlk dönüş (reddedildi)" text={reply.rejectedRaw} /> : null}
+          <DumpBlock label="Model dönüşü" text={reply.raw} />
+          {reply.error ? <p className="text-sm break-words text-danger">{reply.error}</p> : null}
+        </div>
+      ) : (
+        <p className="border-t border-dashed border-warning/40 pt-2 text-xs text-fg-muted">
+          Model dönüşü, AI ile Değerlendir denince burada görünür.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function DumpBlock({ label, text }: { label: string; text: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-medium text-fg-muted">{label}</p>
+      <pre className="mt-1 max-h-72 min-w-0 overflow-auto rounded-md border border-border bg-surface p-2 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-fg">
+        {text || "—"}
+      </pre>
+    </div>
+  );
+}
 
 function laneOf(type: string): Lane {
   switch (type) {
@@ -166,6 +290,26 @@ function mediaIdsOf(item: Item): string[] {
 function formatGradeScore(value: number) {
   if (!Number.isFinite(value)) return "";
   return String(Math.round(value * 100) / 100);
+}
+
+function whole(value: number) {
+  if (!Number.isFinite(value)) return "";
+  return String(Math.round(value));
+}
+
+/** 38 ve sınav puanı 10 → 4. */
+function awardFromPercent(percent: number, examPoints: number | null | undefined) {
+  if (!Number.isFinite(percent)) return "";
+  const bounded = Math.min(100, Math.max(0, Math.round(percent)));
+  if (examPoints == null || !Number.isFinite(examPoints) || examPoints <= 0) return String(bounded);
+  const points = Math.round((bounded * examPoints) / 100);
+  return String(Math.min(examPoints, Math.max(0, points)));
+}
+
+function percentFromAward(award: number, examPoints: number | null | undefined) {
+  if (!Number.isFinite(award)) return "";
+  if (examPoints == null || !Number.isFinite(examPoints) || examPoints <= 0) return whole(award);
+  return String(Math.min(100, Math.max(0, Math.round((award / examPoints) * 100))));
 }
 
 function aiReady(item: Item, transcripts: Record<string, MediaTranscript>): "ready" | "audio" | "empty" {
@@ -376,11 +520,19 @@ export function GradingSection({
   }, [scope.ready, scope.gradingId, assignmentId, filterKey, hrefs, router]);
 
   const query = useQuery({
-    queryKey: ["grading", companyId, queueIds],
+    queryKey: ["grading", companyId, queueIds, scope.gradeValue, scope.branchValue],
     enabled: queueIds.length > 0,
     queryFn: async () => {
+      const params = new URLSearchParams();
+      if (scope.gradeValue) params.set("gradeId", scope.gradeValue);
+      if (scope.branchValue) params.set("branchId", scope.branchValue);
+      const qs = params.toString();
       const batches = await Promise.all(
-        queueIds.map((id) => customInstance<{ data: Item[] }>(`/companies/${companyId}/assignments/${id}/grading`)),
+        queueIds.map((id) =>
+          customInstance<{ data: Item[] }>(
+            `/companies/${companyId}/assignments/${id}/grading${qs ? `?${qs}` : ""}`,
+          ),
+        ),
       );
       const seen = new Set<string>();
       const data: Item[] = [];
@@ -401,12 +553,14 @@ export function GradingSection({
   });
   const rows = query.data?.data ?? [];
   const [score, setScore] = useState<Record<string, string>>({});
+  const [percent, setPercent] = useState<Record<string, string>>({});
   const [rationale, setRationale] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ index: number; total: number } | null>(null);
   const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
+  const [modelReplies, setModelReplies] = useState<Record<string, ModelReply>>({});
   const [gradingProgress, setGradingProgress] = useState<{ index: number; total: number } | null>(null);
   const [filter, setFilter] = useState<string | null>("pending");
   const [mode, setMode] = useState<Mode>("ai");
@@ -474,6 +628,9 @@ export function GradingSection({
   const scoped = contextMismatch
     ? []
     : rows.filter((item) => {
+        // Kör değerlendirme seviye ve şubeyi yanıttan siler. Kuyruk isteği bu
+        // filtreyi sunucuda uygular; burada null yerleşimi elemek listeyi boşaltır.
+        if (!item.gradeId && !item.branchId) return true;
         if (scope.gradeValue && item.gradeId !== scope.gradeValue) return false;
         if (scope.branchValue && item.branchId !== scope.branchValue) return false;
         return true;
@@ -486,6 +643,26 @@ export function GradingSection({
   const rightLane: Lane = mode === "ai" ? "text" : "image";
   const leftItems = visible.filter((item) => laneOf(item.interactionType) === leftLane);
   const rightItems = visible.filter((item) => laneOf(item.interactionType) === rightLane);
+  const previewKey = mode === "ai" ? visible.map((item) => item.answerId).join(",") : "";
+  const transcriptStamp = Object.values(transcriptOverrides)
+    .map((row) => `${row.mediaId}:${row.status ?? ""}`)
+    .sort()
+    .join(",");
+  const requestPreview = useQuery({
+    queryKey: ["ai-request-preview", companyId, previewKey, transcriptStamp],
+    enabled: previewKey.length > 0,
+    queryFn: () =>
+      customInstance<{ data: AiRequestPreview[] }>(`/companies/${companyId}/answers/ai-request-preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answerIds: previewKey.split(",") }),
+      }),
+  });
+  const previewByAnswer = useMemo(() => {
+    const map = new Map<string, AiRequestPreview>();
+    for (const row of requestPreview.data?.data ?? []) map.set(row.answerId, row);
+    return map;
+  }, [requestPreview.data]);
   const serverTranscripts = useMemo(() => {
     const map: Record<string, MediaTranscript> = {};
     for (const item of query.data?.data ?? []) {
@@ -545,8 +722,8 @@ export function GradingSection({
     }
   }
 
-  async function save(item: Item, silent = false) {
-    const raw = scoreValue(item);
+  async function save(item: Item, silent = false, draft?: GradeDraft) {
+    const raw = draft ? draft.score : scoreValue(item);
     if (raw.trim() === "") {
       if (!silent) notify.error("Önce puan girin");
       return false;
@@ -556,21 +733,31 @@ export function GradingSection({
       if (!silent) notify.error("Puan sayı olmalı");
       return false;
     }
+    const examMax = draft?.examPoints ?? item.examPoints;
+    if (examMax != null && (finalScore < 0 || finalScore > examMax)) {
+      if (!silent) notify.error(`Puan 0 ile ${formatGradeScore(examMax)} arasında olmalı`);
+      return false;
+    }
+    const percentRaw = (draft ? draft.percent : percentValue(item)).trim();
+    const percentScore = percentRaw === "" ? Number(percentFromAward(finalScore, examMax)) : Number(percentRaw);
     setSavingId(item.answerId);
     try {
       await review.mutateAsync({
         id: item.answerId,
         data: {
           finalScore,
-          rubric: { criteria: [{ label: "General", score: finalScore }] },
-          feedback: feedbackValue(item),
-          rationale: rationaleValue(item),
+          rubric: {
+            percent: Number.isNaN(percentScore) ? undefined : percentScore,
+            criteria: [{ label: "General", score: finalScore }],
+          },
+          feedback: draft ? draft.feedback : feedbackValue(item),
+          rationale: draft ? draft.rationale : rationaleValue(item),
         } as { finalScore: number },
       });
       setSaved((currentSaved) => ({ ...currentSaved, [item.answerId]: true }));
       if (!silent) {
         notify.success("Değerlendirme kaydedildi");
-        void summaryQ.refetch();
+        void Promise.all([query.refetch(), summaryQ.refetch()]);
       }
       return true;
     } catch (err) {
@@ -581,10 +768,36 @@ export function GradingSection({
     }
   }
 
-  function applyGrade(answerId: string, grade: AiGrade) {
-    setScore((current) => ({ ...current, [answerId]: formatGradeScore(grade.score) }));
-    setRationale((current) => ({ ...current, [answerId]: grade.rationale ?? "" }));
-    setFeedback((current) => ({ ...current, [answerId]: grade.feedback ?? "" }));
+  function rememberReply(answerId: string, grade: AiGrade) {
+    setModelReplies((current) => ({
+      ...current,
+      [answerId]: {
+        raw: grade.raw ?? "",
+        rejectedRaw: grade.rejectedRaw,
+        error: grade.error,
+      },
+    }));
+  }
+
+  function applyGrade(answerId: string, grade: AiGrade, examPoints: number | null): GradeDraft | null {
+    rememberReply(answerId, grade);
+    if (grade.error || grade.score == null || Number.isNaN(Number(grade.score))) return null;
+    const max = grade.examPoints ?? examPoints;
+    const percentScore = grade.percent == null || Number.isNaN(Number(grade.percent))
+      ? Number(percentFromAward(Number(grade.score), max))
+      : Number(grade.percent);
+    const draft: GradeDraft = {
+      score: whole(Number(grade.score)),
+      percent: whole(percentScore),
+      rationale: grade.rationale ?? "",
+      feedback: grade.feedback ?? "",
+      examPoints: max,
+    };
+    setPercent((current) => ({ ...current, [answerId]: draft.percent }));
+    setScore((current) => ({ ...current, [answerId]: draft.score }));
+    setRationale((current) => ({ ...current, [answerId]: draft.rationale }));
+    setFeedback((current) => ({ ...current, [answerId]: draft.feedback }));
+    return draft;
   }
 
   async function evaluateOne(item: Item, silent = false): Promise<"graded" | "audio" | "empty" | "failed" | "foreign"> {
@@ -611,8 +824,12 @@ export function GradingSection({
         `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
         { method: "POST" },
       );
-      if (result.data) applyGrade(item.answerId, result.data);
-      if (!silent) notify.success("Değerlendirme geldi");
+      const draft = result.data ? applyGrade(item.answerId, result.data, item.examPoints ?? null) : null;
+      if (!draft) {
+        if (!silent) notify.error(result.data?.error || "Model geçerli bir değerlendirme döndürmedi");
+        return "failed";
+      }
+      if (!(await save(item, silent, draft))) return "failed";
       return "graded";
     } catch (err) {
       if (!silent) notify.error(errorMessage(err, "Değerlendirilemedi"));
@@ -653,8 +870,12 @@ export function GradingSection({
             `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
             { method: "POST" },
           );
-          if (result.data) applyGrade(item.answerId, result.data);
-          graded += 1;
+          const draft = result.data ? applyGrade(item.answerId, result.data, item.examPoints ?? null) : null;
+          if (draft && (await save(item, true, draft))) graded += 1;
+          else {
+            failed += 1;
+            lastError = result.data?.error || "Kaydedilemedi";
+          }
         } catch (err) {
           failed += 1;
           lastError = errorMessage(err, "Değerlendirilemedi");
@@ -670,7 +891,10 @@ export function GradingSection({
       setGradingAnswerId(null);
       setGradingProgress(null);
     }
-    if (graded > 0) notify.success(`${graded} cevap değerlendirildi`);
+    if (graded > 0) {
+      notify.success(`${graded} cevap değerlendirilip kaydedildi`);
+      void Promise.all([query.refetch(), summaryQ.refetch()]);
+    }
     if (skippedAudio > 0) {
       notify.error(`${skippedAudio} ses metne çevrilmediği için atlandı. Önce Sesi Tanımla kullanın.`);
     }
@@ -769,11 +993,17 @@ export function GradingSection({
   }
 
   function scoreValue(item: Item) {
-    return Object.prototype.hasOwnProperty.call(score, item.answerId)
-      ? score[item.answerId]
-      : item.finalScore != null
-        ? String(item.finalScore)
-        : "";
+    if (Object.prototype.hasOwnProperty.call(score, item.answerId)) return score[item.answerId];
+    return item.finalScore != null ? formatGradeScore(item.finalScore) : "";
+  }
+
+  function percentValue(item: Item) {
+    if (Object.prototype.hasOwnProperty.call(percent, item.answerId)) return percent[item.answerId];
+    if (item.percent != null) return whole(item.percent);
+    if (item.finalScore != null && item.examPoints != null && item.examPoints > 0) {
+      return percentFromAward(item.finalScore, item.examPoints);
+    }
+    return "";
   }
 
   function feedbackValue(item: Item) {
@@ -795,7 +1025,9 @@ export function GradingSection({
     const locked = Boolean(item.published);
     const foreignPrompt = promptFromAnotherExam(item.questionVersionId, promptItems);
     const done = isScored(item);
-    const shownScore = done ? Number(scoreValue(item)) : null;
+    const shownScore = scoreValue(item).trim() === "" ? null : Number(scoreValue(item));
+    const shownPercent = percentValue(item).trim() === "" ? null : Number(percentValue(item));
+    const examMax = item.examPoints;
     return (
       <article key={item.answerId} className="grid min-w-0 gap-3 rounded-xl border border-border p-4">
         <header className="flex flex-wrap items-start justify-between gap-2">
@@ -808,8 +1040,12 @@ export function GradingSection({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {done && shownScore != null && !Number.isNaN(shownScore) ? (
-              <span className="numeric text-sm font-semibold text-fg">{formatScore(shownScore)} puan</span>
+            {shownScore != null && !Number.isNaN(shownScore) ? (
+              <span className="numeric text-sm font-semibold text-fg">
+                {shownPercent != null && !Number.isNaN(shownPercent) ? `${whole(shownPercent)}% · ` : ""}
+                {formatGradeScore(shownScore)}
+                {examMax != null ? ` / ${formatGradeScore(examMax)}` : ""} puan
+              </span>
             ) : null}
             <Badge tone={locked ? "info" : done ? "success" : "warning"} dot>
               {locked ? "Yayınlandı" : done ? "Puanlandı" : "Bekliyor"}
@@ -828,33 +1064,70 @@ export function GradingSection({
             {FOREIGN_EXAM_PROMPT}
           </p>
         ) : null}
-        <Field label="Puan" required>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <div className="min-w-36 flex-1">
-              <Input
-                type="number"
-                min={0}
-                step={0.5}
-                suffix="puan"
-                value={scoreValue(item)}
-                disabled={locked}
-                onChange={(e) => setScore((currentScore) => ({ ...currentScore, [item.answerId]: e.target.value }))}
-              />
-            </div>
-            {!locked && (lane === "audio" || lane === "text") ? (
-              <Button
-                type="button"
-                variant="secondary"
-                className="min-h-11 shrink-0"
-                loading={gradingAnswerId === item.answerId}
-                disabled={foreignPrompt || (actionBusy && gradingAnswerId !== item.answerId)}
-                onClick={() => void evaluateOne(item)}
-              >
-                AI ile Değerlendir
-              </Button>
-            ) : null}
-          </div>
-        </Field>
+        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          <Field label="Soru puan yüzdesi" required>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              suffix="%"
+              value={percentValue(item)}
+              disabled={locked}
+              onChange={(e) => {
+                const next = e.target.value;
+                setPercent((current) => ({ ...current, [item.answerId]: next }));
+                if (next.trim() === "") {
+                  setScore((current) => ({ ...current, [item.answerId]: "" }));
+                  return;
+                }
+                const parsed = Number(next);
+                if (!Number.isNaN(parsed) && examMax != null && examMax > 0) {
+                  setScore((current) => ({ ...current, [item.answerId]: awardFromPercent(parsed, examMax) }));
+                }
+              }}
+            />
+          </Field>
+          <Field
+            label="Sınav soru puanı"
+            required
+            hint={examMax != null ? `Bu sınavda soru ${formatGradeScore(examMax)} puan.` : undefined}
+          >
+            <Input
+              type="number"
+              min={0}
+              max={examMax ?? undefined}
+              step={1}
+              suffix="puan"
+              value={scoreValue(item)}
+              disabled={locked}
+              onChange={(e) => {
+                const next = e.target.value;
+                setScore((current) => ({ ...current, [item.answerId]: next }));
+                if (next.trim() === "") {
+                  setPercent((current) => ({ ...current, [item.answerId]: "" }));
+                  return;
+                }
+                const parsed = Number(next);
+                if (!Number.isNaN(parsed) && examMax != null && examMax > 0) {
+                  setPercent((current) => ({ ...current, [item.answerId]: percentFromAward(parsed, examMax) }));
+                }
+              }}
+            />
+          </Field>
+        </div>
+        {!locked && (lane === "audio" || lane === "text") ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="min-h-11 w-full md:w-auto"
+            loading={gradingAnswerId === item.answerId}
+            disabled={foreignPrompt || (actionBusy && gradingAnswerId !== item.answerId)}
+            onClick={() => void evaluateOne(item)}
+          >
+            AI ile Değerlendir
+          </Button>
+        ) : null}
         {lane === "audio" || lane === "text" ? (
           <Field label="Gerekçe" hint="Rubriğe dayalı. Öğrenci bunu görmez.">
             <Textarea
@@ -873,6 +1146,15 @@ export function GradingSection({
             onChange={(e) => setFeedback((currentFeedback) => ({ ...currentFeedback, [item.answerId]: e.target.value }))}
           />
         </Field>
+        {lane === "audio" || lane === "text" ? (
+          <AiRequestDump
+            preview={previewByAnswer.get(item.answerId)}
+            loading={requestPreview.isLoading || requestPreview.isFetching}
+            failed={requestPreview.isError}
+            errorText={requestPreview.isError ? errorMessage(requestPreview.error, "AI isteği okunamadı") : ""}
+            reply={modelReplies[item.answerId]}
+          />
+        ) : null}
         {locked ? null : (
           <div className="flex justify-end">
             <Button type="button" className="min-h-11" loading={savingId === item.answerId} disabled={actionBusy && savingId !== item.answerId} onClick={() => void save(item)}>
