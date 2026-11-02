@@ -44,23 +44,29 @@ export function YearsSection({ companyId }: { companyId: string }) {
   const [end, setEnd] = useState("");
   const [toActivate, setToActivate] = useState<{ id: string; name?: string } | null>(null);
   const [editing, setEditing] = useState<{ id: string; name?: string } | null>(null);
+  const [editName, setEditName] = useState("");
   const [editStart, setEditStart] = useState("");
   const [editEnd, setEditEnd] = useState("");
   const [toArchive, setToArchive] = useState<{ id: string; name?: string } | null>(null);
+  const editNameError = editName.trim()
+    ? editName.trim().length > 100
+      ? "Ad en fazla 100 karakter olabilir."
+      : undefined
+    : "Ad gerekli.";
   const editError = editStart && editEnd && editEnd < editStart ? "Bitiş, başlangıçtan önce olamaz." : undefined;
-  const saveDates = useMutation({
+  const saveYear = useMutation({
     mutationFn: () => customInstance(`/companies/${id}/academic-years/${editing?.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate: editStart, endDate: editEnd }),
+      body: JSON.stringify({ name: editName.trim(), startDate: editStart, endDate: editEnd }),
     }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: getYearsQueryKey(id) });
-      notify.success("Sezon tarihi güncellendi");
+      notify.success("Sezon güncellendi");
       setEditing(null);
     },
     onError: (err) => {
-      const message = errorMessage(err, "Sezon tarihi güncellenemedi");
+      const message = errorMessage(err, "Sezon güncellenemedi");
       setFormError(message);
       notify.error(message);
     },
@@ -118,11 +124,12 @@ export function YearsSection({ companyId }: { companyId: string }) {
                 onClick={() => {
                   setFormError(null);
                   setEditing({ id: r.id!, name: r.name });
+                  setEditName(r.name ?? "");
                   setEditStart(r.startDate ?? "");
                   setEditEnd(r.endDate ?? "");
                 }}
               >
-                Tarih
+                Düzenle
               </Button>
             ) : null}
             {r.status === "DRAFT" ? (
@@ -176,24 +183,27 @@ export function YearsSection({ companyId }: { companyId: string }) {
       <FormDialog
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title="Sezon tarihi"
-        description={editing?.name}
+        title="Sezonu düzenle"
+        description="Ad ve tarihler taslak ile aktif sezonda değiştirilebilir."
         submitLabel="Kaydet"
-        pending={saveDates.isPending}
+        pending={saveYear.isPending}
         error={formError}
         onSubmit={async () => {
-          if (editError) {
-            setFormError(editError);
+          if (editNameError || editError) {
+            setFormError(editNameError ?? editError ?? null);
             return;
           }
           setFormError(null);
           try {
-            await saveDates.mutateAsync();
+            await saveYear.mutateAsync();
           } catch {
             return;
           }
         }}
       >
+        <Field label="Ad" required error={editing && !editName.trim() ? editNameError : undefined}>
+          <Input required maxLength={100} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="2026-2027" />
+        </Field>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Başlangıç" required>
             <Input type="date" required value={editStart} onChange={(e) => setEditStart(e.target.value)} />
