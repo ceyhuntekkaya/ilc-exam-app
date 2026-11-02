@@ -3,6 +3,7 @@
 import { customInstance } from "@/src/api/mutator";
 import { ResultPaper, type StudentReport } from "@/src/features/results/ResultsSection";
 import { KidError, KidLoading } from "@/src/features/student/ui";
+import { t } from "@/src/lib/i18n/dictionary";
 import { useCallback, useEffect, useState } from "react";
 
 export function StudentResultView({ applicationId }: { applicationId: string }) {
@@ -32,7 +33,9 @@ export function StudentResultView({ applicationId }: { applicationId: string }) 
   }, [applicationId]);
 
   if (error) {
-    return <KidError title="Report card" message={error} onRetry={load} />;
+    // F0-11 denemesi: başlık i18n sözlüğünden geliyor; oturum/kurum uiLocale'i henüz bu
+    // bileşene bağlanmadı, bu yüzden şimdilik "en" (mevcut görünür metinle birebir aynı).
+    return <KidError title={t("student.reportCard.title", "en")} message={error} onRetry={load} />;
   }
   if (!report) {
     return <KidLoading label="Loading your report card…" />;
