@@ -3,7 +3,7 @@
 import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
 
-import { authoringApi, type MediaItem, type MediaUsage, type ReviewItem } from "@/src/features/authoring/shared/client";
+import { authoringApi, type KurumVersionRef, type MediaItem, type MediaUsage, type ReviewItem } from "@/src/features/authoring/shared/client";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
@@ -1090,6 +1090,7 @@ const emptyOutcome = {
 
 export function SettingsDictionariesPage() {
   const canManage = useCan(Perm.dictionaryManage);
+  const canReviewPool = useCan(Perm.contentReviewManage);
   const { tenant } = useAuthoringTenant();
   const [loaded, setLoaded] = useState(false);
   const [tags, setTags] = useState<Array<{ id: string; name: string; ownerOrgId?: string }>>([]);
@@ -1113,6 +1114,64 @@ export function SettingsDictionariesPage() {
   );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // K-03 (F2-14/K-02'nin HTTP yüzeyi): kurum havuzu denetimi — merkez (tenant.contentHq) KURUM
+  // scope'lu maddeleri çapraz-kurum görür, kurum kullanıcısı bu sekmeyi görmez (yetkisi yok, 403).
+  const [poolRefs, setPoolRefs] = useState<KurumVersionRef[]>([]);
+  const [poolLoaded, setPoolLoaded] = useState(false);
+  const [poolError, setPoolError] = useState<string | null>(null);
+  const [selectedPoolVersionId, setSelectedPoolVersionId] = useState<string | null>(null);
+  const [copyrightDeclaration, setCopyrightDeclaration] = useState("");
+  const [approveNote, setApproveNote] = useState("");
+  const [retireReason, setRetireReason] = useState("");
+
+  // K-03/lint taban çizgisi: react-hooks/set-state-in-effect `async`+`await` örüntüsünü (bu
+  // dosyadaki `load` gibi) ZATEN yakalıyor (önceden var, 45'lik tabanda) — yeni bir örnek
+  // eklememek için burada promise-chain kullanıldı (FormPages.tsx'teki K-03 çözümüyle aynı).
+  const loadPool = useCallback(() => {
+    if (!canReviewPool || !tenant?.contentHq) {
+      return;
+    }
+    authoringApi
+      .listKurumVersionsAcrossCompanies()
+      .then((refs) => {
+        setPoolRefs(refs);
+        setPoolError(null);
+      })
+      .catch((e: unknown) => setPoolError(errorMessage(e, "Havuz listesi alınamadı")))
+      .finally(() => setPoolLoaded(true));
+  }, [canReviewPool, tenant?.contentHq]);
+
+  useEffect(() => {
+    loadPool();
+  }, [loadPool]);
+
+  async function approvePool() {
+    if (!selectedPoolVersionId) return;
+    try {
+      await authoringApi.approvePoolAudit(selectedPoolVersionId, copyrightDeclaration || null, approveNote || null);
+      notify.success("Madde havuza kabul edildi");
+      setSelectedPoolVersionId(null);
+      setCopyrightDeclaration("");
+      setApproveNote("");
+      loadPool();
+    } catch (e) {
+      fail(e, "Onaylanamadı");
+    }
+  }
+
+  async function retirePool() {
+    if (!selectedPoolVersionId || !retireReason.trim()) return;
+    try {
+      await authoringApi.retirePoolAudit(selectedPoolVersionId, retireReason.trim());
+      notify.success("Madde havuzdan kaldırıldı");
+      setSelectedPoolVersionId(null);
+      setRetireReason("");
+      loadPool();
+    } catch (e) {
+      fail(e, "Kaldırılamadı");
+    }
+  }
 
   const load = useCallback(async () => {
     if (!tenant) {
@@ -1313,6 +1372,9 @@ export function SettingsDictionariesPage() {
             { label: "Etiketler", value: "tags", count: tags.length },
             { label: "Yaş bantları", value: "ages", count: ageBands.length },
             { label: "Kazanımlar", value: "outcomes", count: outcomes.length },
+            ...(canReviewPool && tenant?.contentHq
+              ? [{ label: "Kurum havuzu", value: "pool", count: poolRefs.length }]
+              : []),
             { label: "Toplu içe aktarma", value: "import" },
             { label: "Geliştirici araçları", value: "dev" },
           ]}
@@ -1586,6 +1648,55 @@ export function SettingsDictionariesPage() {
               ))}
             </ul>
           )}
+        </FormCard>
+      ) : null}
+
+      {section === "pool" && canReviewPool && tenant?.contentHq ? (
+        <FormCard
+          title="Kurum havuzu denetimi"
+          description="Kurumların yazdığı KURUM scope'lu maddeler, hangi kurumda olduklarına bakılmaksızın. Onay (telif beyanıyla) ve kaldırma yalnız merkezin yetkisi."
+        >
+          {poolError ? <p className="text-sm text-danger">{poolError}</p> : null}
+          {!poolLoaded ? (
+            <p className="text-sm text-fg-subtle">Yükleniyor…</p>
+          ) : poolRefs.length === 0 ? (
+            <p className="text-sm text-fg-subtle">Denetim bekleyen/onaylı KURUM scope&apos;lu madde yok.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {poolRefs.map((ref) => (
+                <li
+                  key={ref.versionId}
+                  className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-xs ${selectedPoolVersionId === ref.versionId ? "bg-primary-50" : "hover:bg-neutral-50"}`}
+                  onClick={() => setSelectedPoolVersionId(ref.versionId)}
+                >
+                  <span className="font-mono">{ref.versionId}</span>
+                  <span className="text-fg-subtle">kurum: <span className="font-mono">{ref.ownerOrgId}</span></span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {selectedPoolVersionId ? (
+            <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
+              <FormGroup title="Havuza kabul et">
+                <Field label="Telif beyanı" hint="Opsiyonel — telif metni hukuk işi">
+                  <Textarea rows={2} value={copyrightDeclaration} onChange={(e) => setCopyrightDeclaration(e.target.value)} />
+                </Field>
+                <Field label="Not" hint="Opsiyonel">
+                  <Input value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
+                </Field>
+                <Button type="button" onClick={() => void approvePool()}>Onayla</Button>
+              </FormGroup>
+              <FormGroup title="Merkez kaldırması">
+                <Field label="Gerekçe" hint="Zorunlu — sessiz kaldırma yok">
+                  <Textarea rows={2} value={retireReason} onChange={(e) => setRetireReason(e.target.value)} />
+                </Field>
+                <Button type="button" variant="secondary" disabled={!retireReason.trim()} onClick={() => void retirePool()}>
+                  Kaldır
+                </Button>
+              </FormGroup>
+            </div>
+          ) : null}
         </FormCard>
       ) : null}
 
