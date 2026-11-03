@@ -19,6 +19,7 @@ import {
   Badge,
   Button,
   ButtonLink,
+  Checkbox,
   ConfirmDialog,
   DataGrid,
   ErrorState,
@@ -1050,6 +1051,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                       const skill = selectValue("sec-skill", section.skill);
                       const minutes = numOrNull("sec-dur");
                       const breakMinutes = numOrNull("sec-break");
+                      const isCore = (document.getElementById("sec-core") as HTMLInputElement).checked;
                       void notify
                         .run(
                           authoringApi.updateSection(exam.id, section.id, {
@@ -1060,6 +1062,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                             weightPercent: numOrNull("sec-weight"),
                             minPassingPercent: numOrNull("sec-pass"),
                             instructionsHtml: (document.getElementById("sec-inst") as HTMLTextAreaElement).value,
+                            isCore,
                           }),
                           { success: "Bölüm kaydedildi", error: "Kaydedilemedi" },
                         )
@@ -1102,6 +1105,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                             const breakMinutes = numOrNull("sec-break");
                             const pass = document.getElementById("sec-pass") as HTMLInputElement | null;
                             if (pass) pass.value = "";
+                            const isCore = (document.getElementById("sec-core") as HTMLInputElement).checked;
                             void notify
                               .run(
                                 authoringApi.updateSection(exam.id, section.id, {
@@ -1112,6 +1116,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                                   weightPercent: numOrNull("sec-weight"),
                                   minPassingPercent: null,
                                   instructionsHtml: (document.getElementById("sec-inst") as HTMLTextAreaElement).value,
+                                  isCore,
                                 }),
                                 { success: "Bölüm barajı kaldırıldı", error: "Kaydedilemedi" },
                               )
@@ -1125,6 +1130,14 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                     </div>
                   </Field>
                 </div>
+              </FormGroup>
+              <FormGroup title="Kapsam" hint="Çekirdek bölümde kurum maddesi varsa ölçek puanı üretilmez; yalnız modül bölümünde varsa çekirdek ölçek puanı üretilir.">
+                <Checkbox
+                  id="sec-core"
+                  label="Çekirdek bölüm"
+                  description="Kapalıysa bu bölüm modül sayılır."
+                  defaultChecked={section.isCore}
+                />
               </FormGroup>
               <Field label="Bölüm yönergesi" hint="Bölüm başında öğrenciye gösterilir.">
                 <Textarea rows={3} defaultValue={section.instructionsHtml ?? ""} id="sec-inst" />

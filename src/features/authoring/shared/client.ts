@@ -184,6 +184,7 @@ export type ExamDetail = {
     breakAfterSeconds?: number | null;
     weightPercent?: number | null;
     minPassingPercent?: number | null;
+    isCore: boolean;
     subSections: Array<{
       id: string;
       title: string;
