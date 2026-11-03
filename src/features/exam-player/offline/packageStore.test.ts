@@ -56,3 +56,65 @@ describe("sectionItemsFromPackage — çevrimdışı düşme yolu", () => {
     expect(sectionItemsFromPackage({}, "sec-1")).toBeNull();
   });
 });
+
+/**
+ * F3-05/Adım 5: tersine mühendislik testi — indirilmiş paketin ham JSON'u (bir öğrencinin
+ * devtools/IndexedDB dışa aktarımıyla göreceği AYNI metin) hiçbir AnswerKey alan adı
+ * TAŞIMAMALI. Backend `PackageSanitizerTest` bunu servis katmanında (14 tip) zaten kanıtlıyor;
+ * burada istemci tarafında SAKLANAN veri üzerinde aynı taramayı tekrarlıyoruz — gerçek bir
+ * tarayıcıda indirip IndexedDB'yi elle dışa aktarmak (görev dosyasının istediği tam adım) bu
+ * ortamda yapılamadı, DURUM.md'de not edildi.
+ */
+describe("tersine mühendislik — indirilen paket hiçbir AnswerKey alanı taşımaz", () => {
+  // Backend PackageSanitizer.FORBIDDEN_KEYS ile AYNI liste (iki repo ayrı derlendiği için
+  // paylaşılan bir sabit yok — kasıtlı kopya, ikisi de AnswerKey.java'nın alan adlarından gelir).
+  const FORBIDDEN_KEYS = [
+    "correctOptionId", "correctOptionIds", "correctChoiceIds", "acceptedAnswers",
+    "pairs", "correctOrder", "groupOf", "distractors", "correctRegionIds", "zoneOf",
+    "sampleAnswers", "raterNotes", "elementPoints", "matchPolicy",
+  ];
+
+  it("a realistic multi-type package contains none of the forbidden AnswerKey keys", () => {
+    const payload = {
+      applicationId: "app-1",
+      sections: [{
+        sectionId: "sec-1",
+        items: [
+          {
+            examQuestionId: "q1", role: "SCORED", points: 1,
+            question: { body: {}, parts: [{ id: "p1", position: 1, interactionType: "MULTIPLE_CHOICE", stem: [], interaction: {
+              type: "MULTIPLE_CHOICE", options: [{ id: "a", text: "Paris" }, { id: "b", text: "Lyon" }],
+            } }] },
+          },
+          {
+            examQuestionId: "q2", role: "SCORED", points: 1,
+            question: { body: {}, parts: [{ id: "p2", position: 1, interactionType: "MATCHING", stem: [], interaction: {
+              type: "MATCHING", left: [{ id: "l1", text: "Capital of France" }],
+              right: [{ id: "r1", text: "Paris" }, { id: "r2", text: "Lyon" }],
+            } }] },
+          },
+          {
+            examQuestionId: "q3", role: "SCORED", points: 1,
+            question: { body: {}, parts: [{ id: "p3", position: 1, interactionType: "ORDERING", stem: [], interaction: {
+              type: "ORDERING", items: [{ id: "i1", text: "Second" }, { id: "i2", text: "First" }, { id: "i3", text: "Third" }],
+            } }] },
+          },
+          {
+            examQuestionId: "q4", role: "SCORED", points: 1,
+            question: { body: {}, parts: [{ id: "p4", position: 1, interactionType: "GROUPING", stem: [], interaction: {
+              type: "GROUPING",
+              groups: [{ id: "g1", label: "Fruit" }, { id: "g2", label: "Veggie" }],
+              items: [{ id: "m1", text: "Apple" }],
+            } }] },
+          },
+        ],
+      }],
+    };
+
+    const raw = JSON.stringify(payload);
+
+    for (const key of FORBIDDEN_KEYS) {
+      expect(raw).not.toContain(`"${key}"`);
+    }
+  });
+});
