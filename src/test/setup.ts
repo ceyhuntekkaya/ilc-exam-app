@@ -18,6 +18,12 @@ if (!globalThis.crypto || typeof globalThis.crypto.randomUUID !== "function") {
   });
 }
 
+// jsdom URL.createObjectURL'ü HİÇ uygulamaz — medya cevap görünümlerinin (AUDIO/VIDEO/IMAGE_RESPONSE)
+// yükleme önizlemesi bunu çağırır (F3-02).
+if (typeof URL.createObjectURL !== "function") {
+  URL.createObjectURL = () => "blob://test";
+}
+
 // jsdom matchMedia'yı HİÇ uygulamaz — Tailwind/tema sarmalayıcılarının dokunduğu ortak nokta.
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = (query: string) => ({
