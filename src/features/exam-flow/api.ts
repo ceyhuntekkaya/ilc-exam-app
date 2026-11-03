@@ -180,6 +180,20 @@ export function fetchPackage(applicationId: string, token: string) {
   });
 }
 
+export type AccommodationPresentation = { screenReader: boolean; largeFont: boolean; highContrast: boolean };
+
+/**
+ * F3-09/Adım 7: sunum düzenlemeleri — CANLI profilden okunur (ek süre/muafiyet gibi
+ * dondurulmuş değil). Hiç profili yoksa veya istek başarısız olursa üçü de false — sunum
+ * ASLA bir ağ hatası yüzünden "etkin" göstermez (fail-safe, fail-open değil).
+ */
+export function fetchAccommodationPresentation(applicationId: string, token: string): Promise<AccommodationPresentation> {
+  return customInstance<{ data: AccommodationPresentation }>(
+    `/applications/${applicationId}/accommodation`,
+    { headers: sessionHeaders(token) },
+  ).then((response) => response.data).catch(() => ({ screenReader: false, largeFont: false, highContrast: false }));
+}
+
 export async function uploadCheck(
   applicationId: string,
   token: string,

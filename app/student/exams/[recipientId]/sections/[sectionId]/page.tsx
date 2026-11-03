@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccommodationPresentation } from "@/src/features/exam-flow/accommodation";
 import { ExamApiError, postState, putPosition } from "@/src/features/exam-flow/api";
 import { useTimeAnnouncement } from "@/src/features/exam-player/a11y/announcements";
 import { loadSectionContent, useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
@@ -49,6 +50,7 @@ export default function SectionQuestionPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const section = state?.sections.find((item) => item.sectionId === params.sectionId);
   const session = readSession(params.recipientId);
+  const presentation = useAccommodationPresentation(session?.applicationId, session?.sessionToken);
   // F3-03/Adım 3: erken dönüşten (satır 124) ÖNCE — hook'lar koşulsuz çağrılmalı.
   const announceTimeTotal = state?.clock.sectionRemainingMs != null ? section?.durationMs ?? null : null;
   const timeAnnouncement = useTimeAnnouncement(remaining, announceTimeTotal);
@@ -267,7 +269,18 @@ export default function SectionQuestionPage() {
           <div className="relative flex w-full flex-1 flex-col">
             {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
             <QuestionFrame className={cn("min-h-[calc(100dvh-9.5rem)]", held && "pointer-events-none blur-sm")}>
-              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} instructionGuide={INSTRUCTION_GUIDE} timeRemainingMs={remaining} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+              {model ? (
+                <QuestionView
+                  key={`${item?.examQuestionId ?? index}:${resetRound}`}
+                  model={model}
+                  instructionGuide={INSTRUCTION_GUIDE}
+                  timeRemainingMs={remaining}
+                  largeFont={presentation.largeFont}
+                  highContrast={presentation.highContrast}
+                />
+              ) : error ? null : (
+                <KidLoading label="Loading questions…" rows={1} />
+              )}
             </QuestionFrame>
             {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
             {item && answered && !mediaBusy && !held ? (

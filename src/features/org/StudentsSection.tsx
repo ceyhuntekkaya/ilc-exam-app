@@ -13,6 +13,7 @@ import {
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import type { StudentDto } from "@/src/api/generated/models";
+import { AccommodationDialog } from "@/src/features/org/AccommodationDialog";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { userStatusLabel } from "@/src/features/admin/labels";
 import {
@@ -87,6 +88,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
   const [branchId, setBranchId] = useState("");
   const [completing, setCompleting] = useState<StudentDto | null>(null);
   const [moving, setMoving] = useState<StudentDto | null>(null);
+  const [accommodating, setAccommodating] = useState<StudentDto | null>(null);
   const [moveBranch, setMoveBranch] = useState("");
   const completeEnrollment = useMutation({
     mutationFn: (body: { studentId: string; enrollmentId: string }) =>
@@ -206,6 +208,14 @@ export function StudentsSection({ companyId }: { companyId: string }) {
                 </Button>
               </>
             ) : null}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="min-h-11"
+              onClick={() => setAccommodating(r)}
+            >
+              Düzenleme profili
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -449,6 +459,15 @@ export function StudentsSection({ companyId }: { companyId: string }) {
           </Select>
         </Field>
       </FormDialog>
+      {accommodating?.id ? (
+        <AccommodationDialog
+          companyId={id}
+          studentId={accommodating.id}
+          studentLabel={`${accommodating.firstName ?? ""} ${accommodating.lastName ?? ""}`.trim() || "Öğrenci"}
+          open={accommodating !== null}
+          onClose={() => setAccommodating(null)}
+        />
+      ) : null}
     </div>
   );
 }

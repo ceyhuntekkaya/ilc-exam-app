@@ -104,3 +104,32 @@
 @media (prefers-reduced-motion: reduce) {
   .ep-bars > span { animation: none; transform: scaleY(0.7); }
 }
+
+/*
+ * F3-09/Adım 7: sunum düzenlemeleri (büyük yazı/yüksek kontrast) — AccommodationProfile'dan
+ * (ilc-parent, canlı okunur) gelen bayraklar bu iki sınıfı QuestionView'a ekler. İLK GEÇİŞ,
+ * F3-03'ün sistematik kontrast denetiminin aksine: en SIK kullanılan metin boyutu/renk
+ * sınıfları hedeflendi (grep ile ölçüldü), nadir kullanılan `text-[Npx]` köşe durumları
+ * kapsanmadı — daha geniş bir kapsam ayrı bir oturum/denetim gerektirir.
+ */
+.exam-player.exam-player--large-font {
+  font-size: 1.15em;
+}
+.exam-player.exam-player--large-font :where(.text-xs, .text-sm, .text-base, .text-lg) {
+  font-size: 1.2em;
+  line-height: 1.5;
+}
+
+.exam-player.exam-player--high-contrast {
+  background-color: #ffffff;
+}
+.exam-player.exam-player--high-contrast :where(
+  .text-exam-slate-300, .text-exam-slate-400, .text-exam-slate-500,
+  .text-exam-slate-600, .text-exam-slate-700, .text-exam-slate-800, .text-exam-slate-900,
+  .text-exam-navy-900
+) {
+  color: #000000;
+}
+.exam-player.exam-player--high-contrast :where(.border-exam-slate-200, .border-exam-slate-300) {
+  border-color: #000000;
+}

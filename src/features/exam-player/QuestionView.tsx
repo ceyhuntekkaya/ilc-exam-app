@@ -19,6 +19,8 @@ export function QuestionView({
   preview = false,
   instructionGuide,
   timeRemainingMs,
+  largeFont = false,
+  highContrast = false,
 }: {
   model: QuestionViewModel;
   disabled?: boolean;
@@ -29,6 +31,10 @@ export function QuestionView({
   instructionGuide?: ReactNode;
   /** F3-10/Kural 1: AUDIO_RESPONSE/VIDEO_RESPONSE'un aktif bir kaydı sıfırda durdurması için. */
   timeRemainingMs?: number | null;
+  /** F3-09/Adım 7: AccommodationProfile.largeFont — canlı okunur, dondurulmuş değil. */
+  largeFont?: boolean;
+  /** F3-09/Adım 7: AccommodationProfile.highContrast. */
+  highContrast?: boolean;
 }) {
   const hasStimulus = (model.stimulus?.length ?? 0) > 0;
   const hasMainAudio = !!model.mainAudio?.mediaId;
@@ -46,6 +52,8 @@ export function QuestionView({
       className={cn(
         "exam-player @container min-h-0 w-full bg-white text-exam-slate-800",
         "px-0 py-4 @sm:px-4 @md:px-8",
+        largeFont && "exam-player--large-font",
+        highContrast && "exam-player--high-contrast",
         className,
       )}
     >
