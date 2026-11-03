@@ -1,6 +1,7 @@
 "use client";
 
 import { ExamApiError, postState, uploadCheck } from "@/src/features/exam-flow/api";
+import { BROWSER_CLASS_LABEL, detectBrowser, meetsRequirement, type BrowserClass } from "@/src/features/exam-flow/browserCheck";
 import { useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
 import { withExpectedExit } from "@/src/features/exam-flow/fullscreen";
@@ -23,6 +24,16 @@ export default function DeviceCheckPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   if (!state) return null;
+
+  // F3-16/Adım 4: `state` burada her zaman dolu (yukarıdaki early return) — yani bu asıl sunucu
+  // render'ında hiç çalışmaz (oturum istemci tarafında kurulur), navigator doğrudan okunabilir.
+  const detectedBrowserClass: BrowserClass | null =
+    typeof navigator === "undefined" ? null : detectBrowser(navigator.userAgent).browserClass;
+  const requiredBrowserClass = state.requiredBrowserClass as BrowserClass | null | undefined;
+  const browserWarning =
+    requiredBrowserClass && detectedBrowserClass && !meetsRequirement(detectedBrowserClass, requiredBrowserClass)
+      ? `Your browser may not be fully supported for this test. Please use ${BROWSER_CLASS_LABEL[requiredBrowserClass]}.`
+      : null;
 
   async function finish() {
     const session = readSession(recipientId);
@@ -54,6 +65,7 @@ export default function DeviceCheckPage() {
         </div>
         <Mascot mood={micOk && camOk ? "thumbsUp" : "hello"} size="md" className="hidden sm:block" />
       </header>
+      {browserWarning ? <KidNotice tone="sun">{browserWarning}</KidNotice> : null}
       <div className="grid gap-5 md:grid-cols-2">
         {state.requiresMicrophone ? (
           <DeviceCard recipientId={recipientId} title="Microphone" kind="MICROPHONE" mimeTypes={AUDIO_TYPES} passed={micOk} onPassed={applyState} />

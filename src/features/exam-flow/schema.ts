@@ -50,6 +50,8 @@ export const examStateSchema = z.object({
     focusLossLimit: z.number(),
     focusLossCount: z.number(),
   }),
+  /** F3-16/Adım 4: bilgilendirme amaçlı — karar sunucuda, bu yalnız hangi sınıfın gerektiğini bildirir. */
+  requiredBrowserClass: absentString,
 });
 
 export const attemptSummarySchema = z.object({
