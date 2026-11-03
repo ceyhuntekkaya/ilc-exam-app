@@ -5,6 +5,7 @@ import { HtmlBlock, HtmlInline } from "@/src/features/exam-player/html";
 import { FormatHint } from "@/src/features/exam-player/interactions/FormatHint";
 import { InteractionRenderer } from "@/src/features/exam-player/interactions/InteractionRenderer";
 import { MediaAudio } from "@/src/features/exam-player/media/MediaContext";
+import { YOUNG_LEARNER_MODE_CLASS, YoungLearnerInstructionAudio } from "@/src/features/exam-player/presentation/YoungLearnerMode";
 import { PlayerPreviewProvider } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 import { epInstructionBanner } from "@/src/features/exam-player/styles";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
@@ -21,6 +22,7 @@ export function QuestionView({
   timeRemainingMs,
   largeFont = false,
   highContrast = false,
+  youngLearnerMode = false,
 }: {
   model: QuestionViewModel;
   disabled?: boolean;
@@ -35,6 +37,12 @@ export function QuestionView({
   largeFont?: boolean;
   /** F3-09/Adım 7: AccommodationProfile.highContrast. */
   highContrast?: boolean;
+  /**
+   * F3-04/Adım 4: 4-6/7-9 sunum modu — büyük hedef alanları + yönerge sesi dokunmadan çalınır.
+   * Kütüphane hazır, henüz ÇAĞIRAN YOK (bkz. `YoungLearnerMode.tsx`'in üst notu) — varsayılan
+   * false, canlı bir deneme/soru bugün bunu true geçmiyor.
+   */
+  youngLearnerMode?: boolean;
 }) {
   const hasStimulus = (model.stimulus?.length ?? 0) > 0;
   const hasMainAudio = !!model.mainAudio?.mediaId;
@@ -54,6 +62,7 @@ export function QuestionView({
         "px-0 py-4 @sm:px-4 @md:px-8",
         largeFont && "exam-player--large-font",
         highContrast && "exam-player--high-contrast",
+        youngLearnerMode && YOUNG_LEARNER_MODE_CLASS,
         className,
       )}
     >
@@ -80,12 +89,20 @@ export function QuestionView({
               <div className={cn(epInstructionBanner, "min-w-0 flex-1 italic opacity-70")}>Yönerge yok</div>
             ) : null}
             {hasInstructionAudio ? (
-              <MediaAudio
-                mediaId={model.instructionAudio!.mediaId}
-                playback={model.instructionAudio!.playback}
-                variant="icon"
-                className="@sm:pt-1.5"
-              />
+              youngLearnerMode ? (
+                <YoungLearnerInstructionAudio
+                  mediaId={model.instructionAudio!.mediaId}
+                  playback={model.instructionAudio!.playback}
+                  className="w-full @sm:w-auto"
+                />
+              ) : (
+                <MediaAudio
+                  mediaId={model.instructionAudio!.mediaId}
+                  playback={model.instructionAudio!.playback}
+                  variant="icon"
+                  className="@sm:pt-1.5"
+                />
+              )
             ) : null}
           </div>
         ) : null}

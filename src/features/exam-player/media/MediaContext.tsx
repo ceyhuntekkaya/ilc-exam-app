@@ -321,6 +321,7 @@ export function MediaAudio({
   className,
   variant = "default",
   unlimited = false,
+  autoPlay = false,
 }: {
   mediaId?: string | null;
   playback?: PlaybackPolicy | null;
@@ -329,11 +330,33 @@ export function MediaAudio({
   variant?: "default" | "icon" | "compact";
   /** Sunucu bileti istenmez. Öğrenci yönergesi bu bayrağı geçmez; sınır kâğıttan okunur. */
   unlimited?: boolean;
+  /**
+   * F3-04/Adım 4: küçük yaş bandı sunumu — yönerge dokunmadan çalınır (`YoungLearnerModeFrame`
+   * geçer). AYNI `start()`/bilet mekanizmasını kullanır (atlama yok) — tarayıcı otomatik
+   * oynatmayı engellerse `start()` zaten hakkı geri alır (iOS/Safari dahil, F3-16'nın da
+   * dikkat ettiği aynı tarayıcı kısıtı), yalnız sessiz kalır, hata GÖSTERMEZ.
+   */
+  autoPlay?: boolean;
 }) {
   const url = useMediaUrl(mediaId);
   const ref = useRef<HTMLAudioElement>(null);
   const p = usePlayback(mediaId, playback, unlimited, url);
   const disabled = !url || p.blocked || p.waiting || (p.playing && !p.preview);
+  const startRef = useRef(p.start);
+  useEffect(() => {
+    startRef.current = p.start;
+  });
+  const autoPlayedForUrl = useRef<string | null>(null);
+  useEffect(() => {
+    if (!autoPlay || !url || p.preview) return;
+    if (autoPlayedForUrl.current === url) return;
+    autoPlayedForUrl.current = url;
+    // start() içindeki flushSync bu effect'in (bir yaşam döngüsü çağrısının) İÇİNDEN senkron
+    // tetiklenince React uyarıyor — gerçek bir tıklama olayının dışından (ayrı bir görev) çağrıldığı
+    // gibi çalışsın diye bir makro görev'e itiliyor.
+    const timer = setTimeout(() => void startRef.current(ref.current), 0);
+    return () => clearTimeout(timer);
+  }, [autoPlay, url, p.preview]);
 
   const audio = url ? (
     <audio ref={ref} src={p.gated ? (p.grantedUrl ?? undefined) : url} preload={p.gated ? "none" : "auto"} className="hidden" {...p.events} />

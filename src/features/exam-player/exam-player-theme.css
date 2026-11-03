@@ -133,3 +133,20 @@
 .exam-player.exam-player--high-contrast :where(.border-exam-slate-200, .border-exam-slate-300) {
   border-color: #000000;
 }
+
+/*
+ * F3-04/Adım 4: 4-6/7-9 küçük yaş bandı sunumu — büyük hedef alanları. F3-09'un yöntemiyle AYNI:
+ * en SIK kullanılan dokunma-hedefi sınıfları hedeflendi (grep ile ölçüldü — `min-h-11/12/14`
+ * seçenek/doğru-yanlış/eşleştirme/sıralama/boşluk-doldurma/sürükle-bırak düğmelerinin TÜMÜNDE
+ * ortak), İLK GEÇİŞ (F3-03'ün sistematik denetiminin aksine), nadir köşe durumları kapsanmadı.
+ */
+.exam-player.exam-player--young-learner {
+  font-size: 1.1em;
+}
+.exam-player.exam-player--young-learner :where(.min-h-11, .min-h-12, .min-h-14) {
+  min-height: 4rem;
+}
+.exam-player.exam-player--young-learner :where(button, [role="button"], [data-media-trigger], [data-keep-gesture]) {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
