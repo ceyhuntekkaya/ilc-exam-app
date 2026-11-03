@@ -211,6 +211,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
     scoringMode: string;
     outcomeIds: string[];
     rubricVersionId: string;
+    contentArea: string;
     stem: ContentBlock[];
     interaction: Record<string, unknown>;
     answerKey: Record<string, unknown>;
@@ -316,6 +317,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
       scoringMode: selectedPart.scoringMode ?? "ALL_OR_NOTHING",
       outcomeIds: selectedPart.outcomeIds ?? [],
       rubricVersionId: selectedPart.rubricVersionId ?? "",
+      contentArea: selectedPart.contentArea ?? "",
       stem,
       interaction: { ...interaction, type: selectedPart.interactionType },
       answerKey: (selectedPart.answerKey as Record<string, unknown>) ?? { type: selectedPart.interactionType },
@@ -509,6 +511,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
         scoringMode: partDraft.scoringMode,
         outcomeIds: partDraft.outcomeIds,
         rubricVersionId: partDraft.rubricVersionId || null,
+        contentArea: partDraft.contentArea,
         answerKey: partDraft.answerKey,
       });
       setQ(next);
@@ -1110,6 +1113,13 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                               <option key={m} value={m}>{SCORING_LABEL[m] ?? m}</option>
                             ))}
                           </Select>
+                        </Field>
+                        <Field label="İçerik alanı" hint="Opsiyonel. Ör. günlük hayat, iş dünyası, akademik.">
+                          <Input
+                            value={partDraft.contentArea}
+                            disabled={!editable}
+                            onChange={(e) => setPartDraft({ ...partDraft, contentArea: e.target.value })}
+                          />
                         </Field>
                       </div>
                       <FormGroup

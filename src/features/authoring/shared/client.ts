@@ -58,6 +58,7 @@ export type QuestionPart = {
   difficulty?: number | null;
   rubricVersionId?: string | null;
   scoringMode?: ScoringMode | null;
+  contentArea?: string | null;
 };
 
 export type QuestionBody = {
