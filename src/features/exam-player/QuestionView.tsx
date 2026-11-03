@@ -18,6 +18,7 @@ export function QuestionView({
   className,
   preview = false,
   instructionGuide,
+  timeRemainingMs,
 }: {
   model: QuestionViewModel;
   disabled?: boolean;
@@ -26,6 +27,8 @@ export function QuestionView({
   preview?: boolean;
   /** Yazılı yönergenin solunda durur (öğrenci maskotu); dar alanda gizlenir. */
   instructionGuide?: ReactNode;
+  /** F3-10/Kural 1: AUDIO_RESPONSE/VIDEO_RESPONSE'un aktif bir kaydı sıfırda durdurması için. */
+  timeRemainingMs?: number | null;
 }) {
   const hasStimulus = (model.stimulus?.length ?? 0) > 0;
   const hasMainAudio = !!model.mainAudio?.mediaId;
@@ -117,6 +120,7 @@ export function QuestionView({
                 disabled={disabled}
                 itemId={part.id}
                 answerKey={part.answerKey}
+                timeRemainingMs={timeRemainingMs}
               />
             </section>
           ))}

@@ -3,9 +3,11 @@
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
-import { enqueueRecording, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { enqueueRecording, mediaUploadAgeMs, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { MediaArt } from "@/src/features/exam-player/media/MediaArt";
 import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
+import { checkMediaQuota, classifyRecordingError, STUCK_UPLOAD_THRESHOLD_MS, timeIsUp } from "@/src/features/exam-player/media/recordingGuard";
+import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
 import { applicationMediaContentUrl, openAnswerContentTicket, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
 import { PreviewAnswerBanner, PreviewHtmlNote } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import { epInput, epRecordStart, epRecordStop } from "@/src/features/exam-player/styles";
@@ -442,12 +444,14 @@ export function AudioResponseView({
   itemId,
   answerKey,
   preview,
+  timeRemainingMs,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   itemId?: string;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  timeRemainingMs?: number | null;
 }) {
   const maxAttempts = preview ? Number.POSITIVE_INFINITY : (interaction.maxAttempts as number) || 1;
   const prep = interaction.prepTimeSec as number | null | undefined;
@@ -473,10 +477,16 @@ export function AudioResponseView({
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
   const [uploading, setUploading] = useState(false);
   const [uploadProblem, setUploadProblem] = useState<string | null>(null);
+  const [quotaWarning, setQuotaWarning] = useState<string | null>(null);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     if (!itemId) return;
-    return subscribeMediaUploads(() => setUploadProblem(mediaUploadError(itemId)));
+    return subscribeMediaUploads(() => {
+      setUploadProblem(mediaUploadError(itemId));
+      const age = mediaUploadAgeMs(itemId);
+      setStuck(age != null && age >= STUCK_UPLOAD_THRESHOLD_MS);
+    });
   }, [itemId]);
 
   function clearLeadIn() {
@@ -517,9 +527,21 @@ export function AudioResponseView({
     };
   }, [lockId]);
 
+  // F3-10/Kural 1: bölüm/sınav süresi sıfıra inerse AKTİF kayıt durur — unmount'u beklemez
+  // (sunucu sayfayı hemen kapatmayabilir, bir heartbeat turu geçebilir). stopRecording her
+  // render'da yeniden oluşturulan düz bir fonksiyon; bağımlılığa eklemek etkiyi değiştirmez
+  // (koşul recording'i hemen false yaptığı için zaten bir kez tetiklenir), yalnız gereksiz
+  // yeniden-çalıştırmayı önlemek için bilerek dışarıda bırakıldı.
+  useEffect(() => {
+    if (recording && timeIsUp(timeRemainingMs)) stopRecording();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, timeRemainingMs]);
+
   async function startRecording() {
     setError(null);
     setUploadProblem(null);
+    setQuotaWarning(null);
+    if (!preview) void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
     // Dokunuşun içinde aç: iOS, await sonrasında açılan AudioContext'i susturabiliyor.
     const audioCtx = new AudioContext();
     void audioCtx.resume();
@@ -621,13 +643,18 @@ export function AudioResponseView({
       }
       // Süre sınırı konuşma süresidir; baştaki sessizlik bu süreden düşülmez.
       if (maxDur != null && maxDur > 0) stopTimer.current = window.setTimeout(stopRecording, maxDur * 1000 + leadMs);
-    } catch {
+    } catch (err) {
       clearLeadIn();
       setCountdown(null);
       stream?.getTracks().forEach((t) => t.stop());
       abandonWave();
       releaseMedia(lockId);
-      setError("We need your microphone. Please allow the microphone and try again.");
+      const { denied, message } = classifyRecordingError(err, false);
+      // F3-10/Kural 4: izin sınav ORTASINDA çekilirse/reddedilirse olay yazılır — madde
+      // openMediaIntent'te ZATEN "dokunuldu" işaretlenmişti (markRecordStarted), bu yüzden
+      // F0-04'ün sınıflandırması OMITTED verir, NOT_REACHED değil (sunucu tarafı, değişmedi).
+      if (denied && !preview && session) enqueueEvent(session.applicationId, "PERMISSION_DENIED", { kind: "MICROPHONE", itemId });
+      setError(message);
     }
   }
 
@@ -670,6 +697,8 @@ export function AudioResponseView({
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
         ) : null}
+        {quotaWarning ? <p className="text-sm font-semibold text-exam-warn">{quotaWarning}</p> : null}
+        {stuck && uploading ? <p className="text-sm font-medium text-exam-slate-500">Still trying to send your recording… it will keep trying.</p> : null}
         {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
         {uploadProblem && itemId ? (
           <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">
@@ -704,12 +733,14 @@ export function VideoResponseView({
   itemId,
   answerKey,
   preview,
+  timeRemainingMs,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   itemId?: string;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
+  timeRemainingMs?: number | null;
 }) {
   const uploadAllowed = !!interaction.uploadAllowed;
   const maxAttempts = preview ? Number.POSITIVE_INFINITY : (interaction.maxAttempts as number) || 1;
@@ -733,10 +764,16 @@ export function VideoResponseView({
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
   const [uploading, setUploading] = useState(false);
   const [uploadProblem, setUploadProblem] = useState<string | null>(null);
+  const [quotaWarning, setQuotaWarning] = useState<string | null>(null);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     if (!itemId) return;
-    return subscribeMediaUploads(() => setUploadProblem(mediaUploadError(itemId)));
+    return subscribeMediaUploads(() => {
+      setUploadProblem(mediaUploadError(itemId));
+      const age = mediaUploadAgeMs(itemId);
+      setStuck(age != null && age >= STUCK_UPLOAD_THRESHOLD_MS);
+    });
   }, [itemId]);
 
   useEffect(() => {
@@ -752,9 +789,16 @@ export function VideoResponseView({
     };
   }, [lockId]);
 
+  // F3-10/Kural 1: AYNI kural AudioResponseView ile — unmount'u beklemeden sıfırda durur.
+  useEffect(() => {
+    if (recording && timeIsUp(timeRemainingMs)) stopRecording();
+  }, [recording, timeRemainingMs]);
+
   async function startRecording() {
     setError(null);
     setUploadProblem(null);
+    setQuotaWarning(null);
+    if (!preview) void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
     if (!preview && session && itemId && params.recipientId) {
       try {
         intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
@@ -812,9 +856,11 @@ export function VideoResponseView({
       startedAt.current = Date.now();
       setRecording(true);
       if (maxDur != null && maxDur > 0) stopTimer.current = window.setTimeout(stopRecording, maxDur * 1000);
-    } catch {
+    } catch (err) {
       releaseMedia(lockId);
-      setError("We need your camera and microphone. Please allow them and try again.");
+      const { denied, message } = classifyRecordingError(err, true);
+      if (denied && !preview && session) enqueueEvent(session.applicationId, "PERMISSION_DENIED", { kind: "CAMERA", itemId });
+      setError(message);
     }
   }
 
@@ -918,6 +964,8 @@ export function VideoResponseView({
             ) : null}
           </div>
         )}
+        {quotaWarning ? <p className="text-sm font-semibold text-exam-warn">{quotaWarning}</p> : null}
+        {stuck && uploading ? <p className="text-sm font-medium text-exam-slate-500">Still trying to send your recording… it will keep trying.</p> : null}
         {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
         {uploadProblem && itemId ? (
           <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">

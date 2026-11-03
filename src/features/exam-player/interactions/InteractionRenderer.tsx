@@ -28,12 +28,15 @@ export function InteractionRenderer({
   disabled,
   itemId,
   answerKey,
+  timeRemainingMs,
 }: {
   type: string;
   interaction: Record<string, unknown>;
   disabled?: boolean;
   itemId?: string;
   answerKey?: Record<string, unknown> | null;
+  /** F3-10/Kural 1: yalnız AUDIO_RESPONSE/VIDEO_RESPONSE okur — aktif kaydı sıfırda durdurur. */
+  timeRemainingMs?: number | null;
 }) {
   const { preview } = usePlayerPreview();
   const i = { ...interaction, type };
@@ -91,6 +94,7 @@ export function InteractionRenderer({
           itemId={itemId}
           answerKey={key}
           preview={preview}
+          timeRemainingMs={timeRemainingMs}
         />
       );
     case "VIDEO_RESPONSE":
@@ -101,6 +105,7 @@ export function InteractionRenderer({
           itemId={itemId}
           answerKey={key}
           preview={preview}
+          timeRemainingMs={timeRemainingMs}
         />
       );
     case "IMAGE_RESPONSE":

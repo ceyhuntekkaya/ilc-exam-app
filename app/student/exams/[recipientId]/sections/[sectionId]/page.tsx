@@ -267,7 +267,7 @@ export default function SectionQuestionPage() {
           <div className="relative flex w-full flex-1 flex-col">
             {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
             <QuestionFrame className={cn("min-h-[calc(100dvh-9.5rem)]", held && "pointer-events-none blur-sm")}>
-              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} instructionGuide={INSTRUCTION_GUIDE} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
+              {model ? <QuestionView key={`${item?.examQuestionId ?? index}:${resetRound}`} model={model} instructionGuide={INSTRUCTION_GUIDE} timeRemainingMs={remaining} /> : error ? null : <KidLoading label="Loading questions…" rows={1} />}
             </QuestionFrame>
             {/* Soruyu ilk hâline döndür (yalnız ekran). Kayıtlı cevap, yeni cevap verilene kadar geçerli kalır. */}
             {item && answered && !mediaBusy && !held ? (

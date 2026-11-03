@@ -56,6 +56,18 @@ export function mediaUploadError(itemId: string) {
   return errors.get(itemId) ?? null;
 }
 
+/**
+ * F3-10/Adım 3: kuyrukta ne kadar süredir ("sıkışık") beklediği — IndexedDB şemasına YENİ bir
+ * alan EKLEMEDEN (Dokunulmayacaklar), `job.id`'nin KENDİSİNE gömülü zaman damgasından (`${itemId}
+ * :${Date.now()}`, bkz. enqueueRecording) okunur. İş yoksa veya bitmişse null.
+ */
+export function mediaUploadAgeMs(itemId: string): number | null {
+  const job = jobs.find((item) => item.itemId === itemId);
+  if (!job) return null;
+  const ts = Number(job.id.slice(job.id.lastIndexOf(":") + 1));
+  return Number.isFinite(ts) ? Date.now() - ts : null;
+}
+
 export function mediaUploadsPending() {
   return jobs.length > 0 || pumping;
 }
