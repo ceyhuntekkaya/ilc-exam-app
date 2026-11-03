@@ -5,6 +5,8 @@ import {
   authoringFetch,
   setAuthoringCompanyId,
 } from "@/src/features/authoring/shared/api";
+import { authoringApi } from "@/src/features/authoring/shared/client";
+import { applyInteractionCatalog } from "@/src/features/authoring/templates/registry";
 import { useAuth } from "@/src/components/auth-provider";
 import {
   createContext,
@@ -22,6 +24,9 @@ type TenantInfo = {
   code: string;
   contentHq: boolean;
 };
+
+/** Modül düzeyinde: madde tipi kataloğu kiracıya bağlı değil, oturum başına bir kez çekilir. */
+let interactionCatalogHydrated = false;
 
 type Ctx = {
   tenant: TenantInfo | null;
@@ -81,6 +86,17 @@ export function AuthoringTenantProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!user || interactionCatalogHydrated) return;
+    interactionCatalogHydrated = true;
+    void authoringApi
+      .listInteractionTypes()
+      .then(applyInteractionCatalog)
+      .catch(() => {
+        interactionCatalogHydrated = false;
+      });
+  }, [user]);
 
   const value = useMemo(() => ({ tenant, loading, refresh }), [tenant, loading, refresh]);
   return (

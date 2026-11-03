@@ -90,7 +90,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
     label: "Hotspot seç",
     hint: "Görsel üzerinde bölge seçimi.",
     defaultSkill: "READING",
-    scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
+    scoringModes: ["ALL_OR_NOTHING", "PARTIAL", "PARTIAL_WITH_PENALTY"],
     requiresRubric: false,
     autoGradable: true,
   },
@@ -143,4 +143,24 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
 
 export function getTemplate(type: string | null | undefined): TemplateSpec | undefined {
   return TEMPLATE_REGISTRY.find((t) => t.type === type);
+}
+
+/**
+ * F2-03: backend kataloğundan ({@code GET /authoring/interaction-types}) gelen
+ * `scoringModes`/`autoGradable`/`requiresRubric`'i, yukarıdaki elle tanımlı satırların üzerine
+ * yerinde yazar. `label`/`hint`/`defaultSkill` (arayüz metni/UI varsayılanı, backend'de karşılığı
+ * yok) değişmez. Çağrılmazsa veya başarısız olursa yukarıdaki statik değerler (artık backend'le
+ * eşleşecek şekilde düzeltildi) güvenli bir varsayılan olarak kalır — hiçbir çağıran bunu
+ * beklemiyor (hepsi senkron `getTemplate()` okuyor), bu yüzden fetch'in ne zaman biteceği önemli değil.
+ */
+export function applyInteractionCatalog(
+  entries: Array<{ type: string; autoGradable: boolean; requiresRubric: boolean; scoringModes: ScoringMode[] }>,
+): void {
+  for (const entry of entries) {
+    const spec = TEMPLATE_REGISTRY.find((t) => t.type === entry.type);
+    if (!spec) continue;
+    spec.scoringModes = entry.scoringModes;
+    spec.autoGradable = entry.autoGradable;
+    spec.requiresRubric = entry.requiresRubric;
+  }
 }

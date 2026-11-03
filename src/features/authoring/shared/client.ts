@@ -28,6 +28,14 @@ export type Skill =
 export type CefrLevel = "PRE_A1" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type ScoringMode = "ALL_OR_NOTHING" | "PARTIAL" | "PARTIAL_WITH_PENALTY" | "RUBRIC";
 
+/** F2-03: `InteractionType`'ın kip eşlemesinin backend'deki tek kaynağı — `templates/registry.ts` bunu okur. */
+export type InteractionCatalogEntry = {
+  type: InteractionType;
+  autoGradable: boolean;
+  requiresRubric: boolean;
+  scoringModes: ScoringMode[];
+};
+
 export type QuestionSummary = {
   versionId: string;
   questionId: string;
@@ -249,6 +257,7 @@ export type ReviewItem = {
 };
 
 export const authoringApi = {
+  listInteractionTypes: () => authoringFetch<InteractionCatalogEntry[]>("/authoring/interaction-types"),
   listQuestions: (params?: { status?: string; cefr?: string; q?: string; skill?: string; type?: string; includeArchived?: boolean }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.set("status", params.status);
