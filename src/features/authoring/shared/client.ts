@@ -518,7 +518,8 @@ export const authoringApi = {
     authoringFetch<Page<ReviewItem>>(
       `/authoring/reviews?page=${page}&size=${size}${status ? `&status=${status}` : ""}${all ? "&all=true" : ""}`,
     ),
-  listTags: () => authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string }>>("/authoring/tags"),
+  listTags: () =>
+    authoringFetch<Array<{ id: string; name: string; ownerOrgId?: string; kind?: "FREE" | "CONTEXT" }>>("/authoring/tags"),
   createTag: (name: string) =>
     authoringFetch<{ id: string; name: string }>("/authoring/tags", {
       method: "POST",

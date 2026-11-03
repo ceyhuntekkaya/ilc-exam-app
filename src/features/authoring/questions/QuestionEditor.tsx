@@ -187,7 +187,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
   const [timeLimitSec, setTimeLimitSec] = useState("");
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [ageBands, setAgeBands] = useState<Array<{ id: string; code: string; label: string }>>([]);
-  const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
+  const [tags, setTags] = useState<Array<{ id: string; name: string; kind?: "FREE" | "CONTEXT" }>>([]);
   const [outcomes, setOutcomes] = useState<Array<{ id: string; code: string; description: string }>>([]);
   const [rubrics, setRubrics] = useState<
     Array<{ id: string; name: string; skill?: string; currentVersionId?: string | null }>
@@ -326,6 +326,11 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
 
   const editable = !!q?.editable;
   const template = getTemplate(selectedPart?.interactionType);
+
+  const freeTags = useMemo(() => tags.filter((t) => t.kind !== "CONTEXT"), [tags]);
+  const contextTags = useMemo(() => tags.filter((t) => t.kind === "CONTEXT"), [tags]);
+  const freeTagIds = useMemo(() => tagIds.filter((id) => freeTags.some((t) => t.id === id)), [tagIds, freeTags]);
+  const contextTagIds = useMemo(() => tagIds.filter((id) => contextTags.some((t) => t.id === id)), [tagIds, contextTags]);
 
   const previewModel: QuestionViewModel = useMemo(() => {
     const parts =
@@ -812,9 +817,21 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                   collapsible
                   searchPlaceholder="Etiket ara"
                   emptyText="Henüz etiket seçilmedi."
-                  options={tags.map((t) => ({ value: t.id, label: t.name }))}
-                  value={tagIds}
-                  onChange={setTagIds}
+                  options={freeTags.map((t) => ({ value: t.id, label: t.name }))}
+                  value={freeTagIds}
+                  onChange={(ids) => setTagIds([...contextTagIds, ...ids])}
+                />
+              </FormGroup>
+              <FormGroup title="Bağlam etiketleri" hint="İş bağlamı (sektör, rol) — blueprint boyutu, serbest etiketle karışmaz.">
+                <MultiPicker
+                  label="Bağlam"
+                  layout="chips"
+                  collapsible
+                  searchPlaceholder="Bağlam etiketi ara"
+                  emptyText="Henüz bağlam etiketi seçilmedi."
+                  options={contextTags.map((t) => ({ value: t.id, label: t.name }))}
+                  value={contextTagIds}
+                  onChange={(ids) => setTagIds([...freeTagIds, ...ids])}
                 />
               </FormGroup>
             </FormCard>
