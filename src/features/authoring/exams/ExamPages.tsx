@@ -42,6 +42,7 @@ import {
   EmptyState,
 } from "@/src/ui";
 import { ExamGrantsTab, ExamPreviewTab } from "@/src/features/authoring/exams/ExamExtraTabs";
+import { ExamFormsTab } from "@/src/features/authoring/forms/FormPages";
 import { HoverPreview } from "@/src/ui/composites/HoverPreview";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -636,7 +637,10 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
   const [confirming, setConfirming] = useState(false);
   const [catalog, setCatalog] = useState<Record<string, QuestionSummary>>({});
   const tabParam = searchParams.get("tab");
-  const tab = tabParam === "questions" || tabParam === "preview" || tabParam === "grants" ? tabParam : "detail";
+  const tab =
+    tabParam === "questions" || tabParam === "forms" || tabParam === "preview" || tabParam === "grants"
+      ? tabParam
+      : "detail";
   function selectTab(next: string | null) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", next || "detail");
@@ -884,6 +888,7 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
           items={[
             { label: "Yapı ve ayarlar", value: "detail" },
             { label: "Soru ataması", value: "questions", count: attachedCount },
+            { label: "Formlar", value: "forms" },
             { label: "Önizleme", value: "preview" },
             { label: "Atamalar", value: "grants" },
           ]}
@@ -1496,6 +1501,9 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
         </div>
       </div>
 
+      <div className={tab === "forms" ? "block" : "hidden"}>
+        <ExamFormsTab examId={exam.id} />
+      </div>
       <div className={tab === "preview" ? "block" : "hidden"}>
         <ExamPreviewTab examId={exam.id} />
       </div>

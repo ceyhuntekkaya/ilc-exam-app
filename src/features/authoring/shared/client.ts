@@ -244,6 +244,46 @@ export type MediaUsage = {
   detail?: string | null;
 };
 
+/** K-03: FormPages.tsx — F2-08/F2-11/F2-12'de yazılan FormBuilder/FormResolver'ın HTTP yüzeyi (K-01/K-02/K-04 oturumunda eklendi). */
+export type FormSummary = {
+  id: string;
+  examId: string;
+  formNo: number;
+  status: "DRAFT" | "READY" | "RETIRED";
+  reviewStatus: VersionStatus;
+  blueprintId?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+};
+
+export type BlueprintDeviation = {
+  kind: string;
+  withinTolerance: boolean;
+  /** false ise bu boyut için tolerans hiç tanımlı değil — "uygun" ile KARIŞTIRMA, akademik ekip bekliyor. */
+  toleranceApplied: boolean;
+  target: Record<string, unknown>;
+  actual: Record<string, unknown>;
+};
+
+export type GenerateFromBlueprintResult = {
+  form: FormSummary;
+  report: BlueprintDeviation[];
+};
+
+/** K-03: LibraryPages.tsx — F2-14/K-02'de yazılan PoolAuditService'in HTTP yüzeyi. */
+export type KurumVersionRef = { versionId: string; ownerOrgId: string };
+
+export type PoolAudit = {
+  id: string;
+  ownerOrgId: string;
+  questionVersionId: string;
+  approvedBy: string;
+  approvedAt: string;
+  copyrightDeclaration?: string | null;
+  note?: string | null;
+};
+
 export type ReviewItem = {
   id: string;
   targetType: string;
@@ -652,4 +692,37 @@ export const authoringApi = {
     authoringFetch(`/authoring/questions/${questionId}/enemies/${enemyId}`, { method: "POST" }),
   removeEnemy: (questionId: string, enemyId: string) =>
     authoringFetch(`/authoring/questions/${questionId}/enemies/${enemyId}`, { method: "DELETE" }),
+  listForms: (examId: string) => authoringFetch<FormSummary[]>(`/authoring/exams/${examId}/forms`),
+  generateFormFromFixedExam: (examId: string) =>
+    authoringFetch<FormSummary>(`/authoring/exams/${examId}/forms/from-fixed`, { method: "POST" }),
+  generateFormFromBlueprint: (
+    examId: string,
+    body: {
+      blueprintId: string;
+      candidateVersionIds: string[];
+      targetSize: number;
+      pilotVersionIds?: string[];
+      requiredAnchorVersionIds?: string[];
+    },
+  ) =>
+    authoringFetch<GenerateFromBlueprintResult>(`/authoring/exams/${examId}/forms/from-blueprint`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  submitFormReview: (examId: string, formId: string) =>
+    authoringFetch<FormSummary>(`/authoring/exams/${examId}/forms/${formId}/submit-review`, { method: "POST" }),
+  approveFormReview: (examId: string, formId: string) =>
+    authoringFetch<FormSummary>(`/authoring/exams/${examId}/forms/${formId}/approve-review`, { method: "POST" }),
+  listKurumVersionsAcrossCompanies: () =>
+    authoringFetch<KurumVersionRef[]>("/authoring/pool-audit/kurum-versions"),
+  approvePoolAudit: (questionVersionId: string, copyrightDeclaration?: string | null, note?: string | null) =>
+    authoringFetch<PoolAudit>(`/authoring/pool-audit/${questionVersionId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ copyrightDeclaration: copyrightDeclaration ?? null, note: note ?? null }),
+    }),
+  retirePoolAudit: (questionVersionId: string, reason: string) =>
+    authoringFetch<void>(`/authoring/pool-audit/${questionVersionId}/retire`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
 };

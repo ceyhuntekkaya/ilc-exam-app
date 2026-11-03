@@ -49,7 +49,11 @@ export async function authoringFetch<T>(
       body && typeof body === "object" && body !== null && "error" in body
         ? String((body as { error: string }).error)
         : res.statusText || "İstek başarısız";
-    throw new Error(message);
+    const err = new Error(message) as Error & { body?: unknown };
+    // K-03: FormController gibi yanıt gövdesine ek alan (örn. BlueprintValidator'ın sapma
+    // raporu) koyan uç noktalar için — mevcut `catch (e) { e.message }` çağıranları etkilenmez.
+    if (body && typeof body === "object") err.body = body;
+    throw err;
   }
 
   return body as T;
