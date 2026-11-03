@@ -2,6 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
+// F3-06: jsdom'da indexedDB HİÇ yok — cevap kutusunun göç/kalıcılık testleri (answerOutbox.ts)
+// gerçek IndexedDB semantiğine (işlem, anahtar sırası) ihtiyaç duyuyor; mediaOutbox.ts'in ham
+// glue kodu gibi test etmeden geçmek burada kabul edilemez (görev dosyası: "göç kaybı sessizdir").
+import "fake-indexeddb/auto";
+
 // RTL otomatik temizlemiyor — her testten sonra DOM'u söker, aksi halde ardışık testlerde
 // aynı data-testid birden çok kez bulunur (bu pakette bu bulundu, HotspotViews.test.tsx/
 // ExamFlowProvider.test.tsx birden çok `render` çağırıyor).

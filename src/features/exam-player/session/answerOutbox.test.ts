@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AnswerOutbox, memoryStorage, sameAnswer } from "./answerOutbox";
+import { AnswerOutbox, memoryPersistence, sameAnswer } from "./answerOutbox";
 
 function box() {
-  return new AnswerOutbox("app-1", memoryStorage());
+  return new AnswerOutbox("app-1", memoryPersistence());
 }
 
 describe("answer outbox", () => {

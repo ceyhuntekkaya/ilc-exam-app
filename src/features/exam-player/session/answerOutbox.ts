@@ -1,5 +1,7 @@
 /**
- * Cevap kutusu. React'in ömründen bağımsızdır; localStorage'da durur.
+ * Cevap kutusu. React'in ömründen bağımsızdır; IndexedDB'de durur (F3-06 — localStorage'ın
+ * 5-10 MB sınırı ve senkron/ana-iş-parçacığı-bloklayan yazımı, uzun bir sınavın yanıt kuyruğu
+ * için risk; `mediaOutbox.ts`'in deseni örnek alındı).
  * "Kaydedildi" yalnız sunucu WRITTEN veya DUPLICATE dediğinde gelir.
  * Uçuştaki istek, kuyruğa sonradan giren sürümü silmez.
  */
@@ -17,11 +19,6 @@ export type OutboxRecord = {
   error?: string;
   tries: number;
   hidden: boolean;
-};
-
-export type OutboxStorage = {
-  get(key: string): string | null;
-  set(key: string, value: string): void;
 };
 
 export type AnswerSendStatus = "WRITTEN" | "DUPLICATE" | "STALE" | "REJECTED";
@@ -48,11 +45,17 @@ export type OutgoingAnswer = {
 
 type ServerRow = { itemId: string; answer: Record<string, unknown>; seq: number };
 
-type Persisted = {
-  records: OutboxRecord[];
-  nextVersion: number;
-  nextSeq: number;
-  server: ServerRow[];
+type PersistedMeta = { nextVersion: number; nextSeq: number; server: ServerRow[] };
+
+/**
+ * Kalıcılık soyutlaması — test edilebilirlik için enjekte edilir (`memoryPersistence()`).
+ * `loadAll` ASENKRON (IndexedDB senkron API sunmaz); `saveAll` da öyle ama çağıran beklemez
+ * (fire-and-forget, `mediaOutbox.ts`'teki `void idbPut(...)` örüntüsü) — depo doluysa/yazım
+ * başarısız olursa bellek kuyruğu gönderime devam eder, veri yalnız BELLEKTE kalır.
+ */
+export type Persistence = {
+  loadAll(): Promise<{ records: OutboxRecord[] } & PersistedMeta>;
+  saveAll(records: OutboxRecord[], meta: PersistedMeta): void;
 };
 
 const EMPTY: readonly OutboxRecord[] = [];
@@ -77,6 +80,7 @@ export class AnswerOutbox {
   private nextVersion = 0;
   private nextSeq = 0;
   private hydrated = false;
+  private restored = false;
   private paused = false;
   private inflight: { itemId: string; localVersion: number; seq: number } | null = null;
   private revision = 0;
@@ -88,9 +92,9 @@ export class AnswerOutbox {
 
   constructor(
     readonly applicationId: string,
-    private storage: OutboxStorage,
+    private persistence: Persistence,
   ) {
-    this.restore();
+    void this.restore();
   }
 
   subscribe(listener: () => void) {
@@ -117,6 +121,12 @@ export class AnswerOutbox {
 
   isPaused() {
     return this.paused;
+  }
+
+  /** Depodan (IndexedDB, göç dahil) yüklenme bitti mi. Testler dışında beklemek GENELLİKLE gerekmez
+   *  (gerçek kullanımda render + ilk etkileşim arasında zaten tamamlanır) — göç testleri bunu kullanır. */
+  isRestored() {
+    return this.restored;
   }
 
   /** Ekranda gösterilecek cevap. "Start again" sonrası undefined; sunucu satırı durur. */
@@ -372,36 +382,35 @@ export class AnswerOutbox {
     this.waiters = left;
   }
 
-  private restore() {
-    const raw = this.storage.get(storageKey(this.applicationId));
-    if (!raw) return;
-    try {
-      const saved = JSON.parse(raw) as Persisted;
-      this.nextVersion = saved.nextVersion ?? 0;
-      this.nextSeq = saved.nextSeq ?? 0;
-      for (const row of saved.server ?? []) this.server.set(row.itemId, row);
-      for (const record of saved.records ?? []) {
-        if (record.state === "sending") record.state = "pending";
-        this.records.set(record.itemId, record);
-      }
-      this.publish();
-    } catch {
-      this.storage.set(storageKey(this.applicationId), "");
+  /**
+   * Depodan (IndexedDB, göç dahil) yükleme ASENKRON — kurucu bunu bekleyemez (çağıranlar
+   * senkron bir kutu bekliyor, bkz. `getAnswerOutbox`). Bu yüzden MERGE güvenliği şart: yükleme
+   * biterken `put()` zaten yeni bir kayıt yazmışsa (dar ama gerçek bir yarış), o kayıt ASLA
+   * eskiyle EZİLMEZ — yalnız o ana kadar HİÇ dokunulmamış madde kimlikleri için depodaki satır eklenir.
+   */
+  private async restore() {
+    const data = await this.persistence.loadAll();
+    this.nextVersion = Math.max(this.nextVersion, data.nextVersion);
+    this.nextSeq = Math.max(this.nextSeq, data.nextSeq);
+    for (const row of data.server) {
+      if (!this.server.has(row.itemId)) this.server.set(row.itemId, row);
     }
+    for (const record of data.records) {
+      if (this.records.has(record.itemId)) continue;
+      if (record.state === "sending") record.state = "pending";
+      this.records.set(record.itemId, record);
+    }
+    this.restored = true;
+    this.publish();
+    this.wake();
   }
 
   private persist() {
-    const body: Persisted = {
-      records: [...this.records.values()],
+    this.persistence.saveAll([...this.records.values()], {
       nextVersion: this.nextVersion,
       nextSeq: this.nextSeq,
       server: [...this.server.values()],
-    };
-    try {
-      this.storage.set(storageKey(this.applicationId), JSON.stringify(body));
-    } catch {
-      // Depo doluysa bellek kuyruğu gönderime devam eder.
-    }
+    });
     this.publish();
   }
 
@@ -443,41 +452,145 @@ function mediaIdOf(answer: Record<string, unknown>): string | null {
   return null;
 }
 
-function storageKey(applicationId: string) {
+function legacyStorageKey(applicationId: string) {
   return `ilc-answer-outbox:${applicationId}`;
+}
+
+function outboxDbName(applicationId: string) {
+  return `ilc-answer-outbox:${applicationId}`;
+}
+
+function openOutboxDb(applicationId: string): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(outboxDbName(applicationId), 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("records")) db.createObjectStore("records", { keyPath: "itemId" });
+      if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function idbLoadAll(db: IDBDatabase): Promise<{ records: OutboxRecord[]; meta: PersistedMeta | null }> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["records", "meta"], "readonly");
+    let records: OutboxRecord[] = [];
+    let meta: PersistedMeta | null = null;
+    const recordsReq = tx.objectStore("records").getAll();
+    recordsReq.onsuccess = () => {
+      records = recordsReq.result as OutboxRecord[];
+    };
+    const metaReq = tx.objectStore("meta").get("meta");
+    metaReq.onsuccess = () => {
+      meta = (metaReq.result as PersistedMeta | undefined) ?? null;
+    };
+    tx.oncomplete = () => resolve({ records, meta });
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/**
+ * F3-06/Adım 2: localStorage'daki ESKİ kuyruk (sürüm güncellemesinden önce birikmiş) IndexedDB'ye
+ * bir kez taşınır. Göç TAMAMLANMADAN (tx.oncomplete) eski anahtar SİLİNMEZ — yazım yarıda kalırsa
+ * (sayfa kapanır, tarayıcı çöker) veri hâlâ localStorage'da durur, bir sonraki açılışta TEKRAR denenir.
+ * Bozuk/okunamayan JSON göç edilecek bir şey saymaz (zaten kullanılamaz veriydi).
+ */
+async function migrateLegacyQueue(applicationId: string, db: IDBDatabase): Promise<{ records: OutboxRecord[]; meta: PersistedMeta } | null> {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(legacyStorageKey(applicationId));
+  } catch {
+    return null;
+  }
+  if (!raw) return null;
+  let parsed: { records?: OutboxRecord[]; nextVersion?: number; nextSeq?: number; server?: ServerRow[] };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    try {
+      localStorage.removeItem(legacyStorageKey(applicationId));
+    } catch {
+      // yoksay
+    }
+    return null;
+  }
+  const records = Array.isArray(parsed.records) ? parsed.records : [];
+  const meta: PersistedMeta = {
+    nextVersion: parsed.nextVersion ?? 0,
+    nextSeq: parsed.nextSeq ?? 0,
+    server: Array.isArray(parsed.server) ? parsed.server : [],
+  };
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(["records", "meta"], "readwrite");
+    for (const record of records) tx.objectStore("records").put(record);
+    tx.objectStore("meta").put(meta, "meta");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  try {
+    localStorage.removeItem(legacyStorageKey(applicationId));
+  } catch {
+    // Silinemese de göç zaten tamamlandı (IndexedDB kalıcı kopyayı taşıyor); bir sonraki
+    // açılışta eski anahtar yine görülürse göç idempotent'tir (aynı veri tekrar put edilir).
+  }
+  return { records, meta };
+}
+
+function indexedDbPersistence(applicationId: string): Persistence {
+  let dbPromise: Promise<IDBDatabase> | null = null;
+  function db(): Promise<IDBDatabase> {
+    if (!dbPromise) dbPromise = openOutboxDb(applicationId);
+    return dbPromise;
+  }
+  return {
+    async loadAll() {
+      const database = await db();
+      const migrated = await migrateLegacyQueue(applicationId, database);
+      if (migrated) {
+        return { records: migrated.records, ...migrated.meta };
+      }
+      const { records, meta } = await idbLoadAll(database);
+      return { records, nextVersion: meta?.nextVersion ?? 0, nextSeq: meta?.nextSeq ?? 0, server: meta?.server ?? [] };
+    },
+    saveAll(records, meta) {
+      void db().then((database) => {
+        try {
+          const tx = database.transaction(["records", "meta"], "readwrite");
+          const store = tx.objectStore("records");
+          store.clear();
+          for (const record of records) store.put(record);
+          tx.objectStore("meta").put(meta, "meta");
+        } catch {
+          // Depo doluysa/IndexedDB kullanılamıyorsa bellek kuyruğu gönderime devam eder.
+        }
+      });
+    },
+  };
+}
+
+/** Testler için: hiçbir tarayıcı API'si kullanmayan, saf bellek içi kalıcılık. */
+export function memoryPersistence(): Persistence {
+  let records: OutboxRecord[] = [];
+  let meta: PersistedMeta = { nextVersion: 0, nextSeq: 0, server: [] };
+  return {
+    async loadAll() {
+      return { records, ...meta };
+    },
+    saveAll(nextRecords, nextMeta) {
+      records = nextRecords;
+      meta = nextMeta;
+    },
+  };
 }
 
 const boxes = new Map<string, AnswerOutbox>();
 
-export function memoryStorage(): OutboxStorage {
-  const data = new Map<string, string>();
-  return {
-    get: (key) => data.get(key) ?? null,
-    set: (key, value) => {
-      data.set(key, value);
-    },
-  };
-}
-
-export function browserStorage(): OutboxStorage {
-  return {
-    get: (key) => {
-      try {
-        return localStorage.getItem(key);
-      } catch {
-        return null;
-      }
-    },
-    set: (key, value) => {
-      localStorage.setItem(key, value);
-    },
-  };
-}
-
 export function getAnswerOutbox(applicationId: string): AnswerOutbox {
   let box = boxes.get(applicationId);
   if (!box) {
-    box = new AnswerOutbox(applicationId, browserStorage());
+    box = new AnswerOutbox(applicationId, indexedDbPersistence(applicationId));
     boxes.set(applicationId, box);
   }
   return box;
