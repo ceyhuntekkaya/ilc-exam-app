@@ -162,6 +162,22 @@ export function useExamFocusSignals({ applicationId, inSection, active, blockSho
     };
   }, [active, applicationId, blockShortcuts]);
 
+  // F3-15/Kural: "önlem engel değil, kayıttır" — pano kopyalama/yapıştırma hiçbir koşulda
+  // preventDefault() ile ENGELLENMEZ (ekran okuyucu panoyu kullanır, erişilebilirlik bozulmaz;
+  // engelleme tarayıcıya göre değişir ve atlatılabilir). Yalnız kaydedilir, F3-14'ün bütünlük
+  // seviyesiyle BİRLİKTE değerlendirilir.
+  useEffect(() => {
+    if (!applicationId || !active) return;
+    const onCopy = () => enqueueEvent(applicationId, "CLIPBOARD_COPY");
+    const onPaste = () => enqueueEvent(applicationId, "CLIPBOARD_PASTE");
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("paste", onPaste);
+    };
+  }, [active, applicationId]);
+
   useEffect(() => {
     if (!active) return;
     const wakeLock = (navigator as Navigator & { wakeLock?: WakeLockApi }).wakeLock;
