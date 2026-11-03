@@ -7,8 +7,9 @@ import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver } from
 
 import { htmlOf, type OptionFormat, type PlayerOption, type Region, type Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import { useState, type CSSProperties, type MouseEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
+import { nextFocusIndex } from "@/src/features/exam-player/interactions/hotspotNav";
 
 function shapeStyle(shape: Shape): CSSProperties {
   if (shape.kind === "RECT") {
@@ -108,6 +109,17 @@ export function HotspotSelectView({
   );
   const [touched, setTouched] = useState(false);
   useAnswerSync(itemId, { regionIds: selected }, !preview && !disabled && touched);
+  const regionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function onRegionKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number, total: number) {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      regionRefs.current[nextFocusIndex(index, total, 1)]?.focus();
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      regionRefs.current[nextFocusIndex(index, total, -1)]?.focus();
+    }
+  }
 
   function toggleRegion(id: string) {
     setTouched(true);
@@ -145,6 +157,9 @@ export function HotspotSelectView({
           return (
             <button
               key={r.id}
+              ref={(el) => {
+                regionRefs.current[index] = el;
+              }}
               type="button"
               disabled={disabled}
               aria-pressed={isSelected}
@@ -153,6 +168,7 @@ export function HotspotSelectView({
                 e.stopPropagation();
                 toggleRegion(r.id);
               }}
+              onKeyDown={(e) => onRegionKeyDown(e, index, visible.length)}
               className={cn(
                 "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
                 isCorrect
