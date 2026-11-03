@@ -387,6 +387,12 @@ export class AnswerOutbox {
    * senkron bir kutu bekliyor, bkz. `getAnswerOutbox`). Bu yüzden MERGE güvenliği şart: yükleme
    * biterken `put()` zaten yeni bir kayıt yazmışsa (dar ama gerçek bir yarış), o kayıt ASLA
    * eskiyle EZİLMEZ — yalnız o ana kadar HİÇ dokunulmamış madde kimlikleri için depodaki satır eklenir.
+   *
+   * `nextSend()` bu bitmeden de çalışabilir (bilinçli — `restored` ile KİLİTLENMEDİ): üretimde
+   * sunucu hidrasyonu (`hydrate`, ağ) IndexedDB'den (burası) HER ZAMAN yavaştır, bu yüzden pratikte
+   * `restore()` zaten biter; erken bir `nextSend()` en kötü ihtimalle henüz geri yüklenmemiş eski
+   * kayıtları bir an GERİ SIRAYA atar (veri kaybı değil, yalnız gönderim sırası) — `restore()`
+   * bittiğinde `wake()` zaten yeni bir pompa turu tetikler, o eski kayıtlar da gider.
    */
   private async restore() {
     const data = await this.persistence.loadAll();
