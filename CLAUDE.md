@@ -30,8 +30,12 @@ Bunları tam okuma, ilgili sembolü `grep -n` ile bul ve o aralığı oku:
 `src/features/exam-flow/ExamFlowProvider.tsx` (545), `src/features/exam-player/session/answerOutbox.ts` (489).
 
 ## Test
-Vitest. Şu an 10 test dosyası var, hepsi saf mantık testi (component render eden yok —
-`@testing-library/react`/`jsdom` kurulu değil, F3-00 kuracak); yeni davranışa en az bir test ekle.
+Vitest + `@testing-library/react`/`jest-dom`/`jsdom` (F3-00'dan beri). `environment: "jsdom"`,
+setup `src/test/setup.ts` (RTL cleanup + `matchMedia`/`crypto.randomUUID` stub'ları), render
+için `renderWithProviders` (`src/test/renderWithProviders.tsx`, `QueryClientProvider` sarmalar —
+başka context provider yok, icat etme). Coverage eşiği YOK, bilerek (F3-00: eşik konursa
+sonraki testler kapsam doldurmaya kayar). Yeni davranışa en az bir test ekle; bir bileşen
+render ediyorsa mock yerine gerçek alt modülleri (örn. `answerOutbox`) kullan.
 
 ## Lint taban çizgisi
 `npm run lint` → 45 problem (29 hata, 16 uyarı). Her oturum sonunda bu sayı artmamalı.
