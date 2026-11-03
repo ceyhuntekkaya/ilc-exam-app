@@ -37,6 +37,18 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: apiPublicUrl,
   },
+  // F3-01: service worker /sw.js'te (kök) — scope zaten "/" ama bu başlık açıkça garanti eder.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Service-Worker-Allowed", value: "/" },
+          { key: "Cache-Control", value: "no-cache" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

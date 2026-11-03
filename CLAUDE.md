@@ -37,6 +37,14 @@ başka context provider yok, icat etme). Coverage eşiği YOK, bilerek (F3-00: e
 sonraki testler kapsam doldurmaya kayar). Yeni davranışa en az bir test ekle; bir bileşen
 render ediyorsa mock yerine gerçek alt modülleri (örn. `answerOutbox`) kullan.
 
+## PWA kabuğu (F3-01)
+`public/sw.js` ELLE yazıldı — Workbox/kütüphane yok, bilerek. Yalnız kabuk (HTML/JS/CSS/font/
+ikon) önbekleklenir; `/api/**` HİÇ önbekleklenmez. Yeni kabuk sürümü sınav sırasında
+uygulanmaz — `src/lib/pwa/version.ts`'teki `isExamInProgress` kontrolü `/student/exams/*/run`
+ve `/sections` rotalarında `SKIP_WAITING` göndermez. Kabuk sürümü değişince `public/sw.js`'teki
+`CACHE_VERSION` ve `src/lib/pwa/version.ts`'teki `CACHE_VERSION` İKİSİ de bump edilir (build
+adımı yok, elle senkron).
+
 ## Lint taban çizgisi
 `npm run lint` → 45 problem (29 hata, 16 uyarı). Her oturum sonunda bu sayı artmamalı.
 
