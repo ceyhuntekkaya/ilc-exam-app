@@ -1,8 +1,16 @@
 import { renderWithProviders, screen } from "@/src/test/renderWithProviders";
 import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useExamClock } from "@/src/features/exam-flow/ExamFlowProvider";
 import type { ExamState } from "@/src/features/exam-flow/schema";
+
+const sectionContentMock = vi.fn();
+const loadPackagedSectionContentMock = vi.fn();
+vi.mock("@/src/features/exam-flow/api", () => ({ sectionContent: sectionContentMock }));
+vi.mock("@/src/features/exam-player/offline/packageStore", () => ({
+  loadPackagedSectionContent: loadPackagedSectionContentMock,
+}));
+
+const { loadSectionContent, useExamClock } = await import("@/src/features/exam-flow/ExamFlowProvider");
 
 /**
  * F3-00 referans testi 3: sahte zamanlayıcıyla süre dolunca geri sayım sıfıra iner (ve sıfırın
@@ -67,5 +75,44 @@ describe("useExamClock — monoton geri sayım", () => {
     });
 
     expect(screen.getByTestId("left")).toHaveTextContent("1000");
+  });
+});
+
+/**
+ * F3-05/Adım 4: bölüm içeriği önce ağdan istenir; ağ hata verirse (uçak modu) önceden
+ * indirilmiş pakete düşülür. Paket de yoksa orijinal ağ hatası çağırana geçer (sessizce
+ * yutulmaz — `page.tsx` hâlâ bir hata gösterebilsin).
+ */
+describe("loadSectionContent — çevrimdışı düşme yolu", () => {
+  beforeEach(() => {
+    sectionContentMock.mockReset();
+    loadPackagedSectionContentMock.mockReset();
+  });
+
+  it("returns the network response when the network succeeds", async () => {
+    sectionContentMock.mockResolvedValue([{ examQuestionId: "q1" }]);
+
+    const result = await loadSectionContent("app-1", "token", "sec-1");
+
+    expect(result).toEqual([{ examQuestionId: "q1" }]);
+    expect(loadPackagedSectionContentMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the downloaded package when the network fails", async () => {
+    sectionContentMock.mockRejectedValue(new Error("network down"));
+    loadPackagedSectionContentMock.mockResolvedValue([{ examQuestionId: "q1" }]);
+
+    const result = await loadSectionContent("app-1", "token", "sec-1");
+
+    expect(result).toEqual([{ examQuestionId: "q1" }]);
+    expect(loadPackagedSectionContentMock).toHaveBeenCalledWith("app-1", "sec-1");
+  });
+
+  it("rethrows the original network error when there is no package either", async () => {
+    const networkError = new Error("network down");
+    sectionContentMock.mockRejectedValue(networkError);
+    loadPackagedSectionContentMock.mockResolvedValue(null);
+
+    await expect(loadSectionContent("app-1", "token", "sec-1")).rejects.toBe(networkError);
   });
 });

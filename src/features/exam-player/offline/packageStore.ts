@@ -65,6 +65,32 @@ export async function hasPackage(applicationId: string): Promise<boolean> {
   return (await loadPackage(applicationId)) != null;
 }
 
+/**
+ * Saf arama (test edilebilir kısım): paketin `payload`'ı backend `ExamPackageService`'in
+ * ürettiği `{applicationId, sections: [{sectionId, items}, ...]}` şekli — her bölüm, canlı
+ * `GET /applications/{id}/sections/{sid}/content`'in döndürdüğü AYNI `items` dizisini taşır
+ * (ikisi de `ExamPaperBuilder.sectionView`'dan geçer). `null` dönerse çağıran ağa düşmeli.
+ */
+export function sectionItemsFromPackage(payload: Record<string, unknown> | null | undefined, sectionId: string): unknown[] | null {
+  const sections = payload?.sections;
+  if (!Array.isArray(sections)) {
+    return null;
+  }
+  for (const section of sections) {
+    if (section && typeof section === "object" && String((section as Record<string, unknown>).sectionId) === sectionId) {
+      const items = (section as Record<string, unknown>).items;
+      return Array.isArray(items) ? items : null;
+    }
+  }
+  return null;
+}
+
+/** Çevrimdışı düşme yolu: paket varsa ve bu bölümü içeriyorsa onun `items`'ını döner, yoksa `null`. */
+export async function loadPackagedSectionContent(applicationId: string, sectionId: string): Promise<unknown[] | null> {
+  const stored = await loadPackage(applicationId);
+  return sectionItemsFromPackage(stored?.payload ?? null, sectionId);
+}
+
 export type DownloadGuardResult = {
   allowed: boolean;
   reason: string | null;

@@ -1,7 +1,7 @@
 "use client";
 
-import { ExamApiError, postState, putPosition, sectionContent } from "@/src/features/exam-flow/api";
-import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
+import { ExamApiError, postState, putPosition } from "@/src/features/exam-flow/api";
+import { loadSectionContent, useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
 import { QuestionFrame, QuestionView } from "@/src/features/exam-player";
@@ -59,7 +59,7 @@ export default function SectionQuestionPage() {
     const current = readSession(params.recipientId);
     if (!current || state?.stage !== "IN_SECTION" || state.currentSectionId !== params.sectionId) return;
     let cancelled = false;
-    sectionContent(current.applicationId, current.sessionToken, params.sectionId)
+    loadSectionContent(current.applicationId, current.sessionToken, params.sectionId)
       .then((loaded) => {
         if (cancelled) return;
         const list = loaded as Item[];

@@ -160,6 +160,26 @@ export function sectionContent(applicationId: string, token: string, sectionId: 
   });
 }
 
+/** F3-05/Adım 4: çevrimdışı indirme izni ister (24 saat geçerli — backend ExamPackageService). */
+export function grantPackageDownload(applicationId: string, token: string) {
+  return customInstance<{ data: { expiresAt?: string } }>(
+    `/applications/${applicationId}/package/grant`,
+    { method: "POST", headers: sessionHeaders(token) },
+  ).then((response) => response.data).catch((err) => {
+    throw asExamError(err);
+  });
+}
+
+/** F3-05/Adım 4: paketi indirir — geçerli bir izin şart, yoksa sunucu 4xx döner. */
+export function fetchPackage(applicationId: string, token: string) {
+  return customInstance<{ data: Record<string, unknown> }>(
+    `/applications/${applicationId}/package`,
+    { headers: sessionHeaders(token) },
+  ).then((response) => response.data).catch((err) => {
+    throw asExamError(err);
+  });
+}
+
 export async function uploadCheck(
   applicationId: string,
   token: string,

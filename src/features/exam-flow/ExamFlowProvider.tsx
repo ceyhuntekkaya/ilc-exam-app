@@ -1,8 +1,9 @@
 "use client";
 
-import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } from "@/src/features/exam-flow/api";
+import { ExamApiError, getState, heartbeat, previewAssignment, sectionContent, startAttempt } from "@/src/features/exam-flow/api";
 import { anchorClock, interpolateRemaining, markSleepStart, resolveWakeDrift, type SleepMark } from "@/src/features/exam-flow/clock";
 import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
+import { loadPackagedSectionContent } from "@/src/features/exam-player/offline/packageStore";
 import { isFocusLossOpen, useExamFocusSignals } from "@/src/features/exam-flow/focusSignals";
 import {
   canRequestFullscreen,
@@ -483,6 +484,22 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       ) : null}
     </FlowContext.Provider>
   );
+}
+
+/**
+ * F3-05/Adım 4: bölüm içeriği önce ağdan istenir (çevrimiçiyken davranış DEĞİŞMEDİ); ağ
+ * ulaşılamazsa (uçak modu, okul interneti koptu) önceden indirilmiş pakete düşülür — aynı
+ * donmuş kâğıttan (`paperJson`) geldiği için çevrimiçi yanıtla birebir aynı `items` dizisidir.
+ * Paket de yoksa (hiç indirilmemiş) orijinal ağ hatası çağırana geçer.
+ */
+export async function loadSectionContent(applicationId: string, token: string, sectionId: string): Promise<unknown[]> {
+  try {
+    return await sectionContent(applicationId, token, sectionId);
+  } catch (err) {
+    const packaged = await loadPackagedSectionContent(applicationId, sectionId);
+    if (packaged) return packaged;
+    throw err;
+  }
 }
 
 export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {

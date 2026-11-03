@@ -6,6 +6,7 @@ import { formatClock, formatDuration } from "@/src/features/exam-flow/format";
 import { readSession } from "@/src/features/exam-flow/session";
 import { confirmCloseBatch, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
 import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
+import { PackageDownloadCard } from "@/src/features/exam-player/offline/packageDownload";
 import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { saveAllUnsaved } from "@/src/features/exam-player/session/playerGuard";
 import { Mascot } from "@/src/features/student/mascot";
@@ -39,6 +40,7 @@ export default function SectionListPage() {
   const examLeft = state.clock.examRemainingMs;
   const timeUp = state.finishedReason === "EXAM_TIME_UP" || state.clock.examRemainingMs === 0;
   const pendingSection = state.sections.find((section) => section.sectionId === pending);
+  const session = readSession(recipientId);
 
   async function enter(sectionId: string) {
     const session = readSession(recipientId);
@@ -120,6 +122,8 @@ export default function SectionListPage() {
           ))}
         </div>
       </div>
+
+      {!finished && session ? <PackageDownloadCard applicationId={session.applicationId} sessionToken={session.sessionToken} /> : null}
 
       {timeUp ? <KidNotice tone="coral">The test time is up. You cannot open the parts now.</KidNotice> : null}
 
