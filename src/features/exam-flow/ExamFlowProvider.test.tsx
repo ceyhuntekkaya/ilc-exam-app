@@ -5,10 +5,15 @@ import type { ExamState } from "@/src/features/exam-flow/schema";
 
 const sectionContentMock = vi.fn();
 const loadPackagedSectionContentMock = vi.fn();
-vi.mock("@/src/features/exam-flow/api", () => ({ sectionContent: sectionContentMock }));
+vi.mock("@/src/features/exam-flow/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/src/features/exam-flow/api")>();
+  return { ...actual, sectionContent: sectionContentMock };
+});
 vi.mock("@/src/features/exam-player/offline/packageStore", () => ({
   loadPackagedSectionContent: loadPackagedSectionContentMock,
 }));
+
+const { ExamApiError } = await import("@/src/features/exam-flow/api");
 
 const { loadSectionContent, useExamClock } = await import("@/src/features/exam-flow/ExamFlowProvider");
 
@@ -79,9 +84,15 @@ describe("useExamClock — monoton geri sayım", () => {
 });
 
 /**
- * F3-05/Adım 4: bölüm içeriği önce ağdan istenir; ağ hata verirse (uçak modu) önceden
- * indirilmiş pakete düşülür. Paket de yoksa orijinal ağ hatası çağırana geçer (sessizce
- * yutulmaz — `page.tsx` hâlâ bir hata gösterebilsin).
+ * F3-05/Adım 4: bölüm içeriği önce ağdan istenir; sunucuya HİÇ ULAŞILAMAZSA (uçak modu) önceden
+ * indirilmiş pakete düşülür. Paket de yoksa orijinal hata çağırana geçer (sessizce yutulmaz —
+ * `page.tsx` hâlâ bir hata gösterebilsin).
+ *
+ * GÜVENLİK (ultrareview'de bulundu, bu oturumda düzeltildi): sunucu ULAŞILIR olup bir durum
+ * koduyla (409 STAGE_MISMATCH — "bu bölüm şu an açık değil") REDDEDERSE pakete DÜŞÜLMEMELİ.
+ * Paket TÜM bölümleri içerdiği için (çevrimdışı tam sınav amacıyla), her hatada pakete düşmek
+ * bir öğrencinin henüz kilitli bir bölümün adresine gidip sunucunun sıralama denetimini
+ * atlamasına izin verirdi.
  */
 describe("loadSectionContent — çevrimdışı düşme yolu", () => {
   beforeEach(() => {
@@ -98,8 +109,8 @@ describe("loadSectionContent — çevrimdışı düşme yolu", () => {
     expect(loadPackagedSectionContentMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to the downloaded package when the network fails", async () => {
-    sectionContentMock.mockRejectedValue(new Error("network down"));
+  it("falls back to the downloaded package when the server cannot be reached at all", async () => {
+    sectionContentMock.mockRejectedValue(new ExamApiError("network down"));
     loadPackagedSectionContentMock.mockResolvedValue([{ examQuestionId: "q1" }]);
 
     const result = await loadSectionContent("app-1", "token", "sec-1");
@@ -108,11 +119,20 @@ describe("loadSectionContent — çevrimdışı düşme yolu", () => {
     expect(loadPackagedSectionContentMock).toHaveBeenCalledWith("app-1", "sec-1");
   });
 
-  it("rethrows the original network error when there is no package either", async () => {
-    const networkError = new Error("network down");
+  it("rethrows the original error when there is no package either", async () => {
+    const networkError = new ExamApiError("network down");
     sectionContentMock.mockRejectedValue(networkError);
     loadPackagedSectionContentMock.mockResolvedValue(null);
 
     await expect(loadSectionContent("app-1", "token", "sec-1")).rejects.toBe(networkError);
+  });
+
+  it("does NOT fall back to the package when the server reaches and rejects with a status (locked section)", async () => {
+    const rejected = new ExamApiError("This part is not open right now.", 409, "STAGE_MISMATCH");
+    sectionContentMock.mockRejectedValue(rejected);
+    loadPackagedSectionContentMock.mockResolvedValue([{ examQuestionId: "secret-locked-question" }]);
+
+    await expect(loadSectionContent("app-1", "token", "sec-locked")).rejects.toBe(rejected);
+    expect(loadPackagedSectionContentMock).not.toHaveBeenCalled();
   });
 });

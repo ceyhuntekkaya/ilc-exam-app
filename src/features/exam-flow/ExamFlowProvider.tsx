@@ -487,15 +487,24 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
 }
 
 /**
- * F3-05/Adım 4: bölüm içeriği önce ağdan istenir (çevrimiçiyken davranış DEĞİŞMEDİ); ağ
- * ulaşılamazsa (uçak modu, okul interneti koptu) önceden indirilmiş pakete düşülür — aynı
+ * F3-05/Adım 4: bölüm içeriği önce ağdan istenir (çevrimiçiyken davranış DEĞİŞMEDİ); sunucuya
+ * HİÇ ULAŞILAMAZSA (uçak modu, okul interneti koptu) önceden indirilmiş pakete düşülür — aynı
  * donmuş kâğıttan (`paperJson`) geldiği için çevrimiçi yanıtla birebir aynı `items` dizisidir.
- * Paket de yoksa (hiç indirilmemiş) orijinal ağ hatası çağırana geçer.
+ *
+ * GÜVENLİK: sunucu ULAŞILABİLİR olup bir HTTP durum koduyla REDDEDERSE (ör. 409 STAGE_MISMATCH —
+ * `ExamFlowService.sectionContent`'in "bu bölüm şu an açık değil" kontrolü) pakete DÜŞÜLMEZ,
+ * hata olduğu gibi geçer. Paket TÜM bölümleri içerir (çevrimdışı tam sınav için — F3-05'in amacı);
+ * her hatada pakete düşmek, bir öğrencinin henüz girmediği/kilitli bir bölümün adresine gidip
+ * (ya da bilerek ağı keserek) sunucunun bölüm sıralaması denetimini atlayıp o bölümün içeriğini
+ * görmesine izin verirdi — durum koduyla gelen bir ret, ulaşılamazlık DEĞİLDİR.
  */
 export async function loadSectionContent(applicationId: string, token: string, sectionId: string): Promise<unknown[]> {
   try {
     return await sectionContent(applicationId, token, sectionId);
   } catch (err) {
+    if (err instanceof ExamApiError && err.status != null) {
+      throw err;
+    }
     const packaged = await loadPackagedSectionContent(applicationId, sectionId);
     if (packaged) return packaged;
     throw err;
