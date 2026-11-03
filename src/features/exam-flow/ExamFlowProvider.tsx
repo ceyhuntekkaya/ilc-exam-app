@@ -1,6 +1,7 @@
 "use client";
 
 import { ExamApiError, getState, heartbeat, previewAssignment, startAttempt } from "@/src/features/exam-flow/api";
+import { anchorClock, interpolateRemaining, markSleepStart, resolveWakeDrift, type SleepMark } from "@/src/features/exam-flow/clock";
 import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
 import { isFocusLossOpen, useExamFocusSignals } from "@/src/features/exam-flow/focusSignals";
 import {
@@ -211,6 +212,11 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
     // Android'de dosya seçici / kamera ayrı ekran açar: sayfa gizlenir. Öğrencinin başlattığı bu işlem (beklenen çıkış
     // penceresi) odak kaybı ihlali sayılmaz; eşleşen "görünür" olayı da gönderilmez. Süre yine durur (syncHeld).
     let expectedHide = false;
+    // F3-07/Adım 3: sekme gizliyken cihaz uykuya dalabilir, performance.now() bazı tarayıcılarda durur.
+    // Geri gelince Date.now() farkıyla karşılaştırılır; tutarsızlık varsa VISIBILITY_VISIBLE'ın yüküne
+    // yazılır (yeni olay tipi değil — mevcut olay, zenginleştirilmiş yük; backend ClockSkewService ayrıca
+    // her olayın occurredAt'ini sunucu saatiyle karşılaştırır).
+    let sleepMark: SleepMark | null = null;
     const onHide = () => {
       if (!navigator.onLine) {
         syncHeld();
@@ -227,8 +233,14 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
         return;
       }
       // Önce başka pencereye geçip (FOCUS_LOST sayıldı) sonra sekmeyi gizlemek tek çıkıştır.
-      if (document.hidden) mark("VISIBILITY_HIDDEN", isFocusLossOpen() ? { duringFocusLoss: true } : {});
-      else mark("VISIBILITY_VISIBLE");
+      if (document.hidden) {
+        sleepMark = markSleepStart();
+        mark("VISIBILITY_HIDDEN", isFocusLossOpen() ? { duringFocusLoss: true } : {});
+      } else {
+        const wake = sleepMark ? resolveWakeDrift(sleepMark) : null;
+        sleepMark = null;
+        mark("VISIBILITY_VISIBLE", wake?.driftMs != null ? { driftMs: Math.round(wake.driftMs) } : {});
+      }
     };
     const onOff = () => mark("CONNECTION_LOST");
     const onOn = () => mark("CONNECTION_RESTORED");
@@ -474,11 +486,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
 }
 
 export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {
-  const anchor = useRef<{ remaining: number | null; at: number; running: boolean }>({
-    remaining: null,
-    at: 0,
-    running: false,
-  });
+  const anchor = useRef(anchorClock(null, false));
   const remaining = clock?.sectionRemainingMs ?? clock?.examRemainingMs ?? null;
   const [left, setLeft] = useState<number | null>(remaining);
   // Sunucudan yeni saat gelince gösterilen değeri render sırasında eşitle (effect + setState yerine).
@@ -489,25 +497,12 @@ export function useExamClock(held: boolean, clock: ExamState["clock"] | null) {
   }
 
   useEffect(() => {
-    anchor.current = {
-      remaining,
-      at: performance.now(),
-      running: Boolean(clock?.running) && !held,
-    };
+    anchor.current = anchorClock(remaining, Boolean(clock?.running) && !held);
   }, [clock, held, remaining]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      const current = anchor.current;
-      if (current.remaining == null) {
-        setLeft(null);
-        return;
-      }
-      if (!current.running) {
-        setLeft(current.remaining);
-        return;
-      }
-      setLeft(Math.max(0, current.remaining - (performance.now() - current.at)));
+      setLeft(interpolateRemaining(anchor.current));
     }, 250);
     return () => window.clearInterval(timer);
   }, []);
