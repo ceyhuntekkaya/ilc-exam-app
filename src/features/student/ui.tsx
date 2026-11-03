@@ -1,5 +1,6 @@
 "use client";
 
+import { useFocusTrap } from "@/src/features/exam-player/a11y/focusTrap";
 import { Mascot, type MascotMood } from "@/src/features/student/mascot";
 import { cn } from "@/src/lib/utils/cn";
 import { IconAlert, IconCheck, IconClock, IconLock, IconRefresh } from "@/src/ui/icons";
@@ -221,10 +222,12 @@ export function KidDialog({
   onCancel: () => void;
 }) {
   const titleId = useId();
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // F3-03: Tab artık kutuda döner, önceki odak kapanınca geri verilir (ilk odaklanabilir öğe
+  // DOM sırasında Cancel'dan önce gelmiyor, bu yüzden varsayılan davranış zaten Cancel'ı seçer).
+  useFocusTrap(dialogRef, true);
 
   useEffect(() => {
-    cancelRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onCancel();
     };
@@ -235,6 +238,7 @@ export function KidDialog({
   return (
     <div className="sb-fade fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 backdrop-blur-xs p-3 sm:items-center sm:p-6" onClick={onCancel}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -261,7 +265,7 @@ export function KidDialog({
           </div>
         </div>
         <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
-          <KidButton ref={cancelRef} variant="soft" onClick={onCancel} disabled={busy} className="w-full sm:w-auto">
+          <KidButton variant="soft" onClick={onCancel} disabled={busy} className="w-full sm:w-auto">
             {cancelLabel}
           </KidButton>
           <KidButton variant={tone} onClick={onConfirm} disabled={busy} className="w-full sm:w-auto sm:min-w-32">

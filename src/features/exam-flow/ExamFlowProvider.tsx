@@ -4,6 +4,7 @@ import { ExamApiError, getState, heartbeat, previewAssignment, sectionContent, s
 import { anchorClock, interpolateRemaining, markSleepStart, resolveWakeDrift, type SleepMark } from "@/src/features/exam-flow/clock";
 import { clearQueued, enqueueEvent, flushEventsKeepalive, readQueue } from "@/src/features/exam-flow/eventQueue";
 import { loadPackagedSectionContent } from "@/src/features/exam-player/offline/packageStore";
+import { useFocusTrap } from "@/src/features/exam-player/a11y/focusTrap";
 import { isFocusLossOpen, useExamFocusSignals } from "@/src/features/exam-flow/focusSignals";
 import {
   canRequestFullscreen,
@@ -71,6 +72,8 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
   const linkDownRef = useRef(false);
   const seenFocusLoss = useRef<number | null>(null);
   const [focusWarning, setFocusWarning] = useState<number | null>(null);
+  const focusWarningRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(focusWarningRef, focusWarning != null);
   const enterPromiseRef = useRef<Promise<void> | null>(null);
   const lastNav = useRef<{ to: string; at: number; count: number }>({ to: "", at: 0, count: 0 });
   const needsFullscreen = state != null && state.stage !== "WELCOME" && state.stage !== "FINISHED";
@@ -473,7 +476,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       {children}
       {focusWarning != null ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-(--sb-ink)/55 p-4 sm:items-center">
-          <div role="alertdialog" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white p-6">
+          <div ref={focusWarningRef} role="alertdialog" aria-modal="true" aria-labelledby="focus-warning-title" className="w-full max-w-md rounded-(--sb-r-lg) border-2 border-(--sb-ink) bg-white p-6">
             <h2 id="focus-warning-title" className="text-xl font-extrabold text-(--sb-ink)">You left the test screen</h2>
             <p className="mt-2 text-base text-(--sb-fg-strong)">Please stay on the test screen. Chances left: <span className="font-bold text-(--sb-warning)">{focusWarning}</span>.</p>
             <button type="button" className="mt-5 inline-flex min-h-12 items-center rounded-(--sb-r-md) bg-(--sb-ink) px-5 text-base font-semibold text-white transition-colors duration-120 hover:bg-(--sb-fg-strong)" onClick={() => setFocusWarning(null)}>

@@ -120,8 +120,9 @@ export function QuestionView({
               />
             </section>
           ))}
+          {/* F3-03/Adım 4: slate-400 düz metinde AA'yı geçmiyordu, slate-500'e çıkarıldı. */}
           {!parts.length && preview ? (
-            <p className="text-sm italic text-exam-slate-400">Henüz part yok</p>
+            <p className="text-sm italic text-exam-slate-500">Henüz part yok</p>
           ) : null}
         </div>
       </div>

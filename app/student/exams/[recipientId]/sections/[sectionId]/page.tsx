@@ -1,6 +1,7 @@
 "use client";
 
 import { ExamApiError, postState, putPosition } from "@/src/features/exam-flow/api";
+import { useTimeAnnouncement } from "@/src/features/exam-player/a11y/announcements";
 import { loadSectionContent, useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
@@ -48,6 +49,9 @@ export default function SectionQuestionPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const section = state?.sections.find((item) => item.sectionId === params.sectionId);
   const session = readSession(params.recipientId);
+  // F3-03/Adım 3: erken dönüşten (satır 124) ÖNCE — hook'lar koşulsuz çağrılmalı.
+  const announceTimeTotal = state?.clock.sectionRemainingMs != null ? section?.durationMs ?? null : null;
+  const timeAnnouncement = useTimeAnnouncement(remaining, announceTimeTotal);
 
   const resumeItemId = state?.currentItemId;
   // İçerik yalnız bölüm değişince yüklenir; kaldığı soru yükleme anındaki değerle okunur (her geçişte yeniden yükleme yok).
@@ -166,7 +170,7 @@ export default function SectionQuestionPage() {
 
   const warnMs = (state.clock.timeWarningSeconds ?? 300) * 1000;
   const timeTone = remaining == null ? "calm" : remaining <= 60_000 ? "critical" : remaining <= warnMs ? "warn" : "calm";
-  const timeTotal = state.clock.sectionRemainingMs != null ? section.durationMs : null;
+  const timeTotal = announceTimeTotal;
 
   async function act(path: "complete" | "leave") {
     if (!session) return;
@@ -196,6 +200,8 @@ export default function SectionQuestionPage() {
   return (
     <LiveExamSessionProvider applicationId={session.applicationId} sessionToken={session.sessionToken}>
       <div className="exam-sitting relative flex min-h-dvh flex-1 flex-col bg-(--sb-bg)">
+        {/* F3-03/Adım 3: görsel sayaç ekran okuyucuya duyulmaz — %50/%25/son 2 dk'da bir kez duyuru. */}
+        <div role="status" aria-live="assertive" className="sr-only">{timeAnnouncement}</div>
         {/* Üst çubuk (52px): bölüm, sıra, süre, ara ver. Modern cam çubuk */}
         <header className="sticky top-0 z-30 border-b border-indigo-100/80 bg-white/95 backdrop-blur-md">
           <div className={cn("flex h-13 items-center justify-between gap-3", STAGE_INSET)}>

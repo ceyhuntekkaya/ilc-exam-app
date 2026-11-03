@@ -115,7 +115,8 @@ export function InteractionRenderer({
       );
     default:
       return (
-        <p className="text-sm italic text-exam-slate-400">
+        <p className="text-sm italic text-exam-slate-500">
+          {/* F3-03/Adım 4: slate-400 düz metinde AA'yı geçmiyordu, slate-500'e çıkarıldı. */}
           Unknown question type: <code>{type}</code>
         </p>
       );

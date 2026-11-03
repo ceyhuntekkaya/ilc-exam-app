@@ -328,7 +328,8 @@ export function DragItem({
         className,
       )}
     >
-      {!placed && !tile && !locked ? <IconGrip className="size-4 shrink-0 text-exam-slate-300" aria-hidden /> : null}
+      {/* F3-03/Adım 4: slate-300 bu simgede 3:1 UI eşiğini (WCAG 1.4.11) geçmiyordu (1.79:1) — slate-400'e (3.48:1) çıkarıldı. */}
+      {!placed && !tile && !locked ? <IconGrip className="size-4 shrink-0 text-exam-slate-400" aria-hidden /> : null}
       <Inner className={fill && placed ? "block size-full" : plain && placed ? "inline" : "min-w-0 flex-1"}>
         {children}
         {locked && lockedHint && !tile ? (
@@ -566,7 +567,8 @@ export function StartOver({ onReset, disabled }: { onReset: () => void; disabled
 /** Boş kutu metni: bir kart seçiliyken / sürüklenirken "Put it here" olur (kutunun data-state'ine göre). */
 export function EmptySlot({ text = "Drop here" }: { text?: string }) {
   return (
-    <span className="w-full px-2 text-center text-sm font-semibold text-exam-slate-400 in-data-[state=over]:text-exam-sky-800 in-data-[state=ready]:text-exam-sky-700">
+    // F3-03/Adım 4: slate-400 düz metinde AA'yı (4.5:1) geçmiyordu (3.48:1) — slate-500'e (5.37:1) çıkarıldı.
+    <span className="w-full px-2 text-center text-sm font-semibold text-exam-slate-500 in-data-[state=over]:text-exam-sky-800 in-data-[state=ready]:text-exam-sky-700">
       <span className="in-data-[state=over]:hidden in-data-[state=ready]:hidden">{text}</span>
       <span className="hidden in-data-[state=over]:inline in-data-[state=ready]:inline">Put it here</span>
     </span>
