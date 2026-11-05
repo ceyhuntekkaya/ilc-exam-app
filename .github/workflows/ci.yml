@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# NOT (G-02): ilc-parent ayrı bir GitHub reposu (ceyhuntekkaya/ilc-exam-parent) olduğu için
+# backend işi burada değil, o reponun kendi .github/workflows/ci.yml dosyasında.
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: Lint (taban çizgisi 45 problem — aşarsa kırmızı, altına inmesi serbest)
+        env:
+          LINT_BASELINE: 45
+        run: |
+          npm run lint > lint-output.txt 2>&1 || true
+          cat lint-output.txt
+          PROBLEMS=$(grep -oE '[0-9]+ problem' lint-output.txt | grep -oE '[0-9]+' | head -1)
+          PROBLEMS=${PROBLEMS:-0}
+          echo "Lint problem sayısı: $PROBLEMS (taban çizgisi: $LINT_BASELINE)"
+          if [ "$PROBLEMS" -gt "$LINT_BASELINE" ]; then
+            echo "::error::Lint problem sayısı ($PROBLEMS) taban çizgiyi ($LINT_BASELINE) aşıyor."
+            exit 1
+          fi
+      - run: npx tsc --noEmit
+      - run: npm run test
