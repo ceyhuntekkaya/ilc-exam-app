@@ -271,6 +271,49 @@ export type GenerateFromBlueprintResult = {
   report: BlueprintDeviation[];
 };
 
+/** H-02: BlueprintPages.tsx — `BlueprintAuthoringService`'in HTTP yüzeyi. */
+export type BlueprintDimensionKind =
+  | "SKILL_DISTRIBUTION"
+  | "CEFR_TARGET"
+  | "ITEM_TYPE_MIX"
+  | "DIFFICULTY_DISTRIBUTION"
+  | "CONTENT_AREA_BALANCE"
+  | "DURATION"
+  | "EXPOSURE_CONSTRAINT"
+  | "CONTEXT_DIMENSION"
+  | "DIAGNOSTIC_SUBDOMAIN_MIN_ITEMS";
+
+export const BLUEPRINT_DIMENSION_KINDS: BlueprintDimensionKind[] = [
+  "SKILL_DISTRIBUTION",
+  "CEFR_TARGET",
+  "ITEM_TYPE_MIX",
+  "DIFFICULTY_DISTRIBUTION",
+  "CONTENT_AREA_BALANCE",
+  "DURATION",
+  "EXPOSURE_CONSTRAINT",
+  "CONTEXT_DIMENSION",
+  "DIAGNOSTIC_SUBDOMAIN_MIN_ITEMS",
+];
+
+export type BlueprintDimensionDetail = {
+  kind: BlueprintDimensionKind;
+  target: Record<string, unknown>;
+  /** `null`/eksik = akademik ekip bu boyut için sayı vermedi — sıkı sadakat uygulanır, "uygun" ile KARIŞTIRMA. */
+  tolerance?: number | null;
+};
+
+export type BlueprintDetail = {
+  id: string;
+  title: string;
+  status: VersionStatus;
+  createdBy: string;
+  createdAt: string;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  retiredAt?: string | null;
+  dimensions: BlueprintDimensionDetail[];
+};
+
 /** K-03: LibraryPages.tsx — F2-14/K-02'de yazılan PoolAuditService'in HTTP yüzeyi. */
 export type KurumVersionRef = { versionId: string; ownerOrgId: string };
 
@@ -725,4 +768,33 @@ export const authoringApi = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+  listBlueprints: () => authoringFetch<BlueprintDetail[]>("/authoring/blueprints"),
+  getBlueprint: (id: string) => authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}`),
+  createBlueprint: (title: string) =>
+    authoringFetch<BlueprintDetail>("/authoring/blueprints", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    }),
+  setBlueprintDimension: (
+    id: string,
+    kind: BlueprintDimensionKind,
+    target: Record<string, unknown>,
+    tolerance: number | null,
+  ) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/dimensions/${kind}`, {
+      method: "PUT",
+      body: JSON.stringify({ target, tolerance }),
+    }),
+  removeBlueprintDimension: (id: string, kind: BlueprintDimensionKind) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/dimensions/${kind}`, { method: "DELETE" }),
+  submitBlueprintReview: (id: string) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/submit-review`, { method: "POST" }),
+  returnBlueprintToDraft: (id: string) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/return-to-draft`, { method: "POST" }),
+  approveBlueprint: (id: string) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/approve`, { method: "POST" }),
+  retireBlueprint: (id: string) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/retire`, { method: "POST" }),
+  republishBlueprint: (id: string) =>
+    authoringFetch<BlueprintDetail>(`/authoring/blueprints/${id}/republish`, { method: "POST" }),
 };

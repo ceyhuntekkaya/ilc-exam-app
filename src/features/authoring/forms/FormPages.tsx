@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   authoringApi,
   type BlueprintDeviation,
+  type BlueprintDetail,
   type FormSummary,
 } from "@/src/features/authoring/shared/client";
 import {
@@ -14,6 +15,7 @@ import {
   Field,
   FormCard,
   Input,
+  Select,
   Textarea,
   errorMessage,
   notify,
@@ -35,8 +37,9 @@ export function ExamFormsTab({ examId }: { examId: string }) {
   const [report, setReport] = useState<{ forFormId: string | null; rows: BlueprintDeviation[] } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Blueprint'ten üretim formu — alan girdisi şimdilik düz metin (blueprint/madde seçici ekranı
-  // bu paketin kapsamında değil, F2-07/F2-08'in kendi ekranları ayrı bir iştir).
+  // Blueprint'ten üretim formu — blueprint seçimi H-02'den beri BlueprintPages.tsx'in listesinden
+  // gelir (önceden düz metin UUID girişiydi, blueprint yazarlık ekranı henüz yoktu).
+  const [blueprints, setBlueprints] = useState<BlueprintDetail[]>([]);
   const [blueprintId, setBlueprintId] = useState("");
   const [candidateIds, setCandidateIds] = useState("");
   const [targetSize, setTargetSize] = useState(10);
@@ -58,6 +61,13 @@ export function ExamFormsTab({ examId }: { examId: string }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examId]);
+
+  useEffect(() => {
+    authoringApi
+      .listBlueprints()
+      .then((rows) => setBlueprints(rows.filter((b) => b.status === "APPROVED")))
+      .catch(() => setBlueprints([]));
+  }, []);
 
   function splitIds(raw: string): string[] {
     return raw
@@ -186,8 +196,13 @@ export function ExamFormsTab({ examId }: { examId: string }) {
 
       <FormCard title="Blueprint'ten form üret" description="Aday madde havuzundan seçim yapar, dokuz boyuta karşı doğrular.">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Blueprint kimliği">
-            <Input value={blueprintId} onChange={(e) => setBlueprintId(e.target.value)} placeholder="UUID" />
+          <Field label="Blueprint" hint={blueprints.length === 0 ? "Onaylı blueprint yok — önce Blueprint'ler ekranından bir tanesini onaylayın" : undefined}>
+            <Select value={blueprintId} onChange={(e) => setBlueprintId(e.target.value)}>
+              <option value="">Seçin…</option>
+              {blueprints.map((b) => (
+                <option key={b.id} value={b.id}>{b.title}</option>
+              ))}
+            </Select>
           </Field>
           <Field label="Hedef madde sayısı">
             <Input type="number" min={1} value={targetSize} onChange={(e) => setTargetSize(Number(e.target.value) || 1)} />

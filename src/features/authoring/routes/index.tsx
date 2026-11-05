@@ -1,5 +1,6 @@
 "use client";
 
+import { BlueprintsPage } from "@/src/features/authoring/blueprints/BlueprintPages";
 import { ExamBuilderPage, ExamListPage, ExamWizardPage } from "@/src/features/authoring/exams/ExamPages";
 import { QuestionEditorPage, QuestionTypePicker } from "@/src/features/authoring/questions/QuestionEditor";
 import { QuestionBankPage } from "@/src/features/authoring/questions/QuestionBankPage";
@@ -69,4 +70,8 @@ export function FormatsRoute() {
 
 export function SettingsRoute() {
   return <SettingsDictionariesPage />;
+}
+
+export function BlueprintsRoute() {
+  return <BlueprintsPage />;
 }

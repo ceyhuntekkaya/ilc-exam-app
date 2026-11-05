@@ -58,6 +58,12 @@ const CONTENT: ContentDef[] = [
     perms: [Perm.rubricManage, Perm.examRead],
   },
   {
+    slug: "blueprints",
+    label: "Blueprint'ler",
+    description: "Form üretimi için boyut/tolerans şablonları",
+    perms: [Perm.questionCreate, Perm.questionEditOwn, Perm.questionEditAll, Perm.examRead],
+  },
+  {
     slug: "formats",
     label: "Sınav Formatları",
     description: "Hazır sınav iskeletleri",
