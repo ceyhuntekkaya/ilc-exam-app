@@ -16,7 +16,8 @@ export type ContentSection =
   | "media"
   | "rubrics"
   | "formats"
-  | "settings";
+  | "settings"
+  | "ctt";
 
 type PanelValue = {
   role: PanelRole;

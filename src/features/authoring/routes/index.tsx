@@ -2,6 +2,7 @@
 
 import { BlueprintsPage } from "@/src/features/authoring/blueprints/BlueprintPages";
 import { ExamBuilderPage, ExamListPage, ExamWizardPage } from "@/src/features/authoring/exams/ExamPages";
+import { CttPanelPage } from "@/src/features/psychometrics/CttPanel";
 import { QuestionEditorPage, QuestionTypePicker } from "@/src/features/authoring/questions/QuestionEditor";
 import { QuestionBankPage } from "@/src/features/authoring/questions/QuestionBankPage";
 import { RubricsPage } from "@/src/features/authoring/rubrics/RubricEditor";
@@ -74,4 +75,8 @@ export function SettingsRoute() {
 
 export function BlueprintsRoute() {
   return <BlueprintsPage />;
+}
+
+export function CttPanelRoute() {
+  return <CttPanelPage />;
 }

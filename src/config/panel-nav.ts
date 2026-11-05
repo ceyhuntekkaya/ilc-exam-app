@@ -70,6 +70,12 @@ const CONTENT: ContentDef[] = [
     perms: [Perm.examFormatManage, Perm.examRead],
   },
   {
+    slug: "ctt",
+    label: "CTT Paneli",
+    description: "Madde güçlüğü, ayırt edicilik ve form güvenirliği",
+    perms: [Perm.psychometricsManage],
+  },
+  {
     slug: "settings",
     label: "Ayarlar",
     description: "Etiket, kazanım ve yaş bantları",
