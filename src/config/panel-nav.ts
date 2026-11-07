@@ -134,6 +134,15 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Atamalar",
           description: "Sınıfa ata, aç, kapat, izle",
           perms: [Perm.assignmentManage, Perm.assignmentMonitor],
+          // F3B-17: dağıtım ekranları eski atama motorunun yerine geçti. `src/features/assignments/**`
+          // SİLİNMEDİ (dokunulmaz), yalnız menüden kaldırıldı — rota hâlâ erişilebilir.
+          hidden: true,
+        },
+        {
+          href: "/staff/distributions",
+          label: "Dağıtımlar",
+          description: "Dağıtım listesi, adaylar ve sonuç görünümü",
+          perms: [Perm.assignmentManage, Perm.assignmentMonitor],
         },
         {
           href: "/staff/grading",
@@ -200,6 +209,12 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Kurum Beyanı",
           description: "Reşit olmayan öğrenciler için rıza beyanı (D66)",
           perms: [Perm.studentManage],
+        },
+        {
+          href: "/staff/ledger",
+          label: "Kota ve Tüketim",
+          description: "Kota bakiyesi, defter hareketleri ve tüketim raporu",
+          perms: [Perm.reportViewBranch, Perm.reportViewInstitute, Perm.reportViewCompany],
         },
       ],
     },
