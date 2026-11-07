@@ -8,7 +8,7 @@ import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import { Mascot, type MascotMood } from "@/src/features/student/mascot";
 import { examGroup, examStatus, finishedAttempts, firstName, friendlyWhen, type FinishedAttempt } from "@/src/features/student/status";
 import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
-import type { ReportDeck } from "@/src/features/results/reportCardPdf";
+import { downloadMyReportCardPdf } from "@/src/features/results/downloadReportCardsPdf";
 import { skillClass, skillFamily } from "@/src/features/results/skill";
 import { cn } from "@/src/lib/utils/cn";
 import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconDownload, IconFile, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
@@ -350,9 +350,7 @@ function ResultCard({ row }: { row: Result }) {
     setPdfError(null);
     setDownloading(true);
     try {
-      const response = await customInstance<{ data: ReportDeck }>(`/me/results/${row.applicationId}/report-card`);
-      const { downloadReportCards } = await import("@/src/features/results/reportCardPdf");
-      await downloadReportCards(response.data);
+      await downloadMyReportCardPdf(row.applicationId);
     } catch {
       setPdfError("The PDF could not be downloaded. Try again.");
     } finally {

@@ -372,6 +372,7 @@ export * from './multipleResponseFormat';
 export * from './multipleResponseKey';
 export * from './multipleResponseKeyElementPoints';
 export * from './myAssignment';
+export * from './myReportCardPdfParams';
 export * from './myReportPdfParams';
 export * from './nameRequest';
 export * from './nameRequestKind';

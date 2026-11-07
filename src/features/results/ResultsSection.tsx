@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { answerKeyVisible, choicePaint, type ChoicePaint } from "./choiceTone";
-import type { ReportDeck } from "./reportCardPdf";
+import { downloadReportCardsPdf } from "./downloadReportCardsPdf";
 import { skillClass, skillFamily } from "./skill";
 
 type StudentRow = {
@@ -286,37 +286,16 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       ),
   });
 
-  async function withSectionScores(deck: ReportDeck): Promise<ReportDeck> {
-    const cards = await Promise.all(deck.cards.map(async (card) => {
-      const scale = headline(num(card.score), num(card.maxScore), num(deck.examTotal)).scale;
-      if ((card.sections?.length ?? 0) > 0) return { ...card, sections: wholeSections(card.sections ?? [], scale) };
-      const sitting = students.find((row) => row.studentId === card.studentId && (row.attemptNo ?? 0) === (card.attemptNo ?? 0));
-      if (!sitting) return card;
-      const detail = await customInstance<{ data: StudentReport }>(
-        `/companies/${companyId}/exam-results/applications/${sitting.applicationId}`,
-      );
-      return { ...card, sections: karneSections(detail.data, scale) };
-    }));
-    return { ...deck, cards };
-  }
-
   async function createReport() {
     setCreatingReport(true);
     try {
-      const params = new URLSearchParams({
+      await downloadReportCardsPdf(companyId, {
         instituteId: scope.campusId,
         academicYearId: scope.seasonId,
         examVersionId: scope.examValue,
         branchId: scope.branchValue,
       });
-      const response = await customInstance<{ data: ReportDeck }>(
-        `/companies/${companyId}/exam-results/report-cards?${params.toString()}`,
-      );
-      const deck = await withSectionScores(response.data);
-      const { downloadReportCards } = await import("./reportCardPdf");
-      await downloadReportCards(deck);
-      const count = response.data.cards.length;
-      notify.success(count === 1 ? "1 öğrencinin karnesi indirildi" : `${count} öğrencinin karnesi indirildi`);
+      notify.success("Karneler indirildi");
     } catch (err) {
       notify.error(errorMessage(err, "Karneler oluşturulamadı"));
     } finally {

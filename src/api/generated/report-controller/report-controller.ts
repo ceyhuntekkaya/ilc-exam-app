@@ -21,6 +21,7 @@ import type {
 
 import type {
   CenterReport200,
+  MyReportCardPdfParams,
   MyReportPdfParams,
   ReportCardsPdfParams,
   ReportModel,
@@ -372,6 +373,127 @@ export function useMyHistory<TData = Awaited<ReturnType<typeof myHistory>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getMyHistoryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type myReportCardPdfResponse200 = {
+  data: string
+  status: 200
+}
+
+export type myReportCardPdfResponseSuccess = (myReportCardPdfResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myReportCardPdfResponse = (myReportCardPdfResponseSuccess)
+
+export const getMyReportCardPdfUrl = (applicationId: string,
+    params?: MyReportCardPdfParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/report/me/applications/${applicationId}/report-card/pdf?${stringifiedParams}` : `/report/me/applications/${applicationId}/report-card/pdf`
+}
+
+export const myReportCardPdf = async (applicationId: string,
+    params?: MyReportCardPdfParams, options?: Parameters<typeof customInstance>[1]): Promise<myReportCardPdfResponse> => {
+
+  return customInstance<myReportCardPdfResponse>(getMyReportCardPdfUrl(applicationId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyReportCardPdfQueryKey = (applicationId: string,
+    params?: MyReportCardPdfParams,) => {
+    return [
+    `/report/me/applications/${applicationId}/report-card/pdf`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getMyReportCardPdfQueryOptions = <TData = Awaited<ReturnType<typeof myReportCardPdf>>, TError = ErrorType<unknown>>(applicationId: string,
+    params?: MyReportCardPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyReportCardPdfQueryKey(applicationId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReportCardPdf>>> = ({ signal }) => myReportCardPdf(applicationId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyReportCardPdfQueryResult = NonNullable<Awaited<ReturnType<typeof myReportCardPdf>>>
+export type MyReportCardPdfQueryError = ErrorType<unknown>
+
+
+export function useMyReportCardPdf<TData = Awaited<ReturnType<typeof myReportCardPdf>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    params: undefined |  MyReportCardPdfParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReportCardPdf>>,
+          TError,
+          Awaited<ReturnType<typeof myReportCardPdf>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReportCardPdf<TData = Awaited<ReturnType<typeof myReportCardPdf>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    params?: MyReportCardPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReportCardPdf>>,
+          TError,
+          Awaited<ReturnType<typeof myReportCardPdf>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReportCardPdf<TData = Awaited<ReturnType<typeof myReportCardPdf>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    params?: MyReportCardPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyReportCardPdf<TData = Awaited<ReturnType<typeof myReportCardPdf>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    params?: MyReportCardPdfParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCardPdf>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyReportCardPdfQueryOptions(applicationId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
