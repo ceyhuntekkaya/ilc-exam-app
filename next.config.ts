@@ -47,6 +47,12 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "no-cache" },
         ],
       },
+      // F5-07: doğrulama sayfası kimlik doğrulamasız, herkese açık — arama motoru dizine
+      // almasın (başlık + page.tsx'teki metadata.robots, ikisi birden).
+      {
+        source: "/verify/:code",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
     ];
   },
 };
