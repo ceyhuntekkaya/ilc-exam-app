@@ -478,6 +478,7 @@ export * from './reorderRequest';
 export * from './report';
 export * from './reportCard';
 export * from './reportCardsParams';
+export * from './reportCardsPdfParams';
 export * from './reportDeck';
 export * from './reportModel';
 export * from './reportModelAssuranceLevel';
