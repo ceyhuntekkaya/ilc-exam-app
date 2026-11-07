@@ -21,10 +21,12 @@ import type {
 
 import type {
   CenterReport200,
+  MyCanDo200,
   MyReportCardPdfParams,
   MyReportPdfParams,
   ReportCardsPdfParams,
   ReportModel,
+  StaffCanDo200,
   StaffReportPdfParams
 } from '../models';
 
@@ -267,6 +269,112 @@ export function useMyReportPdf<TData = Awaited<ReturnType<typeof myReportPdf>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getMyReportPdfQueryOptions(applicationResultId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type myCanDoResponse200 = {
+  data: MyCanDo200
+  status: 200
+}
+
+export type myCanDoResponseSuccess = (myCanDoResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myCanDoResponse = (myCanDoResponseSuccess)
+
+export const getMyCanDoUrl = (applicationResultId: string,) => {
+
+
+
+
+  return `/report/me/results/${applicationResultId}/can-do`
+}
+
+export const myCanDo = async (applicationResultId: string, options?: Parameters<typeof customInstance>[1]): Promise<myCanDoResponse> => {
+
+  return customInstance<myCanDoResponse>(getMyCanDoUrl(applicationResultId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyCanDoQueryKey = (applicationResultId: string,) => {
+    return [
+    `/report/me/results/${applicationResultId}/can-do`
+    ] as const;
+    }
+
+
+export const getMyCanDoQueryOptions = <TData = Awaited<ReturnType<typeof myCanDo>>, TError = ErrorType<unknown>>(applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyCanDoQueryKey(applicationResultId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myCanDo>>> = ({ signal }) => myCanDo(applicationResultId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationResultId !== null && applicationResultId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyCanDoQueryResult = NonNullable<Awaited<ReturnType<typeof myCanDo>>>
+export type MyCanDoQueryError = ErrorType<unknown>
+
+
+export function useMyCanDo<TData = Awaited<ReturnType<typeof myCanDo>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myCanDo>>,
+          TError,
+          Awaited<ReturnType<typeof myCanDo>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyCanDo<TData = Awaited<ReturnType<typeof myCanDo>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myCanDo>>,
+          TError,
+          Awaited<ReturnType<typeof myCanDo>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyCanDo<TData = Awaited<ReturnType<typeof myCanDo>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyCanDo<TData = Awaited<ReturnType<typeof myCanDo>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyCanDoQueryOptions(applicationResultId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -737,6 +845,120 @@ export function useStaffReportPdf<TData = Awaited<ReturnType<typeof staffReportP
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getStaffReportPdfQueryOptions(companyId,applicationResultId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type staffCanDoResponse200 = {
+  data: StaffCanDo200
+  status: 200
+}
+
+export type staffCanDoResponseSuccess = (staffCanDoResponse200) & {
+  headers: Headers;
+};
+;
+
+export type staffCanDoResponse = (staffCanDoResponseSuccess)
+
+export const getStaffCanDoUrl = (companyId: string,
+    applicationResultId: string,) => {
+
+
+
+
+  return `/report/companies/${companyId}/results/${applicationResultId}/can-do`
+}
+
+export const staffCanDo = async (companyId: string,
+    applicationResultId: string, options?: Parameters<typeof customInstance>[1]): Promise<staffCanDoResponse> => {
+
+  return customInstance<staffCanDoResponse>(getStaffCanDoUrl(companyId,applicationResultId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStaffCanDoQueryKey = (companyId: string,
+    applicationResultId: string,) => {
+    return [
+    `/report/companies/${companyId}/results/${applicationResultId}/can-do`
+    ] as const;
+    }
+
+
+export const getStaffCanDoQueryOptions = <TData = Awaited<ReturnType<typeof staffCanDo>>, TError = ErrorType<unknown>>(companyId: string,
+    applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStaffCanDoQueryKey(companyId,applicationResultId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof staffCanDo>>> = ({ signal }) => staffCanDo(companyId,applicationResultId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: companyId !== null && companyId !== undefined && applicationResultId !== null && applicationResultId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StaffCanDoQueryResult = NonNullable<Awaited<ReturnType<typeof staffCanDo>>>
+export type StaffCanDoQueryError = ErrorType<unknown>
+
+
+export function useStaffCanDo<TData = Awaited<ReturnType<typeof staffCanDo>>, TError = ErrorType<unknown>>(
+ companyId: string,
+    applicationResultId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof staffCanDo>>,
+          TError,
+          Awaited<ReturnType<typeof staffCanDo>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStaffCanDo<TData = Awaited<ReturnType<typeof staffCanDo>>, TError = ErrorType<unknown>>(
+ companyId: string,
+    applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof staffCanDo>>,
+          TError,
+          Awaited<ReturnType<typeof staffCanDo>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStaffCanDo<TData = Awaited<ReturnType<typeof staffCanDo>>, TError = ErrorType<unknown>>(
+ companyId: string,
+    applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStaffCanDo<TData = Awaited<ReturnType<typeof staffCanDo>>, TError = ErrorType<unknown>>(
+ companyId: string,
+    applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staffCanDo>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStaffCanDoQueryOptions(companyId,applicationResultId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
