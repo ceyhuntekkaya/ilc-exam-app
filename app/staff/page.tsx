@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useStaff, useStudents } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
+import type { StaffDto, StudentDto } from "@/src/api/generated/models";
 import { useAuth } from "@/src/components/auth-provider";
 import { visibleNav } from "@/src/config/panel-nav";
 import { usePanelCompanyId } from "@/src/features/panel/PanelContext";
@@ -89,8 +90,8 @@ export default function StaffDashboardPage() {
   // Yalnız yetkili olunan metrikler istenir (403 gürültüsü yok).
   const assignments = useListAssignments({ companyId }, on(can.assignments)).data?.data;
   const grants = useListGrants({ companyId }, on(can.grants)).data?.data;
-  const students = useStudents(companyId, on(can.students)).data?.data;
-  const staff = useStaff(companyId, on(can.staff)).data?.data;
+  const students = useStudents(companyId, undefined, on(can.students)).data?.data as StudentDto[] | undefined;
+  const staff = useStaff(companyId, undefined, on(can.staff)).data?.data as StaffDto[] | undefined;
 
   const groups = visibleNav("STAFF", perms).filter((group) => group.label !== "Genel");
   const today = new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });

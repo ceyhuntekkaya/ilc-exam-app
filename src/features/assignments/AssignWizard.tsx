@@ -9,12 +9,12 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import {
-  preview,
+  preview1,
   useCreateAssignment,
   useOpen,
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
-import { OmittedStudentReason, TargetRequestType, type StudentDto } from "@/src/api/generated/models";
+import { TargetRequestType, type StudentDto } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import { istanbulInstant, istanbulLabel } from "@/src/features/assignments/istanbulTime";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
@@ -55,7 +55,8 @@ const TARGET_HINT: Record<TargetRequestType, string> = {
   [TargetRequestType.STUDENT]: "Yalnız seçilen öğrenci.",
 };
 
-const OMIT_REASON: Record<OmittedStudentReason, string> = {
+// Backend OpenAPI'de artık `reason` düz string (enum anotasyonu gitti); bilinen 4 kod aynı kalıyor.
+const OMIT_REASON: Record<string, string> = {
   ENROLLMENT_STATUS: "Kayıt aktif değil",
   YEAR_OR_CAMPUS: "Kayıt yılı veya kampüsü uyuşmuyor",
   USER_INACTIVE: "Hesap aktif değil",
@@ -99,7 +100,10 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   const grades = useGrades(companyId).data?.data ?? [];
   const branches = useBranches(companyId).data?.data ?? [];
   const studentsData = useStudents(companyId).data;
-  const students = useMemo(() => studentsData?.data ?? [], [studentsData]);
+  const students = useMemo(
+    () => (studentsData?.data as StudentDto[] | undefined) ?? [],
+    [studentsData],
+  );
   const create = useCreateAssignment();
   const setTargets = useSetTargets();
   const openAssignment = useOpen();
@@ -186,7 +190,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         id: assignmentId,
         data: [{ type: targetType, targetId, exclude: false }],
       });
-      const seen = await preview(assignmentId);
+      const seen = await preview1(assignmentId);
       const body = seen.data;
       setDraftId(assignmentId);
       setPreviewNames(
@@ -195,7 +199,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
       setOmittedRows(
         (body?.omitted ?? []).map((row) => ({
           name: studentName.get(row.studentId ?? "") || row.studentId || "Öğrenci",
-          reason: row.reason ? OMIT_REASON[row.reason] : "Elenen",
+          reason: row.reason ? OMIT_REASON[row.reason] ?? row.reason : "Elenen",
         })),
       );
       setStep(4);

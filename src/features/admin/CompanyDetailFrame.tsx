@@ -4,10 +4,10 @@ import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import {
-  getGetQueryKey,
-  useActivate,
-  useDelete,
-  useGet,
+  getGet5QueryKey,
+  useActivate1,
+  useDelete2,
+  useGet5,
   useSuspend,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import {
@@ -40,11 +40,11 @@ export function CompanyDetailFrame({
   const params = useParams<{ id: string }>();
   const companyId = params.id;
   const queryClient = useQueryClient();
-  const { data, isLoading, isError, error } = useGet(companyId);
+  const { data, isLoading, isError, error } = useGet5(companyId);
   const company = data?.data;
   const suspend = useSuspend();
-  const activate = useActivate();
-  const remove = useDelete();
+  const activate = useActivate1();
+  const remove = useDelete2();
   const [confirm, setConfirm] = useState<"suspend" | "activate" | "delete" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const meta = companySectionMeta(section);
@@ -66,7 +66,7 @@ export function CompanyDetailFrame({
         await remove.mutateAsync({ id: companyId });
         notify.success("Kurum silindi");
       }
-      await queryClient.invalidateQueries({ queryKey: getGetQueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getGet5QueryKey(companyId) });
       setConfirm(null);
     } catch (err) {
       const message = errorMessage(err, "İşlem başarısız");

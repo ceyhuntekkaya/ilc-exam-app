@@ -3,6 +3,7 @@
 import { useStudents } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListAssignments } from "@/src/api/generated/admin-exams/admin-exams";
 import { useMonitor } from "@/src/api/generated/assignment-controller/assignment-controller";
+import type { StudentDto } from "@/src/api/generated/models";
 import { AssignmentCloseActions } from "@/src/features/assignments/AssignmentCloseActions";
 import { useOpsHref, usePanelCompanyId } from "@/src/features/panel/PanelContext";
 import { Badge, ErrorState, PageHeader, SectionTable } from "@/src/ui";
@@ -53,11 +54,12 @@ export function MonitorSection({ assignmentId }: { assignmentId: string }) {
     { query: { enabled: Boolean(companyId) } },
   );
   const assignment = assignments.data?.data?.find((row) => row.id === assignmentId);
-  const studentsQ = useStudents(companyId ?? "", { query: { enabled: Boolean(companyId) } });
+  const studentsQ = useStudents(companyId ?? "", undefined, { query: { enabled: Boolean(companyId) } });
   // Tabloda kimlik yerine ad; liste gelmezse kimlik gösterilir.
   const studentName = useMemo(() => {
     const map = new Map<string, string>();
-    for (const s of studentsQ.data?.data ?? []) {
+    const students = (studentsQ.data?.data as StudentDto[] | undefined) ?? [];
+    for (const s of students) {
       if (s.id) map.set(s.id, `${s.firstName ?? ""} ${s.lastName ?? ""}`.trim());
     }
     return map;

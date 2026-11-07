@@ -1,13 +1,14 @@
 "use client";
 
 import { useRoles, useStaff } from "@/src/api/generated/admin-companies/admin-companies";
+import type { StaffDto } from "@/src/api/generated/models";
 import { ErrorState, SectionTable, SectionToolbar } from "@/src/ui";
 
 /** Kurum rol şablonları ve her role atanmış personel sayısı (rol düzenleme ekranı henüz yok). */
 export function RolesSection({ companyId }: { companyId: string }) {
   const { data, isLoading, isError, error, refetch } = useRoles(companyId);
-  const staffQ = useStaff(companyId, { query: { retry: false } });
-  const staff = staffQ.data?.data;
+  const staffQ = useStaff(companyId, undefined, { query: { retry: false } });
+  const staff = staffQ.data?.data as StaffDto[] | undefined;
   const rows = data?.data ?? [];
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
