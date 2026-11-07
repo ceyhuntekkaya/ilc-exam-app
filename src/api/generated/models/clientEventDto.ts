@@ -8,6 +8,8 @@ import type { ClientEventDtoPayload } from './clientEventDtoPayload';
 import type { ClientEventDtoType } from './clientEventDtoType';
 
 export interface ClientEventDto {
+  clientEventId?: string;
   type?: ClientEventDtoType;
+  occurredAt?: string;
   payload?: ClientEventDtoPayload;
 }

@@ -4,6 +4,12 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { ExamApplicationClosedBy } from './examApplicationClosedBy';
+import type { ExamApplicationFinishedReason } from './examApplicationFinishedReason';
+import type { ExamApplicationIntegrityLevel } from './examApplicationIntegrityLevel';
+import type { ExamApplicationPaperJson } from './examApplicationPaperJson';
+import type { ExamApplicationScoringJson } from './examApplicationScoringJson';
+import type { ExamApplicationStage } from './examApplicationStage';
 import type { ExamApplicationStatus } from './examApplicationStatus';
 
 export interface ExamApplication {
@@ -12,6 +18,22 @@ export interface ExamApplication {
   recipientId?: string;
   attemptNo?: number;
   status?: ExamApplicationStatus;
+  stage?: ExamApplicationStage;
+  examTimeBudgetMs?: number;
+  examTimeUsedMs?: number;
+  clockSectionId?: string;
+  clockLastTickAt?: string;
+  proctorPausedAt?: string;
+  accommodated?: boolean;
+  accommodationExtraTimePercent?: number;
+  accommodationExemptSkillCode?: string;
+  integrityLevel?: ExamApplicationIntegrityLevel;
+  finishedReason?: ExamApplicationFinishedReason;
+  requiresMicrophone?: boolean;
+  requiresCamera?: boolean;
+  focusLossCount?: number;
+  proctorFlagged?: boolean;
+  proctorFlagReason?: string;
   startedAt?: string;
   deadlineAt?: string;
   submittedAt?: string;
@@ -19,8 +41,15 @@ export interface ExamApplication {
   currentPartId?: string;
   currentItemId?: string;
   randomSeed?: number;
+  practice?: boolean;
+  formId?: string;
+  paperJson?: ExamApplicationPaperJson;
+  scoringJson?: ExamApplicationScoringJson;
   activeSessionId?: string;
   instructionAckedAt?: string;
   instructionVersion?: string;
+  answerGraceUntil?: string;
+  mediaGraceUntil?: string;
+  closedBy?: ExamApplicationClosedBy;
   version?: number;
 }

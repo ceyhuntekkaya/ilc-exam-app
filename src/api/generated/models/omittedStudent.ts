@@ -5,9 +5,7 @@
  * OpenAPI spec version: v0
  */
 
-export type OmittedStudentReason = 'ENROLLMENT_STATUS' | 'YEAR_OR_CAMPUS' | 'USER_INACTIVE' | 'EXCLUDED';
-
 export interface OmittedStudent {
   studentId?: string;
-  reason?: OmittedStudentReason;
+  reason?: string;
 }

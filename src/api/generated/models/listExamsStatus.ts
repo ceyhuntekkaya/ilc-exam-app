@@ -12,5 +12,6 @@ export const ListExamsStatus = {
   DRAFT: 'DRAFT',
   IN_REVIEW: 'IN_REVIEW',
   PUBLISHED: 'PUBLISHED',
+  UNPUBLISHED: 'UNPUBLISHED',
   ARCHIVED: 'ARCHIVED',
 } as const;

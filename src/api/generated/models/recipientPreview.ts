@@ -4,7 +4,6 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-
 import type { OmittedStudent } from './omittedStudent';
 import type { ResolvedStudent } from './resolvedStudent';
 

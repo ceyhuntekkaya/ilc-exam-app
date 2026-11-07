@@ -10,4 +10,5 @@ export interface AnswerRequest {
   answerJson: AnswerRequestAnswerJson;
   mediaId?: string;
   seq?: number;
+  intentId?: string;
 }

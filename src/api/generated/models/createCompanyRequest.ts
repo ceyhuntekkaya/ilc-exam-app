@@ -20,4 +20,6 @@ export interface CreateCompanyRequest {
   academicYearEnd?: string;
   gradeNames?: string[];
   admin?: AdminUserRequest;
+  timeZone?: string;
+  orgType?: string;
 }

@@ -24,8 +24,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ChangePasswordHttpRequest,
   LoginHttpRequest,
   LoginResponse,
+  RefreshHttpRequest,
   StudentLoginHttpRequest
 } from '../models';
 
@@ -150,6 +152,105 @@ export const useStudentLogin = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getStudentLoginMutationOptions(options), queryClient);
+    }
+    export type refreshResponse200 = {
+  data: LoginResponse
+  status: 200
+}
+
+export type refreshResponseSuccess = (refreshResponse200) & {
+  headers: Headers;
+};
+;
+
+export type refreshResponse = (refreshResponseSuccess)
+
+export const getRefreshUrl = () => {
+
+
+
+
+  return `/auth/refresh`
+}
+
+/**
+ * @summary Access token yenileme (refresh token ile)
+ */
+export const refresh = async (refreshHttpRequest: RefreshHttpRequest, options?: Parameters<typeof customInstance>[1]): Promise<refreshResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<refreshResponse>(getRefreshUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(refreshHttpRequest)
+  }
+);}
+
+
+
+
+
+export const getRefreshMutationKey = () => ['refresh'] as const;
+
+export const getRefreshMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refresh>>, TError,RefreshMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof refresh>>, TError,RefreshMutationVariables, TContext> => {
+
+const mutationKey = getRefreshMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refresh>>, RefreshMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  refresh(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefreshMutationResult = NonNullable<Awaited<ReturnType<typeof refresh>>>
+    export type RefreshMutationBody = BodyType<RefreshHttpRequest>
+    export type RefreshMutationError = ErrorType<unknown>
+    export type RefreshMutationVariables = {data: BodyType<RefreshHttpRequest>}
+
+    /**
+ * @summary Access token yenileme (refresh token ile)
+ */
+export const useRefresh = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refresh>>, TError,RefreshMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof refresh>>,
+        TError,
+        RefreshMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRefreshMutationOptions(options), queryClient);
     }
     export type logoutResponse204 = {
   data: void
@@ -334,6 +435,105 @@ export const useLogin = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getLoginMutationOptions(options), queryClient);
+    }
+    export type changePasswordResponse204 = {
+  data: void
+  status: 204
+}
+
+export type changePasswordResponseSuccess = (changePasswordResponse204) & {
+  headers: Headers;
+};
+;
+
+export type changePasswordResponse = (changePasswordResponseSuccess)
+
+export const getChangePasswordUrl = () => {
+
+
+
+
+  return `/auth/change-password`
+}
+
+/**
+ * @summary Kendi parolasını değiştirme (F3B-10: toplu açılan hesapların ilk girişte zorunlu değişimi dahil)
+ */
+export const changePassword = async (changePasswordHttpRequest: ChangePasswordHttpRequest, options?: Parameters<typeof customInstance>[1]): Promise<changePasswordResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<changePasswordResponse>(getChangePasswordUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(changePasswordHttpRequest)
+  }
+);}
+
+
+
+
+
+export const getChangePasswordMutationKey = () => ['changePassword'] as const;
+
+export const getChangePasswordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,ChangePasswordMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,ChangePasswordMutationVariables, TContext> => {
+
+const mutationKey = getChangePasswordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changePassword>>, ChangePasswordMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  changePassword(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof changePassword>>>
+    export type ChangePasswordMutationBody = BodyType<ChangePasswordHttpRequest>
+    export type ChangePasswordMutationError = ErrorType<unknown>
+    export type ChangePasswordMutationVariables = {data: BodyType<ChangePasswordHttpRequest>}
+
+    /**
+ * @summary Kendi parolasını değiştirme (F3B-10: toplu açılan hesapların ilk girişte zorunlu değişimi dahil)
+ */
+export const useChangePassword = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changePassword>>, TError,ChangePasswordMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof changePassword>>,
+        TError,
+        ChangePasswordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChangePasswordMutationOptions(options), queryClient);
     }
     export type meResponse200 = {
   data: LoginResponse

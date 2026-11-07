@@ -12,8 +12,6 @@ import type { LoginResponseUserType } from './loginResponseUserType';
 export interface LoginResponse {
   /** JWT access token; /auth/me yanıtında null */
   accessToken?: string;
-  /** JWT refresh token; yalnızca giriş / yenileme yanıtında */
-  refreshToken?: string;
   userId?: string;
   userType?: LoginResponseUserType;
   companyId?: string;
@@ -21,4 +19,6 @@ export interface LoginResponse {
   email?: string;
   displayName?: string;
   permissions?: string[];
+  /** JWT refresh token; yalnızca giriş / yenileme yanıtında */
+  refreshToken?: string;
 }

@@ -4,7 +4,6 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { CreateAssignmentRequestSettingsJson } from './createAssignmentRequestSettingsJson';
 
 export interface CreateAssignmentRequest {
   companyId: string;
@@ -16,5 +15,4 @@ export interface CreateAssignmentRequest {
   availableUntil?: string;
   includeLateJoiners?: boolean;
   maxAttempts?: number;
-  settingsJson?: CreateAssignmentRequestSettingsJson;
 }

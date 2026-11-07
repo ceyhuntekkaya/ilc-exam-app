@@ -4,10 +4,25 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { AnswerEvaluationEscapeReason } from './answerEvaluationEscapeReason';
+import type { AnswerEvaluationRubricJson } from './answerEvaluationRubricJson';
+import type { AnswerEvaluationSource } from './answerEvaluationSource';
 
 export interface AnswerEvaluation {
   id?: string;
+  companyId?: string;
   answerId?: string;
   aiScore?: number;
+  rubricJson?: AnswerEvaluationRubricJson;
+  feedback?: string;
+  rationale?: string;
   finalScore?: number;
+  dichotomous?: number;
+  rubricVersionId?: string;
+  temperature?: number;
+  policyId?: string;
+  injectionFlag?: boolean;
+  escapeReason?: AnswerEvaluationEscapeReason;
+  versionNo?: number;
+  source?: AnswerEvaluationSource;
 }

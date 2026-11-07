@@ -5,29 +5,19 @@
  * OpenAPI spec version: v0
  */
 import {
-  useMutation,
-  useQuery
+  useMutation
 } from '@tanstack/react-query';
 import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult,
-  UseQueryOptions,
-  UseQueryResult
+  UseMutationResult
 } from '@tanstack/react-query';
 
 import type {
   AnswerEvaluation,
-  EvaluationRun,
-  Publish200,
-  RetryFailed200,
+  Rescore200,
+  RescoreRequest,
   ReviewRequest
 } from '../models';
 
@@ -38,21 +28,6 @@ import type { ErrorType , BodyType } from '../../mutator';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
-
-const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K };
-  for (const key of Object.keys(query)) {
-    // The explicit queryKey always wins, matching the previous
-    // `{ ...query, queryKey }` spread where it was set last.
-    if (key === 'queryKey') continue;
-    Object.defineProperty(result, key, {
-      enumerable: true,
-      configurable: true,
-      get: () => (query as Record<string, unknown>)[key],
-    });
-  }
-  return result;
-};
 
 export type reviewResponse200 = {
   data: AnswerEvaluation
@@ -148,34 +123,49 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getReviewMutationOptions(options), queryClient);
     }
-    export type retryFailedResponse200 = {
-  data: RetryFailed200
+    export type rescoreResponse200 = {
+  data: Rescore200
   status: 200
 }
 
-export type retryFailedResponseSuccess = (retryFailedResponse200) & {
+export type rescoreResponseSuccess = (rescoreResponse200) & {
   headers: Headers;
 };
 ;
 
-export type retryFailedResponse = (retryFailedResponseSuccess)
+export type rescoreResponse = (rescoreResponseSuccess)
 
-export const getRetryFailedUrl = (id: string,) => {
-
-
+export const getRescoreUrl = (id: string,) => {
 
 
-  return `/evaluation-runs/${id}/retry-failed`
+
+
+  return `/applications/${id}/rescore`
 }
 
-export const retryFailed = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<retryFailedResponse> => {
+export const rescore = async (id: string,
+    rescoreRequest: RescoreRequest, options?: Parameters<typeof customInstance>[1]): Promise<rescoreResponse> => {
 
-  return customInstance<retryFailedResponse>(getRetryFailedUrl(id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<rescoreResponse>(getRescoreUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(rescoreRequest)
   }
 );}
 
@@ -183,13 +173,13 @@ export const retryFailed = async (id: string, options?: Parameters<typeof custom
 
 
 
-export const getRetryFailedMutationKey = () => ['retryFailed'] as const;
+export const getRescoreMutationKey = () => ['rescore'] as const;
 
-export const getRetryFailedMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryFailed>>, TError,RetryFailedMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof retryFailed>>, TError,RetryFailedMutationVariables, TContext> => {
+export const getRescoreMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescore>>, TError,RescoreMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rescore>>, TError,RescoreMutationVariables, TContext> => {
 
-const mutationKey = getRetryFailedMutationKey();
+const mutationKey = getRescoreMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -199,10 +189,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retryFailed>>, RetryFailedMutationVariables> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rescore>>, RescoreMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  retryFailed(id,requestOptions)
+          return  rescore(id,data,requestOptions)
         }
 
 
@@ -212,282 +202,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type RetryFailedMutationResult = NonNullable<Awaited<ReturnType<typeof retryFailed>>>
+    export type RescoreMutationResult = NonNullable<Awaited<ReturnType<typeof rescore>>>
+    export type RescoreMutationBody = BodyType<RescoreRequest>
+    export type RescoreMutationError = ErrorType<unknown>
+    export type RescoreMutationVariables = {id: string;data: BodyType<RescoreRequest>}
 
-    export type RetryFailedMutationError = ErrorType<unknown>
-    export type RetryFailedMutationVariables = {id: string}
-
-    export const useRetryFailed = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retryFailed>>, TError,RetryFailedMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useRescore = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescore>>, TError,RescoreMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof retryFailed>>,
+        Awaited<ReturnType<typeof rescore>>,
         TError,
-        RetryFailedMutationVariables,
+        RescoreMutationVariables,
         TContext
       > => {
-      return useMutation(getRetryFailedMutationOptions(options), queryClient);
+      return useMutation(getRescoreMutationOptions(options), queryClient);
     }
-    export type publishResponse200 = {
-  data: Publish200
-  status: 200
-}
-
-export type publishResponseSuccess = (publishResponse200) & {
-  headers: Headers;
-};
-;
-
-export type publishResponse = (publishResponseSuccess)
-
-export const getPublishUrl = (id: string,) => {
-
-
-
-
-  return `/assignments/${id}/publish-results`
-}
-
-export const publish = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<publishResponse> => {
-
-  return customInstance<publishResponse>(getPublishUrl(id),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getPublishMutationKey = () => ['publish'] as const;
-
-export const getPublishMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext> => {
-
-const mutationKey = getPublishMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publish>>, PublishMutationVariables> = (props) => {
-          const {id} = props ?? {};
-
-          return  publish(id,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PublishMutationResult = NonNullable<Awaited<ReturnType<typeof publish>>>
-
-    export type PublishMutationError = ErrorType<unknown>
-    export type PublishMutationVariables = {id: string}
-
-    export const usePublish = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof publish>>,
-        TError,
-        PublishMutationVariables,
-        TContext
-      > => {
-      return useMutation(getPublishMutationOptions(options), queryClient);
-    }
-    export type evaluateResponse201 = {
-  data: EvaluationRun
-  status: 201
-}
-
-export type evaluateResponseSuccess = (evaluateResponse201) & {
-  headers: Headers;
-};
-;
-
-export type evaluateResponse = (evaluateResponseSuccess)
-
-export const getEvaluateUrl = (id: string,) => {
-
-
-
-
-  return `/assignments/${id}/evaluate`
-}
-
-export const evaluate = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<evaluateResponse> => {
-
-  return customInstance<evaluateResponse>(getEvaluateUrl(id),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getEvaluateMutationKey = () => ['evaluate'] as const;
-
-export const getEvaluateMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof evaluate>>, TError,EvaluateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof evaluate>>, TError,EvaluateMutationVariables, TContext> => {
-
-const mutationKey = getEvaluateMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof evaluate>>, EvaluateMutationVariables> = (props) => {
-          const {id} = props ?? {};
-
-          return  evaluate(id,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type EvaluateMutationResult = NonNullable<Awaited<ReturnType<typeof evaluate>>>
-
-    export type EvaluateMutationError = ErrorType<unknown>
-    export type EvaluateMutationVariables = {id: string}
-
-    export const useEvaluate = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof evaluate>>, TError,EvaluateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof evaluate>>,
-        TError,
-        EvaluateMutationVariables,
-        TContext
-      > => {
-      return useMutation(getEvaluateMutationOptions(options), queryClient);
-    }
-    export type getRunResponse200 = {
-  data: EvaluationRun
-  status: 200
-}
-
-export type getRunResponseSuccess = (getRunResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getRunResponse = (getRunResponseSuccess)
-
-export const getGetRunUrl = (id: string,) => {
-
-
-
-
-  return `/evaluation-runs/${id}`
-}
-
-export const getRun = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<getRunResponse> => {
-
-  return customInstance<getRunResponse>(getGetRunUrl(id),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetRunQueryKey = (id: string,) => {
-    return [
-    `/evaluation-runs/${id}`
-    ] as const;
-    }
-
-
-export const getGetRunQueryOptions = <TData = Awaited<ReturnType<typeof getRun>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetRunQueryKey(id);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRun>>> = ({ signal }) => getRun(id, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetRunQueryResult = NonNullable<Awaited<ReturnType<typeof getRun>>>
-export type GetRunQueryError = ErrorType<unknown>
-
-
-export function useGetRun<TData = Awaited<ReturnType<typeof getRun>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRun>>,
-          TError,
-          Awaited<ReturnType<typeof getRun>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRun<TData = Awaited<ReturnType<typeof getRun>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getRun>>,
-          TError,
-          Awaited<ReturnType<typeof getRun>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetRun<TData = Awaited<ReturnType<typeof getRun>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetRun<TData = Awaited<ReturnType<typeof getRun>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getRun>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetRunQueryOptions(id,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-

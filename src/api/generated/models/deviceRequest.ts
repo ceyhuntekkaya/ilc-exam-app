@@ -7,4 +7,7 @@
 
 export interface DeviceRequest {
   fingerprint?: string;
+  intent?: string;
+  statementVersion?: string;
+  welcomeHtmlSha256?: string;
 }

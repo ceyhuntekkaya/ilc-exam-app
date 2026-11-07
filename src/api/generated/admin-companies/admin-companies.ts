@@ -25,6 +25,11 @@ import type {
 
 import type {
   AcademicYearDto,
+  AccommodationProfileDto,
+  AiPromptRequest,
+  AiPromptTextRequest,
+  AiRequestPreviewBody,
+  AuditLogsParams,
   BranchDto,
   BranchesParams,
   CompanyDetail,
@@ -39,24 +44,44 @@ import type {
   CreateStudentRequest,
   CreateSubscriptionRequest,
   DashboardResponse,
+  DefineAccommodationProfileRequest,
   EnrollmentDto,
+  Evaluation,
   ExamReportRow,
   GradeDto,
+  GradingQueueParams,
+  GradingSystemPromptRequest,
   InstituteDto,
-  ListParams,
+  List1Params,
+  ListPageRow,
+  MediaTranscript,
   PageResponseCompanySummary,
   PatchSubscriptionRequest,
+  PrerequisiteTextRequest,
+  QueueItem,
+  Report,
+  RequestPreview,
   ResetPasswordRequest,
+  RevokeAccommodationProfileRequest,
   RoleDto,
+  Staff200,
   StaffDto,
+  StaffParams,
   StaffScopeDto,
   StudentDto,
+  Students200,
+  StudentsParams,
   SubscriptionSummary,
+  TextResult,
+  TransferEnrollmentRequest,
+  UpdateAcademicYearRequest,
+  UpdateBranchRequest,
   UpdateCompanyRequest,
   UpdateGradeRequest,
   UpdateInstituteRequest,
   UpdateStaffRequest,
-  UpdateStudentRequest
+  UpdateStudentRequest,
+  View
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -82,36 +107,29 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type listResponse200 = {
-  data: PageResponseCompanySummary
+export type gradingSystemPromptResponse200 = {
+  data: View
   status: 200
 }
 
-export type listResponseSuccess = (listResponse200) & {
+export type gradingSystemPromptResponseSuccess = (gradingSystemPromptResponse200) & {
   headers: Headers;
 };
 ;
 
-export type listResponse = (listResponseSuccess)
+export type gradingSystemPromptResponse = (gradingSystemPromptResponseSuccess)
 
-export const getListUrl = (params?: ListParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getGradingSystemPromptUrl = (id: string,) => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/companies?${stringifiedParams}` : `/companies`
+  return `/companies/${id}/grading-system-prompt`
 }
 
-export const list = async (params?: ListParams, options?: Parameters<typeof customInstance>[1]): Promise<listResponse> => {
+export const gradingSystemPrompt = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<gradingSystemPromptResponse> => {
 
-  return customInstance<listResponse>(getListUrl(params),
+  return customInstance<gradingSystemPromptResponse>(getGradingSystemPromptUrl(id),
   {
     ...options,
     method: 'GET'
@@ -124,66 +142,66 @@ export const list = async (params?: ListParams, options?: Parameters<typeof cust
 
 
 
-export const getListQueryKey = (params?: ListParams,) => {
+export const getGradingSystemPromptQueryKey = (id: string,) => {
     return [
-    `/companies`, ...(params ? [params] : [])
+    `/companies/${id}/grading-system-prompt`
     ] as const;
     }
 
 
-export const getListQueryOptions = <TData = Awaited<ReturnType<typeof list>>, TError = ErrorType<unknown>>(params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGradingSystemPromptQueryOptions = <TData = Awaited<ReturnType<typeof gradingSystemPrompt>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGradingSystemPromptQueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list>>> = ({ signal }) => list(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof gradingSystemPrompt>>> = ({ signal }) => gradingSystemPrompt(id, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ListQueryResult = NonNullable<Awaited<ReturnType<typeof list>>>
-export type ListQueryError = ErrorType<unknown>
+export type GradingSystemPromptQueryResult = NonNullable<Awaited<ReturnType<typeof gradingSystemPrompt>>>
+export type GradingSystemPromptQueryError = ErrorType<unknown>
 
 
-export function useList<TData = Awaited<ReturnType<typeof list>>, TError = ErrorType<unknown>>(
- params: undefined |  ListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> & Pick<
+export function useGradingSystemPrompt<TData = Awaited<ReturnType<typeof gradingSystemPrompt>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list>>,
+          Awaited<ReturnType<typeof gradingSystemPrompt>>,
           TError,
-          Awaited<ReturnType<typeof list>>
+          Awaited<ReturnType<typeof gradingSystemPrompt>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList<TData = Awaited<ReturnType<typeof list>>, TError = ErrorType<unknown>>(
- params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>> & Pick<
+export function useGradingSystemPrompt<TData = Awaited<ReturnType<typeof gradingSystemPrompt>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list>>,
+          Awaited<ReturnType<typeof gradingSystemPrompt>>,
           TError,
-          Awaited<ReturnType<typeof list>>
+          Awaited<ReturnType<typeof gradingSystemPrompt>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList<TData = Awaited<ReturnType<typeof list>>, TError = ErrorType<unknown>>(
- params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGradingSystemPrompt<TData = Awaited<ReturnType<typeof gradingSystemPrompt>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList<TData = Awaited<ReturnType<typeof list>>, TError = ErrorType<unknown>>(
- params?: ListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGradingSystemPrompt<TData = Awaited<ReturnType<typeof gradingSystemPrompt>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSystemPrompt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListQueryOptions(params,options)
+  const queryOptions = getGradingSystemPromptQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -195,27 +213,28 @@ export function useList<TData = Awaited<ReturnType<typeof list>>, TError = Error
 
 
 
-export type createResponse201 = {
-  data: CompanyDetail
-  status: 201
+export type saveGradingSystemPromptResponse200 = {
+  data: View
+  status: 200
 }
 
-export type createResponseSuccess = (createResponse201) & {
+export type saveGradingSystemPromptResponseSuccess = (saveGradingSystemPromptResponse200) & {
   headers: Headers;
 };
 ;
 
-export type createResponse = (createResponseSuccess)
+export type saveGradingSystemPromptResponse = (saveGradingSystemPromptResponseSuccess)
 
-export const getCreateUrl = () => {
-
-
+export const getSaveGradingSystemPromptUrl = (id: string,) => {
 
 
-  return `/companies`
+
+
+  return `/companies/${id}/grading-system-prompt`
 }
 
-export const create = async (createCompanyRequest: CreateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<createResponse> => {
+export const saveGradingSystemPrompt = async (id: string,
+    gradingSystemPromptRequest: GradingSystemPromptRequest, options?: Parameters<typeof customInstance>[1]): Promise<saveGradingSystemPromptResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -231,7 +250,409 @@ export const create = async (createCompanyRequest: CreateCompanyRequest, options
     }
     return headers;
   };
-return customInstance<createResponse>(getCreateUrl(),
+return customInstance<saveGradingSystemPromptResponse>(getSaveGradingSystemPromptUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(gradingSystemPromptRequest)
+  }
+);}
+
+
+
+
+
+export const getSaveGradingSystemPromptMutationKey = () => ['saveGradingSystemPrompt'] as const;
+
+export const getSaveGradingSystemPromptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGradingSystemPrompt>>, TError,SaveGradingSystemPromptMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveGradingSystemPrompt>>, TError,SaveGradingSystemPromptMutationVariables, TContext> => {
+
+const mutationKey = getSaveGradingSystemPromptMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveGradingSystemPrompt>>, SaveGradingSystemPromptMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  saveGradingSystemPrompt(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveGradingSystemPromptMutationResult = NonNullable<Awaited<ReturnType<typeof saveGradingSystemPrompt>>>
+    export type SaveGradingSystemPromptMutationBody = BodyType<GradingSystemPromptRequest>
+    export type SaveGradingSystemPromptMutationError = ErrorType<unknown>
+    export type SaveGradingSystemPromptMutationVariables = {id: string;data: BodyType<GradingSystemPromptRequest>}
+
+    export const useSaveGradingSystemPrompt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGradingSystemPrompt>>, TError,SaveGradingSystemPromptMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveGradingSystemPrompt>>,
+        TError,
+        SaveGradingSystemPromptMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveGradingSystemPromptMutationOptions(options), queryClient);
+    }
+    export type savePrerequisiteTextResponse200 = {
+  data: TextResult
+  status: 200
+}
+
+export type savePrerequisiteTextResponseSuccess = (savePrerequisiteTextResponse200) & {
+  headers: Headers;
+};
+;
+
+export type savePrerequisiteTextResponse = (savePrerequisiteTextResponseSuccess)
+
+export const getSavePrerequisiteTextUrl = (id: string,
+    examVersionId: string,
+    mediaId: string,) => {
+
+
+
+
+  return `/companies/${id}/exam-versions/${examVersionId}/media/${mediaId}/text`
+}
+
+export const savePrerequisiteText = async (id: string,
+    examVersionId: string,
+    mediaId: string,
+    prerequisiteTextRequest: PrerequisiteTextRequest, options?: Parameters<typeof customInstance>[1]): Promise<savePrerequisiteTextResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<savePrerequisiteTextResponse>(getSavePrerequisiteTextUrl(id,examVersionId,mediaId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(prerequisiteTextRequest)
+  }
+);}
+
+
+
+
+
+export const getSavePrerequisiteTextMutationKey = () => ['savePrerequisiteText'] as const;
+
+export const getSavePrerequisiteTextMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePrerequisiteText>>, TError,SavePrerequisiteTextMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof savePrerequisiteText>>, TError,SavePrerequisiteTextMutationVariables, TContext> => {
+
+const mutationKey = getSavePrerequisiteTextMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePrerequisiteText>>, SavePrerequisiteTextMutationVariables> = (props) => {
+          const {id,examVersionId,mediaId,data} = props ?? {};
+
+          return  savePrerequisiteText(id,examVersionId,mediaId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePrerequisiteTextMutationResult = NonNullable<Awaited<ReturnType<typeof savePrerequisiteText>>>
+    export type SavePrerequisiteTextMutationBody = BodyType<PrerequisiteTextRequest>
+    export type SavePrerequisiteTextMutationError = ErrorType<unknown>
+    export type SavePrerequisiteTextMutationVariables = {id: string;examVersionId: string;mediaId: string;data: BodyType<PrerequisiteTextRequest>}
+
+    export const useSavePrerequisiteText = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePrerequisiteText>>, TError,SavePrerequisiteTextMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof savePrerequisiteText>>,
+        TError,
+        SavePrerequisiteTextMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSavePrerequisiteTextMutationOptions(options), queryClient);
+    }
+    export type saveAiPromptResponse200 = {
+  data: Report
+  status: 200
+}
+
+export type saveAiPromptResponseSuccess = (saveAiPromptResponse200) & {
+  headers: Headers;
+};
+;
+
+export type saveAiPromptResponse = (saveAiPromptResponseSuccess)
+
+export const getSaveAiPromptUrl = (id: string,
+    examVersionId: string,
+    questionVersionId: string,) => {
+
+
+
+
+  return `/companies/${id}/exam-versions/${examVersionId}/ai-prompts/${questionVersionId}`
+}
+
+export const saveAiPrompt = async (id: string,
+    examVersionId: string,
+    questionVersionId: string,
+    aiPromptTextRequest: AiPromptTextRequest, options?: Parameters<typeof customInstance>[1]): Promise<saveAiPromptResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<saveAiPromptResponse>(getSaveAiPromptUrl(id,examVersionId,questionVersionId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(aiPromptTextRequest)
+  }
+);}
+
+
+
+
+
+export const getSaveAiPromptMutationKey = () => ['saveAiPrompt'] as const;
+
+export const getSaveAiPromptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveAiPrompt>>, TError,SaveAiPromptMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveAiPrompt>>, TError,SaveAiPromptMutationVariables, TContext> => {
+
+const mutationKey = getSaveAiPromptMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveAiPrompt>>, SaveAiPromptMutationVariables> = (props) => {
+          const {id,examVersionId,questionVersionId,data} = props ?? {};
+
+          return  saveAiPrompt(id,examVersionId,questionVersionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveAiPromptMutationResult = NonNullable<Awaited<ReturnType<typeof saveAiPrompt>>>
+    export type SaveAiPromptMutationBody = BodyType<AiPromptTextRequest>
+    export type SaveAiPromptMutationError = ErrorType<unknown>
+    export type SaveAiPromptMutationVariables = {id: string;examVersionId: string;questionVersionId: string;data: BodyType<AiPromptTextRequest>}
+
+    export const useSaveAiPrompt = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveAiPrompt>>, TError,SaveAiPromptMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveAiPrompt>>,
+        TError,
+        SaveAiPromptMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveAiPromptMutationOptions(options), queryClient);
+    }
+    export type list1Response200 = {
+  data: PageResponseCompanySummary
+  status: 200
+}
+
+export type list1ResponseSuccess = (list1Response200) & {
+  headers: Headers;
+};
+;
+
+export type list1Response = (list1ResponseSuccess)
+
+export const getList1Url = (params?: List1Params,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/companies?${stringifiedParams}` : `/companies`
+}
+
+export const list1 = async (params?: List1Params, options?: Parameters<typeof customInstance>[1]): Promise<list1Response> => {
+
+  return customInstance<list1Response>(getList1Url(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getList1QueryKey = (params?: List1Params,) => {
+    return [
+    `/companies`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getList1QueryOptions = <TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getList1QueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list1>>> = ({ signal }) => list1(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type List1QueryResult = NonNullable<Awaited<ReturnType<typeof list1>>>
+export type List1QueryError = ErrorType<unknown>
+
+
+export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
+ params: undefined |  List1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof list1>>,
+          TError,
+          Awaited<ReturnType<typeof list1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
+ params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof list1>>,
+          TError,
+          Awaited<ReturnType<typeof list1>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
+ params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
+ params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getList1QueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type create1Response201 = {
+  data: CompanyDetail
+  status: 201
+}
+
+export type create1ResponseSuccess = (create1Response201) & {
+  headers: Headers;
+};
+;
+
+export type create1Response = (create1ResponseSuccess)
+
+export const getCreate1Url = () => {
+
+
+
+
+  return `/companies`
+}
+
+export const create1 = async (createCompanyRequest: CreateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<create1Response> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<create1Response>(getCreate1Url(),
   {
     ...options,
     method: 'POST',
@@ -244,13 +665,13 @@ return customInstance<createResponse>(getCreateUrl(),
 
 
 
-export const getCreateMutationKey = () => ['create'] as const;
+export const getCreate1MutationKey = () => ['create1'] as const;
 
-export const getCreateMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,CreateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,CreateMutationVariables, TContext> => {
+export const getCreate1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,Create1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,Create1MutationVariables, TContext> => {
 
-const mutationKey = getCreateMutationKey();
+const mutationKey = getCreate1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -260,10 +681,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create>>, CreateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create1>>, Create1MutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  create(data,requestOptions)
+          return  create1(data,requestOptions)
         }
 
 
@@ -273,20 +694,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateMutationResult = NonNullable<Awaited<ReturnType<typeof create>>>
-    export type CreateMutationBody = BodyType<CreateCompanyRequest>
-    export type CreateMutationError = ErrorType<unknown>
-    export type CreateMutationVariables = {data: BodyType<CreateCompanyRequest>}
+    export type Create1MutationResult = NonNullable<Awaited<ReturnType<typeof create1>>>
+    export type Create1MutationBody = BodyType<CreateCompanyRequest>
+    export type Create1MutationError = ErrorType<unknown>
+    export type Create1MutationVariables = {data: BodyType<CreateCompanyRequest>}
 
-    export const useCreate = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create>>, TError,CreateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useCreate1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create1>>, TError,Create1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create>>,
+        Awaited<ReturnType<typeof create1>>,
         TError,
-        CreateMutationVariables,
+        Create1MutationVariables,
         TContext
       > => {
-      return useMutation(getCreateMutationOptions(options), queryClient);
+      return useMutation(getCreate1MutationOptions(options), queryClient);
     }
     export type suspendResponse200 = {
   data: CompanyDetail
@@ -568,7 +989,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateSubscriptionMutationOptions(options), queryClient);
     }
     export type studentsResponse200 = {
-  data: StudentDto[]
+  data: Students200
   status: 200
 }
 
@@ -579,17 +1000,26 @@ export type studentsResponseSuccess = (studentsResponse200) & {
 
 export type studentsResponse = (studentsResponseSuccess)
 
-export const getStudentsUrl = (id: string,) => {
+export const getStudentsUrl = (id: string,
+    params?: StudentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/companies/${id}/students`
+  return stringifiedParams.length > 0 ? `/companies/${id}/students?${stringifiedParams}` : `/companies/${id}/students`
 }
 
-export const students = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<studentsResponse> => {
+export const students = async (id: string,
+    params?: StudentsParams, options?: Parameters<typeof customInstance>[1]): Promise<studentsResponse> => {
 
-  return customInstance<studentsResponse>(getStudentsUrl(id),
+  return customInstance<studentsResponse>(getStudentsUrl(id,params),
   {
     ...options,
     method: 'GET'
@@ -602,23 +1032,25 @@ export const students = async (id: string, options?: Parameters<typeof customIns
 
 
 
-export const getStudentsQueryKey = (id: string,) => {
+export const getStudentsQueryKey = (id: string,
+    params?: StudentsParams,) => {
     return [
-    `/companies/${id}/students`
+    `/companies/${id}/students`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getStudentsQueryOptions = <TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getStudentsQueryOptions = <TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(id: string,
+    params?: StudentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getStudentsQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getStudentsQueryKey(id,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof students>>> = ({ signal }) => students(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof students>>> = ({ signal }) => students(id,params, { signal, ...requestOptions });
 
 
 
@@ -632,7 +1064,8 @@ export type StudentsQueryError = ErrorType<unknown>
 
 
 export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>> & Pick<
+ id: string,
+    params: undefined |  StudentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof students>>,
           TError,
@@ -642,7 +1075,8 @@ export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>> & Pick<
+ id: string,
+    params?: StudentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof students>>,
           TError,
@@ -652,16 +1086,18 @@ export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ id: string,
+    params?: StudentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useStudents<TData = Awaited<ReturnType<typeof students>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ id: string,
+    params?: StudentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof students>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getStudentsQueryOptions(id,options)
+  const queryOptions = getStudentsQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -863,29 +1299,212 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateEnrollmentMutationOptions(options), queryClient);
     }
-    export type staffResponse200 = {
-  data: StaffDto[]
+    export type transferEnrollmentResponse200 = {
+  data: EnrollmentDto
   status: 200
 }
 
-export type staffResponseSuccess = (staffResponse200) & {
+export type transferEnrollmentResponseSuccess = (transferEnrollmentResponse200) & {
   headers: Headers;
 };
 ;
 
-export type staffResponse = (staffResponseSuccess)
+export type transferEnrollmentResponse = (transferEnrollmentResponseSuccess)
 
-export const getStaffUrl = (id: string,) => {
+export const getTransferEnrollmentUrl = (id: string,
+    uid: string,
+    eid: string,) => {
 
 
 
 
-  return `/companies/${id}/staff`
+  return `/companies/${id}/students/${uid}/enrollments/${eid}/transfer`
 }
 
-export const staff = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<staffResponse> => {
+export const transferEnrollment = async (id: string,
+    uid: string,
+    eid: string,
+    transferEnrollmentRequest: TransferEnrollmentRequest, options?: Parameters<typeof customInstance>[1]): Promise<transferEnrollmentResponse> => {
 
-  return customInstance<staffResponse>(getStaffUrl(id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<transferEnrollmentResponse>(getTransferEnrollmentUrl(id,uid,eid),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(transferEnrollmentRequest)
+  }
+);}
+
+
+
+
+
+export const getTransferEnrollmentMutationKey = () => ['transferEnrollment'] as const;
+
+export const getTransferEnrollmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferEnrollment>>, TError,TransferEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof transferEnrollment>>, TError,TransferEnrollmentMutationVariables, TContext> => {
+
+const mutationKey = getTransferEnrollmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transferEnrollment>>, TransferEnrollmentMutationVariables> = (props) => {
+          const {id,uid,eid,data} = props ?? {};
+
+          return  transferEnrollment(id,uid,eid,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TransferEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof transferEnrollment>>>
+    export type TransferEnrollmentMutationBody = BodyType<TransferEnrollmentRequest>
+    export type TransferEnrollmentMutationError = ErrorType<unknown>
+    export type TransferEnrollmentMutationVariables = {id: string;uid: string;eid: string;data: BodyType<TransferEnrollmentRequest>}
+
+    export const useTransferEnrollment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferEnrollment>>, TError,TransferEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof transferEnrollment>>,
+        TError,
+        TransferEnrollmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTransferEnrollmentMutationOptions(options), queryClient);
+    }
+    export type completeEnrollmentResponse200 = {
+  data: EnrollmentDto
+  status: 200
+}
+
+export type completeEnrollmentResponseSuccess = (completeEnrollmentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type completeEnrollmentResponse = (completeEnrollmentResponseSuccess)
+
+export const getCompleteEnrollmentUrl = (id: string,
+    uid: string,
+    eid: string,) => {
+
+
+
+
+  return `/companies/${id}/students/${uid}/enrollments/${eid}/complete`
+}
+
+export const completeEnrollment = async (id: string,
+    uid: string,
+    eid: string, options?: Parameters<typeof customInstance>[1]): Promise<completeEnrollmentResponse> => {
+
+  return customInstance<completeEnrollmentResponse>(getCompleteEnrollmentUrl(id,uid,eid),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteEnrollmentMutationKey = () => ['completeEnrollment'] as const;
+
+export const getCompleteEnrollmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeEnrollment>>, TError,CompleteEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeEnrollment>>, TError,CompleteEnrollmentMutationVariables, TContext> => {
+
+const mutationKey = getCompleteEnrollmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeEnrollment>>, CompleteEnrollmentMutationVariables> = (props) => {
+          const {id,uid,eid} = props ?? {};
+
+          return  completeEnrollment(id,uid,eid,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof completeEnrollment>>>
+
+    export type CompleteEnrollmentMutationError = ErrorType<unknown>
+    export type CompleteEnrollmentMutationVariables = {id: string;uid: string;eid: string}
+
+    export const useCompleteEnrollment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeEnrollment>>, TError,CompleteEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeEnrollment>>,
+        TError,
+        CompleteEnrollmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteEnrollmentMutationOptions(options), queryClient);
+    }
+    export type accommodationResponse200 = {
+  data: AccommodationProfileDto
+  status: 200
+}
+
+export type accommodationResponseSuccess = (accommodationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type accommodationResponse = (accommodationResponseSuccess)
+
+export const getAccommodationUrl = (id: string,
+    uid: string,) => {
+
+
+
+
+  return `/companies/${id}/students/${uid}/accommodation`
+}
+
+export const accommodation = async (id: string,
+    uid: string, options?: Parameters<typeof customInstance>[1]): Promise<accommodationResponse> => {
+
+  return customInstance<accommodationResponse>(getAccommodationUrl(id,uid),
   {
     ...options,
     method: 'GET'
@@ -898,23 +1517,340 @@ export const staff = async (id: string, options?: Parameters<typeof customInstan
 
 
 
-export const getStaffQueryKey = (id: string,) => {
+export const getAccommodationQueryKey = (id: string,
+    uid: string,) => {
     return [
-    `/companies/${id}/staff`
+    `/companies/${id}/students/${uid}/accommodation`
     ] as const;
     }
 
 
-export const getStaffQueryOptions = <TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getAccommodationQueryOptions = <TData = Awaited<ReturnType<typeof accommodation>>, TError = ErrorType<unknown>>(id: string,
+    uid: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getStaffQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getAccommodationQueryKey(id,uid);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof staff>>> = ({ signal }) => staff(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accommodation>>> = ({ signal }) => accommodation(id,uid, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && uid !== null && uid !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccommodationQueryResult = NonNullable<Awaited<ReturnType<typeof accommodation>>>
+export type AccommodationQueryError = ErrorType<unknown>
+
+
+export function useAccommodation<TData = Awaited<ReturnType<typeof accommodation>>, TError = ErrorType<unknown>>(
+ id: string,
+    uid: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accommodation>>,
+          TError,
+          Awaited<ReturnType<typeof accommodation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccommodation<TData = Awaited<ReturnType<typeof accommodation>>, TError = ErrorType<unknown>>(
+ id: string,
+    uid: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accommodation>>,
+          TError,
+          Awaited<ReturnType<typeof accommodation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccommodation<TData = Awaited<ReturnType<typeof accommodation>>, TError = ErrorType<unknown>>(
+ id: string,
+    uid: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAccommodation<TData = Awaited<ReturnType<typeof accommodation>>, TError = ErrorType<unknown>>(
+ id: string,
+    uid: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccommodationQueryOptions(id,uid,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type defineAccommodationResponse201 = {
+  data: AccommodationProfileDto
+  status: 201
+}
+
+export type defineAccommodationResponseSuccess = (defineAccommodationResponse201) & {
+  headers: Headers;
+};
+;
+
+export type defineAccommodationResponse = (defineAccommodationResponseSuccess)
+
+export const getDefineAccommodationUrl = (id: string,
+    uid: string,) => {
+
+
+
+
+  return `/companies/${id}/students/${uid}/accommodation`
+}
+
+export const defineAccommodation = async (id: string,
+    uid: string,
+    defineAccommodationProfileRequest: DefineAccommodationProfileRequest, options?: Parameters<typeof customInstance>[1]): Promise<defineAccommodationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<defineAccommodationResponse>(getDefineAccommodationUrl(id,uid),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(defineAccommodationProfileRequest)
+  }
+);}
+
+
+
+
+
+export const getDefineAccommodationMutationKey = () => ['defineAccommodation'] as const;
+
+export const getDefineAccommodationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof defineAccommodation>>, TError,DefineAccommodationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof defineAccommodation>>, TError,DefineAccommodationMutationVariables, TContext> => {
+
+const mutationKey = getDefineAccommodationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof defineAccommodation>>, DefineAccommodationMutationVariables> = (props) => {
+          const {id,uid,data} = props ?? {};
+
+          return  defineAccommodation(id,uid,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DefineAccommodationMutationResult = NonNullable<Awaited<ReturnType<typeof defineAccommodation>>>
+    export type DefineAccommodationMutationBody = BodyType<DefineAccommodationProfileRequest>
+    export type DefineAccommodationMutationError = ErrorType<unknown>
+    export type DefineAccommodationMutationVariables = {id: string;uid: string;data: BodyType<DefineAccommodationProfileRequest>}
+
+    export const useDefineAccommodation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof defineAccommodation>>, TError,DefineAccommodationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof defineAccommodation>>,
+        TError,
+        DefineAccommodationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDefineAccommodationMutationOptions(options), queryClient);
+    }
+    export type revokeAccommodationResponse200 = {
+  data: AccommodationProfileDto
+  status: 200
+}
+
+export type revokeAccommodationResponseSuccess = (revokeAccommodationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type revokeAccommodationResponse = (revokeAccommodationResponseSuccess)
+
+export const getRevokeAccommodationUrl = (id: string,
+    uid: string,
+    profileId: string,) => {
+
+
+
+
+  return `/companies/${id}/students/${uid}/accommodation/${profileId}/revoke`
+}
+
+export const revokeAccommodation = async (id: string,
+    uid: string,
+    profileId: string,
+    revokeAccommodationProfileRequest: RevokeAccommodationProfileRequest, options?: Parameters<typeof customInstance>[1]): Promise<revokeAccommodationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<revokeAccommodationResponse>(getRevokeAccommodationUrl(id,uid,profileId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(revokeAccommodationProfileRequest)
+  }
+);}
+
+
+
+
+
+export const getRevokeAccommodationMutationKey = () => ['revokeAccommodation'] as const;
+
+export const getRevokeAccommodationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAccommodation>>, TError,RevokeAccommodationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAccommodation>>, TError,RevokeAccommodationMutationVariables, TContext> => {
+
+const mutationKey = getRevokeAccommodationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAccommodation>>, RevokeAccommodationMutationVariables> = (props) => {
+          const {id,uid,profileId,data} = props ?? {};
+
+          return  revokeAccommodation(id,uid,profileId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAccommodationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAccommodation>>>
+    export type RevokeAccommodationMutationBody = BodyType<RevokeAccommodationProfileRequest>
+    export type RevokeAccommodationMutationError = ErrorType<unknown>
+    export type RevokeAccommodationMutationVariables = {id: string;uid: string;profileId: string;data: BodyType<RevokeAccommodationProfileRequest>}
+
+    export const useRevokeAccommodation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAccommodation>>, TError,RevokeAccommodationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAccommodation>>,
+        TError,
+        RevokeAccommodationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeAccommodationMutationOptions(options), queryClient);
+    }
+    export type staffResponse200 = {
+  data: Staff200
+  status: 200
+}
+
+export type staffResponseSuccess = (staffResponse200) & {
+  headers: Headers;
+};
+;
+
+export type staffResponse = (staffResponseSuccess)
+
+export const getStaffUrl = (id: string,
+    params?: StaffParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/companies/${id}/staff?${stringifiedParams}` : `/companies/${id}/staff`
+}
+
+export const staff = async (id: string,
+    params?: StaffParams, options?: Parameters<typeof customInstance>[1]): Promise<staffResponse> => {
+
+  return customInstance<staffResponse>(getStaffUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStaffQueryKey = (id: string,
+    params?: StaffParams,) => {
+    return [
+    `/companies/${id}/staff`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getStaffQueryOptions = <TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(id: string,
+    params?: StaffParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStaffQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof staff>>> = ({ signal }) => staff(id,params, { signal, ...requestOptions });
 
 
 
@@ -928,7 +1864,8 @@ export type StaffQueryError = ErrorType<unknown>
 
 
 export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>> & Pick<
+ id: string,
+    params: undefined |  StaffParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof staff>>,
           TError,
@@ -938,7 +1875,8 @@ export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = Err
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>> & Pick<
+ id: string,
+    params?: StaffParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof staff>>,
           TError,
@@ -948,16 +1886,18 @@ export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = Err
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ id: string,
+    params?: StaffParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useStaff<TData = Awaited<ReturnType<typeof staff>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ id: string,
+    params?: StaffParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof staff>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getStaffQueryOptions(id,options)
+  const queryOptions = getStaffQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1210,6 +2150,7 @@ return customInstance<resetPasswordResponse>(getResetPasswordUrl(id,uid),
 
 
 
+
 export const getResetPasswordMutationKey = () => ['resetPassword'] as const;
 
 export const getResetPasswordMutationOptions = <TError = ErrorType<unknown>,
@@ -1231,6 +2172,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
           return  resetPassword(id,uid,data,requestOptions)
         }
+
 
 
 
@@ -1653,29 +2595,33 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateGradeMutationOptions(options), queryClient);
     }
-    export type _deleteResponse200 = {
-  data: CompanyDetail
+    export type transcribePrerequisiteResponse200 = {
+  data: TextResult
   status: 200
 }
 
-export type _deleteResponseSuccess = (_deleteResponse200) & {
+export type transcribePrerequisiteResponseSuccess = (transcribePrerequisiteResponse200) & {
   headers: Headers;
 };
 ;
 
-export type _deleteResponse = (_deleteResponseSuccess)
+export type transcribePrerequisiteResponse = (transcribePrerequisiteResponseSuccess)
 
-export const getDeleteUrl = (id: string,) => {
+export const getTranscribePrerequisiteUrl = (id: string,
+    examVersionId: string,
+    mediaId: string,) => {
 
 
 
 
-  return `/companies/${id}/delete`
+  return `/companies/${id}/exam-versions/${examVersionId}/media/${mediaId}/transcript`
 }
 
-export const _delete = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<_deleteResponse> => {
+export const transcribePrerequisite = async (id: string,
+    examVersionId: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<transcribePrerequisiteResponse> => {
 
-  return customInstance<_deleteResponse>(getDeleteUrl(id),
+  return customInstance<transcribePrerequisiteResponse>(getTranscribePrerequisiteUrl(id,examVersionId,mediaId),
   {
     ...options,
     method: 'POST'
@@ -1688,13 +2634,13 @@ export const _delete = async (id: string, options?: Parameters<typeof customInst
 
 
 
-export const getDeleteMutationKey = () => ['_delete'] as const;
+export const getTranscribePrerequisiteMutationKey = () => ['transcribePrerequisite'] as const;
 
-export const getDeleteMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof _delete>>, TError,_DeleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof _delete>>, TError,_DeleteMutationVariables, TContext> => {
+export const getTranscribePrerequisiteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribePrerequisite>>, TError,TranscribePrerequisiteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcribePrerequisite>>, TError,TranscribePrerequisiteMutationVariables, TContext> => {
 
-const mutationKey = getDeleteMutationKey();
+const mutationKey = getTranscribePrerequisiteMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1704,10 +2650,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof _delete>>, _DeleteMutationVariables> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcribePrerequisite>>, TranscribePrerequisiteMutationVariables> = (props) => {
+          const {id,examVersionId,mediaId} = props ?? {};
 
-          return  _delete(id,requestOptions)
+          return  transcribePrerequisite(id,examVersionId,mediaId,requestOptions)
         }
 
 
@@ -1717,20 +2663,309 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type _DeleteMutationResult = NonNullable<Awaited<ReturnType<typeof _delete>>>
+    export type TranscribePrerequisiteMutationResult = NonNullable<Awaited<ReturnType<typeof transcribePrerequisite>>>
 
-    export type _DeleteMutationError = ErrorType<unknown>
-    export type _DeleteMutationVariables = {id: string}
+    export type TranscribePrerequisiteMutationError = ErrorType<unknown>
+    export type TranscribePrerequisiteMutationVariables = {id: string;examVersionId: string;mediaId: string}
 
-    export const useDelete = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof _delete>>, TError,_DeleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useTranscribePrerequisite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribePrerequisite>>, TError,TranscribePrerequisiteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof _delete>>,
+        Awaited<ReturnType<typeof transcribePrerequisite>>,
         TError,
-        _DeleteMutationVariables,
+        TranscribePrerequisiteMutationVariables,
         TContext
       > => {
-      return useMutation(getDeleteMutationOptions(options), queryClient);
+      return useMutation(getTranscribePrerequisiteMutationOptions(options), queryClient);
+    }
+    export type aiPromptsResponse200 = {
+  data: Report
+  status: 200
+}
+
+export type aiPromptsResponseSuccess = (aiPromptsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type aiPromptsResponse = (aiPromptsResponseSuccess)
+
+export const getAiPromptsUrl = (id: string,
+    examVersionId: string,) => {
+
+
+
+
+  return `/companies/${id}/exam-versions/${examVersionId}/ai-prompts`
+}
+
+export const aiPrompts = async (id: string,
+    examVersionId: string, options?: Parameters<typeof customInstance>[1]): Promise<aiPromptsResponse> => {
+
+  return customInstance<aiPromptsResponse>(getAiPromptsUrl(id,examVersionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAiPromptsQueryKey = (id: string,
+    examVersionId: string,) => {
+    return [
+    `/companies/${id}/exam-versions/${examVersionId}/ai-prompts`
+    ] as const;
+    }
+
+
+export const getAiPromptsQueryOptions = <TData = Awaited<ReturnType<typeof aiPrompts>>, TError = ErrorType<unknown>>(id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAiPromptsQueryKey(id,examVersionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof aiPrompts>>> = ({ signal }) => aiPrompts(id,examVersionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && examVersionId !== null && examVersionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AiPromptsQueryResult = NonNullable<Awaited<ReturnType<typeof aiPrompts>>>
+export type AiPromptsQueryError = ErrorType<unknown>
+
+
+export function useAiPrompts<TData = Awaited<ReturnType<typeof aiPrompts>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof aiPrompts>>,
+          TError,
+          Awaited<ReturnType<typeof aiPrompts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAiPrompts<TData = Awaited<ReturnType<typeof aiPrompts>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof aiPrompts>>,
+          TError,
+          Awaited<ReturnType<typeof aiPrompts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAiPrompts<TData = Awaited<ReturnType<typeof aiPrompts>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAiPrompts<TData = Awaited<ReturnType<typeof aiPrompts>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof aiPrompts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAiPromptsQueryOptions(id,examVersionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type generateAiPromptsResponse200 = {
+  data: Report
+  status: 200
+}
+
+export type generateAiPromptsResponseSuccess = (generateAiPromptsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type generateAiPromptsResponse = (generateAiPromptsResponseSuccess)
+
+export const getGenerateAiPromptsUrl = (id: string,
+    examVersionId: string,) => {
+
+
+
+
+  return `/companies/${id}/exam-versions/${examVersionId}/ai-prompts`
+}
+
+export const generateAiPrompts = async (id: string,
+    examVersionId: string,
+    aiPromptRequest?: AiPromptRequest, options?: Parameters<typeof customInstance>[1]): Promise<generateAiPromptsResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<generateAiPromptsResponse>(getGenerateAiPromptsUrl(id,examVersionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(aiPromptRequest)
+  }
+);}
+
+
+
+
+
+export const getGenerateAiPromptsMutationKey = () => ['generateAiPrompts'] as const;
+
+export const getGenerateAiPromptsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiPrompts>>, TError,GenerateAiPromptsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateAiPrompts>>, TError,GenerateAiPromptsMutationVariables, TContext> => {
+
+const mutationKey = getGenerateAiPromptsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateAiPrompts>>, GenerateAiPromptsMutationVariables> = (props) => {
+          const {id,examVersionId,data} = props ?? {};
+
+          return  generateAiPrompts(id,examVersionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateAiPromptsMutationResult = NonNullable<Awaited<ReturnType<typeof generateAiPrompts>>>
+    export type GenerateAiPromptsMutationBody = BodyType<AiPromptRequest> | undefined
+    export type GenerateAiPromptsMutationError = ErrorType<unknown>
+    export type GenerateAiPromptsMutationVariables = {id: string;examVersionId: string;data?: BodyType<AiPromptRequest>}
+
+    export const useGenerateAiPrompts = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateAiPrompts>>, TError,GenerateAiPromptsMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof generateAiPrompts>>,
+        TError,
+        GenerateAiPromptsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGenerateAiPromptsMutationOptions(options), queryClient);
+    }
+    export type delete2Response200 = {
+  data: CompanyDetail
+  status: 200
+}
+
+export type delete2ResponseSuccess = (delete2Response200) & {
+  headers: Headers;
+};
+;
+
+export type delete2Response = (delete2ResponseSuccess)
+
+export const getDelete2Url = (id: string,) => {
+
+
+
+
+  return `/companies/${id}/delete`
+}
+
+export const delete2 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<delete2Response> => {
+
+  return customInstance<delete2Response>(getDelete2Url(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDelete2MutationKey = () => ['delete2'] as const;
+
+export const getDelete2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof delete2>>, TError,Delete2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof delete2>>, TError,Delete2MutationVariables, TContext> => {
+
+const mutationKey = getDelete2MutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof delete2>>, Delete2MutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  delete2(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Delete2MutationResult = NonNullable<Awaited<ReturnType<typeof delete2>>>
+
+    export type Delete2MutationError = ErrorType<unknown>
+    export type Delete2MutationVariables = {id: string}
+
+    export const useDelete2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof delete2>>, TError,Delete2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof delete2>>,
+        TError,
+        Delete2MutationVariables,
+        TContext
+      > => {
+      return useMutation(getDelete2MutationOptions(options), queryClient);
     }
     export type branchesResponse200 = {
   data: BranchDto[]
@@ -1947,29 +3182,33 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateBranchMutationOptions(options), queryClient);
     }
-    export type activateResponse200 = {
-  data: CompanyDetail
+    export type transcribeAnswerResponse200 = {
+  data: MediaTranscript
   status: 200
 }
 
-export type activateResponseSuccess = (activateResponse200) & {
+export type transcribeAnswerResponseSuccess = (transcribeAnswerResponse200) & {
   headers: Headers;
 };
 ;
 
-export type activateResponse = (activateResponseSuccess)
+export type transcribeAnswerResponse = (transcribeAnswerResponseSuccess)
 
-export const getActivateUrl = (id: string,) => {
+export const getTranscribeAnswerUrl = (id: string,
+    applicationId: string,
+    mediaId: string,) => {
 
 
 
 
-  return `/companies/${id}/activate`
+  return `/companies/${id}/applications/${applicationId}/media/${mediaId}/transcript`
 }
 
-export const activate = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<activateResponse> => {
+export const transcribeAnswer = async (id: string,
+    applicationId: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<transcribeAnswerResponse> => {
 
-  return customInstance<activateResponse>(getActivateUrl(id),
+  return customInstance<transcribeAnswerResponse>(getTranscribeAnswerUrl(id,applicationId,mediaId),
   {
     ...options,
     method: 'POST'
@@ -1982,13 +3221,13 @@ export const activate = async (id: string, options?: Parameters<typeof customIns
 
 
 
-export const getActivateMutationKey = () => ['activate'] as const;
+export const getTranscribeAnswerMutationKey = () => ['transcribeAnswer'] as const;
 
-export const getActivateMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,ActivateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,ActivateMutationVariables, TContext> => {
+export const getTranscribeAnswerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribeAnswer>>, TError,TranscribeAnswerMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcribeAnswer>>, TError,TranscribeAnswerMutationVariables, TContext> => {
 
-const mutationKey = getActivateMutationKey();
+const mutationKey = getTranscribeAnswerMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1998,10 +3237,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activate>>, ActivateMutationVariables> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcribeAnswer>>, TranscribeAnswerMutationVariables> = (props) => {
+          const {id,applicationId,mediaId} = props ?? {};
 
-          return  activate(id,requestOptions)
+          return  transcribeAnswer(id,applicationId,mediaId,requestOptions)
         }
 
 
@@ -2011,20 +3250,274 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type ActivateMutationResult = NonNullable<Awaited<ReturnType<typeof activate>>>
+    export type TranscribeAnswerMutationResult = NonNullable<Awaited<ReturnType<typeof transcribeAnswer>>>
 
-    export type ActivateMutationError = ErrorType<unknown>
-    export type ActivateMutationVariables = {id: string}
+    export type TranscribeAnswerMutationError = ErrorType<unknown>
+    export type TranscribeAnswerMutationVariables = {id: string;applicationId: string;mediaId: string}
 
-    export const useActivate = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate>>, TError,ActivateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useTranscribeAnswer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcribeAnswer>>, TError,TranscribeAnswerMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof activate>>,
+        Awaited<ReturnType<typeof transcribeAnswer>>,
         TError,
-        ActivateMutationVariables,
+        TranscribeAnswerMutationVariables,
         TContext
       > => {
-      return useMutation(getActivateMutationOptions(options), queryClient);
+      return useMutation(getTranscribeAnswerMutationOptions(options), queryClient);
+    }
+    export type aiEvaluationResponse200 = {
+  data: Evaluation
+  status: 200
+}
+
+export type aiEvaluationResponseSuccess = (aiEvaluationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type aiEvaluationResponse = (aiEvaluationResponseSuccess)
+
+export const getAiEvaluationUrl = (id: string,
+    answerId: string,) => {
+
+
+
+
+  return `/companies/${id}/answers/${answerId}/ai-evaluation`
+}
+
+export const aiEvaluation = async (id: string,
+    answerId: string, options?: Parameters<typeof customInstance>[1]): Promise<aiEvaluationResponse> => {
+
+  return customInstance<aiEvaluationResponse>(getAiEvaluationUrl(id,answerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAiEvaluationMutationKey = () => ['aiEvaluation'] as const;
+
+export const getAiEvaluationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiEvaluation>>, TError,AiEvaluationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiEvaluation>>, TError,AiEvaluationMutationVariables, TContext> => {
+
+const mutationKey = getAiEvaluationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiEvaluation>>, AiEvaluationMutationVariables> = (props) => {
+          const {id,answerId} = props ?? {};
+
+          return  aiEvaluation(id,answerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiEvaluationMutationResult = NonNullable<Awaited<ReturnType<typeof aiEvaluation>>>
+
+    export type AiEvaluationMutationError = ErrorType<unknown>
+    export type AiEvaluationMutationVariables = {id: string;answerId: string}
+
+    export const useAiEvaluation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiEvaluation>>, TError,AiEvaluationMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof aiEvaluation>>,
+        TError,
+        AiEvaluationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAiEvaluationMutationOptions(options), queryClient);
+    }
+    export type aiRequestPreviewResponse200 = {
+  data: RequestPreview[]
+  status: 200
+}
+
+export type aiRequestPreviewResponseSuccess = (aiRequestPreviewResponse200) & {
+  headers: Headers;
+};
+;
+
+export type aiRequestPreviewResponse = (aiRequestPreviewResponseSuccess)
+
+export const getAiRequestPreviewUrl = (id: string,) => {
+
+
+
+
+  return `/companies/${id}/answers/ai-request-preview`
+}
+
+export const aiRequestPreview = async (id: string,
+    aiRequestPreviewBody?: AiRequestPreviewBody, options?: Parameters<typeof customInstance>[1]): Promise<aiRequestPreviewResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<aiRequestPreviewResponse>(getAiRequestPreviewUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(aiRequestPreviewBody)
+  }
+);}
+
+
+
+
+
+export const getAiRequestPreviewMutationKey = () => ['aiRequestPreview'] as const;
+
+export const getAiRequestPreviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiRequestPreview>>, TError,AiRequestPreviewMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof aiRequestPreview>>, TError,AiRequestPreviewMutationVariables, TContext> => {
+
+const mutationKey = getAiRequestPreviewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof aiRequestPreview>>, AiRequestPreviewMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  aiRequestPreview(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AiRequestPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof aiRequestPreview>>>
+    export type AiRequestPreviewMutationBody = BodyType<AiRequestPreviewBody> | undefined
+    export type AiRequestPreviewMutationError = ErrorType<unknown>
+    export type AiRequestPreviewMutationVariables = {id: string;data?: BodyType<AiRequestPreviewBody>}
+
+    export const useAiRequestPreview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof aiRequestPreview>>, TError,AiRequestPreviewMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof aiRequestPreview>>,
+        TError,
+        AiRequestPreviewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAiRequestPreviewMutationOptions(options), queryClient);
+    }
+    export type activate1Response200 = {
+  data: CompanyDetail
+  status: 200
+}
+
+export type activate1ResponseSuccess = (activate1Response200) & {
+  headers: Headers;
+};
+;
+
+export type activate1Response = (activate1ResponseSuccess)
+
+export const getActivate1Url = (id: string,) => {
+
+
+
+
+  return `/companies/${id}/activate`
+}
+
+export const activate1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<activate1Response> => {
+
+  return customInstance<activate1Response>(getActivate1Url(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getActivate1MutationKey = () => ['activate1'] as const;
+
+export const getActivate1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate1>>, TError,Activate1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof activate1>>, TError,Activate1MutationVariables, TContext> => {
+
+const mutationKey = getActivate1MutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activate1>>, Activate1MutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  activate1(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Activate1MutationResult = NonNullable<Awaited<ReturnType<typeof activate1>>>
+
+    export type Activate1MutationError = ErrorType<unknown>
+    export type Activate1MutationVariables = {id: string}
+
+    export const useActivate1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activate1>>, TError,Activate1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof activate1>>,
+        TError,
+        Activate1MutationVariables,
+        TContext
+      > => {
+      return useMutation(getActivate1MutationOptions(options), queryClient);
     }
     export type yearsResponse200 = {
   data: AcademicYearDto[]
@@ -2226,6 +3719,87 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateYearMutationOptions(options), queryClient);
     }
+    export type archiveYearResponse200 = {
+  data: AcademicYearDto
+  status: 200
+}
+
+export type archiveYearResponseSuccess = (archiveYearResponse200) & {
+  headers: Headers;
+};
+;
+
+export type archiveYearResponse = (archiveYearResponseSuccess)
+
+export const getArchiveYearUrl = (id: string,
+    yid: string,) => {
+
+
+
+
+  return `/companies/${id}/academic-years/${yid}/archive`
+}
+
+export const archiveYear = async (id: string,
+    yid: string, options?: Parameters<typeof customInstance>[1]): Promise<archiveYearResponse> => {
+
+  return customInstance<archiveYearResponse>(getArchiveYearUrl(id,yid),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveYearMutationKey = () => ['archiveYear'] as const;
+
+export const getArchiveYearMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveYear>>, TError,ArchiveYearMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveYear>>, TError,ArchiveYearMutationVariables, TContext> => {
+
+const mutationKey = getArchiveYearMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveYear>>, ArchiveYearMutationVariables> = (props) => {
+          const {id,yid} = props ?? {};
+
+          return  archiveYear(id,yid,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveYearMutationResult = NonNullable<Awaited<ReturnType<typeof archiveYear>>>
+
+    export type ArchiveYearMutationError = ErrorType<unknown>
+    export type ArchiveYearMutationVariables = {id: string;yid: string}
+
+    export const useArchiveYear = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveYear>>, TError,ArchiveYearMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof archiveYear>>,
+        TError,
+        ArchiveYearMutationVariables,
+        TContext
+      > => {
+      return useMutation(getArchiveYearMutationOptions(options), queryClient);
+    }
     export type activateYearResponse200 = {
   data: AcademicYearDto
   status: 200
@@ -2307,19 +3881,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getActivateYearMutationOptions(options), queryClient);
     }
-    export type getResponse200 = {
+    export type get5Response200 = {
   data: CompanyDetail
   status: 200
 }
 
-export type getResponseSuccess = (getResponse200) & {
+export type get5ResponseSuccess = (get5Response200) & {
   headers: Headers;
 };
 ;
 
-export type getResponse = (getResponseSuccess)
+export type get5Response = (get5ResponseSuccess)
 
-export const getGetUrl = (id: string,) => {
+export const getGet5Url = (id: string,) => {
 
 
 
@@ -2327,9 +3901,9 @@ export const getGetUrl = (id: string,) => {
   return `/companies/${id}`
 }
 
-export const get = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<getResponse> => {
+export const get5 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<get5Response> => {
 
-  return customInstance<getResponse>(getGetUrl(id),
+  return customInstance<get5Response>(getGet5Url(id),
   {
     ...options,
     method: 'GET'
@@ -2342,66 +3916,66 @@ export const get = async (id: string, options?: Parameters<typeof customInstance
 
 
 
-export const getGetQueryKey = (id: string,) => {
+export const getGet5QueryKey = (id: string,) => {
     return [
     `/companies/${id}`
     ] as const;
     }
 
 
-export const getGetQueryOptions = <TData = Awaited<ReturnType<typeof get>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGet5QueryOptions = <TData = Awaited<ReturnType<typeof get5>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGet5QueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({ signal }) => get(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof get5>>> = ({ signal }) => get5(id, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>
-export type GetQueryError = ErrorType<unknown>
+export type Get5QueryResult = NonNullable<Awaited<ReturnType<typeof get5>>>
+export type Get5QueryError = ErrorType<unknown>
 
 
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> & Pick<
+export function useGet5<TData = Awaited<ReturnType<typeof get5>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get>>,
+          Awaited<ReturnType<typeof get5>>,
           TError,
-          Awaited<ReturnType<typeof get>>
+          Awaited<ReturnType<typeof get5>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>> & Pick<
+export function useGet5<TData = Awaited<ReturnType<typeof get5>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get>>,
+          Awaited<ReturnType<typeof get5>>,
           TError,
-          Awaited<ReturnType<typeof get>>
+          Awaited<ReturnType<typeof get5>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet5<TData = Awaited<ReturnType<typeof get5>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet5<TData = Awaited<ReturnType<typeof get5>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get5>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetQueryOptions(id,options)
+  const queryOptions = getGet5QueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -2413,19 +3987,19 @@ export function useGet<TData = Awaited<ReturnType<typeof get>>, TError = ErrorTy
 
 
 
-export type updateResponse200 = {
+export type update4Response200 = {
   data: CompanyDetail
   status: 200
 }
 
-export type updateResponseSuccess = (updateResponse200) & {
+export type update4ResponseSuccess = (update4Response200) & {
   headers: Headers;
 };
 ;
 
-export type updateResponse = (updateResponseSuccess)
+export type update4Response = (update4ResponseSuccess)
 
-export const getUpdateUrl = (id: string,) => {
+export const getUpdate4Url = (id: string,) => {
 
 
 
@@ -2433,8 +4007,8 @@ export const getUpdateUrl = (id: string,) => {
   return `/companies/${id}`
 }
 
-export const update = async (id: string,
-    updateCompanyRequest: UpdateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<updateResponse> => {
+export const update4 = async (id: string,
+    updateCompanyRequest: UpdateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<update4Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2450,7 +4024,7 @@ export const update = async (id: string,
     }
     return headers;
   };
-return customInstance<updateResponse>(getUpdateUrl(id),
+return customInstance<update4Response>(getUpdate4Url(id),
   {
     ...options,
     method: 'PATCH',
@@ -2463,13 +4037,13 @@ return customInstance<updateResponse>(getUpdateUrl(id),
 
 
 
-export const getUpdateMutationKey = () => ['update'] as const;
+export const getUpdate4MutationKey = () => ['update4'] as const;
 
-export const getUpdateMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,UpdateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,UpdateMutationVariables, TContext> => {
+export const getUpdate4MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext> => {
 
-const mutationKey = getUpdateMutationKey();
+const mutationKey = getUpdate4MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2479,10 +4053,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update>>, UpdateMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update4>>, Update4MutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  update(id,data,requestOptions)
+          return  update4(id,data,requestOptions)
         }
 
 
@@ -2492,20 +4066,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdateMutationResult = NonNullable<Awaited<ReturnType<typeof update>>>
-    export type UpdateMutationBody = BodyType<UpdateCompanyRequest>
-    export type UpdateMutationError = ErrorType<unknown>
-    export type UpdateMutationVariables = {id: string;data: BodyType<UpdateCompanyRequest>}
+    export type Update4MutationResult = NonNullable<Awaited<ReturnType<typeof update4>>>
+    export type Update4MutationBody = BodyType<UpdateCompanyRequest>
+    export type Update4MutationError = ErrorType<unknown>
+    export type Update4MutationVariables = {id: string;data: BodyType<UpdateCompanyRequest>}
 
-    export const useUpdate = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update>>, TError,UpdateMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useUpdate4 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof update>>,
+        Awaited<ReturnType<typeof update4>>,
         TError,
-        UpdateMutationVariables,
+        Update4MutationVariables,
         TContext
       > => {
-      return useMutation(getUpdateMutationOptions(options), queryClient);
+      return useMutation(getUpdate4MutationOptions(options), queryClient);
     }
     export type patchSubscriptionResponse200 = {
   data: SubscriptionSummary
@@ -3068,6 +4642,279 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpdateGradeMutationOptions(options), queryClient);
     }
+    export type deleteBranchResponse204 = {
+  data: void
+  status: 204
+}
+
+export type deleteBranchResponseSuccess = (deleteBranchResponse204) & {
+  headers: Headers;
+};
+;
+
+export type deleteBranchResponse = (deleteBranchResponseSuccess)
+
+export const getDeleteBranchUrl = (id: string,
+    bid: string,) => {
+
+
+
+
+  return `/companies/${id}/branches/${bid}`
+}
+
+export const deleteBranch = async (id: string,
+    bid: string, options?: Parameters<typeof customInstance>[1]): Promise<deleteBranchResponse> => {
+
+  return customInstance<deleteBranchResponse>(getDeleteBranchUrl(id,bid),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteBranchMutationKey = () => ['deleteBranch'] as const;
+
+export const getDeleteBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,DeleteBranchMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,DeleteBranchMutationVariables, TContext> => {
+
+const mutationKey = getDeleteBranchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBranch>>, DeleteBranchMutationVariables> = (props) => {
+          const {id,bid} = props ?? {};
+
+          return  deleteBranch(id,bid,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBranchMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBranch>>>
+
+    export type DeleteBranchMutationError = ErrorType<unknown>
+    export type DeleteBranchMutationVariables = {id: string;bid: string}
+
+    export const useDeleteBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBranch>>, TError,DeleteBranchMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBranch>>,
+        TError,
+        DeleteBranchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteBranchMutationOptions(options), queryClient);
+    }
+    export type updateBranchResponse200 = {
+  data: BranchDto
+  status: 200
+}
+
+export type updateBranchResponseSuccess = (updateBranchResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateBranchResponse = (updateBranchResponseSuccess)
+
+export const getUpdateBranchUrl = (id: string,
+    bid: string,) => {
+
+
+
+
+  return `/companies/${id}/branches/${bid}`
+}
+
+export const updateBranch = async (id: string,
+    bid: string,
+    updateBranchRequest: UpdateBranchRequest, options?: Parameters<typeof customInstance>[1]): Promise<updateBranchResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<updateBranchResponse>(getUpdateBranchUrl(id,bid),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateBranchRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateBranchMutationKey = () => ['updateBranch'] as const;
+
+export const getUpdateBranchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,UpdateBranchMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,UpdateBranchMutationVariables, TContext> => {
+
+const mutationKey = getUpdateBranchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBranch>>, UpdateBranchMutationVariables> = (props) => {
+          const {id,bid,data} = props ?? {};
+
+          return  updateBranch(id,bid,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBranchMutationResult = NonNullable<Awaited<ReturnType<typeof updateBranch>>>
+    export type UpdateBranchMutationBody = BodyType<UpdateBranchRequest>
+    export type UpdateBranchMutationError = ErrorType<unknown>
+    export type UpdateBranchMutationVariables = {id: string;bid: string;data: BodyType<UpdateBranchRequest>}
+
+    export const useUpdateBranch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBranch>>, TError,UpdateBranchMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateBranch>>,
+        TError,
+        UpdateBranchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateBranchMutationOptions(options), queryClient);
+    }
+    export type updateYearResponse200 = {
+  data: AcademicYearDto
+  status: 200
+}
+
+export type updateYearResponseSuccess = (updateYearResponse200) & {
+  headers: Headers;
+};
+;
+
+export type updateYearResponse = (updateYearResponseSuccess)
+
+export const getUpdateYearUrl = (id: string,
+    yid: string,) => {
+
+
+
+
+  return `/companies/${id}/academic-years/${yid}`
+}
+
+export const updateYear = async (id: string,
+    yid: string,
+    updateAcademicYearRequest: UpdateAcademicYearRequest, options?: Parameters<typeof customInstance>[1]): Promise<updateYearResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<updateYearResponse>(getUpdateYearUrl(id,yid),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAcademicYearRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdateYearMutationKey = () => ['updateYear'] as const;
+
+export const getUpdateYearMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateYear>>, TError,UpdateYearMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateYear>>, TError,UpdateYearMutationVariables, TContext> => {
+
+const mutationKey = getUpdateYearMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateYear>>, UpdateYearMutationVariables> = (props) => {
+          const {id,yid,data} = props ?? {};
+
+          return  updateYear(id,yid,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateYearMutationResult = NonNullable<Awaited<ReturnType<typeof updateYear>>>
+    export type UpdateYearMutationBody = BodyType<UpdateAcademicYearRequest>
+    export type UpdateYearMutationError = ErrorType<unknown>
+    export type UpdateYearMutationVariables = {id: string;yid: string;data: BodyType<UpdateAcademicYearRequest>}
+
+    export const useUpdateYear = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateYear>>, TError,UpdateYearMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateYear>>,
+        TError,
+        UpdateYearMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateYearMutationOptions(options), queryClient);
+    }
     export type rolesResponse200 = {
   data: RoleDto[]
   status: 200
@@ -3174,6 +5021,120 @@ export function useRoles<TData = Awaited<ReturnType<typeof roles>>, TError = Err
 
 
 
+export type gradingPrerequisitesResponse200 = {
+  data: Report
+  status: 200
+}
+
+export type gradingPrerequisitesResponseSuccess = (gradingPrerequisitesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type gradingPrerequisitesResponse = (gradingPrerequisitesResponseSuccess)
+
+export const getGradingPrerequisitesUrl = (id: string,
+    examVersionId: string,) => {
+
+
+
+
+  return `/companies/${id}/exam-versions/${examVersionId}/grading-prerequisites`
+}
+
+export const gradingPrerequisites = async (id: string,
+    examVersionId: string, options?: Parameters<typeof customInstance>[1]): Promise<gradingPrerequisitesResponse> => {
+
+  return customInstance<gradingPrerequisitesResponse>(getGradingPrerequisitesUrl(id,examVersionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGradingPrerequisitesQueryKey = (id: string,
+    examVersionId: string,) => {
+    return [
+    `/companies/${id}/exam-versions/${examVersionId}/grading-prerequisites`
+    ] as const;
+    }
+
+
+export const getGradingPrerequisitesQueryOptions = <TData = Awaited<ReturnType<typeof gradingPrerequisites>>, TError = ErrorType<unknown>>(id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGradingPrerequisitesQueryKey(id,examVersionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof gradingPrerequisites>>> = ({ signal }) => gradingPrerequisites(id,examVersionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && examVersionId !== null && examVersionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GradingPrerequisitesQueryResult = NonNullable<Awaited<ReturnType<typeof gradingPrerequisites>>>
+export type GradingPrerequisitesQueryError = ErrorType<unknown>
+
+
+export function useGradingPrerequisites<TData = Awaited<ReturnType<typeof gradingPrerequisites>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gradingPrerequisites>>,
+          TError,
+          Awaited<ReturnType<typeof gradingPrerequisites>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGradingPrerequisites<TData = Awaited<ReturnType<typeof gradingPrerequisites>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gradingPrerequisites>>,
+          TError,
+          Awaited<ReturnType<typeof gradingPrerequisites>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGradingPrerequisites<TData = Awaited<ReturnType<typeof gradingPrerequisites>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGradingPrerequisites<TData = Awaited<ReturnType<typeof gradingPrerequisites>>, TError = ErrorType<unknown>>(
+ id: string,
+    examVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingPrerequisites>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGradingPrerequisitesQueryOptions(id,examVersionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 export type examReportsResponse200 = {
   data: ExamReportRow[]
   status: 200
@@ -3269,6 +5230,378 @@ export function useExamReports<TData = Awaited<ReturnType<typeof examReports>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getExamReportsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type auditLogsResponse200 = {
+  data: ListPageRow
+  status: 200
+}
+
+export type auditLogsResponseSuccess = (auditLogsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type auditLogsResponse = (auditLogsResponseSuccess)
+
+export const getAuditLogsUrl = (id: string,
+    params?: AuditLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/companies/${id}/audit-logs?${stringifiedParams}` : `/companies/${id}/audit-logs`
+}
+
+export const auditLogs = async (id: string,
+    params?: AuditLogsParams, options?: Parameters<typeof customInstance>[1]): Promise<auditLogsResponse> => {
+
+  return customInstance<auditLogsResponse>(getAuditLogsUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAuditLogsQueryKey = (id: string,
+    params?: AuditLogsParams,) => {
+    return [
+    `/companies/${id}/audit-logs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getAuditLogsQueryOptions = <TData = Awaited<ReturnType<typeof auditLogs>>, TError = ErrorType<unknown>>(id: string,
+    params?: AuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAuditLogsQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof auditLogs>>> = ({ signal }) => auditLogs(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AuditLogsQueryResult = NonNullable<Awaited<ReturnType<typeof auditLogs>>>
+export type AuditLogsQueryError = ErrorType<unknown>
+
+
+export function useAuditLogs<TData = Awaited<ReturnType<typeof auditLogs>>, TError = ErrorType<unknown>>(
+ id: string,
+    params: undefined |  AuditLogsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof auditLogs>>,
+          TError,
+          Awaited<ReturnType<typeof auditLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuditLogs<TData = Awaited<ReturnType<typeof auditLogs>>, TError = ErrorType<unknown>>(
+ id: string,
+    params?: AuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof auditLogs>>,
+          TError,
+          Awaited<ReturnType<typeof auditLogs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuditLogs<TData = Awaited<ReturnType<typeof auditLogs>>, TError = ErrorType<unknown>>(
+ id: string,
+    params?: AuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAuditLogs<TData = Awaited<ReturnType<typeof auditLogs>>, TError = ErrorType<unknown>>(
+ id: string,
+    params?: AuditLogsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof auditLogs>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAuditLogsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type gradingQueueResponse200 = {
+  data: QueueItem[]
+  status: 200
+}
+
+export type gradingQueueResponseSuccess = (gradingQueueResponse200) & {
+  headers: Headers;
+};
+;
+
+export type gradingQueueResponse = (gradingQueueResponseSuccess)
+
+export const getGradingQueueUrl = (id: string,
+    assignmentId: string,
+    params?: GradingQueueParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/companies/${id}/assignments/${assignmentId}/grading?${stringifiedParams}` : `/companies/${id}/assignments/${assignmentId}/grading`
+}
+
+export const gradingQueue = async (id: string,
+    assignmentId: string,
+    params?: GradingQueueParams, options?: Parameters<typeof customInstance>[1]): Promise<gradingQueueResponse> => {
+
+  return customInstance<gradingQueueResponse>(getGradingQueueUrl(id,assignmentId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGradingQueueQueryKey = (id: string,
+    assignmentId: string,
+    params?: GradingQueueParams,) => {
+    return [
+    `/companies/${id}/assignments/${assignmentId}/grading`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGradingQueueQueryOptions = <TData = Awaited<ReturnType<typeof gradingQueue>>, TError = ErrorType<unknown>>(id: string,
+    assignmentId: string,
+    params?: GradingQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGradingQueueQueryKey(id,assignmentId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof gradingQueue>>> = ({ signal }) => gradingQueue(id,assignmentId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && assignmentId !== null && assignmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GradingQueueQueryResult = NonNullable<Awaited<ReturnType<typeof gradingQueue>>>
+export type GradingQueueQueryError = ErrorType<unknown>
+
+
+export function useGradingQueue<TData = Awaited<ReturnType<typeof gradingQueue>>, TError = ErrorType<unknown>>(
+ id: string,
+    assignmentId: string,
+    params: undefined |  GradingQueueParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gradingQueue>>,
+          TError,
+          Awaited<ReturnType<typeof gradingQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGradingQueue<TData = Awaited<ReturnType<typeof gradingQueue>>, TError = ErrorType<unknown>>(
+ id: string,
+    assignmentId: string,
+    params?: GradingQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof gradingQueue>>,
+          TError,
+          Awaited<ReturnType<typeof gradingQueue>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGradingQueue<TData = Awaited<ReturnType<typeof gradingQueue>>, TError = ErrorType<unknown>>(
+ id: string,
+    assignmentId: string,
+    params?: GradingQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGradingQueue<TData = Awaited<ReturnType<typeof gradingQueue>>, TError = ErrorType<unknown>>(
+ id: string,
+    assignmentId: string,
+    params?: GradingQueueParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingQueue>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGradingQueueQueryOptions(id,assignmentId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type answerMediaResponse200 = {
+  data: Blob
+  status: 200
+}
+
+export type answerMediaResponseSuccess = (answerMediaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type answerMediaResponse = (answerMediaResponseSuccess)
+
+export const getAnswerMediaUrl = (id: string,
+    applicationId: string,
+    mediaId: string,) => {
+
+
+
+
+  return `/companies/${id}/applications/${applicationId}/media/${mediaId}/content`
+}
+
+export const answerMedia = async (id: string,
+    applicationId: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<answerMediaResponse> => {
+
+  return customInstance<answerMediaResponse>(getAnswerMediaUrl(id,applicationId,mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAnswerMediaQueryKey = (id: string,
+    applicationId: string,
+    mediaId: string,) => {
+    return [
+    `/companies/${id}/applications/${applicationId}/media/${mediaId}/content`
+    ] as const;
+    }
+
+
+export const getAnswerMediaQueryOptions = <TData = Awaited<ReturnType<typeof answerMedia>>, TError = ErrorType<unknown>>(id: string,
+    applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAnswerMediaQueryKey(id,applicationId,mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof answerMedia>>> = ({ signal }) => answerMedia(id,applicationId,mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && applicationId !== null && applicationId !== undefined && mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AnswerMediaQueryResult = NonNullable<Awaited<ReturnType<typeof answerMedia>>>
+export type AnswerMediaQueryError = ErrorType<unknown>
+
+
+export function useAnswerMedia<TData = Awaited<ReturnType<typeof answerMedia>>, TError = ErrorType<unknown>>(
+ id: string,
+    applicationId: string,
+    mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof answerMedia>>,
+          TError,
+          Awaited<ReturnType<typeof answerMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAnswerMedia<TData = Awaited<ReturnType<typeof answerMedia>>, TError = ErrorType<unknown>>(
+ id: string,
+    applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof answerMedia>>,
+          TError,
+          Awaited<ReturnType<typeof answerMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAnswerMedia<TData = Awaited<ReturnType<typeof answerMedia>>, TError = ErrorType<unknown>>(
+ id: string,
+    applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAnswerMedia<TData = Awaited<ReturnType<typeof answerMedia>>, TError = ErrorType<unknown>>(
+ id: string,
+    applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof answerMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAnswerMediaQueryOptions(id,applicationId,mediaId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

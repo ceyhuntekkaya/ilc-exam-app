@@ -4,7 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { ReviewRequestRubric } from './reviewRequestRubric';
 
 export interface ReviewRequest {
   finalScore: number;
+  rubric?: ReviewRequestRubric;
+  feedback?: string;
+  rationale?: string;
 }

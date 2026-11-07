@@ -4,6 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { ExamGrantDtoExamStatus } from './examGrantDtoExamStatus';
 
 export interface ExamGrantDto {
   id?: string;
@@ -20,6 +21,5 @@ export interface ExamGrantDto {
   mandatory?: boolean;
   assigned?: boolean;
   createdAt?: string;
-  /** Canlı sınav durumu. Yayında değilse yeni atama açılmaz. */
-  examStatus?: string;
+  examStatus?: ExamGrantDtoExamStatus;
 }

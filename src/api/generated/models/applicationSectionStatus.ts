@@ -10,6 +10,9 @@ export type ApplicationSectionStatus = typeof ApplicationSectionStatus[keyof typ
 
 export const ApplicationSectionStatus = {
   LOCKED: 'LOCKED',
+  AVAILABLE: 'AVAILABLE',
   ACTIVE: 'ACTIVE',
+  LEFT: 'LEFT',
   COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED',
 } as const;

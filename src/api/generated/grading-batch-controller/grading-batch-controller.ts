@@ -25,10 +25,10 @@ import type {
 
 import type {
   AutoCompleteResult,
-  GradingPublishResult,
-  GradingScopeBody,
-  GradingSummary,
-  GradingSummaryParams
+  PublishResult,
+  ScopeBody,
+  Summary,
+  SummaryParams
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -54,20 +54,208 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type gradingSummaryResponse200 = {
-  data: GradingSummary
+export type publishResponse200 = {
+  data: PublishResult
   status: 200
 }
 
-export type gradingSummaryResponseSuccess = (gradingSummaryResponse200) & {
+export type publishResponseSuccess = (publishResponse200) & {
   headers: Headers;
 };
 ;
 
-export type gradingSummaryResponse = (gradingSummaryResponseSuccess)
+export type publishResponse = (publishResponseSuccess)
 
-export const getGradingSummaryUrl = (companyId: string,
-    params: GradingSummaryParams,) => {
+export const getPublishUrl = (companyId: string,) => {
+
+
+
+
+  return `/companies/${companyId}/grading/publish`
+}
+
+export const publish = async (companyId: string,
+    scopeBody: ScopeBody, options?: Parameters<typeof customInstance>[1]): Promise<publishResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<publishResponse>(getPublishUrl(companyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(scopeBody)
+  }
+);}
+
+
+
+
+
+export const getPublishMutationKey = () => ['publish'] as const;
+
+export const getPublishMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext> => {
+
+const mutationKey = getPublishMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publish>>, PublishMutationVariables> = (props) => {
+          const {companyId,data} = props ?? {};
+
+          return  publish(companyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishMutationResult = NonNullable<Awaited<ReturnType<typeof publish>>>
+    export type PublishMutationBody = BodyType<ScopeBody>
+    export type PublishMutationError = ErrorType<unknown>
+    export type PublishMutationVariables = {companyId: string;data: BodyType<ScopeBody>}
+
+    export const usePublish = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publish>>, TError,PublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof publish>>,
+        TError,
+        PublishMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPublishMutationOptions(options), queryClient);
+    }
+    export type autoCompleteResponse200 = {
+  data: AutoCompleteResult
+  status: 200
+}
+
+export type autoCompleteResponseSuccess = (autoCompleteResponse200) & {
+  headers: Headers;
+};
+;
+
+export type autoCompleteResponse = (autoCompleteResponseSuccess)
+
+export const getAutoCompleteUrl = (companyId: string,) => {
+
+
+
+
+  return `/companies/${companyId}/grading/auto-complete`
+}
+
+export const autoComplete = async (companyId: string,
+    scopeBody: ScopeBody, options?: Parameters<typeof customInstance>[1]): Promise<autoCompleteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<autoCompleteResponse>(getAutoCompleteUrl(companyId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(scopeBody)
+  }
+);}
+
+
+
+
+
+export const getAutoCompleteMutationKey = () => ['autoComplete'] as const;
+
+export const getAutoCompleteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoComplete>>, TError,AutoCompleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof autoComplete>>, TError,AutoCompleteMutationVariables, TContext> => {
+
+const mutationKey = getAutoCompleteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof autoComplete>>, AutoCompleteMutationVariables> = (props) => {
+          const {companyId,data} = props ?? {};
+
+          return  autoComplete(companyId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AutoCompleteMutationResult = NonNullable<Awaited<ReturnType<typeof autoComplete>>>
+    export type AutoCompleteMutationBody = BodyType<ScopeBody>
+    export type AutoCompleteMutationError = ErrorType<unknown>
+    export type AutoCompleteMutationVariables = {companyId: string;data: BodyType<ScopeBody>}
+
+    export const useAutoComplete = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof autoComplete>>, TError,AutoCompleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof autoComplete>>,
+        TError,
+        AutoCompleteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAutoCompleteMutationOptions(options), queryClient);
+    }
+    export type summaryResponse200 = {
+  data: Summary
+  status: 200
+}
+
+export type summaryResponseSuccess = (summaryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type summaryResponse = (summaryResponseSuccess)
+
+export const getSummaryUrl = (companyId: string,
+    params: SummaryParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -90,10 +278,10 @@ export const getGradingSummaryUrl = (companyId: string,
   return stringifiedParams.length > 0 ? `/companies/${companyId}/grading/summary?${stringifiedParams}` : `/companies/${companyId}/grading/summary`
 }
 
-export const gradingSummary = async (companyId: string,
-    params: GradingSummaryParams, options?: Parameters<typeof customInstance>[1]): Promise<gradingSummaryResponse> => {
+export const summary = async (companyId: string,
+    params: SummaryParams, options?: Parameters<typeof customInstance>[1]): Promise<summaryResponse> => {
 
-  return customInstance<gradingSummaryResponse>(getGradingSummaryUrl(companyId,params),
+  return customInstance<summaryResponse>(getSummaryUrl(companyId,params),
   {
     ...options,
     method: 'GET'
@@ -106,72 +294,72 @@ export const gradingSummary = async (companyId: string,
 
 
 
-export const getGradingSummaryQueryKey = (companyId: string,
-    params?: GradingSummaryParams,) => {
+export const getSummaryQueryKey = (companyId: string,
+    params?: SummaryParams,) => {
     return [
     `/companies/${companyId}/grading/summary`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGradingSummaryQueryOptions = <TData = Awaited<ReturnType<typeof gradingSummary>>, TError = ErrorType<unknown>>(companyId: string,
-    params: GradingSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getSummaryQueryOptions = <TData = Awaited<ReturnType<typeof summary>>, TError = ErrorType<unknown>>(companyId: string,
+    params: SummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGradingSummaryQueryKey(companyId,params);
+  const queryKey =  queryOptions?.queryKey ?? getSummaryQueryKey(companyId,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof gradingSummary>>> = ({ signal }) => gradingSummary(companyId,params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof summary>>> = ({ signal }) => summary(companyId,params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: companyId !== null && companyId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: companyId !== null && companyId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GradingSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof gradingSummary>>>
-export type GradingSummaryQueryError = ErrorType<unknown>
+export type SummaryQueryResult = NonNullable<Awaited<ReturnType<typeof summary>>>
+export type SummaryQueryError = ErrorType<unknown>
 
 
-export function useGradingSummary<TData = Awaited<ReturnType<typeof gradingSummary>>, TError = ErrorType<unknown>>(
+export function useSummary<TData = Awaited<ReturnType<typeof summary>>, TError = ErrorType<unknown>>(
  companyId: string,
-    params: GradingSummaryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData>> & Pick<
+    params: SummaryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof gradingSummary>>,
+          Awaited<ReturnType<typeof summary>>,
           TError,
-          Awaited<ReturnType<typeof gradingSummary>>
+          Awaited<ReturnType<typeof summary>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGradingSummary<TData = Awaited<ReturnType<typeof gradingSummary>>, TError = ErrorType<unknown>>(
+export function useSummary<TData = Awaited<ReturnType<typeof summary>>, TError = ErrorType<unknown>>(
  companyId: string,
-    params: GradingSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData>> & Pick<
+    params: SummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof gradingSummary>>,
+          Awaited<ReturnType<typeof summary>>,
           TError,
-          Awaited<ReturnType<typeof gradingSummary>>
+          Awaited<ReturnType<typeof summary>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGradingSummary<TData = Awaited<ReturnType<typeof gradingSummary>>, TError = ErrorType<unknown>>(
+export function useSummary<TData = Awaited<ReturnType<typeof summary>>, TError = ErrorType<unknown>>(
  companyId: string,
-    params: GradingSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params: SummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGradingSummary<TData = Awaited<ReturnType<typeof gradingSummary>>, TError = ErrorType<unknown>>(
+export function useSummary<TData = Awaited<ReturnType<typeof summary>>, TError = ErrorType<unknown>>(
  companyId: string,
-    params: GradingSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof gradingSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params: SummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof summary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGradingSummaryQueryOptions(companyId,params,options)
+  const queryOptions = getSummaryQueryOptions(companyId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -183,191 +371,3 @@ export function useGradingSummary<TData = Awaited<ReturnType<typeof gradingSumma
 
 
 
-export type gradingAutoCompleteResponse200 = {
-  data: AutoCompleteResult
-  status: 200
-}
-
-export type gradingAutoCompleteResponseSuccess = (gradingAutoCompleteResponse200) & {
-  headers: Headers;
-};
-;
-
-export type gradingAutoCompleteResponse = (gradingAutoCompleteResponseSuccess)
-
-export const getGradingAutoCompleteUrl = (companyId: string,) => {
-
-
-
-
-  return `/companies/${companyId}/grading/auto-complete`
-}
-
-export const gradingAutoComplete = async (companyId: string,
-    gradingScopeBody: GradingScopeBody, options?: Parameters<typeof customInstance>[1]): Promise<gradingAutoCompleteResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customInstance<gradingAutoCompleteResponse>(getGradingAutoCompleteUrl(companyId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(gradingScopeBody)
-  }
-);}
-
-
-
-
-
-export const getGradingAutoCompleteMutationKey = () => ['gradingAutoComplete'] as const;
-
-export const getGradingAutoCompleteMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof gradingAutoComplete>>, TError,GradingAutoCompleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof gradingAutoComplete>>, TError,GradingAutoCompleteMutationVariables, TContext> => {
-
-const mutationKey = getGradingAutoCompleteMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof gradingAutoComplete>>, GradingAutoCompleteMutationVariables> = (props) => {
-          const {companyId,data} = props ?? {};
-
-          return  gradingAutoComplete(companyId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GradingAutoCompleteMutationResult = NonNullable<Awaited<ReturnType<typeof gradingAutoComplete>>>
-    export type GradingAutoCompleteMutationBody = BodyType<GradingScopeBody>
-    export type GradingAutoCompleteMutationError = ErrorType<unknown>
-    export type GradingAutoCompleteMutationVariables = {companyId: string;data: BodyType<GradingScopeBody>}
-
-    export const useGradingAutoComplete = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof gradingAutoComplete>>, TError,GradingAutoCompleteMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof gradingAutoComplete>>,
-        TError,
-        GradingAutoCompleteMutationVariables,
-        TContext
-      > => {
-      return useMutation(getGradingAutoCompleteMutationOptions(options), queryClient);
-    }
-    export type gradingPublishResponse200 = {
-  data: GradingPublishResult
-  status: 200
-}
-
-export type gradingPublishResponseSuccess = (gradingPublishResponse200) & {
-  headers: Headers;
-};
-;
-
-export type gradingPublishResponse = (gradingPublishResponseSuccess)
-
-export const getGradingPublishUrl = (companyId: string,) => {
-
-
-
-
-  return `/companies/${companyId}/grading/publish`
-}
-
-export const gradingPublish = async (companyId: string,
-    gradingScopeBody: GradingScopeBody, options?: Parameters<typeof customInstance>[1]): Promise<gradingPublishResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customInstance<gradingPublishResponse>(getGradingPublishUrl(companyId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(gradingScopeBody)
-  }
-);}
-
-
-
-
-
-export const getGradingPublishMutationKey = () => ['gradingPublish'] as const;
-
-export const getGradingPublishMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof gradingPublish>>, TError,GradingPublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof gradingPublish>>, TError,GradingPublishMutationVariables, TContext> => {
-
-const mutationKey = getGradingPublishMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof gradingPublish>>, GradingPublishMutationVariables> = (props) => {
-          const {companyId,data} = props ?? {};
-
-          return  gradingPublish(companyId,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type GradingPublishMutationResult = NonNullable<Awaited<ReturnType<typeof gradingPublish>>>
-    export type GradingPublishMutationBody = BodyType<GradingScopeBody>
-    export type GradingPublishMutationError = ErrorType<unknown>
-    export type GradingPublishMutationVariables = {companyId: string;data: BodyType<GradingScopeBody>}
-
-    export const useGradingPublish = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof gradingPublish>>, TError,GradingPublishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof gradingPublish>>,
-        TError,
-        GradingPublishMutationVariables,
-        TContext
-      > => {
-      return useMutation(getGradingPublishMutationOptions(options), queryClient);
-    }

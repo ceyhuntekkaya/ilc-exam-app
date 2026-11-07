@@ -24,27 +24,52 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccommodationPresentation200,
   AckInstructions200,
   AckRequest,
   AnswerRequest,
+  AssignmentPreview,
+  BulkAnswerRequest,
+  CheckMedia201,
+  CheckMediaBody,
+  CheckMediaParams,
   CheckRequest,
-  CompleteMedia200,
-  CompleteMediaRequest,
-  CompleteSection200,
+  CloseRequest,
+  Consent201,
+  ConsentRequest,
+  ContentTicket200,
   DeviceRequest,
-  Heartbeat200,
+  DownloadPackage200,
+  EnterResult,
+  FinishRequest,
+  GrantPackage200,
   HeartbeatRequest,
-  MediaUploadUrl,
+  IntentRequest,
+  MediaContentParams,
+  MyAssignment,
+  OpenMediaIntent201,
   Play200,
   PlayRequest,
+  PlayStatus,
+  PlayTicket,
+  PlaybackRequest,
+  PositionRequest,
   RecordCheck200,
+  ReportDeck,
   ResumeView,
+  SavedAnswer,
   SectionContent200,
   Start201,
   StartExam200,
-  Submit200,
-  UploadUrlRequest,
-  UpsertAnswer200
+  StudentExamState,
+  StudentReport,
+  StudentResult,
+  UploadMedia201,
+  UploadMediaBody,
+  UploadMediaParams,
+  UpsertAnswer200,
+  UpsertAnswers200,
+  WelcomeAcceptRequest
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -70,7 +95,301 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type upsertAnswerResponse200 = {
+export type positionResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type positionResponseSuccess = (positionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type positionResponse = (positionResponseSuccess)
+
+export const getPositionUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/position`
+}
+
+export const position = async (id: string,
+    positionRequest: PositionRequest, options?: Parameters<typeof customInstance>[1]): Promise<positionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<positionResponse>(getPositionUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(positionRequest)
+  }
+);}
+
+
+
+
+
+export const getPositionMutationKey = () => ['position'] as const;
+
+export const getPositionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof position>>, TError,PositionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof position>>, TError,PositionMutationVariables, TContext> => {
+
+const mutationKey = getPositionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof position>>, PositionMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  position(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PositionMutationResult = NonNullable<Awaited<ReturnType<typeof position>>>
+    export type PositionMutationBody = BodyType<PositionRequest>
+    export type PositionMutationError = ErrorType<unknown>
+    export type PositionMutationVariables = {id: string;data: BodyType<PositionRequest>}
+
+    export const usePosition = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof position>>, TError,PositionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof position>>,
+        TError,
+        PositionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPositionMutationOptions(options), queryClient);
+    }
+    export type listAnswersResponse200 = {
+  data: SavedAnswer[]
+  status: 200
+}
+
+export type listAnswersResponseSuccess = (listAnswersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type listAnswersResponse = (listAnswersResponseSuccess)
+
+export const getListAnswersUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/answers`
+}
+
+export const listAnswers = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<listAnswersResponse> => {
+
+  return customInstance<listAnswersResponse>(getListAnswersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAnswersQueryKey = (id: string,) => {
+    return [
+    `/applications/${id}/answers`
+    ] as const;
+    }
+
+
+export const getListAnswersQueryOptions = <TData = Awaited<ReturnType<typeof listAnswers>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAnswersQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAnswers>>> = ({ signal }) => listAnswers(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListAnswersQueryResult = NonNullable<Awaited<ReturnType<typeof listAnswers>>>
+export type ListAnswersQueryError = ErrorType<unknown>
+
+
+export function useListAnswers<TData = Awaited<ReturnType<typeof listAnswers>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAnswers>>,
+          TError,
+          Awaited<ReturnType<typeof listAnswers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAnswers<TData = Awaited<ReturnType<typeof listAnswers>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listAnswers>>,
+          TError,
+          Awaited<ReturnType<typeof listAnswers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListAnswers<TData = Awaited<ReturnType<typeof listAnswers>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListAnswers<TData = Awaited<ReturnType<typeof listAnswers>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listAnswers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListAnswersQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type upsertAnswersResponse200 = {
+  data: UpsertAnswers200
+  status: 200
+}
+
+export type upsertAnswersResponseSuccess = (upsertAnswersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type upsertAnswersResponse = (upsertAnswersResponseSuccess)
+
+export const getUpsertAnswersUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/answers`
+}
+
+export const upsertAnswers = async (id: string,
+    bulkAnswerRequest: BulkAnswerRequest[], options?: Parameters<typeof customInstance>[1]): Promise<upsertAnswersResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<upsertAnswersResponse>(getUpsertAnswersUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bulkAnswerRequest)
+  }
+);}
+
+
+
+
+
+export const getUpsertAnswersMutationKey = () => ['upsertAnswers'] as const;
+
+export const getUpsertAnswersMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertAnswers>>, TError,UpsertAnswersMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertAnswers>>, TError,UpsertAnswersMutationVariables, TContext> => {
+
+const mutationKey = getUpsertAnswersMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertAnswers>>, UpsertAnswersMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  upsertAnswers(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertAnswersMutationResult = NonNullable<Awaited<ReturnType<typeof upsertAnswers>>>
+    export type UpsertAnswersMutationBody = BodyType<BulkAnswerRequest[]>
+    export type UpsertAnswersMutationError = ErrorType<unknown>
+    export type UpsertAnswersMutationVariables = {id: string;data: BodyType<BulkAnswerRequest[]>}
+
+    export const useUpsertAnswers = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertAnswers>>, TError,UpsertAnswersMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof upsertAnswers>>,
+        TError,
+        UpsertAnswersMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpsertAnswersMutationOptions(options), queryClient);
+    }
+    export type upsertAnswerResponse200 = {
   data: UpsertAnswer200
   status: 200
 }
@@ -260,34 +579,48 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getStartMutationOptions(options), queryClient);
     }
-    export type submitResponse200 = {
-  data: Submit200
-  status: 200
+    export type consentResponse201 = {
+  data: Consent201
+  status: 201
 }
 
-export type submitResponseSuccess = (submitResponse200) & {
+export type consentResponseSuccess = (consentResponse201) & {
   headers: Headers;
 };
 ;
 
-export type submitResponse = (submitResponseSuccess)
+export type consentResponse = (consentResponseSuccess)
 
-export const getSubmitUrl = (id: string,) => {
-
-
+export const getConsentUrl = () => {
 
 
-  return `/applications/${id}/submit`
+
+
+  return `/me/consents`
 }
 
-export const submit = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<submitResponse> => {
+export const consent = async (consentRequest: ConsentRequest, options?: Parameters<typeof customInstance>[1]): Promise<consentResponse> => {
 
-  return customInstance<submitResponse>(getSubmitUrl(id),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<consentResponse>(getConsentUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(consentRequest)
   }
 );}
 
@@ -295,13 +628,13 @@ export const submit = async (id: string, options?: Parameters<typeof customInsta
 
 
 
-export const getSubmitMutationKey = () => ['submit'] as const;
+export const getConsentMutationKey = () => ['consent'] as const;
 
-export const getSubmitMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit>>, TError,SubmitMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof submit>>, TError,SubmitMutationVariables, TContext> => {
+export const getConsentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof consent>>, TError,ConsentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof consent>>, TError,ConsentMutationVariables, TContext> => {
 
-const mutationKey = getSubmitMutationKey();
+const mutationKey = getConsentMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -311,10 +644,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submit>>, SubmitMutationVariables> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof consent>>, ConsentMutationVariables> = (props) => {
+          const {data} = props ?? {};
 
-          return  submit(id,requestOptions)
+          return  consent(data,requestOptions)
         }
 
 
@@ -324,20 +657,114 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type SubmitMutationResult = NonNullable<Awaited<ReturnType<typeof submit>>>
+    export type ConsentMutationResult = NonNullable<Awaited<ReturnType<typeof consent>>>
+    export type ConsentMutationBody = BodyType<ConsentRequest>
+    export type ConsentMutationError = ErrorType<unknown>
+    export type ConsentMutationVariables = {data: BodyType<ConsentRequest>}
 
-    export type SubmitMutationError = ErrorType<unknown>
-    export type SubmitMutationVariables = {id: string}
-
-    export const useSubmit = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit>>, TError,SubmitMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useConsent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof consent>>, TError,ConsentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof submit>>,
+        Awaited<ReturnType<typeof consent>>,
         TError,
-        SubmitMutationVariables,
+        ConsentMutationVariables,
         TContext
       > => {
-      return useMutation(getSubmitMutationOptions(options), queryClient);
+      return useMutation(getConsentMutationOptions(options), queryClient);
+    }
+    export type acceptWelcomeResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type acceptWelcomeResponseSuccess = (acceptWelcomeResponse200) & {
+  headers: Headers;
+};
+;
+
+export type acceptWelcomeResponse = (acceptWelcomeResponseSuccess)
+
+export const getAcceptWelcomeUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/welcome/accept`
+}
+
+export const acceptWelcome = async (id: string,
+    welcomeAcceptRequest: WelcomeAcceptRequest, options?: Parameters<typeof customInstance>[1]): Promise<acceptWelcomeResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<acceptWelcomeResponse>(getAcceptWelcomeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(welcomeAcceptRequest)
+  }
+);}
+
+
+
+
+
+export const getAcceptWelcomeMutationKey = () => ['acceptWelcome'] as const;
+
+export const getAcceptWelcomeMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptWelcome>>, TError,AcceptWelcomeMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptWelcome>>, TError,AcceptWelcomeMutationVariables, TContext> => {
+
+const mutationKey = getAcceptWelcomeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptWelcome>>, AcceptWelcomeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  acceptWelcome(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptWelcomeMutationResult = NonNullable<Awaited<ReturnType<typeof acceptWelcome>>>
+    export type AcceptWelcomeMutationBody = BodyType<WelcomeAcceptRequest>
+    export type AcceptWelcomeMutationError = ErrorType<unknown>
+    export type AcceptWelcomeMutationVariables = {id: string;data: BodyType<WelcomeAcceptRequest>}
+
+    export const useAcceptWelcome = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptWelcome>>, TError,AcceptWelcomeMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof acceptWelcome>>,
+        TError,
+        AcceptWelcomeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAcceptWelcomeMutationOptions(options), queryClient);
     }
     export type startExamResponse200 = {
   data: StartExam200
@@ -418,8 +845,185 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getStartExamMutationOptions(options), queryClient);
     }
+    export type leaveSectionResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type leaveSectionResponseSuccess = (leaveSectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type leaveSectionResponse = (leaveSectionResponseSuccess)
+
+export const getLeaveSectionUrl = (id: string,
+    sid: string,) => {
+
+
+
+
+  return `/applications/${id}/sections/${sid}/leave`
+}
+
+export const leaveSection = async (id: string,
+    sid: string,
+    closeRequest?: CloseRequest, options?: Parameters<typeof customInstance>[1]): Promise<leaveSectionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<leaveSectionResponse>(getLeaveSectionUrl(id,sid),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(closeRequest)
+  }
+);}
+
+
+
+
+
+export const getLeaveSectionMutationKey = () => ['leaveSection'] as const;
+
+export const getLeaveSectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveSection>>, TError,LeaveSectionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveSection>>, TError,LeaveSectionMutationVariables, TContext> => {
+
+const mutationKey = getLeaveSectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveSection>>, LeaveSectionMutationVariables> = (props) => {
+          const {id,sid,data} = props ?? {};
+
+          return  leaveSection(id,sid,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveSectionMutationResult = NonNullable<Awaited<ReturnType<typeof leaveSection>>>
+    export type LeaveSectionMutationBody = BodyType<CloseRequest> | undefined
+    export type LeaveSectionMutationError = ErrorType<unknown>
+    export type LeaveSectionMutationVariables = {id: string;sid: string;data?: BodyType<CloseRequest>}
+
+    export const useLeaveSection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveSection>>, TError,LeaveSectionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leaveSection>>,
+        TError,
+        LeaveSectionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLeaveSectionMutationOptions(options), queryClient);
+    }
+    export type enterSectionResponse200 = {
+  data: EnterResult
+  status: 200
+}
+
+export type enterSectionResponseSuccess = (enterSectionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type enterSectionResponse = (enterSectionResponseSuccess)
+
+export const getEnterSectionUrl = (id: string,
+    sid: string,) => {
+
+
+
+
+  return `/applications/${id}/sections/${sid}/enter`
+}
+
+export const enterSection = async (id: string,
+    sid: string, options?: Parameters<typeof customInstance>[1]): Promise<enterSectionResponse> => {
+
+  return customInstance<enterSectionResponse>(getEnterSectionUrl(id,sid),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getEnterSectionMutationKey = () => ['enterSection'] as const;
+
+export const getEnterSectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterSection>>, TError,EnterSectionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof enterSection>>, TError,EnterSectionMutationVariables, TContext> => {
+
+const mutationKey = getEnterSectionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enterSection>>, EnterSectionMutationVariables> = (props) => {
+          const {id,sid} = props ?? {};
+
+          return  enterSection(id,sid,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnterSectionMutationResult = NonNullable<Awaited<ReturnType<typeof enterSection>>>
+
+    export type EnterSectionMutationError = ErrorType<unknown>
+    export type EnterSectionMutationVariables = {id: string;sid: string}
+
+    export const useEnterSection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterSection>>, TError,EnterSectionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof enterSection>>,
+        TError,
+        EnterSectionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getEnterSectionMutationOptions(options), queryClient);
+    }
     export type completeSectionResponse200 = {
-  data: CompleteSection200
+  data: StudentExamState
   status: 200
 }
 
@@ -440,14 +1044,29 @@ export const getCompleteSectionUrl = (id: string,
 }
 
 export const completeSection = async (id: string,
-    sid: string, options?: Parameters<typeof customInstance>[1]): Promise<completeSectionResponse> => {
+    sid: string,
+    closeRequest?: CloseRequest, options?: Parameters<typeof customInstance>[1]): Promise<completeSectionResponse> => {
 
-  return customInstance<completeSectionResponse>(getCompleteSectionUrl(id,sid),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<completeSectionResponse>(getCompleteSectionUrl(id,sid),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(closeRequest)
   }
 );}
 
@@ -472,9 +1091,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeSection>>, CompleteSectionMutationVariables> = (props) => {
-          const {id,sid} = props ?? {};
+          const {id,sid,data} = props ?? {};
 
-          return  completeSection(id,sid,requestOptions)
+          return  completeSection(id,sid,data,requestOptions)
         }
 
 
@@ -485,9 +1104,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CompleteSectionMutationResult = NonNullable<Awaited<ReturnType<typeof completeSection>>>
-
+    export type CompleteSectionMutationBody = BodyType<CloseRequest> | undefined
     export type CompleteSectionMutationError = ErrorType<unknown>
-    export type CompleteSectionMutationVariables = {id: string;sid: string}
+    export type CompleteSectionMutationVariables = {id: string;sid: string;data?: BodyType<CloseRequest>}
 
     export const useCompleteSection = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeSection>>, TError,CompleteSectionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -499,51 +1118,208 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCompleteSectionMutationOptions(options), queryClient);
     }
-    export type completeMediaResponse200 = {
-  data: CompleteMedia200
+    export type grantPackageResponse200 = {
+  data: GrantPackage200
   status: 200
 }
 
-export type completeMediaResponseSuccess = (completeMediaResponse200) & {
+export type grantPackageResponseSuccess = (grantPackageResponse200) & {
   headers: Headers;
 };
 ;
 
-export type completeMediaResponse = (completeMediaResponseSuccess)
+export type grantPackageResponse = (grantPackageResponseSuccess)
 
-export const getCompleteMediaUrl = (id: string,
+export const getGrantPackageUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/package/grant`
+}
+
+export const grantPackage = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<grantPackageResponse> => {
+
+  return customInstance<grantPackageResponse>(getGrantPackageUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGrantPackageMutationKey = () => ['grantPackage'] as const;
+
+export const getGrantPackageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantPackage>>, TError,GrantPackageMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof grantPackage>>, TError,GrantPackageMutationVariables, TContext> => {
+
+const mutationKey = getGrantPackageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof grantPackage>>, GrantPackageMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  grantPackage(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GrantPackageMutationResult = NonNullable<Awaited<ReturnType<typeof grantPackage>>>
+
+    export type GrantPackageMutationError = ErrorType<unknown>
+    export type GrantPackageMutationVariables = {id: string}
+
+    export const useGrantPackage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof grantPackage>>, TError,GrantPackageMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof grantPackage>>,
+        TError,
+        GrantPackageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getGrantPackageMutationOptions(options), queryClient);
+    }
+    export type uploadMediaResponse201 = {
+  data: UploadMedia201
+  status: 201
+}
+
+export type uploadMediaResponseSuccess = (uploadMediaResponse201) & {
+  headers: Headers;
+};
+;
+
+export type uploadMediaResponse = (uploadMediaResponseSuccess)
+
+export const getUploadMediaUrl = (id: string,
+    params: UploadMediaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/applications/${id}/media?${stringifiedParams}` : `/applications/${id}/media`
+}
+
+export const uploadMedia = async (id: string,
+    params: UploadMediaParams,
+    uploadMediaBody?: UploadMediaBody, options?: Parameters<typeof customInstance>[1]): Promise<uploadMediaResponse> => {
+    const formData = new FormData();
+if(uploadMediaBody?.file !== undefined) {
+ formData.append(`file`, uploadMediaBody.file);
+ }
+
+  return customInstance<uploadMediaResponse>(getUploadMediaUrl(id,params),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getUploadMediaMutationKey = () => ['uploadMedia'] as const;
+
+export const getUploadMediaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadMedia>>, TError,UploadMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadMedia>>, TError,UploadMediaMutationVariables, TContext> => {
+
+const mutationKey = getUploadMediaMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadMedia>>, UploadMediaMutationVariables> = (props) => {
+          const {id,params,data} = props ?? {};
+
+          return  uploadMedia(id,params,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadMediaMutationResult = NonNullable<Awaited<ReturnType<typeof uploadMedia>>>
+    export type UploadMediaMutationBody = BodyType<UploadMediaBody> | undefined
+    export type UploadMediaMutationError = ErrorType<unknown>
+    export type UploadMediaMutationVariables = {id: string;params: UploadMediaParams;data?: BodyType<UploadMediaBody>}
+
+    export const useUploadMedia = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadMedia>>, TError,UploadMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof uploadMedia>>,
+        TError,
+        UploadMediaMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUploadMediaMutationOptions(options), queryClient);
+    }
+    export type stimulusPlayResponse200 = {
+  data: PlayTicket
+  status: 200
+}
+
+export type stimulusPlayResponseSuccess = (stimulusPlayResponse200) & {
+  headers: Headers;
+};
+;
+
+export type stimulusPlayResponse = (stimulusPlayResponseSuccess)
+
+export const getStimulusPlayUrl = (id: string,
     mediaId: string,) => {
 
 
 
 
-  return `/applications/${id}/media/${mediaId}/complete`
+  return `/applications/${id}/media/${mediaId}/play`
 }
 
-export const completeMedia = async (id: string,
-    mediaId: string,
-    completeMediaRequest: CompleteMediaRequest, options?: Parameters<typeof customInstance>[1]): Promise<completeMediaResponse> => {
+export const stimulusPlay = async (id: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<stimulusPlayResponse> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customInstance<completeMediaResponse>(getCompleteMediaUrl(id,mediaId),
+  return customInstance<stimulusPlayResponse>(getStimulusPlayUrl(id,mediaId),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(completeMediaRequest)
+    method: 'POST'
+
+
   }
 );}
 
@@ -551,13 +1327,13 @@ return customInstance<completeMediaResponse>(getCompleteMediaUrl(id,mediaId),
 
 
 
-export const getCompleteMediaMutationKey = () => ['completeMedia'] as const;
+export const getStimulusPlayMutationKey = () => ['stimulusPlay'] as const;
 
-export const getCompleteMediaMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMedia>>, TError,CompleteMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof completeMedia>>, TError,CompleteMediaMutationVariables, TContext> => {
+export const getStimulusPlayMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stimulusPlay>>, TError,StimulusPlayMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof stimulusPlay>>, TError,StimulusPlayMutationVariables, TContext> => {
 
-const mutationKey = getCompleteMediaMutationKey();
+const mutationKey = getStimulusPlayMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -567,10 +1343,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeMedia>>, CompleteMediaMutationVariables> = (props) => {
-          const {id,mediaId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stimulusPlay>>, StimulusPlayMutationVariables> = (props) => {
+          const {id,mediaId} = props ?? {};
 
-          return  completeMedia(id,mediaId,data,requestOptions)
+          return  stimulusPlay(id,mediaId,requestOptions)
         }
 
 
@@ -580,43 +1356,207 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CompleteMediaMutationResult = NonNullable<Awaited<ReturnType<typeof completeMedia>>>
-    export type CompleteMediaMutationBody = BodyType<CompleteMediaRequest>
-    export type CompleteMediaMutationError = ErrorType<unknown>
-    export type CompleteMediaMutationVariables = {id: string;mediaId: string;data: BodyType<CompleteMediaRequest>}
+    export type StimulusPlayMutationResult = NonNullable<Awaited<ReturnType<typeof stimulusPlay>>>
 
-    export const useCompleteMedia = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeMedia>>, TError,CompleteMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export type StimulusPlayMutationError = ErrorType<unknown>
+    export type StimulusPlayMutationVariables = {id: string;mediaId: string}
+
+    export const useStimulusPlay = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stimulusPlay>>, TError,StimulusPlayMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof completeMedia>>,
+        Awaited<ReturnType<typeof stimulusPlay>>,
         TError,
-        CompleteMediaMutationVariables,
+        StimulusPlayMutationVariables,
         TContext
       > => {
-      return useMutation(getCompleteMediaMutationOptions(options), queryClient);
+      return useMutation(getStimulusPlayMutationOptions(options), queryClient);
     }
-    export type uploadUrlResponse200 = {
-  data: MediaUploadUrl
-  status: 200
+    export type releaseStimulusPlayResponse204 = {
+  data: void
+  status: 204
 }
 
-export type uploadUrlResponseSuccess = (uploadUrlResponse200) & {
+export type releaseStimulusPlayResponseSuccess = (releaseStimulusPlayResponse204) & {
   headers: Headers;
 };
 ;
 
-export type uploadUrlResponse = (uploadUrlResponseSuccess)
+export type releaseStimulusPlayResponse = (releaseStimulusPlayResponseSuccess)
 
-export const getUploadUrlUrl = (id: string,) => {
+export const getReleaseStimulusPlayUrl = (id: string,
+    mediaId: string,
+    grantId: string,) => {
 
 
 
 
-  return `/applications/${id}/media/upload-url`
+  return `/applications/${id}/media/${mediaId}/play/${grantId}/release`
 }
 
-export const uploadUrl = async (id: string,
-    uploadUrlRequest: UploadUrlRequest, options?: Parameters<typeof customInstance>[1]): Promise<uploadUrlResponse> => {
+export const releaseStimulusPlay = async (id: string,
+    mediaId: string,
+    grantId: string, options?: Parameters<typeof customInstance>[1]): Promise<releaseStimulusPlayResponse> => {
+
+  return customInstance<releaseStimulusPlayResponse>(getReleaseStimulusPlayUrl(id,mediaId,grantId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReleaseStimulusPlayMutationKey = () => ['releaseStimulusPlay'] as const;
+
+export const getReleaseStimulusPlayMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof releaseStimulusPlay>>, TError,ReleaseStimulusPlayMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof releaseStimulusPlay>>, TError,ReleaseStimulusPlayMutationVariables, TContext> => {
+
+const mutationKey = getReleaseStimulusPlayMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof releaseStimulusPlay>>, ReleaseStimulusPlayMutationVariables> = (props) => {
+          const {id,mediaId,grantId} = props ?? {};
+
+          return  releaseStimulusPlay(id,mediaId,grantId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReleaseStimulusPlayMutationResult = NonNullable<Awaited<ReturnType<typeof releaseStimulusPlay>>>
+
+    export type ReleaseStimulusPlayMutationError = ErrorType<unknown>
+    export type ReleaseStimulusPlayMutationVariables = {id: string;mediaId: string;grantId: string}
+
+    export const useReleaseStimulusPlay = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof releaseStimulusPlay>>, TError,ReleaseStimulusPlayMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof releaseStimulusPlay>>,
+        TError,
+        ReleaseStimulusPlayMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReleaseStimulusPlayMutationOptions(options), queryClient);
+    }
+    export type contentTicketResponse200 = {
+  data: ContentTicket200
+  status: 200
+}
+
+export type contentTicketResponseSuccess = (contentTicketResponse200) & {
+  headers: Headers;
+};
+;
+
+export type contentTicketResponse = (contentTicketResponseSuccess)
+
+export const getContentTicketUrl = (id: string,
+    mediaId: string,) => {
+
+
+
+
+  return `/applications/${id}/media/${mediaId}/content-ticket`
+}
+
+export const contentTicket = async (id: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<contentTicketResponse> => {
+
+  return customInstance<contentTicketResponse>(getContentTicketUrl(id,mediaId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getContentTicketMutationKey = () => ['contentTicket'] as const;
+
+export const getContentTicketMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof contentTicket>>, TError,ContentTicketMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof contentTicket>>, TError,ContentTicketMutationVariables, TContext> => {
+
+const mutationKey = getContentTicketMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof contentTicket>>, ContentTicketMutationVariables> = (props) => {
+          const {id,mediaId} = props ?? {};
+
+          return  contentTicket(id,mediaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ContentTicketMutationResult = NonNullable<Awaited<ReturnType<typeof contentTicket>>>
+
+    export type ContentTicketMutationError = ErrorType<unknown>
+    export type ContentTicketMutationVariables = {id: string;mediaId: string}
+
+    export const useContentTicket = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof contentTicket>>, TError,ContentTicketMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof contentTicket>>,
+        TError,
+        ContentTicketMutationVariables,
+        TContext
+      > => {
+      return useMutation(getContentTicketMutationOptions(options), queryClient);
+    }
+    export type openMediaIntentResponse201 = {
+  data: OpenMediaIntent201
+  status: 201
+}
+
+export type openMediaIntentResponseSuccess = (openMediaIntentResponse201) & {
+  headers: Headers;
+};
+;
+
+export type openMediaIntentResponse = (openMediaIntentResponseSuccess)
+
+export const getOpenMediaIntentUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/media/intents`
+}
+
+export const openMediaIntent = async (id: string,
+    intentRequest: IntentRequest, options?: Parameters<typeof customInstance>[1]): Promise<openMediaIntentResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -632,12 +1572,12 @@ export const uploadUrl = async (id: string,
     }
     return headers;
   };
-return customInstance<uploadUrlResponse>(getUploadUrlUrl(id),
+return customInstance<openMediaIntentResponse>(getOpenMediaIntentUrl(id),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(uploadUrlRequest)
+    body: JSON.stringify(intentRequest)
   }
 );}
 
@@ -645,13 +1585,13 @@ return customInstance<uploadUrlResponse>(getUploadUrlUrl(id),
 
 
 
-export const getUploadUrlMutationKey = () => ['uploadUrl'] as const;
+export const getOpenMediaIntentMutationKey = () => ['openMediaIntent'] as const;
 
-export const getUploadUrlMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadUrl>>, TError,UploadUrlMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof uploadUrl>>, TError,UploadUrlMutationVariables, TContext> => {
+export const getOpenMediaIntentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openMediaIntent>>, TError,OpenMediaIntentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof openMediaIntent>>, TError,OpenMediaIntentMutationVariables, TContext> => {
 
-const mutationKey = getUploadUrlMutationKey();
+const mutationKey = getOpenMediaIntentMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -661,10 +1601,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadUrl>>, UploadUrlMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openMediaIntent>>, OpenMediaIntentMutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  uploadUrl(id,data,requestOptions)
+          return  openMediaIntent(id,data,requestOptions)
         }
 
 
@@ -674,20 +1614,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof uploadUrl>>>
-    export type UploadUrlMutationBody = BodyType<UploadUrlRequest>
-    export type UploadUrlMutationError = ErrorType<unknown>
-    export type UploadUrlMutationVariables = {id: string;data: BodyType<UploadUrlRequest>}
+    export type OpenMediaIntentMutationResult = NonNullable<Awaited<ReturnType<typeof openMediaIntent>>>
+    export type OpenMediaIntentMutationBody = BodyType<IntentRequest>
+    export type OpenMediaIntentMutationError = ErrorType<unknown>
+    export type OpenMediaIntentMutationVariables = {id: string;data: BodyType<IntentRequest>}
 
-    export const useUploadUrl = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadUrl>>, TError,UploadUrlMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useOpenMediaIntent = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openMediaIntent>>, TError,OpenMediaIntentMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof uploadUrl>>,
+        Awaited<ReturnType<typeof openMediaIntent>>,
         TError,
-        UploadUrlMutationVariables,
+        OpenMediaIntentMutationVariables,
         TContext
       > => {
-      return useMutation(getUploadUrlMutationOptions(options), queryClient);
+      return useMutation(getOpenMediaIntentMutationOptions(options), queryClient);
     }
     export type playResponse200 = {
   data: Play200
@@ -880,7 +1820,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getAckInstructionsMutationOptions(options), queryClient);
     }
     export type heartbeatResponse200 = {
-  data: Heartbeat200
+  data: StudentExamState
   status: 200
 }
 
@@ -972,6 +1912,100 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getHeartbeatMutationOptions(options), queryClient);
+    }
+    export type finishResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type finishResponseSuccess = (finishResponse200) & {
+  headers: Headers;
+};
+;
+
+export type finishResponse = (finishResponseSuccess)
+
+export const getFinishUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/finish`
+}
+
+export const finish = async (id: string,
+    finishRequest?: FinishRequest, options?: Parameters<typeof customInstance>[1]): Promise<finishResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<finishResponse>(getFinishUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(finishRequest)
+  }
+);}
+
+
+
+
+
+export const getFinishMutationKey = () => ['finish'] as const;
+
+export const getFinishMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finish>>, TError,FinishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof finish>>, TError,FinishMutationVariables, TContext> => {
+
+const mutationKey = getFinishMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finish>>, FinishMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  finish(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinishMutationResult = NonNullable<Awaited<ReturnType<typeof finish>>>
+    export type FinishMutationBody = BodyType<FinishRequest> | undefined
+    export type FinishMutationError = ErrorType<unknown>
+    export type FinishMutationVariables = {id: string;data?: BodyType<FinishRequest>}
+
+    export const useFinish = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finish>>, TError,FinishMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof finish>>,
+        TError,
+        FinishMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFinishMutationOptions(options), queryClient);
     }
     export type recordCheckResponse200 = {
   data: RecordCheck200
@@ -1067,8 +2101,806 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRecordCheckMutationOptions(options), queryClient);
     }
-    export type myAssignmentsResponse200 = {
-  data: unknown[]
+    export type checkResultResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type checkResultResponseSuccess = (checkResultResponse200) & {
+  headers: Headers;
+};
+;
+
+export type checkResultResponse = (checkResultResponseSuccess)
+
+export const getCheckResultUrl = (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',) => {
+
+
+
+
+  return `/applications/${id}/checks/${type}/result`
+}
+
+export const checkResult = async (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',
+    checkRequest: CheckRequest, options?: Parameters<typeof customInstance>[1]): Promise<checkResultResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<checkResultResponse>(getCheckResultUrl(id,type),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(checkRequest)
+  }
+);}
+
+
+
+
+
+export const getCheckResultMutationKey = () => ['checkResult'] as const;
+
+export const getCheckResultMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkResult>>, TError,CheckResultMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkResult>>, TError,CheckResultMutationVariables, TContext> => {
+
+const mutationKey = getCheckResultMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkResult>>, CheckResultMutationVariables> = (props) => {
+          const {id,type,data} = props ?? {};
+
+          return  checkResult(id,type,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckResultMutationResult = NonNullable<Awaited<ReturnType<typeof checkResult>>>
+    export type CheckResultMutationBody = BodyType<CheckRequest>
+    export type CheckResultMutationError = ErrorType<unknown>
+    export type CheckResultMutationVariables = {id: string;type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA';data: BodyType<CheckRequest>}
+
+    export const useCheckResult = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkResult>>, TError,CheckResultMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof checkResult>>,
+        TError,
+        CheckResultMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCheckResultMutationOptions(options), queryClient);
+    }
+    export type playbackResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type playbackResponseSuccess = (playbackResponse200) & {
+  headers: Headers;
+};
+;
+
+export type playbackResponse = (playbackResponseSuccess)
+
+export const getPlaybackUrl = (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',) => {
+
+
+
+
+  return `/applications/${id}/checks/${type}/playback`
+}
+
+export const playback = async (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',
+    playbackRequest: PlaybackRequest, options?: Parameters<typeof customInstance>[1]): Promise<playbackResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<playbackResponse>(getPlaybackUrl(id,type),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(playbackRequest)
+  }
+);}
+
+
+
+
+
+export const getPlaybackMutationKey = () => ['playback'] as const;
+
+export const getPlaybackMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playback>>, TError,PlaybackMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof playback>>, TError,PlaybackMutationVariables, TContext> => {
+
+const mutationKey = getPlaybackMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof playback>>, PlaybackMutationVariables> = (props) => {
+          const {id,type,data} = props ?? {};
+
+          return  playback(id,type,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlaybackMutationResult = NonNullable<Awaited<ReturnType<typeof playback>>>
+    export type PlaybackMutationBody = BodyType<PlaybackRequest>
+    export type PlaybackMutationError = ErrorType<unknown>
+    export type PlaybackMutationVariables = {id: string;type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA';data: BodyType<PlaybackRequest>}
+
+    export const usePlayback = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof playback>>, TError,PlaybackMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof playback>>,
+        TError,
+        PlaybackMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPlaybackMutationOptions(options), queryClient);
+    }
+    export type checkMediaResponse201 = {
+  data: CheckMedia201
+  status: 201
+}
+
+export type checkMediaResponseSuccess = (checkMediaResponse201) & {
+  headers: Headers;
+};
+;
+
+export type checkMediaResponse = (checkMediaResponseSuccess)
+
+export const getCheckMediaUrl = (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',
+    params?: CheckMediaParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/applications/${id}/checks/${type}/media?${stringifiedParams}` : `/applications/${id}/checks/${type}/media`
+}
+
+export const checkMedia = async (id: string,
+    type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA',
+    checkMediaBody?: CheckMediaBody,
+    params?: CheckMediaParams, options?: Parameters<typeof customInstance>[1]): Promise<checkMediaResponse> => {
+    const formData = new FormData();
+if(checkMediaBody?.file !== undefined) {
+ formData.append(`file`, checkMediaBody.file);
+ }
+
+  return customInstance<checkMediaResponse>(getCheckMediaUrl(id,type,params),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+
+export const getCheckMediaMutationKey = () => ['checkMedia'] as const;
+
+export const getCheckMediaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkMedia>>, TError,CheckMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkMedia>>, TError,CheckMediaMutationVariables, TContext> => {
+
+const mutationKey = getCheckMediaMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkMedia>>, CheckMediaMutationVariables> = (props) => {
+          const {id,type,data,params} = props ?? {};
+
+          return  checkMedia(id,type,data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckMediaMutationResult = NonNullable<Awaited<ReturnType<typeof checkMedia>>>
+    export type CheckMediaMutationBody = BodyType<CheckMediaBody> | undefined
+    export type CheckMediaMutationError = ErrorType<unknown>
+    export type CheckMediaMutationVariables = {id: string;type: 'INSTRUCTIONS' | 'BROWSER' | 'BANDWIDTH' | 'SPEAKER' | 'MICROPHONE' | 'CAMERA';data?: BodyType<CheckMediaBody>;params?: CheckMediaParams}
+
+    export const useCheckMedia = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkMedia>>, TError,CheckMediaMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof checkMedia>>,
+        TError,
+        CheckMediaMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCheckMediaMutationOptions(options), queryClient);
+    }
+    export type completeChecksResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type completeChecksResponseSuccess = (completeChecksResponse200) & {
+  headers: Headers;
+};
+;
+
+export type completeChecksResponse = (completeChecksResponseSuccess)
+
+export const getCompleteChecksUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/checks/complete`
+}
+
+export const completeChecks = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<completeChecksResponse> => {
+
+  return customInstance<completeChecksResponse>(getCompleteChecksUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteChecksMutationKey = () => ['completeChecks'] as const;
+
+export const getCompleteChecksMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeChecks>>, TError,CompleteChecksMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeChecks>>, TError,CompleteChecksMutationVariables, TContext> => {
+
+const mutationKey = getCompleteChecksMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeChecks>>, CompleteChecksMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  completeChecks(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteChecksMutationResult = NonNullable<Awaited<ReturnType<typeof completeChecks>>>
+
+    export type CompleteChecksMutationError = ErrorType<unknown>
+    export type CompleteChecksMutationVariables = {id: string}
+
+    export const useCompleteChecks = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeChecks>>, TError,CompleteChecksMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof completeChecks>>,
+        TError,
+        CompleteChecksMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteChecksMutationOptions(options), queryClient);
+    }
+    export type myResultsResponse200 = {
+  data: StudentResult[]
+  status: 200
+}
+
+export type myResultsResponseSuccess = (myResultsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myResultsResponse = (myResultsResponseSuccess)
+
+export const getMyResultsUrl = () => {
+
+
+
+
+  return `/me/results`
+}
+
+export const myResults = async ( options?: Parameters<typeof customInstance>[1]): Promise<myResultsResponse> => {
+
+  return customInstance<myResultsResponse>(getMyResultsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyResultsQueryKey = () => {
+    return [
+    `/me/results`
+    ] as const;
+    }
+
+
+export const getMyResultsQueryOptions = <TData = Awaited<ReturnType<typeof myResults>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyResultsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myResults>>> = ({ signal }) => myResults({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyResultsQueryResult = NonNullable<Awaited<ReturnType<typeof myResults>>>
+export type MyResultsQueryError = ErrorType<unknown>
+
+
+export function useMyResults<TData = Awaited<ReturnType<typeof myResults>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myResults>>,
+          TError,
+          Awaited<ReturnType<typeof myResults>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyResults<TData = Awaited<ReturnType<typeof myResults>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myResults>>,
+          TError,
+          Awaited<ReturnType<typeof myResults>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyResults<TData = Awaited<ReturnType<typeof myResults>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyResults<TData = Awaited<ReturnType<typeof myResults>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myResults>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyResultsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type myReportResponse200 = {
+  data: StudentReport
+  status: 200
+}
+
+export type myReportResponseSuccess = (myReportResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myReportResponse = (myReportResponseSuccess)
+
+export const getMyReportUrl = (applicationId: string,) => {
+
+
+
+
+  return `/me/results/${applicationId}`
+}
+
+export const myReport = async (applicationId: string, options?: Parameters<typeof customInstance>[1]): Promise<myReportResponse> => {
+
+  return customInstance<myReportResponse>(getMyReportUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyReportQueryKey = (applicationId: string,) => {
+    return [
+    `/me/results/${applicationId}`
+    ] as const;
+    }
+
+
+export const getMyReportQueryOptions = <TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyReportQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReport>>> = ({ signal }) => myReport(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyReportQueryResult = NonNullable<Awaited<ReturnType<typeof myReport>>>
+export type MyReportQueryError = ErrorType<unknown>
+
+
+export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
+ applicationId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReport>>,
+          TError,
+          Awaited<ReturnType<typeof myReport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReport>>,
+          TError,
+          Awaited<ReturnType<typeof myReport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyReportQueryOptions(applicationId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type myReportCardResponse200 = {
+  data: ReportDeck
+  status: 200
+}
+
+export type myReportCardResponseSuccess = (myReportCardResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myReportCardResponse = (myReportCardResponseSuccess)
+
+export const getMyReportCardUrl = (applicationId: string,) => {
+
+
+
+
+  return `/me/results/${applicationId}/report-card`
+}
+
+export const myReportCard = async (applicationId: string, options?: Parameters<typeof customInstance>[1]): Promise<myReportCardResponse> => {
+
+  return customInstance<myReportCardResponse>(getMyReportCardUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyReportCardQueryKey = (applicationId: string,) => {
+    return [
+    `/me/results/${applicationId}/report-card`
+    ] as const;
+    }
+
+
+export const getMyReportCardQueryOptions = <TData = Awaited<ReturnType<typeof myReportCard>>, TError = ErrorType<unknown>>(applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyReportCardQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReportCard>>> = ({ signal }) => myReportCard(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyReportCardQueryResult = NonNullable<Awaited<ReturnType<typeof myReportCard>>>
+export type MyReportCardQueryError = ErrorType<unknown>
+
+
+export function useMyReportCard<TData = Awaited<ReturnType<typeof myReportCard>>, TError = ErrorType<unknown>>(
+ applicationId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReportCard>>,
+          TError,
+          Awaited<ReturnType<typeof myReportCard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReportCard<TData = Awaited<ReturnType<typeof myReportCard>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReportCard>>,
+          TError,
+          Awaited<ReturnType<typeof myReportCard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReportCard<TData = Awaited<ReturnType<typeof myReportCard>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyReportCard<TData = Awaited<ReturnType<typeof myReportCard>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReportCard>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyReportCardQueryOptions(applicationId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type resultMediaResponse200 = {
+  data: Blob
+  status: 200
+}
+
+export type resultMediaResponseSuccess = (resultMediaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type resultMediaResponse = (resultMediaResponseSuccess)
+
+export const getResultMediaUrl = (applicationId: string,
+    mediaId: string,) => {
+
+
+
+
+  return `/me/results/${applicationId}/media/${mediaId}/content`
+}
+
+export const resultMedia = async (applicationId: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<resultMediaResponse> => {
+
+  return customInstance<resultMediaResponse>(getResultMediaUrl(applicationId,mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getResultMediaQueryKey = (applicationId: string,
+    mediaId: string,) => {
+    return [
+    `/me/results/${applicationId}/media/${mediaId}/content`
+    ] as const;
+    }
+
+
+export const getResultMediaQueryOptions = <TData = Awaited<ReturnType<typeof resultMedia>>, TError = ErrorType<unknown>>(applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getResultMediaQueryKey(applicationId,mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof resultMedia>>> = ({ signal }) => resultMedia(applicationId,mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined && mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ResultMediaQueryResult = NonNullable<Awaited<ReturnType<typeof resultMedia>>>
+export type ResultMediaQueryError = ErrorType<unknown>
+
+
+export function useResultMedia<TData = Awaited<ReturnType<typeof resultMedia>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof resultMedia>>,
+          TError,
+          Awaited<ReturnType<typeof resultMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useResultMedia<TData = Awaited<ReturnType<typeof resultMedia>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof resultMedia>>,
+          TError,
+          Awaited<ReturnType<typeof resultMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useResultMedia<TData = Awaited<ReturnType<typeof resultMedia>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useResultMedia<TData = Awaited<ReturnType<typeof resultMedia>>, TError = ErrorType<unknown>>(
+ applicationId: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof resultMedia>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getResultMediaQueryOptions(applicationId,mediaId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type myAssignmentsResponse200 = {
+  data: MyAssignment[]
   status: 200
 }
 
@@ -1162,6 +2994,218 @@ export function useMyAssignments<TData = Awaited<ReturnType<typeof myAssignments
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getMyAssignmentsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type assignmentPreviewResponse200 = {
+  data: AssignmentPreview
+  status: 200
+}
+
+export type assignmentPreviewResponseSuccess = (assignmentPreviewResponse200) & {
+  headers: Headers;
+};
+;
+
+export type assignmentPreviewResponse = (assignmentPreviewResponseSuccess)
+
+export const getAssignmentPreviewUrl = (recipientId: string,) => {
+
+
+
+
+  return `/me/assignments/${recipientId}`
+}
+
+export const assignmentPreview = async (recipientId: string, options?: Parameters<typeof customInstance>[1]): Promise<assignmentPreviewResponse> => {
+
+  return customInstance<assignmentPreviewResponse>(getAssignmentPreviewUrl(recipientId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAssignmentPreviewQueryKey = (recipientId: string,) => {
+    return [
+    `/me/assignments/${recipientId}`
+    ] as const;
+    }
+
+
+export const getAssignmentPreviewQueryOptions = <TData = Awaited<ReturnType<typeof assignmentPreview>>, TError = ErrorType<unknown>>(recipientId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAssignmentPreviewQueryKey(recipientId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof assignmentPreview>>> = ({ signal }) => assignmentPreview(recipientId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: recipientId !== null && recipientId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AssignmentPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof assignmentPreview>>>
+export type AssignmentPreviewQueryError = ErrorType<unknown>
+
+
+export function useAssignmentPreview<TData = Awaited<ReturnType<typeof assignmentPreview>>, TError = ErrorType<unknown>>(
+ recipientId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assignmentPreview>>,
+          TError,
+          Awaited<ReturnType<typeof assignmentPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssignmentPreview<TData = Awaited<ReturnType<typeof assignmentPreview>>, TError = ErrorType<unknown>>(
+ recipientId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof assignmentPreview>>,
+          TError,
+          Awaited<ReturnType<typeof assignmentPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAssignmentPreview<TData = Awaited<ReturnType<typeof assignmentPreview>>, TError = ErrorType<unknown>>(
+ recipientId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAssignmentPreview<TData = Awaited<ReturnType<typeof assignmentPreview>>, TError = ErrorType<unknown>>(
+ recipientId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof assignmentPreview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAssignmentPreviewQueryOptions(recipientId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type stateResponse200 = {
+  data: StudentExamState
+  status: 200
+}
+
+export type stateResponseSuccess = (stateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type stateResponse = (stateResponseSuccess)
+
+export const getStateUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/state`
+}
+
+export const state = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<stateResponse> => {
+
+  return customInstance<stateResponse>(getStateUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStateQueryKey = (id: string,) => {
+    return [
+    `/applications/${id}/state`
+    ] as const;
+    }
+
+
+export const getStateQueryOptions = <TData = Awaited<ReturnType<typeof state>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStateQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof state>>> = ({ signal }) => state(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StateQueryResult = NonNullable<Awaited<ReturnType<typeof state>>>
+export type StateQueryError = ErrorType<unknown>
+
+
+export function useState<TData = Awaited<ReturnType<typeof state>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof state>>,
+          TError,
+          Awaited<ReturnType<typeof state>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useState<TData = Awaited<ReturnType<typeof state>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof state>>,
+          TError,
+          Awaited<ReturnType<typeof state>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useState<TData = Awaited<ReturnType<typeof state>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useState<TData = Awaited<ReturnType<typeof state>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof state>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStateQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1382,6 +3426,461 @@ export function useResume<TData = Awaited<ReturnType<typeof resume>>, TError = E
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getResumeQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type downloadPackageResponse200 = {
+  data: DownloadPackage200
+  status: 200
+}
+
+export type downloadPackageResponseSuccess = (downloadPackageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type downloadPackageResponse = (downloadPackageResponseSuccess)
+
+export const getDownloadPackageUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/package`
+}
+
+export const downloadPackage = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<downloadPackageResponse> => {
+
+  return customInstance<downloadPackageResponse>(getDownloadPackageUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadPackageQueryKey = (id: string,) => {
+    return [
+    `/applications/${id}/package`
+    ] as const;
+    }
+
+
+export const getDownloadPackageQueryOptions = <TData = Awaited<ReturnType<typeof downloadPackage>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadPackageQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadPackage>>> = ({ signal }) => downloadPackage(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadPackageQueryResult = NonNullable<Awaited<ReturnType<typeof downloadPackage>>>
+export type DownloadPackageQueryError = ErrorType<unknown>
+
+
+export function useDownloadPackage<TData = Awaited<ReturnType<typeof downloadPackage>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadPackage>>,
+          TError,
+          Awaited<ReturnType<typeof downloadPackage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadPackage<TData = Awaited<ReturnType<typeof downloadPackage>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadPackage>>,
+          TError,
+          Awaited<ReturnType<typeof downloadPackage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadPackage<TData = Awaited<ReturnType<typeof downloadPackage>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useDownloadPackage<TData = Awaited<ReturnType<typeof downloadPackage>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadPackage>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadPackageQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type stimulusPlaysResponse200 = {
+  data: PlayStatus
+  status: 200
+}
+
+export type stimulusPlaysResponseSuccess = (stimulusPlaysResponse200) & {
+  headers: Headers;
+};
+;
+
+export type stimulusPlaysResponse = (stimulusPlaysResponseSuccess)
+
+export const getStimulusPlaysUrl = (id: string,
+    mediaId: string,) => {
+
+
+
+
+  return `/applications/${id}/media/${mediaId}/plays`
+}
+
+export const stimulusPlays = async (id: string,
+    mediaId: string, options?: Parameters<typeof customInstance>[1]): Promise<stimulusPlaysResponse> => {
+
+  return customInstance<stimulusPlaysResponse>(getStimulusPlaysUrl(id,mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStimulusPlaysQueryKey = (id: string,
+    mediaId: string,) => {
+    return [
+    `/applications/${id}/media/${mediaId}/plays`
+    ] as const;
+    }
+
+
+export const getStimulusPlaysQueryOptions = <TData = Awaited<ReturnType<typeof stimulusPlays>>, TError = ErrorType<unknown>>(id: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStimulusPlaysQueryKey(id,mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof stimulusPlays>>> = ({ signal }) => stimulusPlays(id,mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StimulusPlaysQueryResult = NonNullable<Awaited<ReturnType<typeof stimulusPlays>>>
+export type StimulusPlaysQueryError = ErrorType<unknown>
+
+
+export function useStimulusPlays<TData = Awaited<ReturnType<typeof stimulusPlays>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof stimulusPlays>>,
+          TError,
+          Awaited<ReturnType<typeof stimulusPlays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStimulusPlays<TData = Awaited<ReturnType<typeof stimulusPlays>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof stimulusPlays>>,
+          TError,
+          Awaited<ReturnType<typeof stimulusPlays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStimulusPlays<TData = Awaited<ReturnType<typeof stimulusPlays>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useStimulusPlays<TData = Awaited<ReturnType<typeof stimulusPlays>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stimulusPlays>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStimulusPlaysQueryOptions(id,mediaId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type mediaContentResponse200 = {
+  data: Blob
+  status: 200
+}
+
+export type mediaContentResponseSuccess = (mediaContentResponse200) & {
+  headers: Headers;
+};
+;
+
+export type mediaContentResponse = (mediaContentResponseSuccess)
+
+export const getMediaContentUrl = (id: string,
+    mediaId: string,
+    params?: MediaContentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/applications/${id}/media/${mediaId}/content?${stringifiedParams}` : `/applications/${id}/media/${mediaId}/content`
+}
+
+export const mediaContent = async (id: string,
+    mediaId: string,
+    params?: MediaContentParams, options?: Parameters<typeof customInstance>[1]): Promise<mediaContentResponse> => {
+
+  return customInstance<mediaContentResponse>(getMediaContentUrl(id,mediaId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMediaContentQueryKey = (id: string,
+    mediaId: string,
+    params?: MediaContentParams,) => {
+    return [
+    `/applications/${id}/media/${mediaId}/content`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getMediaContentQueryOptions = <TData = Awaited<ReturnType<typeof mediaContent>>, TError = ErrorType<unknown>>(id: string,
+    mediaId: string,
+    params?: MediaContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMediaContentQueryKey(id,mediaId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof mediaContent>>> = ({ signal }) => mediaContent(id,mediaId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MediaContentQueryResult = NonNullable<Awaited<ReturnType<typeof mediaContent>>>
+export type MediaContentQueryError = ErrorType<unknown>
+
+
+export function useMediaContent<TData = Awaited<ReturnType<typeof mediaContent>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string,
+    params: undefined |  MediaContentParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof mediaContent>>,
+          TError,
+          Awaited<ReturnType<typeof mediaContent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMediaContent<TData = Awaited<ReturnType<typeof mediaContent>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string,
+    params?: MediaContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof mediaContent>>,
+          TError,
+          Awaited<ReturnType<typeof mediaContent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMediaContent<TData = Awaited<ReturnType<typeof mediaContent>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string,
+    params?: MediaContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMediaContent<TData = Awaited<ReturnType<typeof mediaContent>>, TError = ErrorType<unknown>>(
+ id: string,
+    mediaId: string,
+    params?: MediaContentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof mediaContent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMediaContentQueryOptions(id,mediaId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type accommodationPresentationResponse200 = {
+  data: AccommodationPresentation200
+  status: 200
+}
+
+export type accommodationPresentationResponseSuccess = (accommodationPresentationResponse200) & {
+  headers: Headers;
+};
+;
+
+export type accommodationPresentationResponse = (accommodationPresentationResponseSuccess)
+
+export const getAccommodationPresentationUrl = (id: string,) => {
+
+
+
+
+  return `/applications/${id}/accommodation`
+}
+
+export const accommodationPresentation = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<accommodationPresentationResponse> => {
+
+  return customInstance<accommodationPresentationResponse>(getAccommodationPresentationUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAccommodationPresentationQueryKey = (id: string,) => {
+    return [
+    `/applications/${id}/accommodation`
+    ] as const;
+    }
+
+
+export const getAccommodationPresentationQueryOptions = <TData = Awaited<ReturnType<typeof accommodationPresentation>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAccommodationPresentationQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof accommodationPresentation>>> = ({ signal }) => accommodationPresentation(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AccommodationPresentationQueryResult = NonNullable<Awaited<ReturnType<typeof accommodationPresentation>>>
+export type AccommodationPresentationQueryError = ErrorType<unknown>
+
+
+export function useAccommodationPresentation<TData = Awaited<ReturnType<typeof accommodationPresentation>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accommodationPresentation>>,
+          TError,
+          Awaited<ReturnType<typeof accommodationPresentation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccommodationPresentation<TData = Awaited<ReturnType<typeof accommodationPresentation>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof accommodationPresentation>>,
+          TError,
+          Awaited<ReturnType<typeof accommodationPresentation>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAccommodationPresentation<TData = Awaited<ReturnType<typeof accommodationPresentation>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useAccommodationPresentation<TData = Awaited<ReturnType<typeof accommodationPresentation>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof accommodationPresentation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAccommodationPresentationQueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -15,4 +15,11 @@ export interface ApplicationSection {
   startedAt?: string;
   deadlineAt?: string;
   completedAt?: string;
+  timeBudgetMs?: number;
+  timeUsedMs?: number;
+  enterCount?: number;
+  firstEnteredAt?: string;
+  lastLeftAt?: string;
+  answerGraceUntil?: string;
+  mediaGraceUntil?: string;
 }

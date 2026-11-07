@@ -4,6 +4,8 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { AssignmentSummaryDtoExamStatus } from './assignmentSummaryDtoExamStatus';
+import type { AssignmentTargetSummary } from './assignmentTargetSummary';
 
 export interface AssignmentSummaryDto {
   id?: string;
@@ -18,15 +20,6 @@ export interface AssignmentSummaryDto {
   availableFrom?: string;
   availableUntil?: string;
   createdAt?: string;
-  /** Canlı sınav durumu. Atama listesi yayında olmayanı göstermez. */
-  examStatus?: string;
-  /** Atamanın gittiği seviye, sınıf veya öğrenci. */
+  examStatus?: AssignmentSummaryDtoExamStatus;
   targets?: AssignmentTargetSummary[];
-}
-
-export interface AssignmentTargetSummary {
-  type?: string;
-  targetId?: string;
-  label?: string;
-  exclude?: boolean;
 }
