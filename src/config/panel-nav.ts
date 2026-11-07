@@ -106,6 +106,7 @@ export function adminNavGroups(): PanelNavGroup[] {
       items: [
         { href: "/admin/companies", label: "Kurumlar" },
         { href: "/admin/exams", label: "Lisanslar" },
+        { href: "/admin/consent-texts", label: "Rıza metinleri" },
       ],
     },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
@@ -193,6 +194,12 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Roller ve Yetkiler",
           description: "Kurum rol şablonlarını düzenle",
           perms: [Perm.staffManageRoles],
+        },
+        {
+          href: "/staff/institution-declarations",
+          label: "Kurum Beyanı",
+          description: "Reşit olmayan öğrenciler için rıza beyanı (D66)",
+          perms: [Perm.studentManage],
         },
       ],
     },
