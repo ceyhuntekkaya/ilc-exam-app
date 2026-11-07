@@ -12,4 +12,5 @@ export interface OutcomeView {
   available?: number;
   earned?: number;
   pendingQuestions?: number;
+  questionCount?: number;
 }

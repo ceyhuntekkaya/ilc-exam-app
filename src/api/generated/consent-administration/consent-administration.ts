@@ -265,7 +265,7 @@ export type addVersionResponseSuccess = (addVersionResponse201) & {
 
 export type addVersionResponse = (addVersionResponseSuccess)
 
-export const getAddVersionUrl = (type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA',) => {
+export const getAddVersionUrl = (type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA' | 'CERTIFICATE_SKILL_BREAKDOWN_DISCLOSURE',) => {
 
 
 
@@ -273,7 +273,7 @@ export const getAddVersionUrl = (type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | '
   return `/consent-texts/${type}/versions`
 }
 
-export const addVersion = async (type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA',
+export const addVersion = async (type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA' | 'CERTIFICATE_SKILL_BREAKDOWN_DISCLOSURE',
     consentTextVersionRequest: ConsentTextVersionRequest, options?: Parameters<typeof customInstance>[1]): Promise<addVersionResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
@@ -335,7 +335,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type AddVersionMutationResult = NonNullable<Awaited<ReturnType<typeof addVersion>>>
     export type AddVersionMutationBody = BodyType<ConsentTextVersionRequest>
     export type AddVersionMutationError = ErrorType<unknown>
-    export type AddVersionMutationVariables = {type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA';data: BodyType<ConsentTextVersionRequest>}
+    export type AddVersionMutationVariables = {type: 'MEDIA_RECORDING' | 'DATA_PROCESSING' | 'EMPLOYMENT_CONTEXT' | 'DEMOGRAPHIC_DATA' | 'CERTIFICATE_SKILL_BREAKDOWN_DISCLOSURE';data: BodyType<ConsentTextVersionRequest>}
 
     export const useAddVersion = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addVersion>>, TError,AddVersionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}

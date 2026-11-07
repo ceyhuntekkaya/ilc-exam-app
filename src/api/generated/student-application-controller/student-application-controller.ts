@@ -2573,19 +2573,19 @@ export function useMyResults<TData = Awaited<ReturnType<typeof myResults>>, TErr
 
 
 
-export type myReportResponse200 = {
+export type myReport1Response200 = {
   data: StudentReport
   status: 200
 }
 
-export type myReportResponseSuccess = (myReportResponse200) & {
+export type myReport1ResponseSuccess = (myReport1Response200) & {
   headers: Headers;
 };
 ;
 
-export type myReportResponse = (myReportResponseSuccess)
+export type myReport1Response = (myReport1ResponseSuccess)
 
-export const getMyReportUrl = (applicationId: string,) => {
+export const getMyReport1Url = (applicationId: string,) => {
 
 
 
@@ -2593,9 +2593,9 @@ export const getMyReportUrl = (applicationId: string,) => {
   return `/me/results/${applicationId}`
 }
 
-export const myReport = async (applicationId: string, options?: Parameters<typeof customInstance>[1]): Promise<myReportResponse> => {
+export const myReport1 = async (applicationId: string, options?: Parameters<typeof customInstance>[1]): Promise<myReport1Response> => {
 
-  return customInstance<myReportResponse>(getMyReportUrl(applicationId),
+  return customInstance<myReport1Response>(getMyReport1Url(applicationId),
   {
     ...options,
     method: 'GET'
@@ -2608,66 +2608,66 @@ export const myReport = async (applicationId: string, options?: Parameters<typeo
 
 
 
-export const getMyReportQueryKey = (applicationId: string,) => {
+export const getMyReport1QueryKey = (applicationId: string,) => {
     return [
     `/me/results/${applicationId}`
     ] as const;
     }
 
 
-export const getMyReportQueryOptions = <TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getMyReport1QueryOptions = <TData = Awaited<ReturnType<typeof myReport1>>, TError = ErrorType<unknown>>(applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getMyReportQueryKey(applicationId);
+  const queryKey =  queryOptions?.queryKey ?? getMyReport1QueryKey(applicationId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReport>>> = ({ signal }) => myReport(applicationId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReport1>>> = ({ signal }) => myReport1(applicationId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type MyReportQueryResult = NonNullable<Awaited<ReturnType<typeof myReport>>>
-export type MyReportQueryError = ErrorType<unknown>
+export type MyReport1QueryResult = NonNullable<Awaited<ReturnType<typeof myReport1>>>
+export type MyReport1QueryError = ErrorType<unknown>
 
 
-export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
- applicationId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>> & Pick<
+export function useMyReport1<TData = Awaited<ReturnType<typeof myReport1>>, TError = ErrorType<unknown>>(
+ applicationId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof myReport>>,
+          Awaited<ReturnType<typeof myReport1>>,
           TError,
-          Awaited<ReturnType<typeof myReport>>
+          Awaited<ReturnType<typeof myReport1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
- applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>> & Pick<
+export function useMyReport1<TData = Awaited<ReturnType<typeof myReport1>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof myReport>>,
+          Awaited<ReturnType<typeof myReport1>>,
           TError,
-          Awaited<ReturnType<typeof myReport>>
+          Awaited<ReturnType<typeof myReport1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
- applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useMyReport1<TData = Awaited<ReturnType<typeof myReport1>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useMyReport<TData = Awaited<ReturnType<typeof myReport>>, TError = ErrorType<unknown>>(
- applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useMyReport1<TData = Awaited<ReturnType<typeof myReport1>>, TError = ErrorType<unknown>>(
+ applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReport1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getMyReportQueryOptions(applicationId,options)
+  const queryOptions = getMyReport1QueryOptions(applicationId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

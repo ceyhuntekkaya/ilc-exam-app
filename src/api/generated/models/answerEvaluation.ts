@@ -18,6 +18,8 @@ export interface AnswerEvaluation {
   rationale?: string;
   finalScore?: number;
   dichotomous?: number;
+  reviewedBy?: string;
+  reviewedAt?: string;
   rubricVersionId?: string;
   temperature?: number;
   policyId?: string;

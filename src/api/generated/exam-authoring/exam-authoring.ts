@@ -1276,19 +1276,19 @@ export function useList6<TData = Awaited<ReturnType<typeof list6>>, TError = Err
 
 
 
-export type create6Response201 = {
+export type create7Response201 = {
   data: ExamDetailDto
   status: 201
 }
 
-export type create6ResponseSuccess = (create6Response201) & {
+export type create7ResponseSuccess = (create7Response201) & {
   headers: Headers;
 };
 ;
 
-export type create6Response = (create6ResponseSuccess)
+export type create7Response = (create7ResponseSuccess)
 
-export const getCreate6Url = () => {
+export const getCreate7Url = () => {
 
 
 
@@ -1296,7 +1296,7 @@ export const getCreate6Url = () => {
   return `/authoring/exams`
 }
 
-export const create6 = async (createExamRequest: CreateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<create6Response> => {
+export const create7 = async (createExamRequest: CreateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<create7Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1312,7 +1312,7 @@ export const create6 = async (createExamRequest: CreateExamRequest, options?: Pa
     }
     return headers;
   };
-return customInstance<create6Response>(getCreate6Url(),
+return customInstance<create7Response>(getCreate7Url(),
   {
     ...options,
     method: 'POST',
@@ -1325,13 +1325,13 @@ return customInstance<create6Response>(getCreate6Url(),
 
 
 
-export const getCreate6MutationKey = () => ['create6'] as const;
+export const getCreate7MutationKey = () => ['create7'] as const;
 
-export const getCreate6MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create6>>, TError,Create6MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof create6>>, TError,Create6MutationVariables, TContext> => {
+export const getCreate7MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext> => {
 
-const mutationKey = getCreate6MutationKey();
+const mutationKey = getCreate7MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1341,10 +1341,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create6>>, Create6MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create7>>, Create7MutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  create6(data,requestOptions)
+          return  create7(data,requestOptions)
         }
 
 
@@ -1354,20 +1354,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Create6MutationResult = NonNullable<Awaited<ReturnType<typeof create6>>>
-    export type Create6MutationBody = BodyType<CreateExamRequest>
-    export type Create6MutationError = ErrorType<unknown>
-    export type Create6MutationVariables = {data: BodyType<CreateExamRequest>}
+    export type Create7MutationResult = NonNullable<Awaited<ReturnType<typeof create7>>>
+    export type Create7MutationBody = BodyType<CreateExamRequest>
+    export type Create7MutationError = ErrorType<unknown>
+    export type Create7MutationVariables = {data: BodyType<CreateExamRequest>}
 
-    export const useCreate6 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create6>>, TError,Create6MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useCreate7 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create6>>,
+        Awaited<ReturnType<typeof create7>>,
         TError,
-        Create6MutationVariables,
+        Create7MutationVariables,
         TContext
       > => {
-      return useMutation(getCreate6MutationOptions(options), queryClient);
+      return useMutation(getCreate7MutationOptions(options), queryClient);
     }
     export type unpublish1Response200 = {
   data: ExamDetailDto

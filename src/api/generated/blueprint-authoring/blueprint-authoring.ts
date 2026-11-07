@@ -335,19 +335,19 @@ export function useList7<TData = Awaited<ReturnType<typeof list7>>, TError = Err
 
 
 
-export type create7Response201 = {
+export type create8Response201 = {
   data: BlueprintDto
   status: 201
 }
 
-export type create7ResponseSuccess = (create7Response201) & {
+export type create8ResponseSuccess = (create8Response201) & {
   headers: Headers;
 };
 ;
 
-export type create7Response = (create7ResponseSuccess)
+export type create8Response = (create8ResponseSuccess)
 
-export const getCreate7Url = () => {
+export const getCreate8Url = () => {
 
 
 
@@ -355,7 +355,7 @@ export const getCreate7Url = () => {
   return `/authoring/blueprints`
 }
 
-export const create7 = async (createBlueprintRequest: CreateBlueprintRequest, options?: Parameters<typeof customInstance>[1]): Promise<create7Response> => {
+export const create8 = async (createBlueprintRequest: CreateBlueprintRequest, options?: Parameters<typeof customInstance>[1]): Promise<create8Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -371,7 +371,7 @@ export const create7 = async (createBlueprintRequest: CreateBlueprintRequest, op
     }
     return headers;
   };
-return customInstance<create7Response>(getCreate7Url(),
+return customInstance<create8Response>(getCreate8Url(),
   {
     ...options,
     method: 'POST',
@@ -384,13 +384,13 @@ return customInstance<create7Response>(getCreate7Url(),
 
 
 
-export const getCreate7MutationKey = () => ['create7'] as const;
+export const getCreate8MutationKey = () => ['create8'] as const;
 
-export const getCreate7MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext> => {
+export const getCreate8MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext> => {
 
-const mutationKey = getCreate7MutationKey();
+const mutationKey = getCreate8MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -400,10 +400,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create7>>, Create7MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create8>>, Create8MutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  create7(data,requestOptions)
+          return  create8(data,requestOptions)
         }
 
 
@@ -413,34 +413,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Create7MutationResult = NonNullable<Awaited<ReturnType<typeof create7>>>
-    export type Create7MutationBody = BodyType<CreateBlueprintRequest>
-    export type Create7MutationError = ErrorType<unknown>
-    export type Create7MutationVariables = {data: BodyType<CreateBlueprintRequest>}
+    export type Create8MutationResult = NonNullable<Awaited<ReturnType<typeof create8>>>
+    export type Create8MutationBody = BodyType<CreateBlueprintRequest>
+    export type Create8MutationError = ErrorType<unknown>
+    export type Create8MutationVariables = {data: BodyType<CreateBlueprintRequest>}
 
-    export const useCreate7 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create7>>, TError,Create7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useCreate8 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create7>>,
+        Awaited<ReturnType<typeof create8>>,
         TError,
-        Create7MutationVariables,
+        Create8MutationVariables,
         TContext
       > => {
-      return useMutation(getCreate7MutationOptions(options), queryClient);
+      return useMutation(getCreate8MutationOptions(options), queryClient);
     }
-    export type submitForReviewResponse200 = {
+    export type submitForReview1Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type submitForReviewResponseSuccess = (submitForReviewResponse200) & {
+export type submitForReview1ResponseSuccess = (submitForReview1Response200) & {
   headers: Headers;
 };
 ;
 
-export type submitForReviewResponse = (submitForReviewResponseSuccess)
+export type submitForReview1Response = (submitForReview1ResponseSuccess)
 
-export const getSubmitForReviewUrl = (blueprintId: string,) => {
+export const getSubmitForReview1Url = (blueprintId: string,) => {
 
 
 
@@ -448,9 +448,9 @@ export const getSubmitForReviewUrl = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}/submit-review`
 }
 
-export const submitForReview = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<submitForReviewResponse> => {
+export const submitForReview1 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<submitForReview1Response> => {
 
-  return customInstance<submitForReviewResponse>(getSubmitForReviewUrl(blueprintId),
+  return customInstance<submitForReview1Response>(getSubmitForReview1Url(blueprintId),
   {
     ...options,
     method: 'POST'
@@ -463,13 +463,13 @@ export const submitForReview = async (blueprintId: string, options?: Parameters<
 
 
 
-export const getSubmitForReviewMutationKey = () => ['submitForReview'] as const;
+export const getSubmitForReview1MutationKey = () => ['submitForReview1'] as const;
 
-export const getSubmitForReviewMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitForReview>>, TError,SubmitForReviewMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof submitForReview>>, TError,SubmitForReviewMutationVariables, TContext> => {
+export const getSubmitForReview1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitForReview1>>, TError,SubmitForReview1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitForReview1>>, TError,SubmitForReview1MutationVariables, TContext> => {
 
-const mutationKey = getSubmitForReviewMutationKey();
+const mutationKey = getSubmitForReview1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -479,10 +479,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitForReview>>, SubmitForReviewMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitForReview1>>, SubmitForReview1MutationVariables> = (props) => {
           const {blueprintId} = props ?? {};
 
-          return  submitForReview(blueprintId,requestOptions)
+          return  submitForReview1(blueprintId,requestOptions)
         }
 
 
@@ -492,34 +492,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type SubmitForReviewMutationResult = NonNullable<Awaited<ReturnType<typeof submitForReview>>>
+    export type SubmitForReview1MutationResult = NonNullable<Awaited<ReturnType<typeof submitForReview1>>>
 
-    export type SubmitForReviewMutationError = ErrorType<unknown>
-    export type SubmitForReviewMutationVariables = {blueprintId: string}
+    export type SubmitForReview1MutationError = ErrorType<unknown>
+    export type SubmitForReview1MutationVariables = {blueprintId: string}
 
-    export const useSubmitForReview = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitForReview>>, TError,SubmitForReviewMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useSubmitForReview1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitForReview1>>, TError,SubmitForReview1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof submitForReview>>,
+        Awaited<ReturnType<typeof submitForReview1>>,
         TError,
-        SubmitForReviewMutationVariables,
+        SubmitForReview1MutationVariables,
         TContext
       > => {
-      return useMutation(getSubmitForReviewMutationOptions(options), queryClient);
+      return useMutation(getSubmitForReview1MutationOptions(options), queryClient);
     }
-    export type returnToDraftResponse200 = {
+    export type returnToDraft1Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type returnToDraftResponseSuccess = (returnToDraftResponse200) & {
+export type returnToDraft1ResponseSuccess = (returnToDraft1Response200) & {
   headers: Headers;
 };
 ;
 
-export type returnToDraftResponse = (returnToDraftResponseSuccess)
+export type returnToDraft1Response = (returnToDraft1ResponseSuccess)
 
-export const getReturnToDraftUrl = (blueprintId: string,) => {
+export const getReturnToDraft1Url = (blueprintId: string,) => {
 
 
 
@@ -527,9 +527,9 @@ export const getReturnToDraftUrl = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}/return-to-draft`
 }
 
-export const returnToDraft = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<returnToDraftResponse> => {
+export const returnToDraft1 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<returnToDraft1Response> => {
 
-  return customInstance<returnToDraftResponse>(getReturnToDraftUrl(blueprintId),
+  return customInstance<returnToDraft1Response>(getReturnToDraft1Url(blueprintId),
   {
     ...options,
     method: 'POST'
@@ -542,13 +542,13 @@ export const returnToDraft = async (blueprintId: string, options?: Parameters<ty
 
 
 
-export const getReturnToDraftMutationKey = () => ['returnToDraft'] as const;
+export const getReturnToDraft1MutationKey = () => ['returnToDraft1'] as const;
 
-export const getReturnToDraftMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnToDraft>>, TError,ReturnToDraftMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof returnToDraft>>, TError,ReturnToDraftMutationVariables, TContext> => {
+export const getReturnToDraft1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnToDraft1>>, TError,ReturnToDraft1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof returnToDraft1>>, TError,ReturnToDraft1MutationVariables, TContext> => {
 
-const mutationKey = getReturnToDraftMutationKey();
+const mutationKey = getReturnToDraft1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -558,10 +558,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof returnToDraft>>, ReturnToDraftMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof returnToDraft1>>, ReturnToDraft1MutationVariables> = (props) => {
           const {blueprintId} = props ?? {};
 
-          return  returnToDraft(blueprintId,requestOptions)
+          return  returnToDraft1(blueprintId,requestOptions)
         }
 
 
@@ -571,34 +571,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type ReturnToDraftMutationResult = NonNullable<Awaited<ReturnType<typeof returnToDraft>>>
+    export type ReturnToDraft1MutationResult = NonNullable<Awaited<ReturnType<typeof returnToDraft1>>>
 
-    export type ReturnToDraftMutationError = ErrorType<unknown>
-    export type ReturnToDraftMutationVariables = {blueprintId: string}
+    export type ReturnToDraft1MutationError = ErrorType<unknown>
+    export type ReturnToDraft1MutationVariables = {blueprintId: string}
 
-    export const useReturnToDraft = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnToDraft>>, TError,ReturnToDraftMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useReturnToDraft1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof returnToDraft1>>, TError,ReturnToDraft1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof returnToDraft>>,
+        Awaited<ReturnType<typeof returnToDraft1>>,
         TError,
-        ReturnToDraftMutationVariables,
+        ReturnToDraft1MutationVariables,
         TContext
       > => {
-      return useMutation(getReturnToDraftMutationOptions(options), queryClient);
+      return useMutation(getReturnToDraft1MutationOptions(options), queryClient);
     }
-    export type retire2Response200 = {
+    export type retire3Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type retire2ResponseSuccess = (retire2Response200) & {
+export type retire3ResponseSuccess = (retire3Response200) & {
   headers: Headers;
 };
 ;
 
-export type retire2Response = (retire2ResponseSuccess)
+export type retire3Response = (retire3ResponseSuccess)
 
-export const getRetire2Url = (blueprintId: string,) => {
+export const getRetire3Url = (blueprintId: string,) => {
 
 
 
@@ -606,9 +606,9 @@ export const getRetire2Url = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}/retire`
 }
 
-export const retire2 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<retire2Response> => {
+export const retire3 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<retire3Response> => {
 
-  return customInstance<retire2Response>(getRetire2Url(blueprintId),
+  return customInstance<retire3Response>(getRetire3Url(blueprintId),
   {
     ...options,
     method: 'POST'
@@ -621,13 +621,13 @@ export const retire2 = async (blueprintId: string, options?: Parameters<typeof c
 
 
 
-export const getRetire2MutationKey = () => ['retire2'] as const;
+export const getRetire3MutationKey = () => ['retire3'] as const;
 
-export const getRetire2MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext> => {
+export const getRetire3MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext> => {
 
-const mutationKey = getRetire2MutationKey();
+const mutationKey = getRetire3MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -637,10 +637,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retire2>>, Retire2MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retire3>>, Retire3MutationVariables> = (props) => {
           const {blueprintId} = props ?? {};
 
-          return  retire2(blueprintId,requestOptions)
+          return  retire3(blueprintId,requestOptions)
         }
 
 
@@ -650,20 +650,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Retire2MutationResult = NonNullable<Awaited<ReturnType<typeof retire2>>>
+    export type Retire3MutationResult = NonNullable<Awaited<ReturnType<typeof retire3>>>
 
-    export type Retire2MutationError = ErrorType<unknown>
-    export type Retire2MutationVariables = {blueprintId: string}
+    export type Retire3MutationError = ErrorType<unknown>
+    export type Retire3MutationVariables = {blueprintId: string}
 
-    export const useRetire2 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useRetire3 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof retire2>>,
+        Awaited<ReturnType<typeof retire3>>,
         TError,
-        Retire2MutationVariables,
+        Retire3MutationVariables,
         TContext
       > => {
-      return useMutation(getRetire2MutationOptions(options), queryClient);
+      return useMutation(getRetire3MutationOptions(options), queryClient);
     }
     export type republish2Response200 = {
   data: BlueprintDto
@@ -744,19 +744,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRepublish2MutationOptions(options), queryClient);
     }
-    export type approve3Response200 = {
+    export type approve4Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type approve3ResponseSuccess = (approve3Response200) & {
+export type approve4ResponseSuccess = (approve4Response200) & {
   headers: Headers;
 };
 ;
 
-export type approve3Response = (approve3ResponseSuccess)
+export type approve4Response = (approve4ResponseSuccess)
 
-export const getApprove3Url = (blueprintId: string,) => {
+export const getApprove4Url = (blueprintId: string,) => {
 
 
 
@@ -764,9 +764,9 @@ export const getApprove3Url = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}/approve`
 }
 
-export const approve3 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<approve3Response> => {
+export const approve4 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<approve4Response> => {
 
-  return customInstance<approve3Response>(getApprove3Url(blueprintId),
+  return customInstance<approve4Response>(getApprove4Url(blueprintId),
   {
     ...options,
     method: 'POST'
@@ -779,13 +779,13 @@ export const approve3 = async (blueprintId: string, options?: Parameters<typeof 
 
 
 
-export const getApprove3MutationKey = () => ['approve3'] as const;
+export const getApprove4MutationKey = () => ['approve4'] as const;
 
-export const getApprove3MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve3>>, TError,Approve3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof approve3>>, TError,Approve3MutationVariables, TContext> => {
+export const getApprove4MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext> => {
 
-const mutationKey = getApprove3MutationKey();
+const mutationKey = getApprove4MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -795,10 +795,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve3>>, Approve3MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve4>>, Approve4MutationVariables> = (props) => {
           const {blueprintId} = props ?? {};
 
-          return  approve3(blueprintId,requestOptions)
+          return  approve4(blueprintId,requestOptions)
         }
 
 
@@ -808,34 +808,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Approve3MutationResult = NonNullable<Awaited<ReturnType<typeof approve3>>>
+    export type Approve4MutationResult = NonNullable<Awaited<ReturnType<typeof approve4>>>
 
-    export type Approve3MutationError = ErrorType<unknown>
-    export type Approve3MutationVariables = {blueprintId: string}
+    export type Approve4MutationError = ErrorType<unknown>
+    export type Approve4MutationVariables = {blueprintId: string}
 
-    export const useApprove3 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve3>>, TError,Approve3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useApprove4 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof approve3>>,
+        Awaited<ReturnType<typeof approve4>>,
         TError,
-        Approve3MutationVariables,
+        Approve4MutationVariables,
         TContext
       > => {
-      return useMutation(getApprove3MutationOptions(options), queryClient);
+      return useMutation(getApprove4MutationOptions(options), queryClient);
     }
-    export type get7Response200 = {
+    export type get8Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type get7ResponseSuccess = (get7Response200) & {
+export type get8ResponseSuccess = (get8Response200) & {
   headers: Headers;
 };
 ;
 
-export type get7Response = (get7ResponseSuccess)
+export type get8Response = (get8ResponseSuccess)
 
-export const getGet7Url = (blueprintId: string,) => {
+export const getGet8Url = (blueprintId: string,) => {
 
 
 
@@ -843,9 +843,9 @@ export const getGet7Url = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}`
 }
 
-export const get7 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<get7Response> => {
+export const get8 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<get8Response> => {
 
-  return customInstance<get7Response>(getGet7Url(blueprintId),
+  return customInstance<get8Response>(getGet8Url(blueprintId),
   {
     ...options,
     method: 'GET'
@@ -858,66 +858,66 @@ export const get7 = async (blueprintId: string, options?: Parameters<typeof cust
 
 
 
-export const getGet7QueryKey = (blueprintId: string,) => {
+export const getGet8QueryKey = (blueprintId: string,) => {
     return [
     `/authoring/blueprints/${blueprintId}`
     ] as const;
     }
 
 
-export const getGet7QueryOptions = <TData = Awaited<ReturnType<typeof get7>>, TError = ErrorType<unknown>>(blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGet8QueryOptions = <TData = Awaited<ReturnType<typeof get8>>, TError = ErrorType<unknown>>(blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGet7QueryKey(blueprintId);
+  const queryKey =  queryOptions?.queryKey ?? getGet8QueryKey(blueprintId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof get7>>> = ({ signal }) => get7(blueprintId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof get8>>> = ({ signal }) => get8(blueprintId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: blueprintId !== null && blueprintId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: blueprintId !== null && blueprintId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type Get7QueryResult = NonNullable<Awaited<ReturnType<typeof get7>>>
-export type Get7QueryError = ErrorType<unknown>
+export type Get8QueryResult = NonNullable<Awaited<ReturnType<typeof get8>>>
+export type Get8QueryError = ErrorType<unknown>
 
 
-export function useGet7<TData = Awaited<ReturnType<typeof get7>>, TError = ErrorType<unknown>>(
- blueprintId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData>> & Pick<
+export function useGet8<TData = Awaited<ReturnType<typeof get8>>, TError = ErrorType<unknown>>(
+ blueprintId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get7>>,
+          Awaited<ReturnType<typeof get8>>,
           TError,
-          Awaited<ReturnType<typeof get7>>
+          Awaited<ReturnType<typeof get8>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet7<TData = Awaited<ReturnType<typeof get7>>, TError = ErrorType<unknown>>(
- blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData>> & Pick<
+export function useGet8<TData = Awaited<ReturnType<typeof get8>>, TError = ErrorType<unknown>>(
+ blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get7>>,
+          Awaited<ReturnType<typeof get8>>,
           TError,
-          Awaited<ReturnType<typeof get7>>
+          Awaited<ReturnType<typeof get8>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet7<TData = Awaited<ReturnType<typeof get7>>, TError = ErrorType<unknown>>(
- blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet8<TData = Awaited<ReturnType<typeof get8>>, TError = ErrorType<unknown>>(
+ blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGet7<TData = Awaited<ReturnType<typeof get7>>, TError = ErrorType<unknown>>(
- blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get7>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet8<TData = Awaited<ReturnType<typeof get8>>, TError = ErrorType<unknown>>(
+ blueprintId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGet7QueryOptions(blueprintId,options)
+  const queryOptions = getGet8QueryOptions(blueprintId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
