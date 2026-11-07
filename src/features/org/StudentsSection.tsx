@@ -19,6 +19,7 @@ import { userStatusLabel } from "@/src/features/admin/labels";
 import {
   Badge,
   Button,
+  ButtonLink,
   ConfirmDialog,
   ErrorState,
   Field,
@@ -165,6 +166,9 @@ export function StudentsSection({ companyId }: { companyId: string }) {
               aria-label="Öğrenci ara"
               wrapperClassName="w-full sm:w-72"
             />
+            <ButtonLink size="sm" variant="secondary" href="/staff/students/bulk-import">
+              Toplu yükle
+            </ButtonLink>
             <Button size="sm" onClick={openNew}>
               Öğrenci ekle
             </Button>

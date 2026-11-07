@@ -165,6 +165,12 @@ export function staffNavGroups(): PanelNavGroup[] {
           perms: [Perm.studentViewProfile, Perm.studentManage],
         },
         {
+          href: "/staff/students/bulk-import",
+          label: "Toplu Öğrenci Yükleme",
+          description: "CSV ile birden çok öğrenci hesabı tek seferde oluştur",
+          perms: [Perm.studentManage],
+        },
+        {
           href: "/staff/personnel",
           label: "Personel",
           description: "Kullanıcı ekle, rol ve kapsam ata",
