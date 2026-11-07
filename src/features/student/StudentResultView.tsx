@@ -2,7 +2,9 @@
 
 import { customInstance } from "@/src/api/mutator";
 import { ResultPaper, type StudentReport } from "@/src/features/results/ResultsSection";
+import { StudentLevelReportSection } from "@/src/features/reports/StudentLevelReportSection";
 import { KidError, KidLoading } from "@/src/features/student/ui";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 export function StudentResultView({ applicationId }: { applicationId: string }) {
@@ -38,11 +40,17 @@ export function StudentResultView({ applicationId }: { applicationId: string }) 
     return <KidLoading label="Loading your report card…" />;
   }
   return (
-    <ResultPaper
-      companyId=""
-      report={report}
-      unbounded
-      answerMediaSrc={(mediaId) => `/api/backend/me/results/${applicationId}/media/${mediaId}/content`}
-    />
+    <div className="grid gap-5">
+      <ResultPaper
+        companyId=""
+        report={report}
+        unbounded
+        answerMediaSrc={(mediaId) => `/api/backend/me/results/${applicationId}/media/${mediaId}/content`}
+      />
+      <StudentLevelReportSection applicationId={applicationId} />
+      <Link href="/student/history" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+        Geçmişimi gör
+      </Link>
+    </div>
   );
 }

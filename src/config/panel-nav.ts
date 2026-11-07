@@ -110,6 +110,17 @@ export function adminNavGroups(): PanelNavGroup[] {
       ],
     },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
+    {
+      label: "Raporlar",
+      items: [
+        {
+          href: "/admin/reports",
+          label: "Merkez Raporu",
+          description: "AI-insan uyumu, gözetimli pay",
+          perms: [Perm.psychometricsManage],
+        },
+      ],
+    },
   ];
 }
 
@@ -162,6 +173,18 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Raporlar",
           description: "Şube, kampüs ve kurum raporları",
           perms: [Perm.reportViewBranch, Perm.reportViewInstitute, Perm.reportViewCompany],
+        },
+        {
+          href: "/staff/reports/classroom",
+          label: "Sınıf Isı Haritası",
+          description: "Kazanım bazlı zorlanma — yüzde ve madde sayısı",
+          perms: [Perm.reportViewBranch, Perm.reportViewInstitute, Perm.reportViewCompany],
+        },
+        {
+          href: "/staff/reports/institution",
+          label: "Seviye Raporu — Kurum",
+          description: "Kohort dağılımı, güvence seviyesi kırılımı",
+          perms: [Perm.reportViewInstitute, Perm.reportViewCompany],
         },
       ],
     },
