@@ -48,19 +48,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type list8Response200 = {
+export type list9Response200 = {
   data: DistributionRow[]
   status: 200
 }
 
-export type list8ResponseSuccess = (list8Response200) & {
+export type list9ResponseSuccess = (list9Response200) & {
   headers: Headers;
 };
 ;
 
-export type list8Response = (list8ResponseSuccess)
+export type list9Response = (list9ResponseSuccess)
 
-export const getList8Url = () => {
+export const getList9Url = () => {
 
 
 
@@ -68,9 +68,9 @@ export const getList8Url = () => {
   return `/my-company/distributions`
 }
 
-export const list8 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list8Response> => {
+export const list9 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list9Response> => {
 
-  return customInstance<list8Response>(getList8Url(),
+  return customInstance<list9Response>(getList9Url(),
   {
     ...options,
     method: 'GET'
@@ -83,66 +83,66 @@ export const list8 = async ( options?: Parameters<typeof customInstance>[1]): Pr
 
 
 
-export const getList8QueryKey = () => {
+export const getList9QueryKey = () => {
     return [
     `/my-company/distributions`
     ] as const;
     }
 
 
-export const getList8QueryOptions = <TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList9QueryOptions = <TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList8QueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getList9QueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list8>>> = ({ signal }) => list8({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list9>>> = ({ signal }) => list9({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List8QueryResult = NonNullable<Awaited<ReturnType<typeof list8>>>
-export type List8QueryError = ErrorType<unknown>
+export type List9QueryResult = NonNullable<Awaited<ReturnType<typeof list9>>>
+export type List9QueryError = ErrorType<unknown>
 
 
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>> & Pick<
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list8>>,
+          Awaited<ReturnType<typeof list9>>,
           TError,
-          Awaited<ReturnType<typeof list8>>
+          Awaited<ReturnType<typeof list9>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>> & Pick<
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list8>>,
+          Awaited<ReturnType<typeof list9>>,
           TError,
-          Awaited<ReturnType<typeof list8>>
+          Awaited<ReturnType<typeof list9>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList8QueryOptions(options)
+  const queryOptions = getList9QueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

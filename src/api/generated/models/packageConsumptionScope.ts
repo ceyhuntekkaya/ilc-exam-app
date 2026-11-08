@@ -11,4 +11,5 @@ export type PackageConsumptionScope = typeof PackageConsumptionScope[keyof typeo
 export const PackageConsumptionScope = {
   COMPANY: 'COMPANY',
   ORG_UNIT: 'ORG_UNIT',
+  INDIVIDUAL: 'INDIVIDUAL',
 } as const;

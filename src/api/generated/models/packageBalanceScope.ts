@@ -11,4 +11,5 @@ export type PackageBalanceScope = typeof PackageBalanceScope[keyof typeof Packag
 export const PackageBalanceScope = {
   COMPANY: 'COMPANY',
   ORG_UNIT: 'ORG_UNIT',
+  INDIVIDUAL: 'INDIVIDUAL',
 } as const;

@@ -52,7 +52,7 @@ import type {
   GradingQueueParams,
   GradingSystemPromptRequest,
   InstituteDto,
-  List1Params,
+  List2Params,
   ListPageRow,
   MediaTranscript,
   PageResponseCompanySummary,
@@ -72,6 +72,7 @@ import type {
   Students200,
   StudentsParams,
   SubscriptionSummary,
+  TemporaryPasswordResponse,
   TextResult,
   TransferEnrollmentRequest,
   UpdateAcademicYearRequest,
@@ -503,19 +504,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSaveAiPromptMutationOptions(options), queryClient);
     }
-    export type list1Response200 = {
+    export type list2Response200 = {
   data: PageResponseCompanySummary
   status: 200
 }
 
-export type list1ResponseSuccess = (list1Response200) & {
+export type list2ResponseSuccess = (list2Response200) & {
   headers: Headers;
 };
 ;
 
-export type list1Response = (list1ResponseSuccess)
+export type list2Response = (list2ResponseSuccess)
 
-export const getList1Url = (params?: List1Params,) => {
+export const getList2Url = (params?: List2Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -530,9 +531,9 @@ export const getList1Url = (params?: List1Params,) => {
   return stringifiedParams.length > 0 ? `/companies?${stringifiedParams}` : `/companies`
 }
 
-export const list1 = async (params?: List1Params, options?: Parameters<typeof customInstance>[1]): Promise<list1Response> => {
+export const list2 = async (params?: List2Params, options?: Parameters<typeof customInstance>[1]): Promise<list2Response> => {
 
-  return customInstance<list1Response>(getList1Url(params),
+  return customInstance<list2Response>(getList2Url(params),
   {
     ...options,
     method: 'GET'
@@ -545,66 +546,66 @@ export const list1 = async (params?: List1Params, options?: Parameters<typeof cu
 
 
 
-export const getList1QueryKey = (params?: List1Params,) => {
+export const getList2QueryKey = (params?: List2Params,) => {
     return [
     `/companies`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getList1QueryOptions = <TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList2QueryOptions = <TData = Awaited<ReturnType<typeof list2>>, TError = ErrorType<unknown>>(params?: List2Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList1QueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getList2QueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list1>>> = ({ signal }) => list1(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list2>>> = ({ signal }) => list2(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List1QueryResult = NonNullable<Awaited<ReturnType<typeof list1>>>
-export type List1QueryError = ErrorType<unknown>
+export type List2QueryResult = NonNullable<Awaited<ReturnType<typeof list2>>>
+export type List2QueryError = ErrorType<unknown>
 
 
-export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
- params: undefined |  List1Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>> & Pick<
+export function useList2<TData = Awaited<ReturnType<typeof list2>>, TError = ErrorType<unknown>>(
+ params: undefined |  List2Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list1>>,
+          Awaited<ReturnType<typeof list2>>,
           TError,
-          Awaited<ReturnType<typeof list1>>
+          Awaited<ReturnType<typeof list2>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
- params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>> & Pick<
+export function useList2<TData = Awaited<ReturnType<typeof list2>>, TError = ErrorType<unknown>>(
+ params?: List2Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list1>>,
+          Awaited<ReturnType<typeof list2>>,
           TError,
-          Awaited<ReturnType<typeof list1>>
+          Awaited<ReturnType<typeof list2>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
- params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList2<TData = Awaited<ReturnType<typeof list2>>, TError = ErrorType<unknown>>(
+ params?: List2Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList1<TData = Awaited<ReturnType<typeof list1>>, TError = ErrorType<unknown>>(
- params?: List1Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList2<TData = Awaited<ReturnType<typeof list2>>, TError = ErrorType<unknown>>(
+ params?: List2Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList1QueryOptions(params,options)
+  const queryOptions = getList2QueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1202,6 +1203,87 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCreateStudentMutationOptions(options), queryClient);
+    }
+    export type resetStudentPasswordResponse200 = {
+  data: TemporaryPasswordResponse
+  status: 200
+}
+
+export type resetStudentPasswordResponseSuccess = (resetStudentPasswordResponse200) & {
+  headers: Headers;
+};
+;
+
+export type resetStudentPasswordResponse = (resetStudentPasswordResponseSuccess)
+
+export const getResetStudentPasswordUrl = (id: string,
+    uid: string,) => {
+
+
+
+
+  return `/companies/${id}/students/${uid}/reset-password`
+}
+
+export const resetStudentPassword = async (id: string,
+    uid: string, options?: Parameters<typeof customInstance>[1]): Promise<resetStudentPasswordResponse> => {
+
+  return customInstance<resetStudentPasswordResponse>(getResetStudentPasswordUrl(id,uid),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResetStudentPasswordMutationKey = () => ['resetStudentPassword'] as const;
+
+export const getResetStudentPasswordMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetStudentPassword>>, TError,ResetStudentPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetStudentPassword>>, TError,ResetStudentPasswordMutationVariables, TContext> => {
+
+const mutationKey = getResetStudentPasswordMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetStudentPassword>>, ResetStudentPasswordMutationVariables> = (props) => {
+          const {id,uid} = props ?? {};
+
+          return  resetStudentPassword(id,uid,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetStudentPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof resetStudentPassword>>>
+
+    export type ResetStudentPasswordMutationError = ErrorType<unknown>
+    export type ResetStudentPasswordMutationVariables = {id: string;uid: string}
+
+    export const useResetStudentPassword = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetStudentPassword>>, TError,ResetStudentPasswordMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resetStudentPassword>>,
+        TError,
+        ResetStudentPasswordMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResetStudentPasswordMutationOptions(options), queryClient);
     }
     export type createEnrollmentResponse201 = {
   data: EnrollmentDto

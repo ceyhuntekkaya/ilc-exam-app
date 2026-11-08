@@ -20,7 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  Verify200
+  Verify1200
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -46,19 +46,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type verifyResponse200 = {
-  data: Verify200
+export type verify1Response200 = {
+  data: Verify1200
   status: 200
 }
 
-export type verifyResponseSuccess = (verifyResponse200) & {
+export type verify1ResponseSuccess = (verify1Response200) & {
   headers: Headers;
 };
 ;
 
-export type verifyResponse = (verifyResponseSuccess)
+export type verify1Response = (verify1ResponseSuccess)
 
-export const getVerifyUrl = (code: string,) => {
+export const getVerify1Url = (code: string,) => {
 
 
 
@@ -66,9 +66,9 @@ export const getVerifyUrl = (code: string,) => {
   return `/api/public/verify/${code}`
 }
 
-export const verify = async (code: string, options?: Parameters<typeof customInstance>[1]): Promise<verifyResponse> => {
+export const verify1 = async (code: string, options?: Parameters<typeof customInstance>[1]): Promise<verify1Response> => {
 
-  return customInstance<verifyResponse>(getVerifyUrl(code),
+  return customInstance<verify1Response>(getVerify1Url(code),
   {
     ...options,
     method: 'GET'
@@ -81,66 +81,66 @@ export const verify = async (code: string, options?: Parameters<typeof customIns
 
 
 
-export const getVerifyQueryKey = (code: string,) => {
+export const getVerify1QueryKey = (code: string,) => {
     return [
     `/api/public/verify/${code}`
     ] as const;
     }
 
 
-export const getVerifyQueryOptions = <TData = Awaited<ReturnType<typeof verify>>, TError = ErrorType<unknown>>(code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getVerify1QueryOptions = <TData = Awaited<ReturnType<typeof verify1>>, TError = ErrorType<unknown>>(code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getVerifyQueryKey(code);
+  const queryKey =  queryOptions?.queryKey ?? getVerify1QueryKey(code);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof verify>>> = ({ signal }) => verify(code, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof verify1>>> = ({ signal }) => verify1(code, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type VerifyQueryResult = NonNullable<Awaited<ReturnType<typeof verify>>>
-export type VerifyQueryError = ErrorType<unknown>
+export type Verify1QueryResult = NonNullable<Awaited<ReturnType<typeof verify1>>>
+export type Verify1QueryError = ErrorType<unknown>
 
 
-export function useVerify<TData = Awaited<ReturnType<typeof verify>>, TError = ErrorType<unknown>>(
- code: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData>> & Pick<
+export function useVerify1<TData = Awaited<ReturnType<typeof verify1>>, TError = ErrorType<unknown>>(
+ code: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof verify>>,
+          Awaited<ReturnType<typeof verify1>>,
           TError,
-          Awaited<ReturnType<typeof verify>>
+          Awaited<ReturnType<typeof verify1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useVerify<TData = Awaited<ReturnType<typeof verify>>, TError = ErrorType<unknown>>(
- code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData>> & Pick<
+export function useVerify1<TData = Awaited<ReturnType<typeof verify1>>, TError = ErrorType<unknown>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof verify>>,
+          Awaited<ReturnType<typeof verify1>>,
           TError,
-          Awaited<ReturnType<typeof verify>>
+          Awaited<ReturnType<typeof verify1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useVerify<TData = Awaited<ReturnType<typeof verify>>, TError = ErrorType<unknown>>(
- code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useVerify1<TData = Awaited<ReturnType<typeof verify1>>, TError = ErrorType<unknown>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useVerify<TData = Awaited<ReturnType<typeof verify>>, TError = ErrorType<unknown>>(
- code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useVerify1<TData = Awaited<ReturnType<typeof verify1>>, TError = ErrorType<unknown>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof verify1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getVerifyQueryOptions(code,options)
+  const queryOptions = getVerify1QueryOptions(code,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

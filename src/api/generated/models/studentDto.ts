@@ -17,4 +17,6 @@ export interface StudentDto {
   birthDate?: string;
   createdAt?: string;
   enrollments?: EnrollmentDto[];
+  /** Yalnız oluşturma yanıtında ve yalnız parola sunucuda üretildiyse dolu; bir daha okunamaz */
+  initialPassword?: string;
 }

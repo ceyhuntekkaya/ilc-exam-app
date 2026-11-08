@@ -21,4 +21,6 @@ export interface LoginResponse {
   permissions?: string[];
   /** JWT refresh token; yalnızca giriş / yenileme yanıtında */
   refreshToken?: string;
+  /** true iken oturum yalnız parola değiştirme uçlarına (POST /auth/change-password, /auth/logout, GET /auth/me) yetkilidir */
+  mustChangePassword?: boolean;
 }

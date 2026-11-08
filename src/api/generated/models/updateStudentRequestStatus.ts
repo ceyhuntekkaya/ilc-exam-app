@@ -12,4 +12,5 @@ export const UpdateStudentRequestStatus = {
   ACTIVE: 'ACTIVE',
   PASSIVE: 'PASSIVE',
   LOCKED: 'LOCKED',
+  PENDING_GUARDIAN: 'PENDING_GUARDIAN',
 } as const;
