@@ -29,5 +29,9 @@ jobs:
             echo "::error::Lint problem sayısı ($PROBLEMS) taban çizgiyi ($LINT_BASELINE) aşıyor."
             exit 1
           fi
+      # Next 16: LayoutProps/PageProps global tipleri .next/types altında üretilir (gitignore'da).
+      # Temiz klonda yoktur; tsc'den ÖNCE üretilmeli (R-03: ilk CI koşumunda bulundu).
+      - name: Next rota tipleri
+        run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm run test
