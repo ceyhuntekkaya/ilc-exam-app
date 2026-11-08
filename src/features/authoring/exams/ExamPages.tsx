@@ -1,5 +1,6 @@
 "use client";
 
+import { publishConfirmDescription } from "@/src/features/authoring/exams/publishWarnings";
 import { Perm } from "@/src/lib/permissions";
 
 import {
@@ -1406,20 +1407,27 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <Button
                     className="min-h-11"
                     disabled={pointsMismatch}
-                    onClick={() =>
-                      ask(
-                        "Sınav yayınlansın mı?",
-                        "Yayınlanan sürüm kurumlara lisanslanabilir. İçerik değişirse sınav taslağa çekilip yeniden yayınlanır ve sürüm numarası artar.",
-                        "Yayınla",
-                        () =>
+                    onClick={() => {
+                      const base =
+                        "Yayınlanan sürüm kurumlara lisanslanabilir. İçerik değişirse sınav taslağa çekilip yeniden yayınlanır ve sürüm numarası artar.";
+                      const confirmPublish = (description: string) =>
+                        ask("Sınav yayınlansın mı?", description, "Yayınla", () =>
                           notify
                             .run(authoringApi.publishExam(exam.id), {
                               success: tenant && !tenant.contentHq ? "Yayınlandı. Atama listesinde görünür." : "Yayınlandı",
                               error: "Yayınlanamadı",
                             })
                             .then(setExam),
-                      )
-                    }
+                        );
+                      // R-07: uyarılar (ör. 0 pilot madde) yalnız "Eksikleri kontrol et"e basanlara değil, yayın onayında HERKESE görünür.
+                      authoringApi
+                        .validateExam(exam.id)
+                        .then((issues) => {
+                          setViolations(issues);
+                          confirmPublish(publishConfirmDescription(base, issues));
+                        })
+                        .catch(() => confirmPublish(base));
+                    }}
                   >
                     Yayınla
                   </Button>
