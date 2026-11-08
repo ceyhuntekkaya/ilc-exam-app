@@ -5,16 +5,11 @@ import { CandidateResultSection } from "@/src/features/distribution/CandidateRes
 import { StaffPage } from "@/src/features/staff/StaffPage";
 
 export default function Page() {
-  const params = useParams<{ id: string; candidateId: string; applicationId: string }>();
+  const params = useParams<{ id: string; candidateId: string }>();
   return (
     <StaffPage bare>
       {(companyId) => (
-        <CandidateResultSection
-          companyId={companyId}
-          distributionId={params.id}
-          candidateId={params.candidateId}
-          applicationId={params.applicationId}
-        />
+        <CandidateResultSection companyId={companyId} distributionId={params.id} candidateId={params.candidateId} />
       )}
     </StaffPage>
   );

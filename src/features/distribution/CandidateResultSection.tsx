@@ -1,35 +1,47 @@
 "use client";
 
-import { useResult } from "@/src/api/generated/company-distributions/company-distributions";
+import { useCandidates, useResult } from "@/src/api/generated/company-distributions/company-distributions";
 import type { StudentReport as GeneratedStudentReport } from "@/src/api/generated/models";
-import { BackLink, ErrorState, Skeleton } from "@/src/ui";
+import { BackLink, EmptyState, ErrorState, Skeleton } from "@/src/ui";
 import { ResultPaper } from "@/src/features/results/ResultsSection";
+import { NOT_STARTED_MESSAGE, isNotStartedError } from "@/src/features/distribution/distributionModel";
 
 /**
- * Tekil aday sonucu — `/my-company/distributions/{id}/candidates/{candidateId}/result/{applicationId}`.
- * Teker yeniden icat edilmedi: kâğıdın gövdesi mevcut `ResultsSection.ResultPaper` (sonuç ekranlarının
- * zaten kullandığı bileşen). Üretilen `StudentReport`'un alanları hepsi opsiyonel (orval), `ResultPaper`'ın
- * beklediği şekil ise zorunlu alanlar taşıyor — `toLocalReport` bu farkı güvenli varsayılanlarla kapatır.
+ * Tekil aday sonucu — `/my-company/distributions/{id}/candidates/{candidateId}/result`.
+ * K-U06: `applicationId` artık elle girilmez; backend adayın bu dağıtım üzerinden başlattığı son denemeyi
+ * kendisi çözer. Deneme yoksa (aday henüz başlamadı) sonuç çağrısı hiç yapılmaz, boş durum gösterilir.
+ * Kâğıdın gövdesi mevcut `ResultsSection.ResultPaper`; üretilen `StudentReport`'un opsiyonel alanları
+ * `toLocalReport` ile güvenli varsayılanlara çevrilir.
  */
 export function CandidateResultSection({
   companyId,
   distributionId,
   candidateId,
-  applicationId,
 }: {
   companyId: string;
   distributionId: string;
   candidateId: string;
-  applicationId: string;
 }) {
-  const resultQ = useResult(distributionId, candidateId, applicationId);
+  const candidatesQ = useCandidates(distributionId);
+  const candidate = (candidatesQ.data?.data ?? []).find((row) => row.ilcIdentityId === candidateId);
+  const notStarted = candidatesQ.isSuccess && candidate !== undefined && !candidate.latestApplicationId;
+  const resultQ = useResult(distributionId, candidateId, {
+    query: { enabled: !candidatesQ.isLoading && !notStarted },
+  });
   const report = resultQ.data?.data;
+  const showNotStarted = notStarted || (resultQ.isError && isNotStartedError(resultQ.error));
 
   return (
     <div className="grid gap-4">
       <BackLink href={`/staff/distributions/${distributionId}`} label="Dağıtım detayı" />
-      {resultQ.isLoading ? (
+      {candidatesQ.isLoading || (resultQ.isLoading && !showNotStarted) ? (
         <Skeleton className="h-96 rounded-xl" />
+      ) : showNotStarted ? (
+        <EmptyState
+          tone="neutral"
+          title={NOT_STARTED_MESSAGE}
+          description="Aday sınava başladığında sonucu burada görüntülenebilir."
+        />
       ) : resultQ.isError ? (
         <ErrorState error={resultQ.error} onRetry={() => void resultQ.refetch()} title="Sonuç açılamadı" />
       ) : report ? (

@@ -2,21 +2,12 @@
 
 import { getList3QueryKey, useList3 } from "@/src/api/generated/company-distributions/company-distributions";
 import type { DistributionRow } from "@/src/api/generated/models";
-import { Badge, ButtonLink, ErrorState, SectionTable } from "@/src/ui";
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
+import { Badge, ButtonLink, ErrorState, SectionTable, SectionToolbar } from "@/src/ui";
+import { STATUS_TONE, modeLabel, statusLabel } from "@/src/features/distribution/distributionModel";
 
-const COLUMNS = ["Ad", "Durum", "Mod", "Oluşturulma", ""];
-
-const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger"> = {
-  DRAFT: "neutral",
-  OPEN: "success",
-  CLOSED: "warning",
-  CANCELLED: "danger",
-};
-
-const MODE_LABEL: Record<string, string> = {
-  OPEN_WINDOW: "Açık pencere",
-  SCHEDULED_SESSION: "Planlı oturum",
-};
+const COLUMNS = ["Ad", "Durum", "Kip", "Oluşturulma", ""];
 
 function when(value?: string | null) {
   if (!value) return "—";
@@ -25,12 +16,16 @@ function when(value?: string | null) {
   return date.toLocaleString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-/** Dağıtım listesi — eski `assignments` ekranının yerini alan F3B-17 yüzeyi. */
+/**
+ * Dağıtım listesi/izleme. Yazma eylemleri ("Yeni dağıtım", taslağı sürdür) yalnız `assignment:manage`
+ * olana görünür; izleme izni olan yalnız listeyi ve detayı görür.
+ */
 export function DistributionListSection({ companyId }: { companyId: string }) {
   // Kurum değişince sorgu tazelensin diye anahtara eklenir (URL'e girmez, bkz. LedgerSection).
   const { data, isLoading, isError, error, refetch } = useList3({
     query: { queryKey: [...getList3QueryKey(), companyId] },
   });
+  const canManage = useCan(Perm.assignmentManage);
   const rows = data?.data ?? [];
 
   if (isError) return <ErrorState error={error} onRetry={() => void refetch()} compact />;
@@ -40,18 +35,34 @@ export function DistributionListSection({ companyId }: { companyId: string }) {
       columns={COLUMNS}
       loading={isLoading}
       empty="Henüz dağıtım yok"
-      emptyHint="Bir kota paketi dağıtıma açıldığında burada listelenecektir."
+      emptyHint={
+        canManage
+          ? "“Yeni dağıtım” ile bir hak paketinden sınav dağıtımı oluşturabilirsiniz."
+          : "Bir dağıtım oluşturulduğunda burada listelenecektir."
+      }
       emptyTone="neutral"
+      toolbar={
+        <SectionToolbar count={rows.length} noun="dağıtım" loading={isLoading}>
+          {canManage ? <ButtonLink href="/staff/distributions/new">Yeni dağıtım</ButtonLink> : null}
+        </SectionToolbar>
+      }
       rows={rows.map((row: DistributionRow) => [
         row.name ?? "—",
         <Badge key="s" tone={STATUS_TONE[row.status ?? ""] ?? "neutral"} dot>
-          {row.status ?? "—"}
+          {statusLabel(row.status)}
         </Badge>,
-        MODE_LABEL[row.mode ?? ""] ?? row.mode ?? "—",
+        modeLabel(row.mode),
         when(row.createdAt),
-        <ButtonLink key="a" size="sm" variant="secondary" href={`/staff/distributions/${row.id}`}>
-          Detay
-        </ButtonLink>,
+        <div key="a" className="flex justify-end gap-2">
+          {row.status === "DRAFT" && canManage ? (
+            <ButtonLink size="sm" variant="primary" href={`/staff/distributions/${row.id}/setup`}>
+              Kurulumu sürdür
+            </ButtonLink>
+          ) : null}
+          <ButtonLink size="sm" variant="secondary" href={`/staff/distributions/${row.id}`}>
+            Detay
+          </ButtonLink>
+        </div>,
       ])}
     />
   );

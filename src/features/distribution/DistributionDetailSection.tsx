@@ -1,44 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   getCandidatesQueryKey,
   getDetailQueryKey,
   useCandidates,
   useDetail,
 } from "@/src/api/generated/company-distributions/company-distributions";
-import type { CandidateRow } from "@/src/api/generated/models";
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
+import { Badge, BackLink, ButtonLink, ErrorState, SectionTable, Skeleton } from "@/src/ui";
 import {
-  Badge,
-  BackLink,
-  Button,
-  ErrorState,
-  Field,
-  FormDialog,
-  Input,
-  SectionTable,
-  Skeleton,
-} from "@/src/ui";
+  NOT_STARTED_MESSAGE,
+  STATUS_TONE,
+  canViewResult,
+  candidateCounts,
+  candidateStatusLabel,
+  candidateStatusTone,
+  modeLabel,
+  shortId,
+  statusLabel,
+} from "@/src/features/distribution/distributionModel";
 
 const CANDIDATE_COLUMNS = ["Ad Soyad", "Durum", "Birim", "Kayıt tarihi", ""];
-
-const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "info"> = {
-  DRAFT: "neutral",
-  OPEN: "success",
-  CLOSED: "warning",
-  CANCELLED: "danger",
-};
-
-const MODE_LABEL: Record<string, string> = {
-  OPEN_WINDOW: "Açık pencere",
-  SCHEDULED_SESSION: "Planlı oturum",
-};
-
-function shortId(value?: string | null) {
-  if (!value) return "—";
-  return value.length > 8 ? `${value.slice(0, 8)}…` : value;
-}
 
 function when(value?: string | null) {
   if (!value) return "—";
@@ -47,23 +30,28 @@ function when(value?: string | null) {
   return date.toLocaleString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-border bg-bg px-3 py-2">
+      <p className="text-xs text-fg-subtle">{label}</p>
+      <p className="numeric text-lg font-semibold text-fg">{value.toLocaleString("tr-TR")}</p>
+    </div>
+  );
+}
+
 /**
- * Dağıtım detayı + aday listesi. `CandidateRow`'da `applicationId` yok — aday tablosu, hangi
- * sınav uygulamasının sonucunun gösterileceğini backend'den ÇÖZEMİYOR (bkz. F3B-17 raporu).
- * Bu yüzden "Sonuç gör" eylemi, kullanıcının elindeki başvuru kimliğini (applicationId) elle
- * girdiği küçük bir diyalogla sonuç rotasına yönlendirir — bilinçli bir boşluk doldurma, backend
- * düzeltmesi değil.
+ * Dağıtım detayı + aday izleme. Aday durumu: ALLOCATED=başlamadı, STARTED=başladı, CANCELLED=iptal.
+ * K-U06: sonuç, `latestApplicationId` olan adaya yeni sonuç rotasından açılır; elle başvuru kimliği girilmez.
  */
 export function DistributionDetailSection({ companyId, distributionId }: { companyId: string; distributionId: string }) {
-  const router = useRouter();
   // Kurum değişince sorgu tazelensin diye anahtara eklenir (URL'e girmez, bkz. LedgerSection).
   const detailQ = useDetail(distributionId, { query: { queryKey: [...getDetailQueryKey(distributionId), companyId] } });
   const candidatesQ = useCandidates(distributionId, { query: { queryKey: [...getCandidatesQueryKey(distributionId), companyId] } });
-  const [resultTarget, setResultTarget] = useState<CandidateRow | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const canManage = useCan(Perm.assignmentManage);
 
   const distribution = detailQ.data?.data;
   const candidates = candidatesQ.data?.data ?? [];
+  const counts = candidateCounts(candidates);
 
   if (detailQ.isError) {
     return <ErrorState error={detailQ.error} onRetry={() => void detailQ.refetch()} compact />;
@@ -80,16 +68,40 @@ export function DistributionDetailSection({ companyId, distributionId }: { compa
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold text-fg">{distribution.name ?? "—"}</h1>
             <Badge tone={STATUS_TONE[distribution.status ?? ""] ?? "neutral"} dot>
-              {distribution.status ?? "—"}
+              {statusLabel(distribution.status)}
             </Badge>
+            {distribution.status === "DRAFT" && canManage ? (
+              <ButtonLink size="sm" variant="secondary" href={`/staff/distributions/${distribution.id}/setup`} className="ml-auto">
+                Kurulumu sürdür
+              </ButtonLink>
+            ) : null}
           </div>
           <p className="mt-1 text-sm text-fg-muted">
-            {MODE_LABEL[distribution.mode ?? ""] ?? distribution.mode ?? "—"}
+            {modeLabel(distribution.mode)}
+            {distribution.mode === "OPEN_WINDOW" ? (
+              <>
+                <span className="px-1.5 text-fg-subtle">·</span>
+                {when(distribution.windowOpensAt)} – {when(distribution.windowClosesAt)}
+              </>
+            ) : distribution.centerSessionId ? (
+              <>
+                <span className="px-1.5 text-fg-subtle">·</span>
+                Oturum {shortId(distribution.centerSessionId)}
+              </>
+            ) : null}
             <span className="px-1.5 text-fg-subtle">·</span>
             SKU {shortId(distribution.skuId)}
             <span className="px-1.5 text-fg-subtle">·</span>
             Paket {shortId(distribution.packageId)}
           </p>
+          {candidatesQ.isSuccess ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat label="Toplam aday" value={counts.total} />
+              <Stat label="Başlamadı" value={counts.notStarted} />
+              <Stat label="Başladı" value={counts.started} />
+              <Stat label="İptal" value={counts.cancelled} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -100,58 +112,32 @@ export function DistributionDetailSection({ companyId, distributionId }: { compa
           columns={CANDIDATE_COLUMNS}
           loading={candidatesQ.isLoading}
           empty="Henüz aday yok"
-          emptyHint="Dağıtım hedeflemesi tamamlanınca adaylar burada listelenecektir."
+          emptyHint="Dağıtım açıldığında hedeflenen adaylar burada listelenecektir."
           emptyTone="neutral"
           rows={candidates.map((row) => [
             `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim() || "—",
-            <Badge key="s" tone="neutral" dot>
-              {row.status ?? "—"}
+            <Badge key="s" tone={candidateStatusTone(row.status)} dot>
+              {candidateStatusLabel(row.status)}
             </Badge>,
             shortId(row.orgUnitId),
             when(row.createdAt),
-            <Button
-              key="a"
-              size="sm"
-              variant="ghost"
-              disabled={!row.ilcIdentityId}
-              onClick={() => {
-                setFormError(null);
-                setResultTarget(row);
-              }}
-            >
-              Sonuç gör
-            </Button>,
+            canViewResult(row) ? (
+              <ButtonLink
+                key="a"
+                size="sm"
+                variant="ghost"
+                href={`/staff/distributions/${distributionId}/candidates/${row.ilcIdentityId}/result`}
+              >
+                Sonuç gör
+              </ButtonLink>
+            ) : (
+              <span key="a" className="text-xs text-fg-subtle">
+                {row.status === "CANCELLED" ? "—" : NOT_STARTED_MESSAGE}
+              </span>
+            ),
           ])}
         />
       )}
-
-      <FormDialog
-        open={resultTarget !== null}
-        onClose={() => setResultTarget(null)}
-        title="Sonuç görüntüle"
-        description={
-          resultTarget
-            ? `${`${resultTarget.firstName ?? ""} ${resultTarget.lastName ?? ""}`.trim() || "Aday"} için başvuru kimliğini (applicationId) girin. Aday listesi bu bilgiyi taşımaz; sonuç tekil bir sınav uygulaması içindir.`
-            : undefined
-        }
-        submitLabel="Göster"
-        error={formError}
-        onSubmit={(fd) => {
-          const applicationId = String(fd.get("applicationId") || "").trim();
-          if (!applicationId) {
-            setFormError("Başvuru kimliği gerekli.");
-            return;
-          }
-          if (!resultTarget?.ilcIdentityId) return;
-          router.push(
-            `/staff/distributions/${distributionId}/candidates/${resultTarget.ilcIdentityId}/result/${applicationId}`,
-          );
-        }}
-      >
-        <Field label="Başvuru kimliği (applicationId)" required hint="Genellikle sınav izleme/değerlendirme ekranlarından alınır.">
-          <Input name="applicationId" required autoComplete="off" placeholder="00000000-0000-0000-0000-000000000000" />
-        </Field>
-      </FormDialog>
     </div>
   );
 }
