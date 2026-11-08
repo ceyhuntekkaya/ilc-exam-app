@@ -9,11 +9,13 @@ import {
   useCreateStudent,
   useGrades,
   useInstitutes,
+  useResetStudentPassword,
   useUpdateStudent,
   useYears,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import type { StudentDto } from "@/src/api/generated/models";
 import { AccommodationDialog } from "@/src/features/org/AccommodationDialog";
+import { PasswordRevealDialog } from "@/src/features/org/PasswordRevealDialog";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { userStatusLabel } from "@/src/features/admin/labels";
 import {
@@ -78,6 +80,10 @@ export function StudentsSection({ companyId }: { companyId: string }) {
 
   const create = useCreateStudent();
   const update = useUpdateStudent();
+  const resetPassword = useResetStudentPassword();
+  const [resetting, setResetting] = useState<StudentDto | null>(null);
+  // Bir kez gösterilen parola: kapatılınca state temizlenir, bir daha okunamaz.
+  const [revealed, setRevealed] = useState<{ title: string; hint: string; student: string; username?: string; password: string } | null>(null);
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StudentDto | null>(null);
@@ -179,7 +185,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
         emptyHint={
           needle || status
             ? "Aramayı ya da durum filtresini değiştirin."
-            : "Öğrenciler kullanıcı adıyla giriş yapar. İlk öğrenciyi ekleyip bir sınıfa kaydedin."
+            : "Öğrenciler kullanıcı adı ve parolayla giriş yapar. İlk öğrenciyi ekleyip bir sınıfa kaydedin."
         }
         emptyTone={needle || status ? "neutral" : "primary"}
         emptyAction={needle || status ? undefined : <Button onClick={openNew}>Öğrenci ekle</Button>}
@@ -220,6 +226,9 @@ export function StudentsSection({ companyId }: { companyId: string }) {
             >
               Düzenleme profili
             </Button>
+            <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setResetting(r)}>
+              Parolayı sıfırla
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -248,14 +257,14 @@ export function StudentsSection({ companyId }: { companyId: string }) {
         open={open}
         onClose={() => setOpen(false)}
         title="Öğrenci ekle"
-        description="Öğrenci, kullanıcı adıyla giriş yapar. Sınıf seçerseniz sınıf bazlı atamalara otomatik dahil olur."
+        description="Öğrenci, kullanıcı adı ve parolayla giriş yapar; başlangıç parolasını sistem üretir ve yalnız bir kez gösterir. Sınıf seçerseniz sınıf bazlı atamalara otomatik dahil olur."
         submitLabel="Ekle"
         pending={create.isPending}
         error={formError}
         onSubmit={async (fd) => {
           setFormError(null);
           try {
-            await create.mutateAsync({
+            const created = await create.mutateAsync({
               id,
               data: {
                 username: String(fd.get("username") || "").trim(),
@@ -272,6 +281,15 @@ export function StudentsSection({ companyId }: { companyId: string }) {
       await queryClient.invalidateQueries({ queryKey: ["students-page", id] });
             setOpen(false);
             notify.success("Öğrenci eklendi");
+            if (created.data.initialPassword) {
+              setRevealed({
+                title: "Başlangıç parolası",
+                hint: "Bu parola yalnız şimdi gösterilir. Öğrenci ilk girişte parolasını değiştirmek zorundadır.",
+                student: `${created.data.firstName ?? ""} ${created.data.lastName ?? ""}`.trim() || "Öğrenci",
+                username: created.data.username,
+                password: created.data.initialPassword,
+              });
+            }
           } catch (err) {
             const message = errorMessage(err, "Öğrenci eklenemedi");
             setFormError(message);
@@ -463,6 +481,49 @@ export function StudentsSection({ companyId }: { companyId: string }) {
           </Select>
         </Field>
       </FormDialog>
+      <ConfirmDialog
+        open={resetting !== null}
+        onClose={() => setResetting(null)}
+        title="Parola sıfırlansın mı?"
+        confirmLabel="Sıfırla"
+        pending={resetPassword.isPending}
+        description={
+          resetting
+            ? `${`${resetting.firstName ?? ""} ${resetting.lastName ?? ""}`.trim() || "Öğrenci"} için yeni bir geçici parola üretilir ve eski parola geçersiz olur. Geçici parola yalnız bir kez gösterilir; öğrenci bir sonraki girişte parolasını değiştirmek zorundadır.`
+            : undefined
+        }
+        onConfirm={async () => {
+          if (!resetting?.id) return;
+          const target = resetting;
+          try {
+            const result = await resetPassword.mutateAsync({ id, uid: target.id! });
+            const temporary = result.data.temporaryPassword;
+            setResetting(null);
+            if (temporary) {
+              setRevealed({
+                title: "Geçici parola",
+                hint: "Bu parola yalnız şimdi gösterilir. Öğrenci bir sonraki girişte parolasını değiştirmek zorundadır.",
+                student: `${target.firstName ?? ""} ${target.lastName ?? ""}`.trim() || "Öğrenci",
+                username: target.username,
+                password: temporary,
+              });
+            }
+            notify.success("Parola sıfırlandı");
+          } catch (err) {
+            setResetting(null);
+            notify.error(errorMessage(err, "Parola sıfırlanamadı"));
+          }
+        }}
+      />
+      <PasswordRevealDialog
+        open={revealed !== null}
+        title={revealed?.title ?? ""}
+        studentLabel={revealed?.student ?? ""}
+        username={revealed?.username}
+        password={revealed?.password ?? ""}
+        hint={revealed?.hint ?? ""}
+        onClose={() => setRevealed(null)}
+      />
       {accommodating?.id ? (
         <AccommodationDialog
           companyId={id}
