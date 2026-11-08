@@ -1,4 +1,4 @@
-import { verify } from "@/src/api/generated/public-verification-controller/public-verification-controller";
+import { verify1 } from "@/src/api/generated/public-verification-controller/public-verification-controller";
 import { VerificationView } from "@/src/features/verification/VerificationView";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 /** F5-07: kimlik doğrulamasız, herkese açık TEK yüzey — sunucu bileşeni, etkileşim yok. */
 export default async function VerifyPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const result = await verify(code);
+  const result = await verify1(code);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-4 py-10 sm:py-16">
