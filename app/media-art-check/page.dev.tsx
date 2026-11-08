@@ -1,3 +1,4 @@
+// Yalnız `next dev`: next.config.ts `pageExtensions` "dev.tsx"i production build'de dışlar (B-44).
 "use client";
 
 import { MediaAudio, MediaVideo, MediaVideoPopup } from "@/src/features/exam-player/media/MediaContext";

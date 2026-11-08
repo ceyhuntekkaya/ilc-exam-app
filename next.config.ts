@@ -28,6 +28,12 @@ process.env.NEXT_PUBLIC_API_URL = apiPublicUrl;
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // B-44: `page.dev.tsx` dosyaları (hat-prototype, media-art-check) yalnız `next dev`te rota olur;
+  // production derlemesinde hiç derlenmez/gönderilmez.
+  pageExtensions:
+    process.env.NODE_ENV === "production"
+      ? ["tsx", "ts", "jsx", "js"]
+      : ["tsx", "ts", "jsx", "js", "dev.tsx"],
   // Dev'de sol alttaki "N" göstergesi panel sidebar'ının altını kapatıyordu. Derleme/çalışma hataları
   // yine tam ekran overlay olarak gösterilir; production'da gösterge zaten yoktur.
   devIndicators: false,
