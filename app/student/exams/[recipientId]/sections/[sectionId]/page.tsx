@@ -2,6 +2,7 @@
 
 import { useAccommodationPresentation } from "@/src/features/exam-flow/accommodation";
 import { ExamApiError, postState, putPosition } from "@/src/features/exam-flow/api";
+import { itemMatchesPosition, sendQuestionPosition } from "@/src/features/exam-flow/questionPosition";
 import { useTimeAnnouncement } from "@/src/features/exam-player/a11y/announcements";
 import { loadSectionContent, useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
@@ -58,7 +59,8 @@ export default function SectionQuestionPage() {
   const resumeItemId = state?.currentItemId;
   // İçerik yalnız bölüm değişince yüklenir; kaldığı soru yükleme anındaki değerle okunur (her geçişte yeniden yükleme yok).
   const resumeIndex = useEffectEvent((list: Item[]) => {
-    const found = list.findIndex((item) => item.examQuestionId === resumeItemId);
+    // currentItemId sunucuda bir question_part.id olarak tutulur (konum bildirimiyle yazılan); eski değerler de eşleşir.
+    const found = list.findIndex((item) => itemMatchesPosition(item, resumeItemId));
     return found >= 0 ? found : 0;
   });
   useEffect(() => {
@@ -104,8 +106,9 @@ export default function SectionQuestionPage() {
   useEffect(() => {
     const current = readSession(params.recipientId);
     const item = items[index];
-    if (!current || !item?.examQuestionId) return;
-    putPosition(current.applicationId, current.sessionToken, params.sectionId, item.examQuestionId).catch(() => undefined);
+    if (!current) return;
+    // R-06 (B-13): sunucu question_part.id bekler (examQuestionId başka kimlik uzayı). Red SESSİZ yutulmaz: sayılır.
+    void sendQuestionPosition(putPosition, current, params.sectionId, item);
   }, [index, items, params.recipientId, params.sectionId]);
 
   // Yeni soruya geçince sayfanın başından başla (uzun okuma metinlerinde kaybolmasın).
