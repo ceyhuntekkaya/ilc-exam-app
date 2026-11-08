@@ -153,14 +153,14 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Atamalar",
           description: "Sınıfa ata, aç, kapat, izle",
           perms: [Perm.assignmentManage, Perm.assignmentMonitor],
-          // F3B-17: dağıtım ekranları eski atama motorunun yerine geçti. `src/features/assignments/**`
+          // F3B-17 / R-10: dağıtım ekranları (oluşturma sihirbazı dahil) eski atama motorunun yerine geçti. `src/features/assignments/**`
           // SİLİNMEDİ (dokunulmaz), yalnız menüden kaldırıldı — rota hâlâ erişilebilir.
           hidden: true,
         },
         {
           href: "/staff/distributions",
           label: "Dağıtımlar",
-          description: "Dağıtım listesi, adaylar ve sonuç görünümü",
+          description: "Dağıtım oluştur, hedefle, aç; adayları ve sonuçları izle",
           perms: [Perm.assignmentManage, Perm.assignmentMonitor],
         },
         {
