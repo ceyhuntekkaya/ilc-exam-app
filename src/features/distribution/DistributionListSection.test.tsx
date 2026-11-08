@@ -2,11 +2,11 @@ import { renderWithProviders, screen } from "@/src/test/renderWithProviders";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DistributionRow } from "@/src/api/generated/models";
 
-const useList10Mock = vi.fn();
+const useList11Mock = vi.fn();
 
 vi.mock("@/src/api/generated/company-distributions/company-distributions", () => ({
-  useList10: () => useList10Mock(),
-  getList10QueryKey: () => ["/my-company/distributions"],
+  useList11: () => useList11Mock(),
+  getList11QueryKey: () => ["/my-company/distributions"],
 }));
 
 const { DistributionListSection } = await import("./DistributionListSection");
@@ -25,11 +25,11 @@ const ROWS: DistributionRow[] = [
 
 describe("DistributionListSection", () => {
   afterEach(() => {
-    useList10Mock.mockReset();
+    useList11Mock.mockReset();
   });
 
   it("dağıtımları adı, durumu ve detay linkiyle listeler", () => {
-    useList10Mock.mockReturnValue({ data: { data: ROWS }, isLoading: false, isError: false, error: null, refetch: vi.fn() });
+    useList11Mock.mockReturnValue({ data: { data: ROWS }, isLoading: false, isError: false, error: null, refetch: vi.fn() });
 
     renderWithProviders(<DistributionListSection companyId="company-1" />);
 
@@ -39,7 +39,7 @@ describe("DistributionListSection", () => {
   });
 
   it("boş listede boş durumu gösterir", () => {
-    useList10Mock.mockReturnValue({ data: { data: [] }, isLoading: false, isError: false, error: null, refetch: vi.fn() });
+    useList11Mock.mockReturnValue({ data: { data: [] }, isLoading: false, isError: false, error: null, refetch: vi.fn() });
 
     renderWithProviders(<DistributionListSection companyId="company-1" />);
 

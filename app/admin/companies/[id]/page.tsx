@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGet6QueryKey,
   useGet6,
-  useUpdate5,
+  useUpdate6,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
 import { companyDetailHref, type CompanySection } from "@/src/config/company-detail-nav";
@@ -46,7 +46,7 @@ function OverviewBody() {
   const { id } = useParams<{ id: string }>();
   const { data } = useGet6(id);
   const company = data?.data;
-  const update = useUpdate5();
+  const update = useUpdate6();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
