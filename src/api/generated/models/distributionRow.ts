@@ -16,4 +16,8 @@ export interface DistributionRow {
   packageId?: string;
   createdAt?: string;
   updatedAt?: string;
+  examVersionId?: string;
+  windowOpensAt?: string;
+  windowClosesAt?: string;
+  centerSessionId?: string;
 }

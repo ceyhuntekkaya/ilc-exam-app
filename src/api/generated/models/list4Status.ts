@@ -9,8 +9,7 @@ export type List4Status = typeof List4Status[keyof typeof List4Status];
 
 
 export const List4Status = {
-  DRAFT: 'DRAFT',
-  IN_REVIEW: 'IN_REVIEW',
-  APPROVED: 'APPROVED',
-  RETIRED: 'RETIRED',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  PASSIVE: 'PASSIVE',
 } as const;

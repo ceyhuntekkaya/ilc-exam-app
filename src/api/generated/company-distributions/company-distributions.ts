@@ -5,28 +5,38 @@
  * OpenAPI spec version: v0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
   CandidateRow,
+  CreateRequest,
   DistributionRow,
-  StudentReport
+  OpenRow,
+  PreviewRow,
+  RuleRequest,
+  RuleRow,
+  StudentReport,
+  UpdateRequest
 } from '../models';
 
 import { customInstance } from '../../mutator';
-import type { ErrorType } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -47,112 +57,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
-
-export type list11Response200 = {
-  data: DistributionRow[]
-  status: 200
-}
-
-export type list11ResponseSuccess = (list11Response200) & {
-  headers: Headers;
-};
-;
-
-export type list11Response = (list11ResponseSuccess)
-
-export const getList11Url = () => {
-
-
-
-
-  return `/my-company/distributions`
-}
-
-export const list11 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list11Response> => {
-
-  return customInstance<list11Response>(getList11Url(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getList11QueryKey = () => {
-    return [
-    `/my-company/distributions`
-    ] as const;
-    }
-
-
-export const getList11QueryOptions = <TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getList11QueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list11>>> = ({ signal }) => list11({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type List11QueryResult = NonNullable<Awaited<ReturnType<typeof list11>>>
-export type List11QueryError = ErrorType<unknown>
-
-
-export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list11>>,
-          TError,
-          Awaited<ReturnType<typeof list11>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list11>>,
-          TError,
-          Awaited<ReturnType<typeof list11>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getList11QueryOptions(options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
 
 export type detailResponse200 = {
   data: DistributionRow
@@ -249,6 +153,684 @@ export function useDetail<TData = Awaited<ReturnType<typeof detail>>, TError = E
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getDetailQueryOptions(distributionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type update2Response200 = {
+  data: DistributionRow
+  status: 200
+}
+
+export type update2ResponseSuccess = (update2Response200) & {
+  headers: Headers;
+};
+;
+
+export type update2Response = (update2ResponseSuccess)
+
+export const getUpdate2Url = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}`
+}
+
+export const update2 = async (distributionId: string,
+    updateRequest: UpdateRequest, options?: Parameters<typeof customInstance>[1]): Promise<update2Response> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<update2Response>(getUpdate2Url(distributionId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateRequest)
+  }
+);}
+
+
+
+
+
+export const getUpdate2MutationKey = () => ['update2'] as const;
+
+export const getUpdate2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update2>>, TError,Update2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof update2>>, TError,Update2MutationVariables, TContext> => {
+
+const mutationKey = getUpdate2MutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update2>>, Update2MutationVariables> = (props) => {
+          const {distributionId,data} = props ?? {};
+
+          return  update2(distributionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Update2MutationResult = NonNullable<Awaited<ReturnType<typeof update2>>>
+    export type Update2MutationBody = BodyType<UpdateRequest>
+    export type Update2MutationError = ErrorType<unknown>
+    export type Update2MutationVariables = {distributionId: string;data: BodyType<UpdateRequest>}
+
+    export const useUpdate2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update2>>, TError,Update2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof update2>>,
+        TError,
+        Update2MutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdate2MutationOptions(options), queryClient);
+    }
+    export type list3Response200 = {
+  data: DistributionRow[]
+  status: 200
+}
+
+export type list3ResponseSuccess = (list3Response200) & {
+  headers: Headers;
+};
+;
+
+export type list3Response = (list3ResponseSuccess)
+
+export const getList3Url = () => {
+
+
+
+
+  return `/my-company/distributions`
+}
+
+export const list3 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list3Response> => {
+
+  return customInstance<list3Response>(getList3Url(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getList3QueryKey = () => {
+    return [
+    `/my-company/distributions`
+    ] as const;
+    }
+
+
+export const getList3QueryOptions = <TData = Awaited<ReturnType<typeof list3>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getList3QueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list3>>> = ({ signal }) => list3({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type List3QueryResult = NonNullable<Awaited<ReturnType<typeof list3>>>
+export type List3QueryError = ErrorType<unknown>
+
+
+export function useList3<TData = Awaited<ReturnType<typeof list3>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof list3>>,
+          TError,
+          Awaited<ReturnType<typeof list3>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useList3<TData = Awaited<ReturnType<typeof list3>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof list3>>,
+          TError,
+          Awaited<ReturnType<typeof list3>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useList3<TData = Awaited<ReturnType<typeof list3>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useList3<TData = Awaited<ReturnType<typeof list3>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list3>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getList3QueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type create2Response200 = {
+  data: DistributionRow
+  status: 200
+}
+
+export type create2ResponseSuccess = (create2Response200) & {
+  headers: Headers;
+};
+;
+
+export type create2Response = (create2ResponseSuccess)
+
+export const getCreate2Url = () => {
+
+
+
+
+  return `/my-company/distributions`
+}
+
+export const create2 = async (createRequest: CreateRequest, options?: Parameters<typeof customInstance>[1]): Promise<create2Response> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<create2Response>(getCreate2Url(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createRequest)
+  }
+);}
+
+
+
+
+
+export const getCreate2MutationKey = () => ['create2'] as const;
+
+export const getCreate2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create2>>, TError,Create2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create2>>, TError,Create2MutationVariables, TContext> => {
+
+const mutationKey = getCreate2MutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create2>>, Create2MutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  create2(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Create2MutationResult = NonNullable<Awaited<ReturnType<typeof create2>>>
+    export type Create2MutationBody = BodyType<CreateRequest>
+    export type Create2MutationError = ErrorType<unknown>
+    export type Create2MutationVariables = {data: BodyType<CreateRequest>}
+
+    export const useCreate2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create2>>, TError,Create2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof create2>>,
+        TError,
+        Create2MutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreate2MutationOptions(options), queryClient);
+    }
+    export type targetRulesResponse200 = {
+  data: RuleRow[]
+  status: 200
+}
+
+export type targetRulesResponseSuccess = (targetRulesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type targetRulesResponse = (targetRulesResponseSuccess)
+
+export const getTargetRulesUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/target-rules`
+}
+
+export const targetRules = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<targetRulesResponse> => {
+
+  return customInstance<targetRulesResponse>(getTargetRulesUrl(distributionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getTargetRulesQueryKey = (distributionId: string,) => {
+    return [
+    `/my-company/distributions/${distributionId}/target-rules`
+    ] as const;
+    }
+
+
+export const getTargetRulesQueryOptions = <TData = Awaited<ReturnType<typeof targetRules>>, TError = ErrorType<unknown>>(distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTargetRulesQueryKey(distributionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof targetRules>>> = ({ signal }) => targetRules(distributionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: distributionId !== null && distributionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TargetRulesQueryResult = NonNullable<Awaited<ReturnType<typeof targetRules>>>
+export type TargetRulesQueryError = ErrorType<unknown>
+
+
+export function useTargetRules<TData = Awaited<ReturnType<typeof targetRules>>, TError = ErrorType<unknown>>(
+ distributionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof targetRules>>,
+          TError,
+          Awaited<ReturnType<typeof targetRules>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTargetRules<TData = Awaited<ReturnType<typeof targetRules>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof targetRules>>,
+          TError,
+          Awaited<ReturnType<typeof targetRules>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTargetRules<TData = Awaited<ReturnType<typeof targetRules>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useTargetRules<TData = Awaited<ReturnType<typeof targetRules>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof targetRules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTargetRulesQueryOptions(distributionId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export type addTargetRuleResponse200 = {
+  data: RuleRow
+  status: 200
+}
+
+export type addTargetRuleResponseSuccess = (addTargetRuleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type addTargetRuleResponse = (addTargetRuleResponseSuccess)
+
+export const getAddTargetRuleUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/target-rules`
+}
+
+export const addTargetRule = async (distributionId: string,
+    ruleRequest: RuleRequest, options?: Parameters<typeof customInstance>[1]): Promise<addTargetRuleResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<addTargetRuleResponse>(getAddTargetRuleUrl(distributionId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(ruleRequest)
+  }
+);}
+
+
+
+
+
+export const getAddTargetRuleMutationKey = () => ['addTargetRule'] as const;
+
+export const getAddTargetRuleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTargetRule>>, TError,AddTargetRuleMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof addTargetRule>>, TError,AddTargetRuleMutationVariables, TContext> => {
+
+const mutationKey = getAddTargetRuleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addTargetRule>>, AddTargetRuleMutationVariables> = (props) => {
+          const {distributionId,data} = props ?? {};
+
+          return  addTargetRule(distributionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddTargetRuleMutationResult = NonNullable<Awaited<ReturnType<typeof addTargetRule>>>
+    export type AddTargetRuleMutationBody = BodyType<RuleRequest>
+    export type AddTargetRuleMutationError = ErrorType<unknown>
+    export type AddTargetRuleMutationVariables = {distributionId: string;data: BodyType<RuleRequest>}
+
+    export const useAddTargetRule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTargetRule>>, TError,AddTargetRuleMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addTargetRule>>,
+        TError,
+        AddTargetRuleMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAddTargetRuleMutationOptions(options), queryClient);
+    }
+    export type openResponse200 = {
+  data: OpenRow
+  status: 200
+}
+
+export type openResponseSuccess = (openResponse200) & {
+  headers: Headers;
+};
+;
+
+export type openResponse = (openResponseSuccess)
+
+export const getOpenUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/open`
+}
+
+export const open = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<openResponse> => {
+
+  return customInstance<openResponse>(getOpenUrl(distributionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenMutationKey = () => ['open'] as const;
+
+export const getOpenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext> => {
+
+const mutationKey = getOpenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof open>>, OpenMutationVariables> = (props) => {
+          const {distributionId} = props ?? {};
+
+          return  open(distributionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenMutationResult = NonNullable<Awaited<ReturnType<typeof open>>>
+
+    export type OpenMutationError = ErrorType<unknown>
+    export type OpenMutationVariables = {distributionId: string}
+
+    export const useOpen = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof open>>,
+        TError,
+        OpenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getOpenMutationOptions(options), queryClient);
+    }
+    export type previewResponse200 = {
+  data: PreviewRow
+  status: 200
+}
+
+export type previewResponseSuccess = (previewResponse200) & {
+  headers: Headers;
+};
+;
+
+export type previewResponse = (previewResponseSuccess)
+
+export const getPreviewUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/preview`
+}
+
+export const preview = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<previewResponse> => {
+
+  return customInstance<previewResponse>(getPreviewUrl(distributionId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getPreviewQueryKey = (distributionId: string,) => {
+    return [
+    `/my-company/distributions/${distributionId}/preview`
+    ] as const;
+    }
+
+
+export const getPreviewQueryOptions = <TData = Awaited<ReturnType<typeof preview>>, TError = ErrorType<unknown>>(distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPreviewQueryKey(distributionId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof preview>>> = ({ signal }) => preview(distributionId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: distributionId !== null && distributionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PreviewQueryResult = NonNullable<Awaited<ReturnType<typeof preview>>>
+export type PreviewQueryError = ErrorType<unknown>
+
+
+export function usePreview<TData = Awaited<ReturnType<typeof preview>>, TError = ErrorType<unknown>>(
+ distributionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof preview>>,
+          TError,
+          Awaited<ReturnType<typeof preview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreview<TData = Awaited<ReturnType<typeof preview>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof preview>>,
+          TError,
+          Awaited<ReturnType<typeof preview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePreview<TData = Awaited<ReturnType<typeof preview>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function usePreview<TData = Awaited<ReturnType<typeof preview>>, TError = ErrorType<unknown>>(
+ distributionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPreviewQueryOptions(distributionId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -379,20 +961,18 @@ export type resultResponseSuccess = (resultResponse200) & {
 export type resultResponse = (resultResponseSuccess)
 
 export const getResultUrl = (distributionId: string,
-    candidateId: string,
-    applicationId: string,) => {
+    candidateId: string,) => {
 
 
 
 
-  return `/my-company/distributions/${distributionId}/candidates/${candidateId}/result/${applicationId}`
+  return `/my-company/distributions/${distributionId}/candidates/${candidateId}/result`
 }
 
 export const result = async (distributionId: string,
-    candidateId: string,
-    applicationId: string, options?: Parameters<typeof customInstance>[1]): Promise<resultResponse> => {
+    candidateId: string, options?: Parameters<typeof customInstance>[1]): Promise<resultResponse> => {
 
-  return customInstance<resultResponse>(getResultUrl(distributionId,candidateId,applicationId),
+  return customInstance<resultResponse>(getResultUrl(distributionId,candidateId),
   {
     ...options,
     method: 'GET'
@@ -406,32 +986,30 @@ export const result = async (distributionId: string,
 
 
 export const getResultQueryKey = (distributionId: string,
-    candidateId: string,
-    applicationId: string,) => {
+    candidateId: string,) => {
     return [
-    `/my-company/distributions/${distributionId}/candidates/${candidateId}/result/${applicationId}`
+    `/my-company/distributions/${distributionId}/candidates/${candidateId}/result`
     ] as const;
     }
 
 
 export const getResultQueryOptions = <TData = Awaited<ReturnType<typeof result>>, TError = ErrorType<unknown>>(distributionId: string,
-    candidateId: string,
-    applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    candidateId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getResultQueryKey(distributionId,candidateId,applicationId);
+  const queryKey =  queryOptions?.queryKey ?? getResultQueryKey(distributionId,candidateId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof result>>> = ({ signal }) => result(distributionId,candidateId,applicationId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof result>>> = ({ signal }) => result(distributionId,candidateId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: distributionId !== null && distributionId !== undefined && candidateId !== null && candidateId !== undefined && applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: distributionId !== null && distributionId !== undefined && candidateId !== null && candidateId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type ResultQueryResult = NonNullable<Awaited<ReturnType<typeof result>>>
@@ -440,8 +1018,7 @@ export type ResultQueryError = ErrorType<unknown>
 
 export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = ErrorType<unknown>>(
  distributionId: string,
-    candidateId: string,
-    applicationId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>> & Pick<
+    candidateId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof result>>,
           TError,
@@ -452,8 +1029,7 @@ export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = E
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = ErrorType<unknown>>(
  distributionId: string,
-    candidateId: string,
-    applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>> & Pick<
+    candidateId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof result>>,
           TError,
@@ -464,19 +1040,17 @@ export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = E
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = ErrorType<unknown>>(
  distributionId: string,
-    candidateId: string,
-    applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    candidateId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = ErrorType<unknown>>(
  distributionId: string,
-    candidateId: string,
-    applicationId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    candidateId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof result>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getResultQueryOptions(distributionId,candidateId,applicationId,options)
+  const queryOptions = getResultQueryOptions(distributionId,candidateId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -488,3 +1062,84 @@ export function useResult<TData = Awaited<ReturnType<typeof result>>, TError = E
 
 
 
+export type removeTargetRuleResponse200 = {
+  data: void
+  status: 200
+}
+
+export type removeTargetRuleResponseSuccess = (removeTargetRuleResponse200) & {
+  headers: Headers;
+};
+;
+
+export type removeTargetRuleResponse = (removeTargetRuleResponseSuccess)
+
+export const getRemoveTargetRuleUrl = (distributionId: string,
+    ruleId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/target-rules/${ruleId}`
+}
+
+export const removeTargetRule = async (distributionId: string,
+    ruleId: string, options?: Parameters<typeof customInstance>[1]): Promise<removeTargetRuleResponse> => {
+
+  return customInstance<removeTargetRuleResponse>(getRemoveTargetRuleUrl(distributionId,ruleId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveTargetRuleMutationKey = () => ['removeTargetRule'] as const;
+
+export const getRemoveTargetRuleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTargetRule>>, TError,RemoveTargetRuleMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeTargetRule>>, TError,RemoveTargetRuleMutationVariables, TContext> => {
+
+const mutationKey = getRemoveTargetRuleMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeTargetRule>>, RemoveTargetRuleMutationVariables> = (props) => {
+          const {distributionId,ruleId} = props ?? {};
+
+          return  removeTargetRule(distributionId,ruleId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveTargetRuleMutationResult = NonNullable<Awaited<ReturnType<typeof removeTargetRule>>>
+
+    export type RemoveTargetRuleMutationError = ErrorType<unknown>
+    export type RemoveTargetRuleMutationVariables = {distributionId: string;ruleId: string}
+
+    export const useRemoveTargetRule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTargetRule>>, TError,RemoveTargetRuleMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeTargetRule>>,
+        TError,
+        RemoveTargetRuleMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveTargetRuleMutationOptions(options), queryClient);
+    }

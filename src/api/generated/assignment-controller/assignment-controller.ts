@@ -618,19 +618,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getAddRecipientMutationOptions(options), queryClient);
     }
-    export type openResponse200 = {
+    export type open1Response200 = {
   data: Assignment
   status: 200
 }
 
-export type openResponseSuccess = (openResponse200) & {
+export type open1ResponseSuccess = (open1Response200) & {
   headers: Headers;
 };
 ;
 
-export type openResponse = (openResponseSuccess)
+export type open1Response = (open1ResponseSuccess)
 
-export const getOpenUrl = (id: string,) => {
+export const getOpen1Url = (id: string,) => {
 
 
 
@@ -638,9 +638,9 @@ export const getOpenUrl = (id: string,) => {
   return `/assignments/${id}/open`
 }
 
-export const open = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<openResponse> => {
+export const open1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<open1Response> => {
 
-  return customInstance<openResponse>(getOpenUrl(id),
+  return customInstance<open1Response>(getOpen1Url(id),
   {
     ...options,
     method: 'POST'
@@ -653,13 +653,13 @@ export const open = async (id: string, options?: Parameters<typeof customInstanc
 
 
 
-export const getOpenMutationKey = () => ['open'] as const;
+export const getOpen1MutationKey = () => ['open1'] as const;
 
-export const getOpenMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext> => {
+export const getOpen1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext> => {
 
-const mutationKey = getOpenMutationKey();
+const mutationKey = getOpen1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -669,10 +669,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof open>>, OpenMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof open1>>, Open1MutationVariables> = (props) => {
           const {id} = props ?? {};
 
-          return  open(id,requestOptions)
+          return  open1(id,requestOptions)
         }
 
 
@@ -682,20 +682,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type OpenMutationResult = NonNullable<Awaited<ReturnType<typeof open>>>
+    export type Open1MutationResult = NonNullable<Awaited<ReturnType<typeof open1>>>
 
-    export type OpenMutationError = ErrorType<unknown>
-    export type OpenMutationVariables = {id: string}
+    export type Open1MutationError = ErrorType<unknown>
+    export type Open1MutationVariables = {id: string}
 
-    export const useOpen = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open>>, TError,OpenMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useOpen1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof open>>,
+        Awaited<ReturnType<typeof open1>>,
         TError,
-        OpenMutationVariables,
+        Open1MutationVariables,
         TContext
       > => {
-      return useMutation(getOpenMutationOptions(options), queryClient);
+      return useMutation(getOpen1MutationOptions(options), queryClient);
     }
     export type finishRemainingResponse200 = {
   data: FinishRemaining200
@@ -1245,19 +1245,19 @@ export function useWatch<TData = Awaited<ReturnType<typeof watch>>, TError = Err
 
 
 
-export type preview1Response200 = {
+export type preview2Response200 = {
   data: RecipientPreview
   status: 200
 }
 
-export type preview1ResponseSuccess = (preview1Response200) & {
+export type preview2ResponseSuccess = (preview2Response200) & {
   headers: Headers;
 };
 ;
 
-export type preview1Response = (preview1ResponseSuccess)
+export type preview2Response = (preview2ResponseSuccess)
 
-export const getPreview1Url = (id: string,) => {
+export const getPreview2Url = (id: string,) => {
 
 
 
@@ -1265,9 +1265,9 @@ export const getPreview1Url = (id: string,) => {
   return `/assignments/${id}/recipients/preview`
 }
 
-export const preview1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<preview1Response> => {
+export const preview2 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<preview2Response> => {
 
-  return customInstance<preview1Response>(getPreview1Url(id),
+  return customInstance<preview2Response>(getPreview2Url(id),
   {
     ...options,
     method: 'GET'
@@ -1280,66 +1280,66 @@ export const preview1 = async (id: string, options?: Parameters<typeof customIns
 
 
 
-export const getPreview1QueryKey = (id: string,) => {
+export const getPreview2QueryKey = (id: string,) => {
     return [
     `/assignments/${id}/recipients/preview`
     ] as const;
     }
 
 
-export const getPreview1QueryOptions = <TData = Awaited<ReturnType<typeof preview1>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getPreview2QueryOptions = <TData = Awaited<ReturnType<typeof preview2>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getPreview1QueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getPreview2QueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof preview1>>> = ({ signal }) => preview1(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof preview2>>> = ({ signal }) => preview2(id, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type Preview1QueryResult = NonNullable<Awaited<ReturnType<typeof preview1>>>
-export type Preview1QueryError = ErrorType<unknown>
+export type Preview2QueryResult = NonNullable<Awaited<ReturnType<typeof preview2>>>
+export type Preview2QueryError = ErrorType<unknown>
 
 
-export function usePreview1<TData = Awaited<ReturnType<typeof preview1>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData>> & Pick<
+export function usePreview2<TData = Awaited<ReturnType<typeof preview2>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof preview1>>,
+          Awaited<ReturnType<typeof preview2>>,
           TError,
-          Awaited<ReturnType<typeof preview1>>
+          Awaited<ReturnType<typeof preview2>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePreview1<TData = Awaited<ReturnType<typeof preview1>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData>> & Pick<
+export function usePreview2<TData = Awaited<ReturnType<typeof preview2>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof preview1>>,
+          Awaited<ReturnType<typeof preview2>>,
           TError,
-          Awaited<ReturnType<typeof preview1>>
+          Awaited<ReturnType<typeof preview2>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function usePreview1<TData = Awaited<ReturnType<typeof preview1>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function usePreview2<TData = Awaited<ReturnType<typeof preview2>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function usePreview1<TData = Awaited<ReturnType<typeof preview1>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function usePreview2<TData = Awaited<ReturnType<typeof preview2>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof preview2>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getPreview1QueryOptions(id,options)
+  const queryOptions = getPreview2QueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

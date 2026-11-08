@@ -4,14 +4,12 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { CreateRequestBand } from './createRequestBand';
-import type { CreateRequestSetType } from './createRequestSetType';
-import type { CreateRequestSkill } from './createRequestSkill';
+import type { ModeRequest } from './modeRequest';
 
 export interface CreateRequest {
-  band?: CreateRequestBand;
-  skill?: CreateRequestSkill;
-  language?: string;
-  setType?: CreateRequestSetType;
-  statements?: string[];
+  name?: string;
+  skuId?: string;
+  packageId?: string;
+  examId?: string;
+  mode?: ModeRequest;
 }

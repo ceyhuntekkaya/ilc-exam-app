@@ -162,19 +162,19 @@ export function useGet4<TData = Awaited<ReturnType<typeof get4>>, TError = Error
 
 
 
-export type update3Response200 = {
+export type update4Response200 = {
   data: MediaDto
   status: 200
 }
 
-export type update3ResponseSuccess = (update3Response200) & {
+export type update4ResponseSuccess = (update4Response200) & {
   headers: Headers;
 };
 ;
 
-export type update3Response = (update3ResponseSuccess)
+export type update4Response = (update4ResponseSuccess)
 
-export const getUpdate3Url = (id: string,) => {
+export const getUpdate4Url = (id: string,) => {
 
 
 
@@ -182,8 +182,8 @@ export const getUpdate3Url = (id: string,) => {
   return `/authoring/media/${id}`
 }
 
-export const update3 = async (id: string,
-    metaRequest: MetaRequest, options?: Parameters<typeof customInstance>[1]): Promise<update3Response> => {
+export const update4 = async (id: string,
+    metaRequest: MetaRequest, options?: Parameters<typeof customInstance>[1]): Promise<update4Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -199,7 +199,7 @@ export const update3 = async (id: string,
     }
     return headers;
   };
-return customInstance<update3Response>(getUpdate3Url(id),
+return customInstance<update4Response>(getUpdate4Url(id),
   {
     ...options,
     method: 'PUT',
@@ -212,13 +212,13 @@ return customInstance<update3Response>(getUpdate3Url(id),
 
 
 
-export const getUpdate3MutationKey = () => ['update3'] as const;
+export const getUpdate4MutationKey = () => ['update4'] as const;
 
-export const getUpdate3MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update3>>, TError,Update3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof update3>>, TError,Update3MutationVariables, TContext> => {
+export const getUpdate4MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext> => {
 
-const mutationKey = getUpdate3MutationKey();
+const mutationKey = getUpdate4MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -228,10 +228,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update3>>, Update3MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update4>>, Update4MutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  update3(id,data,requestOptions)
+          return  update4(id,data,requestOptions)
         }
 
 
@@ -241,20 +241,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Update3MutationResult = NonNullable<Awaited<ReturnType<typeof update3>>>
-    export type Update3MutationBody = BodyType<MetaRequest>
-    export type Update3MutationError = ErrorType<unknown>
-    export type Update3MutationVariables = {id: string;data: BodyType<MetaRequest>}
+    export type Update4MutationResult = NonNullable<Awaited<ReturnType<typeof update4>>>
+    export type Update4MutationBody = BodyType<MetaRequest>
+    export type Update4MutationError = ErrorType<unknown>
+    export type Update4MutationVariables = {id: string;data: BodyType<MetaRequest>}
 
-    export const useUpdate3 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update3>>, TError,Update3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useUpdate4 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof update3>>,
+        Awaited<ReturnType<typeof update4>>,
         TError,
-        Update3MutationVariables,
+        Update4MutationVariables,
         TContext
       > => {
-      return useMutation(getUpdate3MutationOptions(options), queryClient);
+      return useMutation(getUpdate4MutationOptions(options), queryClient);
     }
     export type _deleteResponse204 = {
   data: void

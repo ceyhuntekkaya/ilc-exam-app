@@ -4,10 +4,15 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { List8Cefr } from './list8Cefr';
+import type { List8Skill } from './list8Skill';
 import type { List8Status } from './list8Status';
 
 export type List8Params = {
 status?: List8Status;
-page?: number;
-size?: number;
+cefr?: List8Cefr;
+ageBandOptionId?: string;
+q?: string;
+skill?: List8Skill;
+includeArchived?: boolean;
 };

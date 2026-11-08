@@ -229,19 +229,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRemoveDimensionMutationOptions(options), queryClient);
     }
-    export type list10Response200 = {
+    export type list11Response200 = {
   data: BlueprintDto[]
   status: 200
 }
 
-export type list10ResponseSuccess = (list10Response200) & {
+export type list11ResponseSuccess = (list11Response200) & {
   headers: Headers;
 };
 ;
 
-export type list10Response = (list10ResponseSuccess)
+export type list11Response = (list11ResponseSuccess)
 
-export const getList10Url = () => {
+export const getList11Url = () => {
 
 
 
@@ -249,9 +249,9 @@ export const getList10Url = () => {
   return `/authoring/blueprints`
 }
 
-export const list10 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list10Response> => {
+export const list11 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list11Response> => {
 
-  return customInstance<list10Response>(getList10Url(),
+  return customInstance<list11Response>(getList11Url(),
   {
     ...options,
     method: 'GET'
@@ -264,66 +264,66 @@ export const list10 = async ( options?: Parameters<typeof customInstance>[1]): P
 
 
 
-export const getList10QueryKey = () => {
+export const getList11QueryKey = () => {
     return [
     `/authoring/blueprints`
     ] as const;
     }
 
 
-export const getList10QueryOptions = <TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList11QueryOptions = <TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList10QueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getList11QueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list10>>> = ({ signal }) => list10({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list11>>> = ({ signal }) => list11({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List10QueryResult = NonNullable<Awaited<ReturnType<typeof list10>>>
-export type List10QueryError = ErrorType<unknown>
+export type List11QueryResult = NonNullable<Awaited<ReturnType<typeof list11>>>
+export type List11QueryError = ErrorType<unknown>
 
 
-export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>> & Pick<
+export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list10>>,
+          Awaited<ReturnType<typeof list11>>,
           TError,
-          Awaited<ReturnType<typeof list10>>
+          Awaited<ReturnType<typeof list11>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>> & Pick<
+export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list10>>,
+          Awaited<ReturnType<typeof list11>>,
           TError,
-          Awaited<ReturnType<typeof list10>>
+          Awaited<ReturnType<typeof list11>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList11<TData = Awaited<ReturnType<typeof list11>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list11>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList10QueryOptions(options)
+  const queryOptions = getList11QueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -335,19 +335,19 @@ export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = E
 
 
 
-export type create10Response201 = {
+export type create11Response201 = {
   data: BlueprintDto
   status: 201
 }
 
-export type create10ResponseSuccess = (create10Response201) & {
+export type create11ResponseSuccess = (create11Response201) & {
   headers: Headers;
 };
 ;
 
-export type create10Response = (create10ResponseSuccess)
+export type create11Response = (create11ResponseSuccess)
 
-export const getCreate10Url = () => {
+export const getCreate11Url = () => {
 
 
 
@@ -355,7 +355,7 @@ export const getCreate10Url = () => {
   return `/authoring/blueprints`
 }
 
-export const create10 = async (createBlueprintRequest: CreateBlueprintRequest, options?: Parameters<typeof customInstance>[1]): Promise<create10Response> => {
+export const create11 = async (createBlueprintRequest: CreateBlueprintRequest, options?: Parameters<typeof customInstance>[1]): Promise<create11Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -371,7 +371,7 @@ export const create10 = async (createBlueprintRequest: CreateBlueprintRequest, o
     }
     return headers;
   };
-return customInstance<create10Response>(getCreate10Url(),
+return customInstance<create11Response>(getCreate11Url(),
   {
     ...options,
     method: 'POST',
@@ -384,13 +384,13 @@ return customInstance<create10Response>(getCreate10Url(),
 
 
 
-export const getCreate10MutationKey = () => ['create10'] as const;
+export const getCreate11MutationKey = () => ['create11'] as const;
 
-export const getCreate10MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create10>>, TError,Create10MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof create10>>, TError,Create10MutationVariables, TContext> => {
+export const getCreate11MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create11>>, TError,Create11MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create11>>, TError,Create11MutationVariables, TContext> => {
 
-const mutationKey = getCreate10MutationKey();
+const mutationKey = getCreate11MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -400,10 +400,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create10>>, Create10MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create11>>, Create11MutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  create10(data,requestOptions)
+          return  create11(data,requestOptions)
         }
 
 
@@ -413,20 +413,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Create10MutationResult = NonNullable<Awaited<ReturnType<typeof create10>>>
-    export type Create10MutationBody = BodyType<CreateBlueprintRequest>
-    export type Create10MutationError = ErrorType<unknown>
-    export type Create10MutationVariables = {data: BodyType<CreateBlueprintRequest>}
+    export type Create11MutationResult = NonNullable<Awaited<ReturnType<typeof create11>>>
+    export type Create11MutationBody = BodyType<CreateBlueprintRequest>
+    export type Create11MutationError = ErrorType<unknown>
+    export type Create11MutationVariables = {data: BodyType<CreateBlueprintRequest>}
 
-    export const useCreate10 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create10>>, TError,Create10MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useCreate11 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create11>>, TError,Create11MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create10>>,
+        Awaited<ReturnType<typeof create11>>,
         TError,
-        Create10MutationVariables,
+        Create11MutationVariables,
         TContext
       > => {
-      return useMutation(getCreate10MutationOptions(options), queryClient);
+      return useMutation(getCreate11MutationOptions(options), queryClient);
     }
     export type submitForReview1Response200 = {
   data: BlueprintDto

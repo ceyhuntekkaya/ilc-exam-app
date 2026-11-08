@@ -14,4 +14,5 @@ export interface CandidateRow {
   status?: string;
   orgUnitId?: string;
   createdAt?: string;
+  latestApplicationId?: string;
 }
