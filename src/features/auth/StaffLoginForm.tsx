@@ -7,7 +7,7 @@ import type { SessionUserType } from "@/src/lib/auth-constants";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
-export default function StaffLoginPage() {
+export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: boolean }) {
   const { establishSession } = useAuth();
   const loginMutation = useLogin();
   const [username, setUsername] = useState("");
@@ -32,6 +32,7 @@ export default function StaffLoginPage() {
         payload.accessToken,
         payload.userType as SessionUserType,
         payload.refreshToken,
+        { mustChangePassword: payload.mustChangePassword === true },
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Giriş başarısız");
@@ -77,6 +78,12 @@ export default function StaffLoginPage() {
             className={entryFieldClass}
           />
         </label>
+
+        {passwordChanged && !error ? (
+          <p className="mt-4 rounded-xl bg-[#e6f5ec] px-3.5 py-2.5 text-sm text-[#1f6b3d]" role="status">
+            Parola değiştirildi. Lütfen giriş yapın.
+          </p>
+        ) : null}
 
         {error ? (
           <p className="mt-4 rounded-xl bg-[#ffe9e4] px-3.5 py-2.5 text-sm text-[#9f2d1c]" role="alert">
