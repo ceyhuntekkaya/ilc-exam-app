@@ -4,10 +4,10 @@ import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import {
-  getGet5QueryKey,
+  getGet6QueryKey,
   useActivate1,
   useDelete2,
-  useGet5,
+  useGet6,
   useSuspend,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import {
@@ -40,7 +40,7 @@ export function CompanyDetailFrame({
   const params = useParams<{ id: string }>();
   const companyId = params.id;
   const queryClient = useQueryClient();
-  const { data, isLoading, isError, error } = useGet5(companyId);
+  const { data, isLoading, isError, error } = useGet6(companyId);
   const company = data?.data;
   const suspend = useSuspend();
   const activate = useActivate1();
@@ -66,7 +66,7 @@ export function CompanyDetailFrame({
         await remove.mutateAsync({ id: companyId });
         notify.success("Kurum silindi");
       }
-      await queryClient.invalidateQueries({ queryKey: getGet5QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getGet6QueryKey(companyId) });
       setConfirm(null);
     } catch (err) {
       const message = errorMessage(err, "İşlem başarısız");

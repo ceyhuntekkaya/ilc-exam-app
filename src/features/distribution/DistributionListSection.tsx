@@ -1,6 +1,6 @@
 "use client";
 
-import { getList9QueryKey, useList9 } from "@/src/api/generated/company-distributions/company-distributions";
+import { getList10QueryKey, useList10 } from "@/src/api/generated/company-distributions/company-distributions";
 import type { DistributionRow } from "@/src/api/generated/models";
 import { Badge, ButtonLink, ErrorState, SectionTable } from "@/src/ui";
 
@@ -28,8 +28,8 @@ function when(value?: string | null) {
 /** Dağıtım listesi — eski `assignments` ekranının yerini alan F3B-17 yüzeyi. */
 export function DistributionListSection({ companyId }: { companyId: string }) {
   // Kurum değişince sorgu tazelensin diye anahtara eklenir (URL'e girmez, bkz. LedgerSection).
-  const { data, isLoading, isError, error, refetch } = useList9({
-    query: { queryKey: [...getList9QueryKey(), companyId] },
+  const { data, isLoading, isError, error, refetch } = useList10({
+    query: { queryKey: [...getList10QueryKey(), companyId] },
   });
   const rows = data?.data ?? [];
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useList2 } from "@/src/api/generated/admin-companies/admin-companies";
+import { useList3 } from "@/src/api/generated/admin-companies/admin-companies";
 import type { CompanySummary } from "@/src/api/generated/models";
 import { CompanySummaryStatus } from "@/src/api/generated/models";
 import { companyStatusLabel, companyStatusTone } from "@/src/features/admin/labels";
@@ -34,7 +34,7 @@ export default function AdminCompaniesPage() {
   const status = searchParams.get("status");
   const page = Number(searchParams.get("page") ?? "0") || 0;
 
-  const { data, isLoading, isError, error } = useList2({
+  const { data, isLoading, isError, error } = useList3({
     q: q || undefined,
     status: (status as CompanySummary["status"] | null) ?? undefined,
     page,

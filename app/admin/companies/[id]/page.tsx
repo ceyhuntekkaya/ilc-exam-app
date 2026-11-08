@@ -5,9 +5,9 @@ import { useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGet5QueryKey,
-  useGet5,
-  useUpdate4,
+  getGet6QueryKey,
+  useGet6,
+  useUpdate5,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { CompanyDetailFrame } from "@/src/features/admin/CompanyDetailFrame";
 import { companyDetailHref, type CompanySection } from "@/src/config/company-detail-nav";
@@ -44,9 +44,9 @@ const SHORTCUTS: { section: CompanySection; label: string; hint: string; tone: s
 
 function OverviewBody() {
   const { id } = useParams<{ id: string }>();
-  const { data } = useGet5(id);
+  const { data } = useGet6(id);
   const company = data?.data;
-  const update = useUpdate4();
+  const update = useUpdate5();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ function OverviewBody() {
           logoUrl: String(fd.get("logoUrl") || "") || undefined,
         },
       });
-      await queryClient.invalidateQueries({ queryKey: getGet5QueryKey(id) });
+      await queryClient.invalidateQueries({ queryKey: getGet6QueryKey(id) });
       setEditing(false);
       setOk(true);
       notify.success("Kaydedildi");
