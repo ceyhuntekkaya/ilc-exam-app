@@ -1,4 +1,8 @@
-node_modules
+.git
 .next
+node_modules
+.env*
 ilc.env
-.env.local
+*.tsbuildinfo
+npm-debug.log*
+.DS_Store
