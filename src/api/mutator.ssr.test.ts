@@ -36,9 +36,10 @@ describe("customInstance — sunucu tarafı (SSR) çağrısı", () => {
     vi.stubGlobal("fetch", fetchMock);
     const { customInstance } = await import("@/src/api/mutator");
 
-    await customInstance("/x", { headers: { "user-agent": "özel" } });
+    // Farklı büyük/küçük harfle verilen çağıran başlığı, iletilen "user-agent" ile birleşmemeli.
+    await customInstance("/x", { headers: { "User-Agent": "ozel" } });
 
     const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
-    expect(new Headers(init.headers).get("user-agent")).toBe("özel");
+    expect(new Headers(init.headers).get("user-agent")).toBe("ozel");
   });
 });

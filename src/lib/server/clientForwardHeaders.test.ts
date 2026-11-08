@@ -26,15 +26,26 @@ describe("clientForwardHeaders", () => {
     expect(clientForwardHeaders(new Headers())).toEqual({});
   });
 
-  it("aşırı uzun değeri keser", () => {
-    const out = clientForwardHeaders(new Headers({ "user-agent": "a".repeat(5000) }));
-    expect(out["user-agent"]).toHaveLength(512);
+  it("aşırı uzun X-Forwarded-For SOLDAN kısaltılır: nginx'in yazdığı en sağdaki girdi korunur", () => {
+    const attacker = Array.from({ length: 200 }, (_, i) => `6.6.${i % 250}.${i % 250}`).join(", ");
+    const out = clientForwardHeaders(new Headers({ "x-forwarded-for": `${attacker}, 203.0.113.7` }));
+    const entries = out["x-forwarded-for"]!.split(", ");
+    expect(entries.at(-1)).toBe("203.0.113.7");
+    expect(entries.length).toBeLessThanOrEqual(10);
   });
 
-  it("kontrol karakteri taşıyan değeri iletmez", () => {
-    const h = new Headers();
-    // Headers API CR/LF'i reddeder; yine de tab/DEL gibi kontrol karakterleri elenmeli.
-    h.set("user-agent", "iyi\u007fkotu");
-    expect(clientForwardHeaders(h)["user-agent"]).toBeUndefined();
+  it("tek girdi çok uzunsa o girdi atılır, sağdaki gerçek girdi kalır", () => {
+    const out = clientForwardHeaders(new Headers({ "x-forwarded-for": `${"9".repeat(600)}, 203.0.113.7` }));
+    expect(out["x-forwarded-for"]).toBe("203.0.113.7");
+  });
+
+  it("kontrol karakterini SİLER, başlığı düşürmez (düşerse istek ortak kovaya girerdi)", () => {
+    const out = clientForwardHeaders(new Headers({ "x-forwarded-for": "198.51.100.1\t, 203.0.113.7\u007f" }));
+    expect(out["x-forwarded-for"]).toBe("198.51.100.1, 203.0.113.7");
+    expect(clientForwardHeaders(new Headers({ "user-agent": "iyi\u007fkotu" }))["user-agent"]).toBe("iyikotu");
+  });
+
+  it("aşırı uzun User-Agent'ı keser", () => {
+    expect(clientForwardHeaders(new Headers({ "user-agent": "a".repeat(5000) }))["user-agent"]).toHaveLength(512);
   });
 });

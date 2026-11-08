@@ -75,14 +75,15 @@ export const customInstance = async <T>(
     ? url
     : `${resolvedBase}${url.startsWith("/") ? "" : "/"}${url}`;
 
+  // Başlık adları büyük/küçük harf duyarsız birleştirilir: çağıranın "User-Agent"ı iletilen
+  // "user-agent"ı ezer (düz nesne yayılımı ikisini "a, b" diye birleştirirdi).
+  const merged = new Headers({ Accept: "application/json", ...forwarded });
+  if (token) merged.set("Authorization", `Bearer ${token}`);
+  if (headers) new Headers(headers).forEach((value, key) => merged.set(key, value));
+
   const response = await fetch(path, {
     ...rest,
-    headers: {
-      Accept: "application/json",
-      ...forwarded,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
+    headers: merged,
   });
 
   if (response.status === 204) {
