@@ -182,6 +182,40 @@ export function validateMode(form: ModeForm): string | null {
   return null;
 }
 
+const WALL = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Istanbul",
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Anı `datetime-local` değerine (İstanbul duvar saati) çevirir; taslağı yeniden açarken form dolar. */
+export function toWallTime(instant?: string | null): string {
+  if (!instant) return "";
+  const date = new Date(instant);
+  if (Number.isNaN(date.getTime())) return "";
+  return WALL.format(date).replace(" ", "T");
+}
+
+/** Taslaktan kip formu (sunucudaki değerlerle). */
+export function modeFormFromDraft(draft?: {
+  mode?: string;
+  windowOpensAt?: string;
+  windowClosesAt?: string;
+  centerSessionId?: string;
+} | null): ModeForm {
+  if (!draft || (draft.mode !== "OPEN_WINDOW" && draft.mode !== "SCHEDULED_SESSION")) return EMPTY_MODE;
+  return {
+    kind: draft.mode,
+    opensAt: toWallTime(draft.windowOpensAt),
+    closesAt: toWallTime(draft.windowClosesAt),
+    centerSessionId: draft.centerSessionId ?? "",
+  };
+}
+
 /**
  * Kip alanları birbirini dışlar (backend: açık pencerede oturum, takvimli oturumda pencere verilmez) —
  * seçilmeyen kipe ait alanlar isteğe HİÇ girmez.

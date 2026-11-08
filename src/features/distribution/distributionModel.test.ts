@@ -10,7 +10,9 @@ import {
   omittedRows,
   openOutcome,
   quotaState,
+  modeFormFromDraft,
   toCreateRequest,
+  toWallTime,
   toModeRequest,
   toRuleRequest,
   toUpdateRequest,
@@ -169,5 +171,23 @@ describe("aday izleme (K-U06)", () => {
   it("backend 'başlamadı' hatasını tanır", () => {
     expect(isNotStartedError(new Error("Aday bu dağıtımda henüz sınava başlamadı: x"))).toBe(true);
     expect(isNotStartedError(new Error("başka"))).toBe(false);
+  });
+});
+
+describe("taslağı yeniden açma", () => {
+  it("UTC anını İstanbul duvar saatine çevirir (istanbulInstant'ın tersi)", () => {
+    expect(toWallTime("2026-11-10T07:00:00.000Z")).toBe("2026-11-10T10:00");
+    expect(toWallTime(undefined)).toBe("");
+  });
+
+  it("taslak kipi forma taşınır; bilinmeyen kip boş kalır", () => {
+    expect(modeFormFromDraft({ mode: "OPEN_WINDOW", windowOpensAt: "2026-11-10T07:00:00Z", windowClosesAt: "2026-11-11T09:30:00Z" })).toEqual({
+      kind: "OPEN_WINDOW",
+      opensAt: "2026-11-10T10:00",
+      closesAt: "2026-11-11T12:30",
+      centerSessionId: "",
+    });
+    expect(modeFormFromDraft({ mode: undefined }).kind).toBe("");
+    expect(modeFormFromDraft(null).kind).toBe("");
   });
 });
