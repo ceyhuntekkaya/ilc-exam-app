@@ -9,9 +9,9 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exams/admin-exams";
 import {
-  preview1,
+  preview2,
   useCreateAssignment,
-  useOpen,
+  useOpen1,
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { TargetRequestType, type StudentDto } from "@/src/api/generated/models";
@@ -106,7 +106,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   );
   const create = useCreateAssignment();
   const setTargets = useSetTargets();
-  const openAssignment = useOpen();
+  const openAssignment = useOpen1();
 
   const presetBranch = searchParams.get("branchId") ?? "";
   const [step, setStep] = useState(1);
@@ -190,7 +190,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
         id: assignmentId,
         data: [{ type: targetType, targetId, exclude: false }],
       });
-      const seen = await preview1(assignmentId);
+      const seen = await preview2(assignmentId);
       const body = seen.data;
       setDraftId(assignmentId);
       setPreviewNames(

@@ -2,15 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useList3 as useListCompanies } from "@/src/api/generated/admin-companies/admin-companies";
+import { useList4 as useListCompanies } from "@/src/api/generated/admin-companies/admin-companies";
 import { useList as useListSkus } from "@/src/api/generated/product-sku-catalog/product-sku-catalog";
 import {
-  getList4QueryKey,
+  getList5QueryKey,
   useCancel1,
-  useCreate3,
-  useList4,
+  useCreate4,
+  useList5,
   usePurchase,
-  useUpdate2,
+  useUpdate3,
 } from "@/src/api/generated/subscription-packages-central/subscription-packages-central";
 import type { PackageDto, SkuDto } from "@/src/api/generated/models";
 import {
@@ -101,7 +101,7 @@ function CompanyPicker({ value, onChange }: { value: string; onChange: (id: stri
 }
 
 function CompanyPackages({ companyId }: { companyId: string }) {
-  const packages = useList4(companyId);
+  const packages = useList5(companyId);
   const skusQuery = useListSkus();
   const skus: SkuDto[] = useMemo(() => skusQuery.data?.data ?? [], [skusQuery.data]);
   const rows: PackageDto[] = packages.data?.data ?? [];
@@ -192,8 +192,8 @@ export function PackageFormDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const create = useCreate3();
-  const update = useUpdate2();
+  const create = useCreate4();
+  const update = useUpdate3();
   const editing = pkg !== null;
   const [form, setForm] = useState<PackageFormState>(() => (pkg ? packageToForm(pkg) : emptyPackageForm()));
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +215,7 @@ export function PackageFormDialog({
     try {
       if (pkg?.id) await update.mutateAsync({ companyId, id: pkg.id, data });
       else await create.mutateAsync({ companyId, data });
-      await queryClient.invalidateQueries({ queryKey: getList4QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList5QueryKey(companyId) });
       notify.success(editing ? "Paket güncellendi" : "Paket tanımlandı");
       onClose();
     } catch (err) {
@@ -327,7 +327,7 @@ export function PurchaseDialog({ companyId, pkg, onClose }: { companyId: string;
     if (!pkg.id) return;
     try {
       await purchase.mutateAsync({ companyId, id: pkg.id, data: toPurchaseRequest(form, idempotencyKey) });
-      await queryClient.invalidateQueries({ queryKey: getList4QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList5QueryKey(companyId) });
       notify.success("Hak eklendi");
       onClose();
     } catch (err) {
@@ -372,7 +372,7 @@ function CancelConfirm({ companyId, pkg, onClose }: { companyId: string; pkg: Pa
     setError(undefined);
     try {
       await cancel.mutateAsync({ companyId, id: pkg.id });
-      await queryClient.invalidateQueries({ queryKey: getList4QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList5QueryKey(companyId) });
       notify.success("Paket iptal edildi");
       close();
     } catch (err) {
