@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_TOKEN_COOKIE } from "@/src/lib/auth-constants";
 import { getApiBaseUrl } from "@/src/lib/env";
+import { clientForwardHeaders } from "@/src/lib/server/clientForwardHeaders";
 import { proxyResponse } from "@/src/lib/server/proxyResponse";
 import { ensureAccessToken } from "@/src/lib/server/session-cookies";
 
@@ -35,6 +36,10 @@ async function forward(request: NextRequest, path: string[]) {
   // upstream 200 + tüm dosyayı döner ve tarayıcı kaydı oynatmaz.
   const range = request.headers.get("range");
   if (range) headers.set("range", range);
+  // R-04 (B-07): hız sınırı ve bütünlük kaydı için istemci IP'si / UA (backend güvenilir proxy'yi seçer).
+  for (const [name, value] of Object.entries(clientForwardHeaders(request.headers))) {
+    headers.set(name, value);
+  }
 
   const init: RequestInit = {
     method: request.method,

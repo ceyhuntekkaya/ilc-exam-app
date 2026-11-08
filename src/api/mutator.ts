@@ -43,6 +43,24 @@ async function resolveAccessToken(): Promise<string | null> {
 }
 
 /**
+ * R-04 (B-07): sunucu tarafı (SSR) çağrıları BFF'ten geçmez, backend'e doğrudan gider. Başlık iletilmezse
+ * backend yalnız Next konteynerinin adresini görür ve herkese açık sayfaların hız sınırı (ör. /verify,
+ * 10/dk) TÜM ziyaretçiler için tek kovaya düşer. Gelen isteğin nginx tarafından konan X-Forwarded-For /
+ * User-Agent değerleri aynen iletilir (bkz. src/lib/server/clientForwardHeaders).
+ */
+async function resolveClientForwardHeaders(): Promise<Record<string, string>> {
+  if (typeof window !== "undefined") return {};
+  try {
+    const { headers } = await import("next/headers");
+    const { clientForwardHeaders } = await import("@/src/lib/server/clientForwardHeaders");
+    return clientForwardHeaders(await headers()) as Record<string, string>;
+  } catch {
+    // İstek bağlamı yok (build/test): iletilecek istemci başlığı da yok.
+    return {};
+  }
+}
+
+/**
  * Orval fetch mutator — returns { data, status, headers }.
  */
 export const customInstance = async <T>(
@@ -51,6 +69,7 @@ export const customInstance = async <T>(
 ): Promise<T> => {
   const { baseUrl, headers, ...rest } = options;
   const token = await resolveAccessToken();
+  const forwarded = await resolveClientForwardHeaders();
   const resolvedBase = resolveBaseUrl(baseUrl);
   const path = url.startsWith("http")
     ? url
@@ -60,6 +79,7 @@ export const customInstance = async <T>(
     ...rest,
     headers: {
       Accept: "application/json",
+      ...forwarded,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
