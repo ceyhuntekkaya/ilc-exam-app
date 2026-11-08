@@ -3,6 +3,7 @@ import type { DetailTabGroup } from "@/src/ui";
 export type CompanySection =
   | "overview"
   | "subscription"
+  | "packages"
   | "institutes"
   | "years"
   | "grades"
@@ -18,6 +19,7 @@ export type CompanySection =
 const SECTIONS: { group: string; section: CompanySection; label: string }[] = [
   { group: "Genel", section: "overview", label: "Kurum bilgileri" },
   { group: "Genel", section: "subscription", label: "Üyelik" },
+  { group: "Genel", section: "packages", label: "Paketler" },
   { group: "Yapı", section: "institutes", label: "Kampüsler" },
   { group: "Yapı", section: "years", label: "Sezonlar" },
   { group: "Yapı", section: "grades", label: "Seviyeler" },

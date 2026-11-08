@@ -114,6 +114,7 @@ export function adminNavGroups(): PanelNavGroup[] {
       items: [
         { href: "/admin/policy-bundles", label: "Politika demetleri" },
         { href: "/admin/skus", label: "Ürün kataloğu (SKU)" },
+        { href: "/admin/packages", label: "Paketler ve haklar" },
       ],
     },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
