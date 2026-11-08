@@ -11,7 +11,6 @@ export type List6Status = typeof List6Status[keyof typeof List6Status];
 export const List6Status = {
   DRAFT: 'DRAFT',
   IN_REVIEW: 'IN_REVIEW',
-  PUBLISHED: 'PUBLISHED',
-  UNPUBLISHED: 'UNPUBLISHED',
-  ARCHIVED: 'ARCHIVED',
+  APPROVED: 'APPROVED',
+  RETIRED: 'RETIRED',
 } as const;

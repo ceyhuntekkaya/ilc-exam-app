@@ -27,6 +27,7 @@ export * from './interaction-catalog/interaction-catalog';
 export * from './media-authoring/media-authoring';
 export * from './media-content/media-content';
 export * from './payment/payment';
+export * from './policy-bundles/policy-bundles';
 export * from './policy-settings/policy-settings';
 export * from './pool-audit/pool-audit';
 export * from './proctor-console/proctor-console';

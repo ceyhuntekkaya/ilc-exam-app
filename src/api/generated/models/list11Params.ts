@@ -4,11 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { List11Kind } from './list11Kind';
+import type { List11Status } from './list11Status';
 
 export type List11Params = {
-kind?: List11Kind;
-q?: string;
+status?: List11Status;
+all?: boolean;
 page?: number;
 size?: number;
 };
