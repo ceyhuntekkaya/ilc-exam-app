@@ -17,6 +17,7 @@ import {
   homePathForUserType,
   type SessionUserType,
 } from "@/src/lib/auth-constants";
+import { CHANGE_PASSWORD_PATH } from "@/src/lib/sessionGate";
 
 type AuthState = {
   user: LoginResponse | null;
@@ -26,8 +27,10 @@ type AuthState = {
     accessToken: string,
     userType: SessionUserType,
     refreshToken?: string,
+    options?: { mustChangePassword?: boolean },
   ) => Promise<void>;
-  signOut: () => Promise<void>;
+  /** Oturumu kapatır; `redirectTo` verilmezse ana sayfaya gider. */
+  signOut: (redirectTo?: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -47,6 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const result = await me();
       setUser(result.data);
+      // Zorunlu parola değişimi bekleyen kullanıcı uygulama kabuğunu görmez.
+      if (
+        result.data.mustChangePassword === true &&
+        window.location.pathname !== CHANGE_PASSWORD_PATH
+      ) {
+        window.location.replace(CHANGE_PASSWORD_PATH);
+      }
     } catch {
       setUser(null);
     } finally {
@@ -60,15 +70,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const establishSession = useCallback(
-    async (accessToken: string, userType: SessionUserType, refreshToken?: string) => {
+    async (
+      accessToken: string,
+      userType: SessionUserType,
+      refreshToken?: string,
+      options?: { mustChangePassword?: boolean },
+    ) => {
+      const mustChangePassword = options?.mustChangePassword === true;
       setClientAccessToken(accessToken);
       const res = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, userType, refreshToken }),
+        body: JSON.stringify({
+          accessToken,
+          userType,
+          // Zorunlu değişimde refresh token yoktur; yalnız access cookie yazılır.
+          refreshToken: mustChangePassword ? undefined : refreshToken,
+          mustChangePassword,
+        }),
       });
       if (!res.ok) {
         throw new Error("Oturum kaydedilemedi");
+      }
+      if (mustChangePassword) {
+        router.replace(CHANGE_PASSWORD_PATH);
+        router.refresh();
+        return;
       }
       await refresh();
       router.replace(homePathForUserType(userType));
@@ -77,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [refresh, router],
   );
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (redirectTo = "/") => {
     try {
       await logoutApi();
     } catch {
@@ -86,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setClientAccessToken(null);
     await fetch("/api/auth/session", { method: "DELETE" });
     setUser(null);
-    router.replace("/");
+    router.replace(redirectTo);
     router.refresh();
   }, [router]);
 

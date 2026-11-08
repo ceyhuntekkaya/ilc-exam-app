@@ -15,6 +15,7 @@ type SessionBody = {
   accessToken?: string;
   refreshToken?: string;
   userType?: SessionUserType;
+  mustChangePassword?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
   const store = await cookies();
   writeSessionCookies(store, {
     accessToken: body.accessToken,
-    refreshToken: body.refreshToken,
+    refreshToken: body.mustChangePassword ? undefined : body.refreshToken,
+    mustChangePassword: body.mustChangePassword === true,
     userType,
   });
 

@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/src/lib/env";
+import { isPasswordChangeRequired, redirectToChangePassword } from "@/src/lib/passwordChange";
 
 export type ErrorType<Error> = Error;
 export type BodyType<BodyData> = BodyData;
@@ -83,6 +84,7 @@ export const customInstance = async <T>(
   }
 
   if (!response.ok) {
+    if (isPasswordChangeRequired(response.status, body)) redirectToChangePassword();
     const message =
       body && typeof body === "object" && body !== null && "error" in body
         ? String((body as { error: string }).error)

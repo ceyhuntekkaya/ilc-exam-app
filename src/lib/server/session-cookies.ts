@@ -27,13 +27,17 @@ export function writeSessionCookies(
     accessToken: string;
     refreshToken?: string | null;
     userType: SessionUserType;
+    /** true iken refresh cookie yazılmaz ve eski bir refresh cookie silinir (yalnız access cookie kalır). */
+    mustChangePassword?: boolean;
   },
 ) {
   store.set(ACCESS_TOKEN_COOKIE, input.accessToken, {
     httpOnly: true,
     ...cookieBase(ACCESS_COOKIE_MAX_AGE),
   });
-  if (input.refreshToken) {
+  if (input.mustChangePassword) {
+    store.delete(REFRESH_TOKEN_COOKIE);
+  } else if (input.refreshToken) {
     store.set(REFRESH_TOKEN_COOKIE, input.refreshToken, {
       httpOnly: true,
       ...cookieBase(REFRESH_COOKIE_MAX_AGE),
