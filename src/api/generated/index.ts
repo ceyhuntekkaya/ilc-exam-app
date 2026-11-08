@@ -41,3 +41,4 @@ export * from './rubric-authoring/rubric-authoring';
 export * from './sertifika-kapısı/sertifika-kapısı';
 export * from './staff-panel-controller/staff-panel-controller';
 export * from './student-application-controller/student-application-controller';
+export * from './subscription-packages-central/subscription-packages-central';

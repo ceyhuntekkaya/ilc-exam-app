@@ -4069,19 +4069,19 @@ export function useGet6<TData = Awaited<ReturnType<typeof get6>>, TError = Error
 
 
 
-export type update5Response200 = {
+export type update6Response200 = {
   data: CompanyDetail
   status: 200
 }
 
-export type update5ResponseSuccess = (update5Response200) & {
+export type update6ResponseSuccess = (update6Response200) & {
   headers: Headers;
 };
 ;
 
-export type update5Response = (update5ResponseSuccess)
+export type update6Response = (update6ResponseSuccess)
 
-export const getUpdate5Url = (id: string,) => {
+export const getUpdate6Url = (id: string,) => {
 
 
 
@@ -4089,8 +4089,8 @@ export const getUpdate5Url = (id: string,) => {
   return `/companies/${id}`
 }
 
-export const update5 = async (id: string,
-    updateCompanyRequest: UpdateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<update5Response> => {
+export const update6 = async (id: string,
+    updateCompanyRequest: UpdateCompanyRequest, options?: Parameters<typeof customInstance>[1]): Promise<update6Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4106,7 +4106,7 @@ export const update5 = async (id: string,
     }
     return headers;
   };
-return customInstance<update5Response>(getUpdate5Url(id),
+return customInstance<update6Response>(getUpdate6Url(id),
   {
     ...options,
     method: 'PATCH',
@@ -4119,13 +4119,13 @@ return customInstance<update5Response>(getUpdate5Url(id),
 
 
 
-export const getUpdate5MutationKey = () => ['update5'] as const;
+export const getUpdate6MutationKey = () => ['update6'] as const;
 
-export const getUpdate5MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext> => {
+export const getUpdate6MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update6>>, TError,Update6MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof update6>>, TError,Update6MutationVariables, TContext> => {
 
-const mutationKey = getUpdate5MutationKey();
+const mutationKey = getUpdate6MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -4135,10 +4135,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update5>>, Update5MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update6>>, Update6MutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  update5(id,data,requestOptions)
+          return  update6(id,data,requestOptions)
         }
 
 
@@ -4148,20 +4148,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Update5MutationResult = NonNullable<Awaited<ReturnType<typeof update5>>>
-    export type Update5MutationBody = BodyType<UpdateCompanyRequest>
-    export type Update5MutationError = ErrorType<unknown>
-    export type Update5MutationVariables = {id: string;data: BodyType<UpdateCompanyRequest>}
+    export type Update6MutationResult = NonNullable<Awaited<ReturnType<typeof update6>>>
+    export type Update6MutationBody = BodyType<UpdateCompanyRequest>
+    export type Update6MutationError = ErrorType<unknown>
+    export type Update6MutationVariables = {id: string;data: BodyType<UpdateCompanyRequest>}
 
-    export const useUpdate5 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useUpdate6 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update6>>, TError,Update6MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof update5>>,
+        Awaited<ReturnType<typeof update6>>,
         TError,
-        Update5MutationVariables,
+        Update6MutationVariables,
         TContext
       > => {
-      return useMutation(getUpdate5MutationOptions(options), queryClient);
+      return useMutation(getUpdate6MutationOptions(options), queryClient);
     }
     export type patchSubscriptionResponse200 = {
   data: SubscriptionSummary

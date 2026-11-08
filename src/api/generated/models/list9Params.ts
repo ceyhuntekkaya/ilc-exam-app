@@ -8,7 +8,6 @@ import type { List9Status } from './list9Status';
 
 export type List9Params = {
 status?: List9Status;
-all?: boolean;
 page?: number;
 size?: number;
 };

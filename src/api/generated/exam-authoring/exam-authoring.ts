@@ -32,7 +32,7 @@ import type {
   ExamGrantView,
   Issue,
   LinkUpdateRequest,
-  List8Params,
+  List9Params,
   ListPageExamListDto,
   PilotCoverageReportDto,
   Preview200,
@@ -177,19 +177,19 @@ export function useGet5<TData = Awaited<ReturnType<typeof get5>>, TError = Error
 
 
 
-export type update4Response200 = {
+export type update5Response200 = {
   data: ExamDetailDto
   status: 200
 }
 
-export type update4ResponseSuccess = (update4Response200) & {
+export type update5ResponseSuccess = (update5Response200) & {
   headers: Headers;
 };
 ;
 
-export type update4Response = (update4ResponseSuccess)
+export type update5Response = (update5ResponseSuccess)
 
-export const getUpdate4Url = (id: string,) => {
+export const getUpdate5Url = (id: string,) => {
 
 
 
@@ -197,8 +197,8 @@ export const getUpdate4Url = (id: string,) => {
   return `/authoring/exams/${id}`
 }
 
-export const update4 = async (id: string,
-    updateExamRequest: UpdateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<update4Response> => {
+export const update5 = async (id: string,
+    updateExamRequest: UpdateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<update5Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -214,7 +214,7 @@ export const update4 = async (id: string,
     }
     return headers;
   };
-return customInstance<update4Response>(getUpdate4Url(id),
+return customInstance<update5Response>(getUpdate5Url(id),
   {
     ...options,
     method: 'PUT',
@@ -227,13 +227,13 @@ return customInstance<update4Response>(getUpdate4Url(id),
 
 
 
-export const getUpdate4MutationKey = () => ['update4'] as const;
+export const getUpdate5MutationKey = () => ['update5'] as const;
 
-export const getUpdate4MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext> => {
+export const getUpdate5MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext> => {
 
-const mutationKey = getUpdate4MutationKey();
+const mutationKey = getUpdate5MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -243,10 +243,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update4>>, Update4MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof update5>>, Update5MutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  update4(id,data,requestOptions)
+          return  update5(id,data,requestOptions)
         }
 
 
@@ -256,20 +256,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Update4MutationResult = NonNullable<Awaited<ReturnType<typeof update4>>>
-    export type Update4MutationBody = BodyType<UpdateExamRequest>
-    export type Update4MutationError = ErrorType<unknown>
-    export type Update4MutationVariables = {id: string;data: BodyType<UpdateExamRequest>}
+    export type Update5MutationResult = NonNullable<Awaited<ReturnType<typeof update5>>>
+    export type Update5MutationBody = BodyType<UpdateExamRequest>
+    export type Update5MutationError = ErrorType<unknown>
+    export type Update5MutationVariables = {id: string;data: BodyType<UpdateExamRequest>}
 
-    export const useUpdate4 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update4>>, TError,Update4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useUpdate5 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof update5>>, TError,Update5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof update4>>,
+        Awaited<ReturnType<typeof update5>>,
         TError,
-        Update4MutationVariables,
+        Update5MutationVariables,
         TContext
       > => {
-      return useMutation(getUpdate4MutationOptions(options), queryClient);
+      return useMutation(getUpdate5MutationOptions(options), queryClient);
     }
     export type delete1Response204 = {
   data: void
@@ -1163,19 +1163,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpgradeVersionMutationOptions(options), queryClient);
     }
-    export type list8Response200 = {
+    export type list9Response200 = {
   data: ListPageExamListDto
   status: 200
 }
 
-export type list8ResponseSuccess = (list8Response200) & {
+export type list9ResponseSuccess = (list9Response200) & {
   headers: Headers;
 };
 ;
 
-export type list8Response = (list8ResponseSuccess)
+export type list9Response = (list9ResponseSuccess)
 
-export const getList8Url = (params?: List8Params,) => {
+export const getList9Url = (params?: List9Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1190,9 +1190,9 @@ export const getList8Url = (params?: List8Params,) => {
   return stringifiedParams.length > 0 ? `/authoring/exams?${stringifiedParams}` : `/authoring/exams`
 }
 
-export const list8 = async (params?: List8Params, options?: Parameters<typeof customInstance>[1]): Promise<list8Response> => {
+export const list9 = async (params?: List9Params, options?: Parameters<typeof customInstance>[1]): Promise<list9Response> => {
 
-  return customInstance<list8Response>(getList8Url(params),
+  return customInstance<list9Response>(getList9Url(params),
   {
     ...options,
     method: 'GET'
@@ -1205,66 +1205,66 @@ export const list8 = async (params?: List8Params, options?: Parameters<typeof cu
 
 
 
-export const getList8QueryKey = (params?: List8Params,) => {
+export const getList9QueryKey = (params?: List9Params,) => {
     return [
     `/authoring/exams`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getList8QueryOptions = <TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(params?: List8Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList9QueryOptions = <TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList8QueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getList9QueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list8>>> = ({ signal }) => list8(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list9>>> = ({ signal }) => list9(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List8QueryResult = NonNullable<Awaited<ReturnType<typeof list8>>>
-export type List8QueryError = ErrorType<unknown>
+export type List9QueryResult = NonNullable<Awaited<ReturnType<typeof list9>>>
+export type List9QueryError = ErrorType<unknown>
 
 
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
- params: undefined |  List8Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>> & Pick<
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+ params: undefined |  List9Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list8>>,
+          Awaited<ReturnType<typeof list9>>,
           TError,
-          Awaited<ReturnType<typeof list8>>
+          Awaited<ReturnType<typeof list9>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
- params?: List8Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>> & Pick<
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+ params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list8>>,
+          Awaited<ReturnType<typeof list9>>,
           TError,
-          Awaited<ReturnType<typeof list8>>
+          Awaited<ReturnType<typeof list9>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
- params?: List8Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+ params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = ErrorType<unknown>>(
- params?: List8Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list8>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
+ params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList8QueryOptions(params,options)
+  const queryOptions = getList9QueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1276,19 +1276,19 @@ export function useList8<TData = Awaited<ReturnType<typeof list8>>, TError = Err
 
 
 
-export type create8Response201 = {
+export type create9Response201 = {
   data: ExamDetailDto
   status: 201
 }
 
-export type create8ResponseSuccess = (create8Response201) & {
+export type create9ResponseSuccess = (create9Response201) & {
   headers: Headers;
 };
 ;
 
-export type create8Response = (create8ResponseSuccess)
+export type create9Response = (create9ResponseSuccess)
 
-export const getCreate8Url = () => {
+export const getCreate9Url = () => {
 
 
 
@@ -1296,7 +1296,7 @@ export const getCreate8Url = () => {
   return `/authoring/exams`
 }
 
-export const create8 = async (createExamRequest: CreateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<create8Response> => {
+export const create9 = async (createExamRequest: CreateExamRequest, options?: Parameters<typeof customInstance>[1]): Promise<create9Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1312,7 +1312,7 @@ export const create8 = async (createExamRequest: CreateExamRequest, options?: Pa
     }
     return headers;
   };
-return customInstance<create8Response>(getCreate8Url(),
+return customInstance<create9Response>(getCreate9Url(),
   {
     ...options,
     method: 'POST',
@@ -1325,13 +1325,13 @@ return customInstance<create8Response>(getCreate8Url(),
 
 
 
-export const getCreate8MutationKey = () => ['create8'] as const;
+export const getCreate9MutationKey = () => ['create9'] as const;
 
-export const getCreate8MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext> => {
+export const getCreate9MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create9>>, TError,Create9MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof create9>>, TError,Create9MutationVariables, TContext> => {
 
-const mutationKey = getCreate8MutationKey();
+const mutationKey = getCreate9MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1341,10 +1341,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create8>>, Create8MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof create9>>, Create9MutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  create8(data,requestOptions)
+          return  create9(data,requestOptions)
         }
 
 
@@ -1354,20 +1354,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Create8MutationResult = NonNullable<Awaited<ReturnType<typeof create8>>>
-    export type Create8MutationBody = BodyType<CreateExamRequest>
-    export type Create8MutationError = ErrorType<unknown>
-    export type Create8MutationVariables = {data: BodyType<CreateExamRequest>}
+    export type Create9MutationResult = NonNullable<Awaited<ReturnType<typeof create9>>>
+    export type Create9MutationBody = BodyType<CreateExamRequest>
+    export type Create9MutationError = ErrorType<unknown>
+    export type Create9MutationVariables = {data: BodyType<CreateExamRequest>}
 
-    export const useCreate8 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create8>>, TError,Create8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useCreate9 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof create9>>, TError,Create9MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof create8>>,
+        Awaited<ReturnType<typeof create9>>,
         TError,
-        Create8MutationVariables,
+        Create9MutationVariables,
         TContext
       > => {
-      return useMutation(getCreate8MutationOptions(options), queryClient);
+      return useMutation(getCreate9MutationOptions(options), queryClient);
     }
     export type unpublish1Response200 = {
   data: ExamDetailDto
