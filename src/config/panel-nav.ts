@@ -109,6 +109,13 @@ export function adminNavGroups(): PanelNavGroup[] {
         { href: "/admin/consent-texts", label: "Rıza metinleri" },
       ],
     },
+    {
+      label: "Ürün ve politika",
+      items: [
+        { href: "/admin/policy-bundles", label: "Politika demetleri" },
+        { href: "/admin/skus", label: "Ürün kataloğu (SKU)" },
+      ],
+    },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
     {
       label: "Raporlar",
