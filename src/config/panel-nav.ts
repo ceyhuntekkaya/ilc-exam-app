@@ -188,6 +188,17 @@ export function adminNavGroups(): PanelNavGroup[] {
       ],
     },
     {
+      label: "Canlıya geçiş",
+      items: [
+        {
+          href: "/admin/memberships",
+          label: "Üyelik backfill",
+          description: "Hesaplara üyelik üret (kuru koşum varsayılan); eksik alanlı üyelikler",
+          perms: [Perm.staffManageRoles],
+        },
+      ],
+    },
+    {
       label: "Veri koruma (KVKK)",
       items: [
         {
@@ -342,6 +353,13 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Saklama ve silme (KVKK)",
           description: "Saklama süreleri, silme koşumu, yasal tutma, silme talepleri",
           perms: [Perm.retentionManage, Perm.erasureManage],
+          centralOnly: true,
+        },
+        {
+          href: "/staff/memberships",
+          label: "Üyelik backfill",
+          description: "Hesaplara üyelik üret (kuru koşum varsayılan); eksik alanlı üyelikler",
+          perms: [Perm.staffManageRoles],
           centralOnly: true,
         },
         {

@@ -16,6 +16,9 @@ import {
 import type { StaffDto } from "@/src/api/generated/models";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { userStatusLabel } from "@/src/features/admin/labels";
+import { ScopeAssignmentSection } from "@/src/features/org/ScopeAssignmentSection";
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
 import {
   Badge,
   Button,
@@ -70,10 +73,13 @@ export function StaffSection({ companyId }: { companyId: string }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [scopeForId, setScopeForId] = useState<string | null>(null);
+  const [unitForId, setUnitForId] = useState<string | null>(null);
+  const canAssignScope = useCan(Perm.staffAssignScope);
   const [resetFor, setResetFor] = useState<StaffDto | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   // Rol penceresi güncel listeden okunur: rol eklenip kaldırıldıkça yenilenir.
   const scopeFor = all.find((r) => r.id === scopeForId) ?? null;
+  const unitFor = canAssignScope ? (all.find((r) => r.id === unitForId) ?? null) : null;
 
   const invalidate = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: getStaffQueryKey(id) }),
@@ -136,6 +142,11 @@ export function StaffSection({ companyId }: { companyId: string }) {
             <Button size="sm" variant="ghost" className="min-h-11" onClick={() => { setFormError(null); setScopeForId(r.id!); }}>
               Roller
             </Button>
+            {canAssignScope ? (
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setUnitForId(r.id!)}>
+                Birim kapsamı
+              </Button>
+            ) : null}
             <Button size="sm" variant="ghost" className="min-h-11" onClick={() => { setFormError(null); setEditing(r); }}>
               Düzenle
             </Button>
@@ -145,6 +156,15 @@ export function StaffSection({ companyId }: { companyId: string }) {
           </div>,
         ])}
       />
+      {unitFor ? (
+        <ScopeAssignmentSection
+          key={unitFor.id}
+          companyId={id}
+          staff={unitFor}
+          onChanged={invalidate}
+          onClose={() => setUnitForId(null)}
+        />
+      ) : null}
       {total > 50 ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-fg-muted">{page * 50 + 1}–{Math.min(total, (page + 1) * 50)} / {total}</p>
