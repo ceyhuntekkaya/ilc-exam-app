@@ -7,6 +7,7 @@ import {
   getListCutScoresQueryKey,
   useApproveCutScore,
   useListCutScores,
+  useListStudies,
   useProposeCutScore,
 } from "@/src/api/generated/standart-belirleme/standart-belirleme";
 import type { CutScoreView } from "@/src/api/generated/models";
@@ -19,7 +20,9 @@ import {
   canApproveCut,
   cutApprovalState,
   formatNumber,
+  isProposableStudy,
   isUuid,
+  methodLabel,
   toProposeRequest,
   validateCutForm,
   type CutFormState,
@@ -27,10 +30,11 @@ import {
 import { Perm } from "@/src/lib/permissions";
 import { Badge, Button, ConfirmDialog, ErrorState, Field, FormCard, FormDialog, Input, Select, errorMessage, notify } from "@/src/ui";
 
-const EMPTY_FORM: CutFormState = { scaleVersionId: "", band: "", boundaryKind: "", cut: "", sem: "", effectiveFrom: "" };
+const EMPTY_FORM: CutFormState = { scaleVersionId: "", band: "", boundaryKind: "", studyId: "", effectiveFrom: "" };
 
 /**
- * Kesme puanı sürümleri: öneri + iki FARKLI kişinin onayı. Sonlandırılmış çalışmadan açılınca çalışma sonucu forma gelir.
+ * Kesme puanı sürümleri: öneri + iki FARKLI kişinin onayı. Öneri YALNIZ sonlanmış çalışmadan verilir; kesme ve SEM
+ * isteğe konmaz, sunucu çalışmanın nihai değerlerinden türetir (burada salt okunur gösterilir).
  * Ölçek sürümlerini listeleyen bir uç yok; ölçek sürümü kimliği elle girilir.
  */
 export function CutScorePanel({ studyId, finalCut, finalSem }: { studyId?: string; finalCut?: number; finalSem?: number }) {
@@ -99,7 +103,8 @@ export function CutScorePanel({ studyId, finalCut, finalSem }: { studyId?: strin
         open={proposing}
         onClose={() => setProposing(false)}
         studyId={studyId}
-        initial={{ ...EMPTY_FORM, scaleVersionId: isUuid(scaleVersionId) ? scaleVersionId : "", cut: finalCut !== undefined ? String(finalCut) : "", sem: finalSem !== undefined ? String(finalSem) : "" }}
+        fixedDerived={studyId ? { cut: finalCut, sem: finalSem } : undefined}
+        initial={{ ...EMPTY_FORM, studyId: studyId ?? "", scaleVersionId: isUuid(scaleVersionId) ? scaleVersionId : "" }}
         onProposed={(id) => {
           setScaleInput(id);
           setScaleVersionId(id);
@@ -140,36 +145,45 @@ function ProposeDialog({
   open,
   onClose,
   studyId,
+  fixedDerived,
   initial,
   onProposed,
 }: {
   open: boolean;
   onClose: () => void;
   studyId?: string;
+  /** Çalışma sayfasından açıldıysa o çalışmanın nihai değerleri (salt okunur). */
+  fixedDerived?: { cut?: number; sem?: number };
   initial: CutFormState;
   onProposed: (scaleVersionId: string) => void;
 }) {
-  const { request } = useCentralRequest();
+  const { ready, request } = useCentralRequest();
   const queryClient = useQueryClient();
   const propose = useProposeCutScore({ request });
+  // Çalışma sayfası dışında (kesme puanları ekranı) yalnız sonlanmış çalışmalar seçilebilir.
+  const studiesQuery = useListStudies({ query: { enabled: ready && open && !studyId }, request });
+  const finalized = (studiesQuery.data?.data ?? []).filter(isProposableStudy);
   const [form, setForm] = useState<CutFormState>(initial);
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errors = validateCutForm(form);
   const set = (patch: Partial<CutFormState>) => setForm((f) => ({ ...f, ...patch }));
+  const selectedStudy = finalized.find((study) => study.id === form.studyId);
+  const derived = fixedDerived ?? (selectedStudy ? { cut: selectedStudy.finalCut, sem: undefined } : undefined);
 
   async function submit() {
     setTouched(true);
     if (Object.keys(errors).length > 0) return;
     setError(null);
     try {
-      await propose.mutateAsync({ data: toProposeRequest(form, studyId) });
+      await propose.mutateAsync({ data: toProposeRequest(form) });
       await queryClient.invalidateQueries({ queryKey: getListCutScoresQueryKey({ scaleVersionId: form.scaleVersionId.trim() }) });
       notify.success("Kesme sürümü önerildi; onay bekliyor");
       onProposed(form.scaleVersionId.trim());
       setTouched(false);
       onClose();
     } catch (e) {
+      // 400/409 (çalışma sonlanmamış, kesme aralık dışı, ölçek onaysız…) sunucu mesajıyla olduğu gibi.
       setError(errorMessage(e, "Kesme sürümü önerilemedi"));
     }
   }
@@ -178,7 +192,7 @@ function ProposeDialog({
     <FormDialog
       open={open}
       title="Kesme sürümü öner"
-      description={studyId ? "Sonlandırılmış çalışmanın sonucu forma alındı; gerekirse düzeltin." : "Öneri iki farklı yetkili onaylayana dek yürürlüğe girmez."}
+      description="Kesme ve SEM çalışmanın nihai değerlerinden sunucuda türetilir; elle girilmez. Öneri iki farklı yetkili onaylayana dek yürürlüğe girmez."
       submitLabel="Öner"
       pending={propose.isPending}
       error={error}
@@ -209,13 +223,32 @@ function ProposeDialog({
             ))}
           </Select>
         </Field>
-        <Field label="Kesme değeri" required error={touched ? errors.cut : undefined}>
-          <Input inputMode="decimal" value={form.cut} onChange={(e) => set({ cut: e.target.value })} />
-        </Field>
-        <Field label="SEM" hint="İsteğe bağlı" error={touched ? errors.sem : undefined}>
-          <Input inputMode="decimal" value={form.sem} onChange={(e) => set({ sem: e.target.value })} />
-        </Field>
       </div>
+      {studyId ? null : (
+        <Field label="Sonlandırılmış çalışma" required error={touched ? errors.studyId : undefined} hint="Yalnız sonlandırılmış çalışmalar listelenir">
+          <Select value={form.studyId} onChange={(e) => set({ studyId: e.target.value })}>
+            <option value="">Seçin</option>
+            {finalized.map((study) => (
+              <option key={study.id} value={study.id}>
+                {`${study.examCode ?? "Sınav"} — ${methodLabel(study.method)}`}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+      {studiesQuery.isSuccess && !studyId && finalized.length === 0 ? (
+        <p className="text-sm text-fg-muted">Sonlandırılmış çalışma yok. Önce bir standart belirleme çalışmasını sonlandırın.</p>
+      ) : null}
+      <dl className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-neutral-50/60 p-3 text-sm" aria-label="Çalışmadan türetilen değerler">
+        <div>
+          <dt className="text-xs text-fg-subtle">Kesme (çalışmadan)</dt>
+          <dd className="numeric font-semibold text-fg">{derived ? formatNumber(derived.cut, 3) : "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-fg-subtle">SEM (çalışmadan)</dt>
+          <dd className="numeric font-semibold text-fg">{derived?.sem !== undefined ? formatNumber(derived.sem, 3) : "çalışmadan"}</dd>
+        </div>
+      </dl>
       <Field label="Yürürlük tarihi" required error={touched ? errors.effectiveFrom : undefined}>
         <Input type="datetime-local" value={form.effectiveFrom} onChange={(e) => set({ effectiveFrom: e.target.value })} />
       </Field>

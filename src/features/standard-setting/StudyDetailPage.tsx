@@ -26,7 +26,9 @@ import {
   eligiblePanelists,
   formatNumber,
   latestRoundNo,
+  MIN_PANELISTS,
   methodLabel,
+  openRoundFailure,
   openRoundOf,
   panelistCredentialLabel,
   studyActions,
@@ -139,7 +141,7 @@ function PanelistsCard({ study }: { study: StudyView }) {
       }
     >
       {panelists.length === 0 ? (
-        <p className="text-sm text-fg-muted">Panelde henüz kimse yok. Tur açmak için en az bir panelist gerekir.</p>
+        <p className="text-sm text-fg-muted">Panelde henüz kimse yok. Tur açmak için en az {MIN_PANELISTS} panelist gerekir.</p>
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border">
           {panelists.map((p) => {
@@ -231,6 +233,7 @@ function RoundsCard({ study }: { study: StudyView }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [dialog, setDialog] = useState<"close" | "finalize" | null>(null);
   const [error, setError] = useState<string | undefined>();
+  const [openError, setOpenError] = useState<string | null>(null);
   const actions = studyActions(study);
   const rounds = [...(study.rounds ?? [])].sort((a, b) => (a.roundNo ?? 0) - (b.roundNo ?? 0));
   const shown = selected ?? latestRoundNo(study) ?? null;
@@ -239,14 +242,15 @@ function RoundsCard({ study }: { study: StudyView }) {
   const refresh = () => refreshStudy(queryClient, study.id!);
 
   async function doOpen() {
+    setOpenError(null);
     try {
       const result = await openRound.mutateAsync({ studyId: study.id! });
       await refresh();
       setSelected(latestRoundNo(result.data) ?? null);
       notify.success("Yeni tur açıldı");
     } catch (e) {
-      // Örn. Bookmark için kalibre edilmemiş madde: backend mesajı açıkça söyler.
-      notify.error(errorMessage(e, "Tur açılamadı"));
+      // 409: Bookmark için CALIBRATED olmayan maddelerin madde bazlı nedenleri (uzun olabilir) — kalıcı uyarıda, olduğu gibi.
+      setOpenError(openRoundFailure(e, study.method));
     }
   }
 
@@ -289,6 +293,18 @@ function RoundsCard({ study }: { study: StudyView }) {
         ) : null
       }
     >
+      {openError ? (
+        <div role="alert" className="whitespace-pre-line rounded-lg border border-danger/25 bg-danger-bg p-3 text-sm text-danger">
+          <p className="font-semibold">Tur açılamadı</p>
+          <p className="mt-1">{openError}</p>
+        </div>
+      ) : null}
+      {study.method === "BOOKMARK" && study.status === "OPEN" ? (
+        <p className="text-[13px] text-fg-muted">Bookmark turu, çalışmadaki tüm maddeler kalibre (CALIBRATED) olana kadar açılamaz; eksik maddeler tur açılırken listelenir.</p>
+      ) : null}
+      {study.status === "OPEN" && !openRoundOf(study) && (study.panelists?.length ?? 0) < MIN_PANELISTS ? (
+        <p className="text-[13px] text-fg-muted">Tur açmak için panelde en az {MIN_PANELISTS} panelist olmalı (şu an {study.panelists?.length ?? 0}).</p>
+      ) : null}
       {rounds.length === 0 ? (
         <p className="text-sm text-fg-muted">Henüz tur açılmadı.</p>
       ) : (
@@ -335,7 +351,7 @@ function RoundsCard({ study }: { study: StudyView }) {
       <ConfirmDialog
         open={dialog === "finalize"}
         title="Çalışma sonlandırılsın mı?"
-        description="Sonlandırma GERİ ALINAMAZ. Son kapalı turun tamamlayan panelistlerinin ortalaması nihai kesme, standart hatası SEM olarak kaydedilir (elle girilmez); çalışmaya artık tur açılamaz ve panel değiştirilemez. Kesme puanı sürümü ayrıca önerilip iki onayla yürürlüğe alınır."
+        description={`Sonlandırma GERİ ALINAMAZ. Son kapalı turun tamamlayan panelistlerinin (en az ${MIN_PANELISTS}) ortalaması nihai kesme, standart hatası SEM olarak kaydedilir (elle girilmez); çalışmaya artık tur açılamaz ve panel değiştirilemez. Kesme puanı sürümü ayrıca önerilip iki onayla yürürlüğe alınır.`}
         confirmLabel="Sonlandır"
         confirmPhrase="SONLANDIR"
         pending={finalize.isPending}

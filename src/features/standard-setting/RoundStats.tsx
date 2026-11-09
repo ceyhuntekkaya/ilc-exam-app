@@ -3,7 +3,7 @@
 import { useRoundStats } from "@/src/api/generated/standart-belirleme/standart-belirleme";
 import type { StatsView } from "@/src/api/generated/models";
 import { useCentralRequest } from "@/src/features/psychometrics/central";
-import { consensusState, cutUnitLabel, formatNumber, formatProgress, progressPercent } from "@/src/features/standard-setting/model";
+import { consensusState, cutUnitLabel, formatNumber, formatProgress, progressPercent, roundStatsFailure, semText } from "@/src/features/standard-setting/model";
 import { Badge, ErrorState, Spinner } from "@/src/ui";
 
 /** Açık turda panelist ilerlemesi kendiliğinden tazelenir. */
@@ -17,7 +17,19 @@ export function RoundStats({ studyId, roundNo }: { studyId: string; roundNo: num
     request,
   });
   if (query.isLoading) return <Spinner />;
-  if (query.isError) return <ErrorState error={query.error} onRetry={() => void query.refetch()} compact />;
+  if (query.isError) {
+    const failure = roundStatsFailure(query.error);
+    // 403: açık turda panelist olan yönetici anchoring'i önlemek için göremez — hata değil açıklama.
+    if (failure.blocked) {
+      return (
+        <p role="status" className="rounded-lg border border-border bg-neutral-50 p-3 text-sm text-fg-muted">
+          <span className="font-semibold text-fg">{failure.title}. </span>
+          {failure.message}
+        </p>
+      );
+    }
+    return <ErrorState error={query.error} title={failure.title} message={failure.message || undefined} onRetry={() => void query.refetch()} compact />;
+  }
   const stats = query.data?.data;
   if (!stats) return null;
   return <RoundStatsView stats={stats} />;
@@ -46,7 +58,7 @@ export function RoundStatsView({ stats }: { stats: StatsView }) {
         <Tile label="Std. sapma" value={dist?.panelistCount ? formatNumber(dist.standardDeviation, 3) : "—"} />
         <Tile label="En düşük" value={dist?.panelistCount ? formatNumber(dist.min, 3) : "—"} />
         <Tile label="En yüksek" value={dist?.panelistCount ? formatNumber(dist.max, 3) : "—"} />
-        <Tile label="SEM" value={stats.completeCount ? formatNumber(stats.standardError, 3) : "—"} />
+        <Tile label="SEM" value={semText(stats)} />
       </dl>
 
       <section aria-label="Panelist ilerlemesi">

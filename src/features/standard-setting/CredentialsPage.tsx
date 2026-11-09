@@ -118,7 +118,7 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
     <FormDialog
       open={open}
       title="Panelist kimliği talep et"
-      description="Talep oluşturulunca onay bekler; onaylanana dek personel panele eklenemez."
+      description="Eğitim tarihi ve geçerlilik bitişi zorunludur (bitiş gelecekte olmalı). Talep oluşturulunca onay bekler; onaylanana dek personel panele eklenemez."
       submitLabel="Talep et"
       pending={create.isPending}
       error={error}
@@ -137,7 +137,7 @@ export function RequestDialog({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Eğitim tarihi" required error={touched ? errors.trainedAt : undefined}>
           <Input type="date" value={form.trainedAt} onChange={(e) => setForm({ ...form, trainedAt: e.target.value })} />
         </Field>
-        <Field label="Geçerlilik bitişi" required error={touched ? errors.validUntil : undefined}>
+        <Field label="Geçerlilik bitişi" required hint="Gelecekte bir tarih olmalı" error={touched ? errors.validUntil : undefined}>
           <Input type="date" value={form.validUntil} onChange={(e) => setForm({ ...form, validUntil: e.target.value })} />
         </Field>
       </div>

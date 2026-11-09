@@ -66,8 +66,8 @@ describe("Bookmark", () => {
 });
 
 describe("çalışma eylemleri", () => {
-  const panelists = [{ panelistId: "p" }];
-  it("panelist yokken tur açılamaz; açık turda kapatılır, sonlandırılamaz", () => {
+  const panelists = [{ panelistId: "p" }, { panelistId: "q" }];
+  it("panelist yokken (ya da 2'den azken) tur açılamaz; açık turda kapatılır, sonlandırılamaz", () => {
     expect(studyActions({ status: "OPEN", panelists: [], rounds: [] }).openRound).toBe(false);
     const open = studyActions({ status: "OPEN", panelists, rounds: [{ roundNo: 1, open: true }] });
     expect(open).toMatchObject({ openRound: false, closeRound: true, finalize: false, addPanelist: false, removePanelist: false });
@@ -107,25 +107,35 @@ describe("kesme sürümü", () => {
     expect(cutApprovalState({ approvals: [{}, {}], approved: true, inEffect: false }).label).toMatch(/yürürlük tarihi bekleniyor/);
     expect(cutApprovalState({ approvals: [{}, {}], approved: true, inEffect: true }).label).toBe("Yürürlükte");
   });
+  it("öneren kişi onaylayamaz (R-22)", () => {
+    expect(canApproveCut({ createdBy: "u1", approvals: [] }, "u1")).toBe(false);
+    expect(canApproveCut({ createdBy: "u1", approvals: [] }, "u2")).toBe(true);
+  });
+  it("yalnız sonlanmış ve nihai kesmesi olan çalışma kesme önerisine uygundur", () => {
+    expect(isProposableStudy({ status: "FINALIZED", finalCut: 12.5 })).toBe(true);
+    expect(isProposableStudy({ status: "OPEN", finalCut: 12.5 })).toBe(false);
+    expect(isProposableStudy({ status: "FINALIZED" })).toBe(false);
+  });
   it("aynı kişi iki kez onaylayamaz; iki onaydan sonra onay düğmesi kapanır", () => {
     expect(canApproveCut({ approvals: [{ approvedBy: "u1" }] }, "u1")).toBe(false);
     expect(canApproveCut({ approvals: [{ approvedBy: "u1" }] }, "u2")).toBe(true);
     expect(canApproveCut({ approvals: [{ approvedBy: "u1" }, { approvedBy: "u2" }], approved: true }, "u3")).toBe(false);
   });
   it("öneri formu doğrulanır ve isteğe çevrilir", () => {
-    const empty = validateCutForm({ scaleVersionId: "x", band: "", boundaryKind: "", cut: "", sem: "-1", effectiveFrom: "" });
-    expect(Object.keys(empty).sort()).toEqual(["band", "boundaryKind", "cut", "effectiveFrom", "scaleVersionId", "sem"]);
+    const empty = validateCutForm({ scaleVersionId: "x", band: "", boundaryKind: "", studyId: "", effectiveFrom: "" });
+    expect(Object.keys(empty).sort()).toEqual(["band", "boundaryKind", "effectiveFrom", "scaleVersionId", "studyId"]);
     const form = {
       scaleVersionId: "0190a1b2-c3d4-7e5f-8a6b-1c2d3e4f5a6b",
       band: "B1",
       boundaryKind: "LEVEL",
-      cut: "12,5",
-      sem: "",
+      studyId: "0190a1b2-c3d4-7e5f-8a6b-1c2d3e4f5a7c",
       effectiveFrom: "2027-01-01T09:00",
     };
     expect(validateCutForm(form)).toEqual({});
-    const req = toProposeRequest(form, "study-1");
-    expect(req).toMatchObject({ band: "B1", boundaryKind: "LEVEL", cut: 12.5, studyId: "study-1" });
+    const req = toProposeRequest(form);
+    expect(req).toMatchObject({ band: "B1", boundaryKind: "LEVEL", studyId: "0190a1b2-c3d4-7e5f-8a6b-1c2d3e4f5a7c" });
+    // R-15: kesme/SEM istekte YOK (sunucu sonlanmış çalışmadan türetir; farklı değer 400).
+    expect(req).not.toHaveProperty("cut");
     expect(req).not.toHaveProperty("sem");
     expect(req.effectiveFrom).toMatch(/Z$/);
   });
@@ -160,7 +170,17 @@ describe("sheetContent", () => {
   });
 });
 
-import { credentialActions, dayToInstant, eligiblePanelists, validateCredentialForm } from "@/src/features/standard-setting/model";
+import {
+  MIN_PANELISTS,
+  credentialActions,
+  dayToInstant,
+  eligiblePanelists,
+  isProposableStudy,
+  openRoundFailure,
+  roundStatsFailure,
+  semText,
+  validateCredentialForm,
+} from "@/src/features/standard-setting/model";
 
 describe("panelist kimliği", () => {
   it("duruma göre eylemler", () => {
@@ -185,5 +205,39 @@ describe("panelist kimliği", () => {
       { staffId: "a", status: "APPROVED", validNow: true },
     ];
     expect(eligiblePanelists(creds, ["d"]).map((c) => c.staffId)).toEqual(["a"]);
+  });
+});
+
+describe("R-15 backend uyarlamaları", () => {
+  it("panelist kimliği: geçerlilik bitişi gelecekte olmalı, iki tarih de zorunlu", () => {
+    const uuid = "0190a1b2-c3d4-7e5f-8a6b-1c2d3e4f5a6b";
+    const now = new Date("2026-11-09T12:00:00Z");
+    expect(validateCredentialForm({ staffUserId: uuid, trainedAt: "2026-01-10", validUntil: "2026-11-01" }, now).validUntil).toMatch(/gelecekte/);
+    expect(validateCredentialForm({ staffUserId: uuid, trainedAt: "2026-01-10", validUntil: "2027-11-01" }, now)).toEqual({});
+    expect(validateCredentialForm({ staffUserId: uuid, trainedAt: "", validUntil: "2027-11-01" }, now).trainedAt).toBeDefined();
+  });
+  it("tur açma panelde en az 2 panelist ister", () => {
+    expect(MIN_PANELISTS).toBe(2);
+    const one = { status: "OPEN", panelists: [{}], rounds: [] };
+    expect(studyActions(one).openRound).toBe(false);
+    expect(studyActions({ ...one, panelists: [{}, {}] }).openRound).toBe(true);
+  });
+  it("tek panelistte SEM '—', uzlaşma hesaplanamadı", () => {
+    expect(semText({ completeCount: 1, standardError: 0 })).toBe("—");
+    expect(semText({ completeCount: 0, standardError: undefined })).toBe("—");
+    expect(semText({ completeCount: 3, standardError: 0.25 })).toBe("0,250");
+    expect(consensusState({ completeCount: 1, standardError: 0, consensusReached: true }).label).toBe("Hesaplanamadı");
+    expect(consensusState({ completeCount: 2, standardError: 0.2, consensusThreshold: 0.5, consensusReached: true }).label).toBe("Uzlaşma sağlandı");
+  });
+  it("roundStats 403: engellenmiş durum sunucu mesajıyla; diğer hatalar normal", () => {
+    const forbidden = Object.assign(new Error("Açık tur kapalı"), { status: 403 });
+    expect(roundStatsFailure(forbidden)).toMatchObject({ blocked: true, message: "Açık tur kapalı" });
+    expect(roundStatsFailure(Object.assign(new Error(""), { status: 403 })).message).toMatch(/tur kapanınca/);
+    expect(roundStatsFailure(Object.assign(new Error("boom"), { status: 500 })).blocked).toBe(false);
+  });
+  it("tur açma hatası sunucu mesajını aynen verir; mesaj yoksa Bookmark ipucu", () => {
+    expect(openRoundFailure(new Error("Madde 2 CALIBRATED değil"), "BOOKMARK")).toBe("Madde 2 CALIBRATED değil");
+    expect(openRoundFailure("?", "BOOKMARK")).toMatch(/CALIBRATED/);
+    expect(openRoundFailure("?", "ANGOFF")).toBe("Tur açılamadı.");
   });
 });

@@ -5,8 +5,10 @@ import type { StatsView, StudyView } from "@/src/api/generated/models";
 const canMock = vi.fn();
 const finalizeMock = vi.fn();
 const openRoundMock = vi.fn();
+const proposeMock = vi.fn();
 let study: StudyView;
 let stats: StatsView;
+let statsError: unknown = null;
 
 vi.mock("@/src/features/panel/PanelContext", () => ({ useCan: () => canMock(), usePanel: () => ({ basePath: "/staff" }) }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/staff/content/standard-setting/s1", useRouter: () => ({ push: vi.fn() }) }));
@@ -23,15 +25,19 @@ vi.mock("@/src/api/generated/standart-belirleme/standart-belirleme", () => {
     getListStudiesQueryKey: () => ["/standard-setting/studies"],
     getListCutScoresQueryKey: () => ["cut"],
     useGetStudy: query(() => study),
-    useRoundStats: query(() => stats),
+    useRoundStats: () =>
+      statsError
+        ? { data: undefined, isLoading: false, isError: true, error: statsError, refetch: vi.fn() }
+        : { data: { data: stats }, isLoading: false, isError: false, isSuccess: true },
     useListCredentials: query(() => []),
     useListCutScores: query(() => []),
+    useListStudies: query(() => []),
     useAddPanelist: mutation(),
     useRemovePanelist: mutation(),
     useOpenRound: () => ({ mutateAsync: openRoundMock, isPending: false }),
     useCloseRound: mutation(),
     useFinalizeStudy: () => ({ mutateAsync: finalizeMock, isPending: false }),
-    useProposeCutScore: mutation(),
+    useProposeCutScore: () => ({ mutateAsync: proposeMock, isPending: false }),
     useApproveCutScore: mutation(),
   };
 });
@@ -57,27 +63,35 @@ const BASE: StudyView = {
   status: "OPEN",
   itemCount: 20,
   createdAt: "2026-11-01T09:00:00Z",
-  panelists: [{ panelistId: "p1", displayName: "Ayşe Y.", credentialStatus: "APPROVED", credentialValidNow: true }],
+  panelists: [
+    { panelistId: "p1", displayName: "Ayşe Y.", credentialStatus: "APPROVED", credentialValidNow: true },
+    { panelistId: "p2", displayName: "Mehmet K.", credentialStatus: "APPROVED", credentialValidNow: true },
+  ],
   rounds: [{ roundNo: 1, open: false, openedAt: "2026-11-02T09:00:00Z", closedAt: "2026-11-03T09:00:00Z" }],
 };
 const STATS: StatsView = {
   roundNo: 1,
   open: false,
   method: "ANGOFF",
-  completeCount: 1,
+  completeCount: 2,
   consensusReached: true,
   consensusThreshold: 0.5,
   standardError: 0.25,
-  distribution: { panelistCount: 1, mean: 12.5, standardDeviation: 0, min: 12.5, max: 12.5 },
-  panelists: [{ panelistId: "p1", displayName: "Ayşe Y.", complete: true, ratedCount: 20, totalCount: 20, cutEstimate: 12.5 }],
+  distribution: { panelistCount: 2, mean: 12.5, standardDeviation: 0.3, min: 12.2, max: 12.8 },
+  panelists: [
+    { panelistId: "p1", displayName: "Ayşe Y.", complete: true, ratedCount: 20, totalCount: 20, cutEstimate: 12.2 },
+    { panelistId: "p2", displayName: "Mehmet K.", complete: true, ratedCount: 20, totalCount: 20, cutEstimate: 12.8 },
+  ],
   itemStats: [{ questionVersionId: "q1", ordinal: 1, mean: 0.6, standardDeviation: 0.1, n: 1 }],
 };
 
 describe("StudyDetailPage", () => {
   afterEach(() => {
     canMock.mockReset();
+    statsError = null;
     finalizeMock.mockReset();
     openRoundMock.mockReset();
+    proposeMock.mockReset();
   });
 
   it("kapalı turdan sonra yeni tur ve sonlandırma sunar; tur kapatma sunmaz", () => {
@@ -100,6 +114,37 @@ describe("StudyDetailPage", () => {
       expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
     }
     expect(screen.getByText("Ayşe Y.", { selector: "span" })).toBeInTheDocument();
+  });
+
+  it("panelde 2'den az kişi varken tur açılamaz ve nedeni yazılır", () => {
+    canMock.mockReturnValue(true);
+    study = { ...BASE, panelists: [BASE.panelists![0]], rounds: [] };
+    stats = STATS;
+    renderWithProviders(<StudyDetailPage studyId="s1" />);
+    expect(screen.queryByRole("button", { name: "Yeni tur aç" })).not.toBeInTheDocument();
+    expect(screen.getByText(/en az 2 panelist olmalı/)).toBeInTheDocument();
+  });
+
+  it("tur açma 409: Bookmark için madde bazlı nedenler sunucu mesajıyla kalıcı uyarıda gösterilir", async () => {
+    canMock.mockReturnValue(true);
+    openRoundMock.mockRejectedValue(Object.assign(new Error("Madde 3 CALIBRATED değil (PRETEST); madde 7 CALIBRATED değil (ANCHOR)"), { status: 409 }));
+    study = { ...BASE, method: "BOOKMARK" };
+    stats = STATS;
+    renderWithProviders(<StudyDetailPage studyId="s1" />);
+    fireEvent.click(screen.getByRole("button", { name: "Yeni tur aç" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Tur açılamadı");
+    expect(alert).toHaveTextContent("Madde 3 CALIBRATED değil");
+    expect(alert).toHaveTextContent("madde 7 CALIBRATED değil");
+  });
+
+  it("açık turda panelist olan yönetici istatistiği 403 alır: hata ekranı değil, sunucu mesajıyla açıklama", () => {
+    canMock.mockReturnValue(true);
+    statsError = Object.assign(new Error("Açık turun istatistiği, o çalışmanın panelisti olan kullanıcıya kapalıdır (tur kapanınca görülür)"), { status: 403 });
+    study = { ...BASE, rounds: [{ roundNo: 1, open: true }] };
+    renderWithProviders(<StudyDetailPage studyId="s1" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Açık turun istatistiği şu an gizli");
+    expect(screen.getByRole("status")).toHaveTextContent("tur kapanınca görülür");
   });
 
   it("açık turda tur kapatılabilir ama sonlandırma ve panel değişikliği kapalıdır", () => {
@@ -137,13 +182,39 @@ describe("StudyDetailPage", () => {
     expect(screen.getByRole("button", { name: "Kesme sürümü öner" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Yeni tur aç" })).not.toBeInTheDocument();
   });
+
+  it("kesme önerisi formunda kesme/SEM girişi yok, çalışmadan türetilen değerler salt okunur görünür (R-15)", async () => {
+    canMock.mockReturnValue(true);
+    const studyId = "0190a1b2-c3d4-7e5f-8a6b-1c2d3e4f5a7c";
+    study = { ...BASE, id: studyId, status: "FINALIZED", finalCut: 12.5, finalSem: 0.25 };
+    stats = STATS;
+    renderWithProviders(<StudyDetailPage studyId={studyId} />);
+    fireEvent.click(screen.getByRole("button", { name: "Kesme sürümü öner" }));
+    const dialog = screen.getByRole("dialog", { name: "Kesme sürümü öner" });
+    expect(within(dialog).queryByLabelText(/^Kesme değeri/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/^SEM/)).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Çalışmadan türetilen değerler")).toHaveTextContent("12,500");
+    expect(within(dialog).getByLabelText("Çalışmadan türetilen değerler")).toHaveTextContent("0,250");
+  });
 });
 
 describe("RoundStatsView", () => {
+  it("tek panelistte SEM ve uzlaşma gösterilmez (0 olarak okunmaz)", () => {
+    renderWithProviders(
+      <RoundStatsView
+        stats={{ ...STATS, completeCount: 1, consensusReached: false, standardError: undefined, distribution: { panelistCount: 1, mean: 12.5, standardDeviation: 0, min: 12.5, max: 12.5 } }}
+      />,
+    );
+    expect(screen.getByText("Hesaplanamadı")).toBeInTheDocument();
+    expect(screen.getByText(/en az 2 panelistin/)).toBeInTheDocument();
+    const sem = screen.getByText("SEM").nextElementSibling;
+    expect(sem).toHaveTextContent("—");
+  });
+
   it("dağılım, SEM, uzlaşma ve madde istatistiğini gösterir", () => {
     renderWithProviders(<RoundStatsView stats={STATS} />);
     expect(screen.getByText("Uzlaşma sağlandı")).toBeInTheDocument();
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText("2/2")).toBeInTheDocument();
     expect(screen.getAllByText("12,500").length).toBeGreaterThan(0);
     expect(screen.getByText("0,250")).toBeInTheDocument();
     expect(screen.getByText("0,600")).toBeInTheDocument();

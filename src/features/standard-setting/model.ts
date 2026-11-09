@@ -11,6 +11,12 @@ import type {
 
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
+/**
+ * Tur açmak/kapatmak/sonlandırmak için asgari (tamamlayan) panelist sayısı (R-15 incelemesi: taban 2; tek panelistle SEM/uzlaşma
+ * anlamsız). Sunucu ayarı tabanı yükseltebilir; son kural sunucuda, 409 mesajı olduğu gibi gösterilir.
+ */
+export const MIN_PANELISTS = 2;
+
 /** Kesme sürümünün yürürlüğe girmesi için gereken FARKLI onaylayan sayısı (F4-10, D12). */
 export const REQUIRED_APPROVALS = 2;
 
@@ -76,7 +82,7 @@ export function studyActions(study: Pick<StudyView, "status" | "rounds" | "panel
   return {
     addPanelist: open && !hasOpenRound,
     removePanelist: open && !hasOpenRound,
-    openRound: open && !hasOpenRound && panelistCount > 0,
+    openRound: open && !hasOpenRound && panelistCount >= MIN_PANELISTS,
     closeRound: open && hasOpenRound,
     finalize: open && !hasOpenRound && roundCount > 0,
   };
@@ -101,6 +107,38 @@ export function progressPercent(done?: number, total?: number): number {
   return Math.max(0, Math.min(100, Math.round(((done ?? 0) / total) * 100)));
 }
 
+/** SEM gösterimi: tek panelistte (ya da sunucu null döndüğünde) "—"; 0 olarak GÖSTERİLMEZ. */
+export function semText(stats: Pick<StatsView, "completeCount" | "standardError">): string {
+  if (!stats.completeCount || stats.completeCount < MIN_PANELISTS) return "—";
+  return formatNumber(stats.standardError, 3);
+}
+
+/**
+ * Tur istatistiği hatası. 403: açık turda panelisti olan yönetici istatistiği göremez (anchoring koruması) —
+ * hata ekranı değil açıklama; sunucunun mesajı olduğu gibi gösterilir.
+ */
+export function roundStatsFailure(err: unknown): { title: string; message: string; blocked: boolean } {
+  const status = typeof err === "object" && err !== null && "status" in err ? (err as { status?: number }).status : undefined;
+  const text = err instanceof Error ? err.message.trim() : "";
+  if (status === 403) {
+    return {
+      title: "Açık turun istatistiği şu an gizli",
+      message: text || "Açık turun istatistiği, çalışmanın panelisti olan kullanıcıya kapalıdır (tur kapanınca görülür).",
+      blocked: true,
+    };
+  }
+  return { title: "İstatistik yüklenemedi", message: text, blocked: false };
+}
+
+/** Tur açma hatası (409): Bookmark için kalibre edilmemiş madde nedenleri vb. sunucu mesajı olduğu gibi gösterilir. */
+export function openRoundFailure(err: unknown, method?: string): string {
+  const text = err instanceof Error ? err.message.trim() : "";
+  if (text) return text;
+  return method === "BOOKMARK"
+    ? "Tur açılamadı. Bookmark turu, tüm maddeler CALIBRATED olana kadar açılamaz."
+    : "Tur açılamadı.";
+}
+
 /** Tur istatistiği: uzlaşma durumu (yayılım eşiğin altında mı). Hiç tamamlayan yoksa "hesaplanamadı". */
 export function consensusState(stats: Pick<StatsView, "completeCount" | "consensusReached" | "consensusThreshold" | "standardError">): {
   label: string;
@@ -109,6 +147,14 @@ export function consensusState(stats: Pick<StatsView, "completeCount" | "consens
 } {
   if (!stats.completeCount) {
     return { label: "Hesaplanamadı", tone: "neutral", hint: "Henüz puanlamayı tamamlayan panelist yok." };
+  }
+  // Tek panelistle SEM yoktur (sunucu null döner); "0 = kusursuz uzlaşma" gibi okunmasın.
+  if (stats.completeCount < MIN_PANELISTS || stats.standardError === undefined || stats.standardError === null) {
+    return {
+      label: "Hesaplanamadı",
+      tone: "neutral",
+      hint: `SEM ve uzlaşma için en az ${MIN_PANELISTS} panelistin puanlamayı tamamlaması gerekir.`,
+    };
   }
   if (stats.consensusReached) {
     return { label: "Uzlaşma sağlandı", tone: "success", hint: `Standart hata ${formatNumber(stats.standardError, 3)} ≤ eşik ${formatNumber(stats.consensusThreshold, 3)}.` };
@@ -127,11 +173,13 @@ export function cutApprovalState(cut: Pick<CutScoreView, "approvals" | "approved
 }
 
 /**
- * Kullanıcı bu sürümü onaylayabilir mi: sürüm henüz iki onaya ulaşmadı ve kullanıcı daha önce onaylamadı
+ * Kullanıcı bu sürümü onaylayabilir mi: sürüm henüz iki onaya ulaşmadı, kullanıcı öneren değil ve daha önce onaylamadı
  * (iki onay FARKLI kişiden olmalı). Son karar backend'dedir.
  */
-export function canApproveCut(cut: Pick<CutScoreView, "approvals" | "approved">, userId?: string): boolean {
+export function canApproveCut(cut: Pick<CutScoreView, "approvals" | "approved" | "createdBy">, userId?: string): boolean {
   if (cut.approved) return false;
+  // R-22: öneren kişi onaylayamaz (sunucu 409 verir; düğme hiç gösterilmez).
+  if (userId && cut.createdBy === userId) return false;
   if ((cut.approvals?.length ?? 0) >= REQUIRED_APPROVALS) return false;
   return !(cut.approvals ?? []).some((a) => a.approvedBy === userId);
 }
@@ -141,12 +189,16 @@ export function isUuid(value: string): boolean {
   return UUID_RE.test(value.trim());
 }
 
+/**
+ * R-15 (backend değişikliği): kesme önerisi YALNIZ sonlanmış (FINALIZED) çalışmadan verilir; `cut`/`sem` istekte YOKTUR,
+ * sunucu çalışmanın nihai değerlerinden türetir (farklı değer 400).
+ */
 export type CutFormState = {
   scaleVersionId: string;
   band: string;
   boundaryKind: string;
-  cut: string;
-  sem: string;
+  /** Sonlanmış çalışmanın kimliği (zorunlu). */
+  studyId: string;
   /** `datetime-local` değeri (yerel saat). */
   effectiveFrom: string;
 };
@@ -164,24 +216,25 @@ export function validateCutForm(form: CutFormState): CutFormErrors {
   if (!isUuid(form.scaleVersionId)) errors.scaleVersionId = "Geçerli bir ölçek sürümü kimliği (UUID) girin";
   if (!form.band) errors.band = "Bant seçin";
   if (!form.boundaryKind) errors.boundaryKind = "Sınır türü seçin";
-  if (toNumber(form.cut) === null) errors.cut = "Kesme değeri sayı olmalı";
-  const sem = toNumber(form.sem);
-  if (form.sem.trim() !== "" && (sem === null || sem < 0)) errors.sem = "SEM negatif olamaz";
+  if (!isUuid(form.studyId)) errors.studyId = "Sonlandırılmış bir çalışma seçin";
   if (!form.effectiveFrom || Number.isNaN(new Date(form.effectiveFrom).getTime())) errors.effectiveFrom = "Yürürlük tarihi zorunlu";
   return errors;
 }
 
-export function toProposeRequest(form: CutFormState, studyId?: string): ProposeCutScoreRequest {
-  const sem = toNumber(form.sem);
+/** İstek gövdesi: `cut`/`sem` GÖNDERİLMEZ (sunucu çalışmadan türetir). */
+export function toProposeRequest(form: CutFormState): ProposeCutScoreRequest {
   return {
     scaleVersionId: form.scaleVersionId.trim(),
     band: form.band as ProposeCutScoreRequest["band"],
     boundaryKind: form.boundaryKind as ProposeCutScoreRequest["boundaryKind"],
-    cut: toNumber(form.cut) ?? 0,
-    ...(sem !== null ? { sem } : {}),
     effectiveFrom: new Date(form.effectiveFrom).toISOString(),
-    ...(studyId ? { studyId } : {}),
+    studyId: form.studyId.trim(),
   };
+}
+
+/** Çalışma kesme önerisine uygun mu: sonlandırılmış ve nihai kesmesi var. */
+export function isProposableStudy(study: { status?: string; finalCut?: number | null }): boolean {
+  return study.status === "FINALIZED" && study.finalCut !== undefined && study.finalCut !== null;
 }
 
 export const BOUNDARY_LABEL: Record<string, string> = { LEVEL: "Seviye sınırı", MERIT: "Pekiyi sınırı", DISTINCTION: "Üstün başarı sınırı" };
@@ -269,7 +322,7 @@ export function dayToInstant(day: string): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-export function validateCredentialForm(form: CredentialFormState): Partial<Record<keyof CredentialFormState, string>> {
+export function validateCredentialForm(form: CredentialFormState, now: Date = new Date()): Partial<Record<keyof CredentialFormState, string>> {
   const errors: Partial<Record<keyof CredentialFormState, string>> = {};
   if (!isUuid(form.staffUserId)) errors.staffUserId = "Personel seçin";
   const trained = dayToInstant(form.trainedAt);
@@ -277,6 +330,8 @@ export function validateCredentialForm(form: CredentialFormState): Partial<Recor
   if (!trained) errors.trainedAt = "Eğitim tarihi zorunlu";
   if (!until) errors.validUntil = "Geçerlilik bitişi zorunlu";
   if (trained && until && new Date(until) <= new Date(trained)) errors.validUntil = "Geçerlilik bitişi eğitim tarihinden sonra olmalı";
+  // R-15: geçerlilik bitişi gelecekte olmalı (süresi dolmuş kimlik talep edilemez).
+  else if (until && new Date(until) <= now) errors.validUntil = "Geçerlilik bitişi gelecekte bir tarih olmalı";
   return errors;
 }
 
