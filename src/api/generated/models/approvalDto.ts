@@ -10,4 +10,5 @@ export interface ApprovalDto {
   approvedBy?: string;
   approvedAt?: string;
   note?: string;
+  current?: boolean;
 }

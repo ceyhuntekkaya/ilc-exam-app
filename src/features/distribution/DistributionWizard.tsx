@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDetail, useCreate3, useUpdate2, getList6QueryKey, getDetailQueryKey } from "@/src/api/generated/company-distributions/company-distributions";
 import { usePackages } from "@/src/api/generated/company-ledger/company-ledger";
-import { useList14 } from "@/src/api/generated/exam-authoring/exam-authoring";
-import { useList10, useListSessions } from "@/src/api/generated/exam-centers/exam-centers";
+import { useList15 } from "@/src/api/generated/exam-authoring/exam-authoring";
+import { useList11, useListSessions } from "@/src/api/generated/exam-centers/exam-centers";
 import { useList as useListSkus } from "@/src/api/generated/product-sku-catalog/product-sku-catalog";
 import type { DistributionRow } from "@/src/api/generated/models";
 import { useCan } from "@/src/features/panel/PanelContext";
@@ -245,7 +245,7 @@ function BasicsStep({
   const packagesQ = usePackages({ query: { queryKey: ["/my-company/ledger/packages", companyId] } });
   // SKU adı yalnız katalog izni olanlara gelir (sku:manage); yoksa kod/kimlik gösterilir.
   const skusQ = useListSkus({ query: { retry: false } });
-  const examsQ = useList14({ status: "PUBLISHED", size: 100 }, { query: { retry: false } });
+  const examsQ = useList15({ status: "PUBLISHED", size: 100 }, { query: { retry: false } });
 
   const skuName = new Map((skusQ.data?.data ?? []).map((s) => [s.id, s.name ?? s.code] as const));
   const packages = (packagesQ.data?.data ?? []).filter((p) => p.status === "ACTIVE" && p.scope !== "INDIVIDUAL");
@@ -323,7 +323,7 @@ function BasicsStep({
 
 function ModeStep({ mode, onChange }: { mode: ModeForm; onChange: (next: ModeForm) => void }) {
   const [centerId, setCenterId] = useState("");
-  const centersQ = useList10({ query: { retry: false } });
+  const centersQ = useList11({ query: { retry: false } });
   const sessionsQ = useListSessions(centerId, { query: { enabled: centerId !== "", retry: false } });
   const centers = centersQ.data?.data ?? [];
   const sessions = sessionsQ.data?.data ?? [];

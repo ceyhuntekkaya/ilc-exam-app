@@ -7,8 +7,5 @@
 import type { List7Status } from './list7Status';
 
 export type List7Params = {
-q?: string;
 status?: List7Status;
-page?: number;
-size?: number;
 };

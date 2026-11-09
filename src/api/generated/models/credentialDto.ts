@@ -16,6 +16,8 @@ export interface CredentialDto {
   requestedBy?: string;
   approvedBy?: string;
   approvedAt?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
   reviewNote?: string;
   createdAt?: string;
 }

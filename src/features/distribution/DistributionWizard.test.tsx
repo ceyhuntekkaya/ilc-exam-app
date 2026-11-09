@@ -30,10 +30,10 @@ vi.mock("@/src/api/generated/product-sku-catalog/product-sku-catalog", () => ({
   useList: () => query([{ id: "sku-1", name: "B1 Seviye Belirleme" }]),
 }));
 vi.mock("@/src/api/generated/exam-authoring/exam-authoring", () => ({
-  useList14: () => query({ items: [{ id: "11111111-2222-3333-4444-555555555555", title: "Kasım Sınavı", code: "K-1" }] }),
+  useList15: () => query({ items: [{ id: "11111111-2222-3333-4444-555555555555", title: "Kasım Sınavı", code: "K-1" }] }),
 }));
 vi.mock("@/src/api/generated/exam-centers/exam-centers", () => ({
-  useList10: () => query([]),
+  useList11: () => query([]),
   useListSessions: () => query([]),
 }));
 

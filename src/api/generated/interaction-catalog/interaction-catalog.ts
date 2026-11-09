@@ -46,19 +46,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type list18Response200 = {
+export type list21Response200 = {
   data: InteractionTypeDto[]
   status: 200
 }
 
-export type list18ResponseSuccess = (list18Response200) & {
+export type list21ResponseSuccess = (list21Response200) & {
   headers: Headers;
 };
 ;
 
-export type list18Response = (list18ResponseSuccess)
+export type list21Response = (list21ResponseSuccess)
 
-export const getList18Url = () => {
+export const getList21Url = () => {
 
 
 
@@ -66,9 +66,9 @@ export const getList18Url = () => {
   return `/authoring/interaction-types`
 }
 
-export const list18 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list18Response> => {
+export const list21 = async ( options?: Parameters<typeof customInstance>[1]): Promise<list21Response> => {
 
-  return customInstance<list18Response>(getList18Url(),
+  return customInstance<list21Response>(getList21Url(),
   {
     ...options,
     method: 'GET'
@@ -81,66 +81,66 @@ export const list18 = async ( options?: Parameters<typeof customInstance>[1]): P
 
 
 
-export const getList18QueryKey = () => {
+export const getList21QueryKey = () => {
     return [
     `/authoring/interaction-types`
     ] as const;
     }
 
 
-export const getList18QueryOptions = <TData = Awaited<ReturnType<typeof list18>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList21QueryOptions = <TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList18QueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getList21QueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list18>>> = ({ signal }) => list18({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list21>>> = ({ signal }) => list21({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List18QueryResult = NonNullable<Awaited<ReturnType<typeof list18>>>
-export type List18QueryError = ErrorType<unknown>
+export type List21QueryResult = NonNullable<Awaited<ReturnType<typeof list21>>>
+export type List21QueryError = ErrorType<unknown>
 
 
-export function useList18<TData = Awaited<ReturnType<typeof list18>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData>> & Pick<
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list18>>,
+          Awaited<ReturnType<typeof list21>>,
           TError,
-          Awaited<ReturnType<typeof list18>>
+          Awaited<ReturnType<typeof list21>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList18<TData = Awaited<ReturnType<typeof list18>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData>> & Pick<
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list18>>,
+          Awaited<ReturnType<typeof list21>>,
           TError,
-          Awaited<ReturnType<typeof list18>>
+          Awaited<ReturnType<typeof list21>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList18<TData = Awaited<ReturnType<typeof list18>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList18<TData = Awaited<ReturnType<typeof list18>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list18>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList18QueryOptions(options)
+  const queryOptions = getList21QueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -32,7 +32,7 @@ import type {
   ExamGrantView,
   Issue,
   LinkUpdateRequest,
-  List14Params,
+  List15Params,
   ListPageExamListDto,
   PilotCoverageReportDto,
   Preview1200,
@@ -1163,19 +1163,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUpgradeVersionMutationOptions(options), queryClient);
     }
-    export type list14Response200 = {
+    export type list15Response200 = {
   data: ListPageExamListDto
   status: 200
 }
 
-export type list14ResponseSuccess = (list14Response200) & {
+export type list15ResponseSuccess = (list15Response200) & {
   headers: Headers;
 };
 ;
 
-export type list14Response = (list14ResponseSuccess)
+export type list15Response = (list15ResponseSuccess)
 
-export const getList14Url = (params?: List14Params,) => {
+export const getList15Url = (params?: List15Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1190,9 +1190,9 @@ export const getList14Url = (params?: List14Params,) => {
   return stringifiedParams.length > 0 ? `/authoring/exams?${stringifiedParams}` : `/authoring/exams`
 }
 
-export const list14 = async (params?: List14Params, options?: Parameters<typeof customInstance>[1]): Promise<list14Response> => {
+export const list15 = async (params?: List15Params, options?: Parameters<typeof customInstance>[1]): Promise<list15Response> => {
 
-  return customInstance<list14Response>(getList14Url(params),
+  return customInstance<list15Response>(getList15Url(params),
   {
     ...options,
     method: 'GET'
@@ -1205,66 +1205,66 @@ export const list14 = async (params?: List14Params, options?: Parameters<typeof 
 
 
 
-export const getList14QueryKey = (params?: List14Params,) => {
+export const getList15QueryKey = (params?: List15Params,) => {
     return [
     `/authoring/exams`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getList14QueryOptions = <TData = Awaited<ReturnType<typeof list14>>, TError = ErrorType<unknown>>(params?: List14Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList15QueryOptions = <TData = Awaited<ReturnType<typeof list15>>, TError = ErrorType<unknown>>(params?: List15Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList14QueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getList15QueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list14>>> = ({ signal }) => list14(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list15>>> = ({ signal }) => list15(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List14QueryResult = NonNullable<Awaited<ReturnType<typeof list14>>>
-export type List14QueryError = ErrorType<unknown>
+export type List15QueryResult = NonNullable<Awaited<ReturnType<typeof list15>>>
+export type List15QueryError = ErrorType<unknown>
 
 
-export function useList14<TData = Awaited<ReturnType<typeof list14>>, TError = ErrorType<unknown>>(
- params: undefined |  List14Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData>> & Pick<
+export function useList15<TData = Awaited<ReturnType<typeof list15>>, TError = ErrorType<unknown>>(
+ params: undefined |  List15Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list14>>,
+          Awaited<ReturnType<typeof list15>>,
           TError,
-          Awaited<ReturnType<typeof list14>>
+          Awaited<ReturnType<typeof list15>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList14<TData = Awaited<ReturnType<typeof list14>>, TError = ErrorType<unknown>>(
- params?: List14Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData>> & Pick<
+export function useList15<TData = Awaited<ReturnType<typeof list15>>, TError = ErrorType<unknown>>(
+ params?: List15Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list14>>,
+          Awaited<ReturnType<typeof list15>>,
           TError,
-          Awaited<ReturnType<typeof list14>>
+          Awaited<ReturnType<typeof list15>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList14<TData = Awaited<ReturnType<typeof list14>>, TError = ErrorType<unknown>>(
- params?: List14Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList15<TData = Awaited<ReturnType<typeof list15>>, TError = ErrorType<unknown>>(
+ params?: List15Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList14<TData = Awaited<ReturnType<typeof list14>>, TError = ErrorType<unknown>>(
- params?: List14Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list14>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList15<TData = Awaited<ReturnType<typeof list15>>, TError = ErrorType<unknown>>(
+ params?: List15Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list15>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList14QueryOptions(params,options)
+  const queryOptions = getList15QueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1448,19 +1448,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUnpublish1MutationOptions(options), queryClient);
     }
-    export type submit1Response200 = {
+    export type submit2Response200 = {
   data: ExamDetailDto
   status: 200
 }
 
-export type submit1ResponseSuccess = (submit1Response200) & {
+export type submit2ResponseSuccess = (submit2Response200) & {
   headers: Headers;
 };
 ;
 
-export type submit1Response = (submit1ResponseSuccess)
+export type submit2Response = (submit2ResponseSuccess)
 
-export const getSubmit1Url = (id: string,) => {
+export const getSubmit2Url = (id: string,) => {
 
 
 
@@ -1468,9 +1468,9 @@ export const getSubmit1Url = (id: string,) => {
   return `/authoring/exams/${id}/submit-review`
 }
 
-export const submit1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<submit1Response> => {
+export const submit2 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<submit2Response> => {
 
-  return customInstance<submit1Response>(getSubmit1Url(id),
+  return customInstance<submit2Response>(getSubmit2Url(id),
   {
     ...options,
     method: 'POST'
@@ -1483,13 +1483,13 @@ export const submit1 = async (id: string, options?: Parameters<typeof customInst
 
 
 
-export const getSubmit1MutationKey = () => ['submit1'] as const;
+export const getSubmit2MutationKey = () => ['submit2'] as const;
 
-export const getSubmit1MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit1>>, TError,Submit1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof submit1>>, TError,Submit1MutationVariables, TContext> => {
+export const getSubmit2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit2>>, TError,Submit2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof submit2>>, TError,Submit2MutationVariables, TContext> => {
 
-const mutationKey = getSubmit1MutationKey();
+const mutationKey = getSubmit2MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -1499,10 +1499,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submit1>>, Submit1MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submit2>>, Submit2MutationVariables> = (props) => {
           const {id} = props ?? {};
 
-          return  submit1(id,requestOptions)
+          return  submit2(id,requestOptions)
         }
 
 
@@ -1512,20 +1512,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Submit1MutationResult = NonNullable<Awaited<ReturnType<typeof submit1>>>
+    export type Submit2MutationResult = NonNullable<Awaited<ReturnType<typeof submit2>>>
 
-    export type Submit1MutationError = ErrorType<unknown>
-    export type Submit1MutationVariables = {id: string}
+    export type Submit2MutationError = ErrorType<unknown>
+    export type Submit2MutationVariables = {id: string}
 
-    export const useSubmit1 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit1>>, TError,Submit1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useSubmit2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submit2>>, TError,Submit2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof submit1>>,
+        Awaited<ReturnType<typeof submit2>>,
         TError,
-        Submit1MutationVariables,
+        Submit2MutationVariables,
         TContext
       > => {
-      return useMutation(getSubmit1MutationOptions(options), queryClient);
+      return useMutation(getSubmit2MutationOptions(options), queryClient);
     }
     export type attachResponse200 = {
   data: ExamDetailDto

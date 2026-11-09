@@ -387,19 +387,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getFromBlueprintMutationOptions(options), queryClient);
     }
-    export type list19Response200 = {
+    export type list22Response200 = {
   data: FormSummaryDto[]
   status: 200
 }
 
-export type list19ResponseSuccess = (list19Response200) & {
+export type list22ResponseSuccess = (list22Response200) & {
   headers: Headers;
 };
 ;
 
-export type list19Response = (list19ResponseSuccess)
+export type list22Response = (list22ResponseSuccess)
 
-export const getList19Url = (examId: string,) => {
+export const getList22Url = (examId: string,) => {
 
 
 
@@ -407,9 +407,9 @@ export const getList19Url = (examId: string,) => {
   return `/authoring/exams/${examId}/forms`
 }
 
-export const list19 = async (examId: string, options?: Parameters<typeof customInstance>[1]): Promise<list19Response> => {
+export const list22 = async (examId: string, options?: Parameters<typeof customInstance>[1]): Promise<list22Response> => {
 
-  return customInstance<list19Response>(getList19Url(examId),
+  return customInstance<list22Response>(getList22Url(examId),
   {
     ...options,
     method: 'GET'
@@ -422,66 +422,66 @@ export const list19 = async (examId: string, options?: Parameters<typeof customI
 
 
 
-export const getList19QueryKey = (examId: string,) => {
+export const getList22QueryKey = (examId: string,) => {
     return [
     `/authoring/exams/${examId}/forms`
     ] as const;
     }
 
 
-export const getList19QueryOptions = <TData = Awaited<ReturnType<typeof list19>>, TError = ErrorType<unknown>>(examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList22QueryOptions = <TData = Awaited<ReturnType<typeof list22>>, TError = ErrorType<unknown>>(examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList19QueryKey(examId);
+  const queryKey =  queryOptions?.queryKey ?? getList22QueryKey(examId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list19>>> = ({ signal }) => list19(examId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list22>>> = ({ signal }) => list22(examId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: examId !== null && examId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: examId !== null && examId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List19QueryResult = NonNullable<Awaited<ReturnType<typeof list19>>>
-export type List19QueryError = ErrorType<unknown>
+export type List22QueryResult = NonNullable<Awaited<ReturnType<typeof list22>>>
+export type List22QueryError = ErrorType<unknown>
 
 
-export function useList19<TData = Awaited<ReturnType<typeof list19>>, TError = ErrorType<unknown>>(
- examId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData>> & Pick<
+export function useList22<TData = Awaited<ReturnType<typeof list22>>, TError = ErrorType<unknown>>(
+ examId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list19>>,
+          Awaited<ReturnType<typeof list22>>,
           TError,
-          Awaited<ReturnType<typeof list19>>
+          Awaited<ReturnType<typeof list22>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList19<TData = Awaited<ReturnType<typeof list19>>, TError = ErrorType<unknown>>(
- examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData>> & Pick<
+export function useList22<TData = Awaited<ReturnType<typeof list22>>, TError = ErrorType<unknown>>(
+ examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list19>>,
+          Awaited<ReturnType<typeof list22>>,
           TError,
-          Awaited<ReturnType<typeof list19>>
+          Awaited<ReturnType<typeof list22>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList19<TData = Awaited<ReturnType<typeof list19>>, TError = ErrorType<unknown>>(
- examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList22<TData = Awaited<ReturnType<typeof list22>>, TError = ErrorType<unknown>>(
+ examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList19<TData = Awaited<ReturnType<typeof list19>>, TError = ErrorType<unknown>>(
- examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list19>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList22<TData = Awaited<ReturnType<typeof list22>>, TError = ErrorType<unknown>>(
+ examId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list22>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList19QueryOptions(examId,options)
+  const queryOptions = getList22QueryOptions(examId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

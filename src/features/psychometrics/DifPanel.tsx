@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getItemQueryKey, useCompute, useItem } from "@/src/api/generated/dif-panel/dif-panel";
+import { getItem1QueryKey, useCompute, useItem1 } from "@/src/api/generated/dif-panel/dif-panel";
 import type { ComputeResult, DimensionView } from "@/src/api/generated/models";
 import type { QuestionSummary } from "@/src/features/authoring/shared/client";
 import { useCan } from "@/src/features/panel/PanelContext";
@@ -42,7 +42,7 @@ export function DifItemView({ question }: { question: QuestionSummary }) {
   const { ready, request } = useCentralRequest();
   const canCompute = useCan(Perm.psychometricsManage);
   const queryClient = useQueryClient();
-  const query = useItem(question.versionId, { query: { enabled: ready }, request });
+  const query = useItem1(question.versionId, { query: { enabled: ready }, request });
   const compute = useCompute({ request });
   const [lastRun, setLastRun] = useState<ComputeResult | null>(null);
 
@@ -53,7 +53,7 @@ export function DifItemView({ question }: { question: QuestionSummary }) {
     try {
       const result = await compute.mutateAsync({ questionVersionId: question.versionId });
       setLastRun(result.data);
-      await queryClient.invalidateQueries({ queryKey: getItemQueryKey(question.versionId) });
+      await queryClient.invalidateQueries({ queryKey: getItem1QueryKey(question.versionId) });
       notify.success("DIF hesaplandı");
     } catch (e) {
       notify.error(computeFailureMessage(e));

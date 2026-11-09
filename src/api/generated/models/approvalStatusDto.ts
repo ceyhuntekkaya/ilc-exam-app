@@ -13,6 +13,7 @@ export interface ApprovalStatusDto {
   certificateEnabledFlag?: boolean;
   requiredApprovals?: number;
   distinctApprovers?: number;
+  staleApprovals?: number;
   bundleConditionsMet?: boolean;
   calibrationCheckedHere?: boolean;
   approvals?: ApprovalDto[];

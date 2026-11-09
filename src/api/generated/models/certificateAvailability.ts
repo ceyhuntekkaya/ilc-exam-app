@@ -13,4 +13,6 @@ export interface CertificateAvailability {
   verificationUrl?: string;
   message?: string;
   levelReportUrl?: string;
+  levelReportReady?: boolean;
+  levelReportVerificationUrl?: string;
 }

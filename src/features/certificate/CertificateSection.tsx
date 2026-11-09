@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getList9QueryKey as getCertificatesQueryKey,
+  getList10QueryKey as getCertificatesQueryKey,
   useIssue as useIssueCertificate,
-  useList9 as useCertificates,
+  useList10 as useCertificates,
   useRevoke as useRevokeCertificate,
   useRevokeAndReissue as useReissueCertificate,
 } from "@/src/api/generated/certificate-admin/certificate-admin";

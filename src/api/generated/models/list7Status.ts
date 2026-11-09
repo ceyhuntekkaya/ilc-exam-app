@@ -9,7 +9,8 @@ export type List7Status = typeof List7Status[keyof typeof List7Status];
 
 
 export const List7Status = {
-  ACTIVE: 'ACTIVE',
-  SUSPENDED: 'SUSPENDED',
-  PASSIVE: 'PASSIVE',
+  RECEIVED: 'RECEIVED',
+  DEFERRED: 'DEFERRED',
+  COMPLETED: 'COMPLETED',
+  REJECTED: 'REJECTED',
 } as const;

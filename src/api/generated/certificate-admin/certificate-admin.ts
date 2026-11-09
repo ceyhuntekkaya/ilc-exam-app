@@ -26,7 +26,7 @@ import type {
 import type {
   CertificateDto,
   IssueRequest,
-  List9Params,
+  List10Params,
   ListPageCertificateDto,
   ReissueRequest,
   RevokeRequest
@@ -55,19 +55,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type list9Response200 = {
+export type list10Response200 = {
   data: ListPageCertificateDto
   status: 200
 }
 
-export type list9ResponseSuccess = (list9Response200) & {
+export type list10ResponseSuccess = (list10Response200) & {
   headers: Headers;
 };
 ;
 
-export type list9Response = (list9ResponseSuccess)
+export type list10Response = (list10ResponseSuccess)
 
-export const getList9Url = (params?: List9Params,) => {
+export const getList10Url = (params?: List10Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -82,9 +82,9 @@ export const getList9Url = (params?: List9Params,) => {
   return stringifiedParams.length > 0 ? `/certificates?${stringifiedParams}` : `/certificates`
 }
 
-export const list9 = async (params?: List9Params, options?: Parameters<typeof customInstance>[1]): Promise<list9Response> => {
+export const list10 = async (params?: List10Params, options?: Parameters<typeof customInstance>[1]): Promise<list10Response> => {
 
-  return customInstance<list9Response>(getList9Url(params),
+  return customInstance<list10Response>(getList10Url(params),
   {
     ...options,
     method: 'GET'
@@ -97,66 +97,66 @@ export const list9 = async (params?: List9Params, options?: Parameters<typeof cu
 
 
 
-export const getList9QueryKey = (params?: List9Params,) => {
+export const getList10QueryKey = (params?: List10Params,) => {
     return [
     `/certificates`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getList9QueryOptions = <TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList10QueryOptions = <TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(params?: List10Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList9QueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getList10QueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list9>>> = ({ signal }) => list9(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list10>>> = ({ signal }) => list10(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List9QueryResult = NonNullable<Awaited<ReturnType<typeof list9>>>
-export type List9QueryError = ErrorType<unknown>
+export type List10QueryResult = NonNullable<Awaited<ReturnType<typeof list10>>>
+export type List10QueryError = ErrorType<unknown>
 
 
-export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
- params: undefined |  List9Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
+export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
+ params: undefined |  List10Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list9>>,
+          Awaited<ReturnType<typeof list10>>,
           TError,
-          Awaited<ReturnType<typeof list9>>
+          Awaited<ReturnType<typeof list10>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
- params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>> & Pick<
+export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
+ params?: List10Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list9>>,
+          Awaited<ReturnType<typeof list10>>,
           TError,
-          Awaited<ReturnType<typeof list9>>
+          Awaited<ReturnType<typeof list10>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
- params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
+ params?: List10Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList9<TData = Awaited<ReturnType<typeof list9>>, TError = ErrorType<unknown>>(
- params?: List9Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList10<TData = Awaited<ReturnType<typeof list10>>, TError = ErrorType<unknown>>(
+ params?: List10Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList9QueryOptions(params,options)
+  const queryOptions = getList10QueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -449,19 +449,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRevokeAndReissueMutationOptions(options), queryClient);
     }
-    export type get9Response200 = {
+    export type get10Response200 = {
   data: CertificateDto
   status: 200
 }
 
-export type get9ResponseSuccess = (get9Response200) & {
+export type get10ResponseSuccess = (get10Response200) & {
   headers: Headers;
 };
 ;
 
-export type get9Response = (get9ResponseSuccess)
+export type get10Response = (get10ResponseSuccess)
 
-export const getGet9Url = (id: string,) => {
+export const getGet10Url = (id: string,) => {
 
 
 
@@ -469,9 +469,9 @@ export const getGet9Url = (id: string,) => {
   return `/certificates/${id}`
 }
 
-export const get9 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<get9Response> => {
+export const get10 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<get10Response> => {
 
-  return customInstance<get9Response>(getGet9Url(id),
+  return customInstance<get10Response>(getGet10Url(id),
   {
     ...options,
     method: 'GET'
@@ -484,66 +484,66 @@ export const get9 = async (id: string, options?: Parameters<typeof customInstanc
 
 
 
-export const getGet9QueryKey = (id: string,) => {
+export const getGet10QueryKey = (id: string,) => {
     return [
     `/certificates/${id}`
     ] as const;
     }
 
 
-export const getGet9QueryOptions = <TData = Awaited<ReturnType<typeof get9>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGet10QueryOptions = <TData = Awaited<ReturnType<typeof get10>>, TError = ErrorType<unknown>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGet9QueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGet10QueryKey(id);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof get9>>> = ({ signal }) => get9(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof get10>>> = ({ signal }) => get10(id, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type Get9QueryResult = NonNullable<Awaited<ReturnType<typeof get9>>>
-export type Get9QueryError = ErrorType<unknown>
+export type Get10QueryResult = NonNullable<Awaited<ReturnType<typeof get10>>>
+export type Get10QueryError = ErrorType<unknown>
 
 
-export function useGet9<TData = Awaited<ReturnType<typeof get9>>, TError = ErrorType<unknown>>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData>> & Pick<
+export function useGet10<TData = Awaited<ReturnType<typeof get10>>, TError = ErrorType<unknown>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get9>>,
+          Awaited<ReturnType<typeof get10>>,
           TError,
-          Awaited<ReturnType<typeof get9>>
+          Awaited<ReturnType<typeof get10>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet9<TData = Awaited<ReturnType<typeof get9>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData>> & Pick<
+export function useGet10<TData = Awaited<ReturnType<typeof get10>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof get9>>,
+          Awaited<ReturnType<typeof get10>>,
           TError,
-          Awaited<ReturnType<typeof get9>>
+          Awaited<ReturnType<typeof get10>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGet9<TData = Awaited<ReturnType<typeof get9>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet10<TData = Awaited<ReturnType<typeof get10>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGet9<TData = Awaited<ReturnType<typeof get9>>, TError = ErrorType<unknown>>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get9>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useGet10<TData = Awaited<ReturnType<typeof get10>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof get10>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGet9QueryOptions(id,options)
+  const queryOptions = getGet10QueryOptions(id,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

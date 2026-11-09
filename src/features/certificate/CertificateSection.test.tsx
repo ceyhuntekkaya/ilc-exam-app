@@ -13,8 +13,8 @@ vi.mock("@/src/features/panel/PanelContext", () => ({
   usePanel: () => ({ role: "STAFF", basePath: "/staff", companyId: "c-1" }),
 }));
 vi.mock("@/src/api/generated/certificate-admin/certificate-admin", () => ({
-  useList9: () => listState(),
-  getList9QueryKey: () => ["/certificates"],
+  useList10: () => listState(),
+  getList10QueryKey: () => ["/certificates"],
   useIssue: () => ({ mutateAsync: issueMock, isPending: false }),
   useRevoke: () => ({ mutateAsync: revokeMock, isPending: false }),
   useRevokeAndReissue: () => ({ mutateAsync: reissueMock, isPending: false }),
