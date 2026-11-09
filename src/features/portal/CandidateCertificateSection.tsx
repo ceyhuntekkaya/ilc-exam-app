@@ -108,7 +108,7 @@ export function ReviewRequestSection({ applicationResultId }: { applicationResul
   if (query.isLoading) return <Skeleton className="h-24 rounded-xl" />;
   const view = toReviewStatusView(query.isError ? null : query.data?.data);
   if (view.kind === "none") return <ReviewRequestCard applicationResultId={applicationResultId} />;
-  return (
+  const statusBox = (
     <section
       aria-label="İnceleme talebi"
       role="status"
@@ -137,9 +137,29 @@ export function ReviewRequestSection({ applicationResultId }: { applicationResul
       </p>
     </section>
   );
+  // Puan güncellendiyse (yeni aktif snapshot) aday yeni sonuca yeniden inceleme isteyebilir; "puan değişmedi" ve açık
+  // talepte form gösterilmez. Gönderince durum yeniden çekilir ve en son talep ("İnceleniyor") görünür.
+  if (view.kind === "changed") {
+    return (
+      <div className="grid gap-3">
+        {statusBox}
+        <ReviewRequestCard applicationResultId={applicationResultId} followUp onSent={() => void query.refetch()} />
+      </div>
+    );
+  }
+  return statusBox;
 }
 
-export function ReviewRequestCard({ applicationResultId }: { applicationResultId: string }) {
+export function ReviewRequestCard({
+  applicationResultId,
+  followUp = false,
+  onSent,
+}: {
+  applicationResultId: string;
+  /** Puanı güncellenmiş sonuç için ikinci talep: açıklama metni buna göre. */
+  followUp?: boolean;
+  onSent?: () => void;
+}) {
   const open = useOpenReviewRequest();
   const [expanded, setExpanded] = useState(false);
   const [reason, setReason] = useState("");
@@ -155,6 +175,7 @@ export function ReviewRequestCard({ applicationResultId }: { applicationResultId
     try {
       const result = await open.mutateAsync({ applicationResultId, data: { reason: reason.trim() } });
       setSentAt(result.data.requestedAt ?? new Date().toISOString());
+      onSent?.();
     } catch (err) {
       // 409: itiraz süresi doldu ya da bu sonuç için zaten talep var — sunucu mesajı olduğu gibi.
       setError(reviewRequestFailureMessage(err));
@@ -173,8 +194,12 @@ export function ReviewRequestCard({ applicationResultId }: { applicationResultId
     <section aria-label="İnceleme talebi" className="grid gap-3 rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-fg">Sonuca itiraz / inceleme talebi</h2>
-          <p className="text-xs text-fg-muted">Sonucun yeniden incelenmesini isteyebilirsiniz. Talep için süre sınırı vardır; aynı sonuç için yalnız bir talep açılabilir.</p>
+          <h2 className="text-sm font-semibold text-fg">{followUp ? "Yeni sonuca yeniden inceleme talebi" : "Sonuca itiraz / inceleme talebi"}</h2>
+          <p className="text-xs text-fg-muted">
+            {followUp
+              ? "Güncellenen sonucun yeniden incelenmesini isteyebilirsiniz. Talep için süre sınırı vardır; her sonuç için yalnız bir talep açılabilir."
+              : "Sonucun yeniden incelenmesini isteyebilirsiniz. Talep için süre sınırı vardır; aynı sonuç için yalnız bir talep açılabilir."}
+          </p>
         </div>
         {expanded ? null : (
           <Button variant="secondary" size="sm" onClick={() => setExpanded(true)}>
