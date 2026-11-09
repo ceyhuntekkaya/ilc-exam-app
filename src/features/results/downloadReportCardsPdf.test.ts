@@ -5,7 +5,14 @@ describe("downloadReportCardsPdf (pilot)", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("toplu karneyi Türkçe ister (locale=tr); dil verilmezse sunucu İngilizce basıyordu", async () => {
-    const fetchMock = vi.fn(async () => new Response(new Blob(["%PDF-1.7"]), { status: 200 }));
+    // jsdom'un Blob'unda `stream()` yok; `new Response(blob)` CI'da patlıyordu. İndirme yalnız
+    // `ok` ve `blob()` okuduğundan asgari bir yanıt taklidi yeterli.
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      blob: async () => new Blob(["%PDF-1.7"]),
+    }));
     vi.stubGlobal("fetch", fetchMock);
     Object.assign(URL, { createObjectURL: vi.fn(() => "blob:x"), revokeObjectURL: vi.fn() });
 
