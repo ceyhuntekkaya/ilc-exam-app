@@ -315,7 +315,16 @@ export type BlueprintDetail = {
 };
 
 /** K-03: LibraryPages.tsx — F2-14/K-02'de yazılan PoolAuditService'in HTTP yüzeyi. */
-export type KurumVersionRef = { versionId: string; ownerOrgId: string };
+/** Pilot düzeltmesi: merkezin hangi soruyu onayladığını görmesi için kod, durum, sürüm, kurum adı ve denetim bayrağı. */
+export type KurumVersionRef = {
+  versionId: string;
+  ownerOrgId: string;
+  questionCode?: string | null;
+  status?: string | null;
+  versionNo?: number | null;
+  companyName?: string | null;
+  audited?: boolean;
+};
 
 export type PoolAudit = {
   id: string;

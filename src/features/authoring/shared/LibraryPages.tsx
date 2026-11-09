@@ -1671,8 +1671,13 @@ export function SettingsDictionariesPage() {
                   className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-xs ${selectedPoolVersionId === ref.versionId ? "bg-primary-50" : "hover:bg-neutral-50"}`}
                   onClick={() => setSelectedPoolVersionId(ref.versionId)}
                 >
-                  <span className="font-mono">{ref.versionId}</span>
-                  <span className="text-fg-subtle">kurum: <span className="font-mono">{ref.ownerOrgId}</span></span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="font-mono font-medium">{ref.questionCode ?? ref.versionId}</span>
+                    {ref.versionNo != null ? <span className="text-fg-subtle">s{ref.versionNo}</span> : null}
+                    {ref.status ? <StatusBadge status={ref.status} /> : null}
+                    {ref.audited ? <span className="text-success">Havuz onaylı</span> : <span className="text-warning">Denetim bekliyor</span>}
+                  </span>
+                  <span className="text-fg-subtle">{ref.companyName ?? <span className="font-mono">{ref.ownerOrgId}</span>}</span>
                 </li>
               ))}
             </ul>
