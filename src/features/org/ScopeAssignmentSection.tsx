@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useDeleteScope, useInstitutes, useYears } from "@/src/api/generated/admin-companies/admin-companies";
-import { useList19 as useOrgUnits } from "@/src/api/generated/org-units/org-units";
+import { useList20 as useOrgUnits } from "@/src/api/generated/org-units/org-units";
 import { useAssign, useRemove } from "@/src/api/generated/staff-unit-scope/staff-unit-scope";
 import type { StaffDto, StaffScopeDto } from "@/src/api/generated/models";
 import { useCan } from "@/src/features/panel/PanelContext";

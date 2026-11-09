@@ -26,7 +26,8 @@ import type {
 import type {
   CertificateAvailability,
   ReviewRequestDto,
-  ReviewRequestRequest
+  ReviewRequestRequest,
+  ReviewStatusDto
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -51,6 +52,112 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export type myReviewRequestResponse200 = {
+  data: ReviewStatusDto
+  status: 200
+}
+
+export type myReviewRequestResponseSuccess = (myReviewRequestResponse200) & {
+  headers: Headers;
+};
+;
+
+export type myReviewRequestResponse = (myReviewRequestResponseSuccess)
+
+export const getMyReviewRequestUrl = (applicationResultId: string,) => {
+
+
+
+
+  return `/report/me/results/${applicationResultId}/review-request`
+}
+
+export const myReviewRequest = async (applicationResultId: string, options?: Parameters<typeof customInstance>[1]): Promise<myReviewRequestResponse> => {
+
+  return customInstance<myReviewRequestResponse>(getMyReviewRequestUrl(applicationResultId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMyReviewRequestQueryKey = (applicationResultId: string,) => {
+    return [
+    `/report/me/results/${applicationResultId}/review-request`
+    ] as const;
+    }
+
+
+export const getMyReviewRequestQueryOptions = <TData = Awaited<ReturnType<typeof myReviewRequest>>, TError = ErrorType<unknown>>(applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMyReviewRequestQueryKey(applicationResultId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof myReviewRequest>>> = ({ signal }) => myReviewRequest(applicationResultId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationResultId !== null && applicationResultId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type MyReviewRequestQueryResult = NonNullable<Awaited<ReturnType<typeof myReviewRequest>>>
+export type MyReviewRequestQueryError = ErrorType<unknown>
+
+
+export function useMyReviewRequest<TData = Awaited<ReturnType<typeof myReviewRequest>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReviewRequest>>,
+          TError,
+          Awaited<ReturnType<typeof myReviewRequest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReviewRequest<TData = Awaited<ReturnType<typeof myReviewRequest>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof myReviewRequest>>,
+          TError,
+          Awaited<ReturnType<typeof myReviewRequest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useMyReviewRequest<TData = Awaited<ReturnType<typeof myReviewRequest>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useMyReviewRequest<TData = Awaited<ReturnType<typeof myReviewRequest>>, TError = ErrorType<unknown>>(
+ applicationResultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof myReviewRequest>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getMyReviewRequestQueryOptions(applicationResultId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 export type openReviewRequestResponse201 = {
   data: ReviewRequestDto

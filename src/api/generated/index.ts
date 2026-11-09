@@ -53,6 +53,7 @@ export * from './public-verification-controller/public-verification-controller';
 export * from './question-authoring/question-authoring';
 export * from './report-controller/report-controller';
 export * from './retention/retention';
+export * from './review-request-controller/review-request-controller';
 export * from './rubric-authoring/rubric-authoring';
 export * from './sertifika-kapısı/sertifika-kapısı';
 export * from './staff-panel-controller/staff-panel-controller';
