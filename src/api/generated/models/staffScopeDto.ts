@@ -13,4 +13,5 @@ export interface StaffScopeDto {
   instituteId?: string;
   gradeId?: string;
   branchId?: string;
+  orgUnitId?: string;
 }

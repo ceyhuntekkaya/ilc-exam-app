@@ -270,19 +270,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRenameMutationOptions(options), queryClient);
     }
-    export type removeResponse204 = {
+    export type remove1Response204 = {
   data: void
   status: 204
 }
 
-export type removeResponseSuccess = (removeResponse204) & {
+export type remove1ResponseSuccess = (remove1Response204) & {
   headers: Headers;
 };
 ;
 
-export type removeResponse = (removeResponseSuccess)
+export type remove1Response = (remove1ResponseSuccess)
 
-export const getRemoveUrl = (id: string,) => {
+export const getRemove1Url = (id: string,) => {
 
 
 
@@ -290,9 +290,9 @@ export const getRemoveUrl = (id: string,) => {
   return `/authoring/rubrics/${id}`
 }
 
-export const remove = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<removeResponse> => {
+export const remove1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<remove1Response> => {
 
-  return customInstance<removeResponse>(getRemoveUrl(id),
+  return customInstance<remove1Response>(getRemove1Url(id),
   {
     ...options,
     method: 'DELETE'
@@ -305,13 +305,13 @@ export const remove = async (id: string, options?: Parameters<typeof customInsta
 
 
 
-export const getRemoveMutationKey = () => ['remove'] as const;
+export const getRemove1MutationKey = () => ['remove1'] as const;
 
-export const getRemoveMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remove>>, TError,RemoveMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof remove>>, TError,RemoveMutationVariables, TContext> => {
+export const getRemove1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remove1>>, TError,Remove1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof remove1>>, TError,Remove1MutationVariables, TContext> => {
 
-const mutationKey = getRemoveMutationKey();
+const mutationKey = getRemove1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -321,10 +321,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof remove>>, RemoveMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof remove1>>, Remove1MutationVariables> = (props) => {
           const {id} = props ?? {};
 
-          return  remove(id,requestOptions)
+          return  remove1(id,requestOptions)
         }
 
 
@@ -334,20 +334,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type RemoveMutationResult = NonNullable<Awaited<ReturnType<typeof remove>>>
+    export type Remove1MutationResult = NonNullable<Awaited<ReturnType<typeof remove1>>>
 
-    export type RemoveMutationError = ErrorType<unknown>
-    export type RemoveMutationVariables = {id: string}
+    export type Remove1MutationError = ErrorType<unknown>
+    export type Remove1MutationVariables = {id: string}
 
-    export const useRemove = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remove>>, TError,RemoveMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useRemove1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remove1>>, TError,Remove1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof remove>>,
+        Awaited<ReturnType<typeof remove1>>,
         TError,
-        RemoveMutationVariables,
+        Remove1MutationVariables,
         TContext
       > => {
-      return useMutation(getRemoveMutationOptions(options), queryClient);
+      return useMutation(getRemove1MutationOptions(options), queryClient);
     }
     export type getVersionResponse200 = {
   data: RubricDetailDto

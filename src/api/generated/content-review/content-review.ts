@@ -255,19 +255,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getAddCommentMutationOptions(options), queryClient);
     }
-    export type assignResponse200 = {
+    export type assign1Response200 = {
   data: ReviewDto
   status: 200
 }
 
-export type assignResponseSuccess = (assignResponse200) & {
+export type assign1ResponseSuccess = (assign1Response200) & {
   headers: Headers;
 };
 ;
 
-export type assignResponse = (assignResponseSuccess)
+export type assign1Response = (assign1ResponseSuccess)
 
-export const getAssignUrl = (id: string,) => {
+export const getAssign1Url = (id: string,) => {
 
 
 
@@ -275,8 +275,8 @@ export const getAssignUrl = (id: string,) => {
   return `/authoring/reviews/${id}/assign`
 }
 
-export const assign = async (id: string,
-    assignRequest: AssignRequest, options?: Parameters<typeof customInstance>[1]): Promise<assignResponse> => {
+export const assign1 = async (id: string,
+    assignRequest: AssignRequest, options?: Parameters<typeof customInstance>[1]): Promise<assign1Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -292,7 +292,7 @@ export const assign = async (id: string,
     }
     return headers;
   };
-return customInstance<assignResponse>(getAssignUrl(id),
+return customInstance<assign1Response>(getAssign1Url(id),
   {
     ...options,
     method: 'POST',
@@ -305,13 +305,13 @@ return customInstance<assignResponse>(getAssignUrl(id),
 
 
 
-export const getAssignMutationKey = () => ['assign'] as const;
+export const getAssign1MutationKey = () => ['assign1'] as const;
 
-export const getAssignMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assign>>, TError,AssignMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof assign>>, TError,AssignMutationVariables, TContext> => {
+export const getAssign1MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assign1>>, TError,Assign1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof assign1>>, TError,Assign1MutationVariables, TContext> => {
 
-const mutationKey = getAssignMutationKey();
+const mutationKey = getAssign1MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -321,10 +321,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assign>>, AssignMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assign1>>, Assign1MutationVariables> = (props) => {
           const {id,data} = props ?? {};
 
-          return  assign(id,data,requestOptions)
+          return  assign1(id,data,requestOptions)
         }
 
 
@@ -334,20 +334,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type AssignMutationResult = NonNullable<Awaited<ReturnType<typeof assign>>>
-    export type AssignMutationBody = BodyType<AssignRequest>
-    export type AssignMutationError = ErrorType<unknown>
-    export type AssignMutationVariables = {id: string;data: BodyType<AssignRequest>}
+    export type Assign1MutationResult = NonNullable<Awaited<ReturnType<typeof assign1>>>
+    export type Assign1MutationBody = BodyType<AssignRequest>
+    export type Assign1MutationError = ErrorType<unknown>
+    export type Assign1MutationVariables = {id: string;data: BodyType<AssignRequest>}
 
-    export const useAssign = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assign>>, TError,AssignMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useAssign1 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assign1>>, TError,Assign1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof assign>>,
+        Awaited<ReturnType<typeof assign1>>,
         TError,
-        AssignMutationVariables,
+        Assign1MutationVariables,
         TContext
       > => {
-      return useMutation(getAssignMutationOptions(options), queryClient);
+      return useMutation(getAssign1MutationOptions(options), queryClient);
     }
     export type list19Response200 = {
   data: ListPageReviewDto
