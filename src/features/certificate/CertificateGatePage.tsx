@@ -56,7 +56,7 @@ export function CertificateGatePage() {
 }
 
 function ApprovalCard() {
-  const { ready, request } = useCentralRequest();
+  const { ready } = useCentralRequest();
   // Demet listesi `sku:manage` ister; yetki yoksa demet kimliği elle girilir.
   const bundles = useBundles({ query: { retry: false } });
   const certification = (bundles.data?.data ?? []).filter((b) => b.examPurpose === "CERTIFICATION" && b.id);
