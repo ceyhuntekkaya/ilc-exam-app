@@ -282,7 +282,7 @@ export const getReject1Url = (id: string,) => {
 }
 
 export const reject1 = async (id: string,
-    rejectRequest: RejectRequest, options?: Parameters<typeof customInstance>[1]): Promise<reject1Response> => {
+    rejectRequest?: RejectRequest, options?: Parameters<typeof customInstance>[1]): Promise<reject1Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -341,9 +341,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type Reject1MutationResult = NonNullable<Awaited<ReturnType<typeof reject1>>>
-    export type Reject1MutationBody = BodyType<RejectRequest>
+    export type Reject1MutationBody = BodyType<RejectRequest> | undefined
     export type Reject1MutationError = ErrorType<unknown>
-    export type Reject1MutationVariables = {id: string;data: BodyType<RejectRequest>}
+    export type Reject1MutationVariables = {id: string;data?: BodyType<RejectRequest>}
 
     export const useReject1 = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reject1>>, TError,Reject1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}

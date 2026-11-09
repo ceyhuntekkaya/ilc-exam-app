@@ -7,6 +7,7 @@
 import type { AppOutcome } from './appOutcome';
 import type { ExecutionIdentity } from './executionIdentity';
 import type { ExecutionRetainedItem } from './executionRetainedItem';
+import type { LinkedAccount } from './linkedAccount';
 
 export interface Execution {
   requestId?: string;
@@ -16,4 +17,6 @@ export interface Execution {
   identity?: ExecutionIdentity;
   retained?: ExecutionRetainedItem[];
   failed?: number;
+  linkedAccounts?: LinkedAccount[];
+  waivedApplications?: string[];
 }

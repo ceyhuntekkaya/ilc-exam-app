@@ -191,7 +191,7 @@ export const getSetPolicyUrl = () => {
   return `/retention/policies`
 }
 
-export const setPolicy = async (setPolicyRequest: SetPolicyRequest, options?: Parameters<typeof customInstance>[1]): Promise<setPolicyResponse> => {
+export const setPolicy = async (setPolicyRequest?: SetPolicyRequest, options?: Parameters<typeof customInstance>[1]): Promise<setPolicyResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -250,9 +250,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SetPolicyMutationResult = NonNullable<Awaited<ReturnType<typeof setPolicy>>>
-    export type SetPolicyMutationBody = BodyType<SetPolicyRequest>
+    export type SetPolicyMutationBody = BodyType<SetPolicyRequest> | undefined
     export type SetPolicyMutationError = ErrorType<unknown>
-    export type SetPolicyMutationVariables = {data: BodyType<SetPolicyRequest>}
+    export type SetPolicyMutationVariables = {data?: BodyType<SetPolicyRequest>}
 
     export const useSetPolicy = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPolicy>>, TError,SetPolicyMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -483,7 +483,7 @@ export const getOpenHoldUrl = () => {
   return `/retention/legal-holds`
 }
 
-export const openHold = async (openHoldRequest: OpenHoldRequest, options?: Parameters<typeof customInstance>[1]): Promise<openHoldResponse> => {
+export const openHold = async (openHoldRequest?: OpenHoldRequest, options?: Parameters<typeof customInstance>[1]): Promise<openHoldResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -542,9 +542,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type OpenHoldMutationResult = NonNullable<Awaited<ReturnType<typeof openHold>>>
-    export type OpenHoldMutationBody = BodyType<OpenHoldRequest>
+    export type OpenHoldMutationBody = BodyType<OpenHoldRequest> | undefined
     export type OpenHoldMutationError = ErrorType<unknown>
-    export type OpenHoldMutationVariables = {data: BodyType<OpenHoldRequest>}
+    export type OpenHoldMutationVariables = {data?: BodyType<OpenHoldRequest>}
 
     export const useOpenHold = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openHold>>, TError,OpenHoldMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -577,7 +577,7 @@ export const getReleaseHoldUrl = (id: string,) => {
 }
 
 export const releaseHold = async (id: string,
-    releaseHoldRequest: ReleaseHoldRequest, options?: Parameters<typeof customInstance>[1]): Promise<releaseHoldResponse> => {
+    releaseHoldRequest?: ReleaseHoldRequest, options?: Parameters<typeof customInstance>[1]): Promise<releaseHoldResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -636,9 +636,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ReleaseHoldMutationResult = NonNullable<Awaited<ReturnType<typeof releaseHold>>>
-    export type ReleaseHoldMutationBody = BodyType<ReleaseHoldRequest>
+    export type ReleaseHoldMutationBody = BodyType<ReleaseHoldRequest> | undefined
     export type ReleaseHoldMutationError = ErrorType<unknown>
-    export type ReleaseHoldMutationVariables = {id: string;data: BodyType<ReleaseHoldRequest>}
+    export type ReleaseHoldMutationVariables = {id: string;data?: BodyType<ReleaseHoldRequest>}
 
     export const useReleaseHold = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof releaseHold>>, TError,ReleaseHoldMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}

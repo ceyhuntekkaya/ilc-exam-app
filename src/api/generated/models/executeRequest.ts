@@ -7,4 +7,6 @@
 
 export interface ExecuteRequest {
   dryRun?: boolean;
+  waiveUnsettled?: string[];
+  waiverReason?: string;
 }

@@ -24,4 +24,5 @@ export interface AnswerView {
   feedback?: string;
   sceneMediaId?: string;
   sceneMediaKind?: string;
+  contentErased?: boolean;
 }

@@ -387,6 +387,7 @@ export * from './kurumVersionRefDto';
 export * from './level';
 export * from './licensedExam';
 export * from './lineView';
+export * from './linkedAccount';
 export * from './linkUpdateRequest';
 export * from './linkUpdateRequestRole';
 export * from './list1Params';
