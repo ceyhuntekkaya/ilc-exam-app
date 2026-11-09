@@ -5,6 +5,7 @@
  * OpenAPI spec version: v0
  */
 import type { AnswerEvaluationEscapeReason } from './answerEvaluationEscapeReason';
+import type { AnswerEvaluationModelSource } from './answerEvaluationModelSource';
 import type { AnswerEvaluationRubricJson } from './answerEvaluationRubricJson';
 import type { AnswerEvaluationSource } from './answerEvaluationSource';
 
@@ -16,6 +17,7 @@ export interface AnswerEvaluation {
   rubricJson?: AnswerEvaluationRubricJson;
   feedback?: string;
   rationale?: string;
+  modelVersion?: string;
   finalScore?: number;
   dichotomous?: number;
   reviewedBy?: string;
@@ -25,6 +27,7 @@ export interface AnswerEvaluation {
   policyId?: string;
   injectionFlag?: boolean;
   escapeReason?: AnswerEvaluationEscapeReason;
+  modelSource?: AnswerEvaluationModelSource;
   versionNo?: number;
   source?: AnswerEvaluationSource;
 }

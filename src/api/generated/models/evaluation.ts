@@ -5,6 +5,7 @@
  * OpenAPI spec version: v0
  */
 import type { EvaluationEscapeReason } from './evaluationEscapeReason';
+import type { EvaluationModelSource } from './evaluationModelSource';
 
 export interface Evaluation {
   score?: number;
@@ -21,4 +22,6 @@ export interface Evaluation {
   policyId?: string;
   injectionFlag?: boolean;
   escapeReason?: EvaluationEscapeReason;
+  bankScore?: number;
+  modelSource?: EvaluationModelSource;
 }

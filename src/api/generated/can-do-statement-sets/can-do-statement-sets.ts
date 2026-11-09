@@ -382,19 +382,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRetire2MutationOptions(options), queryClient);
     }
-    export type approve4Response200 = {
+    export type approve5Response200 = {
   data: CanDoSetDto
   status: 200
 }
 
-export type approve4ResponseSuccess = (approve4Response200) & {
+export type approve5ResponseSuccess = (approve5Response200) & {
   headers: Headers;
 };
 ;
 
-export type approve4Response = (approve4ResponseSuccess)
+export type approve5Response = (approve5ResponseSuccess)
 
-export const getApprove4Url = (id: string,) => {
+export const getApprove5Url = (id: string,) => {
 
 
 
@@ -402,9 +402,9 @@ export const getApprove4Url = (id: string,) => {
   return `/can-do-sets/${id}/approve`
 }
 
-export const approve4 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<approve4Response> => {
+export const approve5 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<approve5Response> => {
 
-  return customInstance<approve4Response>(getApprove4Url(id),
+  return customInstance<approve5Response>(getApprove5Url(id),
   {
     ...options,
     method: 'POST'
@@ -417,13 +417,13 @@ export const approve4 = async (id: string, options?: Parameters<typeof customIns
 
 
 
-export const getApprove4MutationKey = () => ['approve4'] as const;
+export const getApprove5MutationKey = () => ['approve5'] as const;
 
-export const getApprove4MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext> => {
+export const getApprove5MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext> => {
 
-const mutationKey = getApprove4MutationKey();
+const mutationKey = getApprove5MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -433,10 +433,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve4>>, Approve4MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve5>>, Approve5MutationVariables> = (props) => {
           const {id} = props ?? {};
 
-          return  approve4(id,requestOptions)
+          return  approve5(id,requestOptions)
         }
 
 
@@ -446,20 +446,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Approve4MutationResult = NonNullable<Awaited<ReturnType<typeof approve4>>>
+    export type Approve5MutationResult = NonNullable<Awaited<ReturnType<typeof approve5>>>
 
-    export type Approve4MutationError = ErrorType<unknown>
-    export type Approve4MutationVariables = {id: string}
+    export type Approve5MutationError = ErrorType<unknown>
+    export type Approve5MutationVariables = {id: string}
 
-    export const useApprove4 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useApprove5 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof approve4>>,
+        Awaited<ReturnType<typeof approve5>>,
         TError,
-        Approve4MutationVariables,
+        Approve5MutationVariables,
         TContext
       > => {
-      return useMutation(getApprove4MutationOptions(options), queryClient);
+      return useMutation(getApprove5MutationOptions(options), queryClient);
     }
     export type get11Response200 = {
   data: CanDoSetDto

@@ -16,6 +16,7 @@ import type {
 
 import type {
   AnswerEvaluation,
+  ApprovalResult,
   Rescore200,
   RescoreRequest,
   ReviewRequest
@@ -122,6 +123,87 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getReviewMutationOptions(options), queryClient);
+    }
+    export type approve4Response200 = {
+  data: ApprovalResult
+  status: 200
+}
+
+export type approve4ResponseSuccess = (approve4Response200) & {
+  headers: Headers;
+};
+;
+
+export type approve4Response = (approve4ResponseSuccess)
+
+export const getApprove4Url = (companyId: string,
+    answerId: string,) => {
+
+
+
+
+  return `/companies/${companyId}/answers/${answerId}/evaluation/approve`
+}
+
+export const approve4 = async (companyId: string,
+    answerId: string, options?: Parameters<typeof customInstance>[1]): Promise<approve4Response> => {
+
+  return customInstance<approve4Response>(getApprove4Url(companyId,answerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getApprove4MutationKey = () => ['approve4'] as const;
+
+export const getApprove4MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext> => {
+
+const mutationKey = getApprove4MutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve4>>, Approve4MutationVariables> = (props) => {
+          const {companyId,answerId} = props ?? {};
+
+          return  approve4(companyId,answerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type Approve4MutationResult = NonNullable<Awaited<ReturnType<typeof approve4>>>
+
+    export type Approve4MutationError = ErrorType<unknown>
+    export type Approve4MutationVariables = {companyId: string;answerId: string}
+
+    export const useApprove4 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof approve4>>,
+        TError,
+        Approve4MutationVariables,
+        TContext
+      > => {
+      return useMutation(getApprove4MutationOptions(options), queryClient);
     }
     export type rescoreResponse200 = {
   data: Rescore200

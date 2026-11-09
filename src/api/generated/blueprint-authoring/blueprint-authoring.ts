@@ -744,19 +744,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRepublish3MutationOptions(options), queryClient);
     }
-    export type approve8Response200 = {
+    export type approve9Response200 = {
   data: BlueprintDto
   status: 200
 }
 
-export type approve8ResponseSuccess = (approve8Response200) & {
+export type approve9ResponseSuccess = (approve9Response200) & {
   headers: Headers;
 };
 ;
 
-export type approve8Response = (approve8ResponseSuccess)
+export type approve9Response = (approve9ResponseSuccess)
 
-export const getApprove8Url = (blueprintId: string,) => {
+export const getApprove9Url = (blueprintId: string,) => {
 
 
 
@@ -764,9 +764,9 @@ export const getApprove8Url = (blueprintId: string,) => {
   return `/authoring/blueprints/${blueprintId}/approve`
 }
 
-export const approve8 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<approve8Response> => {
+export const approve9 = async (blueprintId: string, options?: Parameters<typeof customInstance>[1]): Promise<approve9Response> => {
 
-  return customInstance<approve8Response>(getApprove8Url(blueprintId),
+  return customInstance<approve9Response>(getApprove9Url(blueprintId),
   {
     ...options,
     method: 'POST'
@@ -779,13 +779,13 @@ export const approve8 = async (blueprintId: string, options?: Parameters<typeof 
 
 
 
-export const getApprove8MutationKey = () => ['approve8'] as const;
+export const getApprove9MutationKey = () => ['approve9'] as const;
 
-export const getApprove8MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve8>>, TError,Approve8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof approve8>>, TError,Approve8MutationVariables, TContext> => {
+export const getApprove9MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve9>>, TError,Approve9MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve9>>, TError,Approve9MutationVariables, TContext> => {
 
-const mutationKey = getApprove8MutationKey();
+const mutationKey = getApprove9MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -795,10 +795,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve8>>, Approve8MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve9>>, Approve9MutationVariables> = (props) => {
           const {blueprintId} = props ?? {};
 
-          return  approve8(blueprintId,requestOptions)
+          return  approve9(blueprintId,requestOptions)
         }
 
 
@@ -808,20 +808,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Approve8MutationResult = NonNullable<Awaited<ReturnType<typeof approve8>>>
+    export type Approve9MutationResult = NonNullable<Awaited<ReturnType<typeof approve9>>>
 
-    export type Approve8MutationError = ErrorType<unknown>
-    export type Approve8MutationVariables = {blueprintId: string}
+    export type Approve9MutationError = ErrorType<unknown>
+    export type Approve9MutationVariables = {blueprintId: string}
 
-    export const useApprove8 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve8>>, TError,Approve8MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useApprove9 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve9>>, TError,Approve9MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof approve8>>,
+        Awaited<ReturnType<typeof approve9>>,
         TError,
-        Approve8MutationVariables,
+        Approve9MutationVariables,
         TContext
       > => {
-      return useMutation(getApprove8MutationOptions(options), queryClient);
+      return useMutation(getApprove9MutationOptions(options), queryClient);
     }
     export type get13Response200 = {
   data: BlueprintDto

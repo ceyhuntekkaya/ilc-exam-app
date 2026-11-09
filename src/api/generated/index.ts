@@ -1,5 +1,6 @@
 export * from './admin-companies/admin-companies';
 export * from './admin-exams/admin-exams';
+export * from './ai-grading-controller/ai-grading-controller';
 export * from './anchor-setleri/anchor-setleri';
 export * from './assignment-controller/assignment-controller';
 export * from './auth/auth';

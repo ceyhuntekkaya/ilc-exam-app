@@ -6,6 +6,8 @@
  */
 import type { MediaTranscript } from './mediaTranscript';
 import type { QueueItemAnswer } from './queueItemAnswer';
+import type { QueueItemEscapeReason } from './queueItemEscapeReason';
+import type { QueueItemScoreSource } from './queueItemScoreSource';
 
 export interface QueueItem {
   answerId?: string;
@@ -27,4 +29,8 @@ export interface QueueItem {
   questionVersionId?: string;
   examPoints?: number;
   percent?: number;
+  jobStatus?: string;
+  escapeReason?: QueueItemEscapeReason;
+  scoreSource?: QueueItemScoreSource;
+  reviewedBy?: string;
 }
