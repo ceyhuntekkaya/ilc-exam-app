@@ -109,6 +109,12 @@ const CONTENT: ContentDef[] = [
     perms: [Perm.psychometricsManage],
   },
   {
+    slug: "certificate-gate",
+    label: "Sertifika Kapısı",
+    description: "Demet sertifika onayı (iki akademik onay) ve kapı hazırlık raporu",
+    perms: [Perm.psychometricsManage],
+  },
+  {
     slug: "panelist",
     label: "Panelist Çalışmalarım",
     description: "Atandığım standart belirleme çalışmaları",
@@ -165,6 +171,14 @@ export function adminNavGroups(): PanelNavGroup[] {
         { href: "/admin/skus", label: "Ürün kataloğu (SKU)" },
         { href: "/admin/packages", label: "Paketler ve haklar" },
         { href: "/admin/payments", label: "Ödeme onayı", description: "Havale siparişleri, onay, iade, ölü mektup" },
+        { href: "/admin/policy-settings", label: "Politika ayarları", description: "Süreler, iade ve tekrar sınav kuralları" },
+      ],
+    },
+    {
+      label: "Sertifika ve gözetim",
+      items: [
+        { href: "/admin/certificates", label: "Sertifikalar", description: "Liste, basım, iptal, iptal ve yeniden basım" },
+        { href: "/admin/proctor-credentials", label: "Gözetmen akreditasyonu", description: "Harici gözetmen talepleri; onay, red, askı" },
       ],
     },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
@@ -276,6 +290,34 @@ export function staffNavGroups(): PanelNavGroup[] {
           href: "/staff/payments",
           label: "Ödeme onayı",
           description: "Havale siparişleri, onay, iade, ölü mektup",
+          perms: [Perm.centerManage],
+        },
+      ],
+    },
+    {
+      label: "Sertifika ve gözetim",
+      items: [
+        {
+          href: "/staff/certificates",
+          label: "Sertifikalar",
+          description: "Liste, basım ve iptal",
+          perms: [Perm.certificateManage, Perm.assignmentEvaluate],
+        },
+        {
+          href: "/staff/proctor-credentials",
+          label: "Gözetmen akreditasyonu",
+          description: "Harici gözetmen talebi; onay yalnız merkezde",
+          perms: [Perm.centerManage],
+        },
+      ],
+    },
+    {
+      label: "Merkez ayarları",
+      items: [
+        {
+          href: "/staff/policy-settings",
+          label: "Politika ayarları",
+          description: "Süreler, iade ve tekrar sınav kuralları",
           perms: [Perm.centerManage],
         },
       ],
