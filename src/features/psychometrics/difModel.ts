@@ -14,7 +14,14 @@ export function dimensionTitle(dimension: DimensionView): string {
   return dimension.label || DIMENSION_FALLBACK[dimension.key ?? ""] || dimension.key || "Boyut";
 }
 
-export type GroupVerdictKind = "insufficient" | "no-bias" | "moderate" | "large" | "unknown";
+/** Backend `DifService.SUPPRESSED_GROUP`: eşik altı tüm gruplar tek satırda toplanır, etiket yazılmaz. */
+export const SUPPRESSED_GROUP_LABEL = "DİĞER (bastırıldı)";
+
+export function isSuppressedGroup(group: Pick<GroupView, "group">): boolean {
+  return group.group === SUPPRESSED_GROUP_LABEL;
+}
+
+export type GroupVerdictKind = "suppressed" | "insufficient" | "no-bias" | "moderate" | "large" | "unknown";
 
 export type Verdict<K extends string> = { kind: K; label: string; tone: Tone };
 
@@ -23,6 +30,8 @@ export type Verdict<K extends string> = { kind: K; label: string; tone: Tone };
  * bu durumda ki-kare/olasılık oranı/ETS düzeyi YORUMLANMAZ (az örneklemde "yanlılık yok" demek yanıltıcı olur).
  */
 export function groupVerdict(group: GroupView, threshold?: number): Verdict<GroupVerdictKind> {
+  // Bastırılmış toplu satır: küçük grupların hiçbir istatistiği yorumlanmaz (kişi tanımlanabilirliği).
+  if (isSuppressedGroup(group)) return { kind: "suppressed", label: "Bastırıldı", tone: "neutral" };
   const n = group.n ?? 0;
   const belowThreshold = threshold !== undefined && threshold > 0 && n < threshold;
   if (group.sufficientData === false || belowThreshold) {
@@ -53,7 +62,7 @@ export function dimensionVerdict(dimension: DimensionView, threshold?: number): 
   const groups = dimension.groups ?? [];
   if (dimension.status === "NO_DATA" || groups.length === 0) return { kind: "no-data", label: "Veri yok", tone: "neutral" };
   const verdicts = groups.map((g) => groupVerdict(g, threshold));
-  const usable = verdicts.filter((v) => v.kind !== "insufficient");
+  const usable = verdicts.filter((v) => v.kind !== "insufficient" && v.kind !== "suppressed");
   if (usable.length === 0) return { kind: "insufficient", label: "Yetersiz veri", tone: "neutral" };
   if (usable.some((v) => v.kind === "large")) return { kind: "large", label: "Belirgin yanlılık (C)", tone: "danger" };
   if (usable.some((v) => v.kind === "moderate")) return { kind: "moderate", label: "Orta düzey (B)", tone: "warning" };
@@ -77,4 +86,30 @@ export function computeSummaryLines(result?: ComputeResult | null): string[] {
   const excluded = Object.entries(summary.excluded ?? {}).filter(([, count]) => count > 0);
   for (const [reason, count] of excluded) lines.push(`Dışlanan (${reason}): ${count}`);
   return lines;
+}
+
+/** ISO zamanı tr-TR yerel biçimine çevirir; geçersizse null. */
+function whenText(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
+}
+
+/**
+ * "Hesapla" hatası. 429 + `code=DIF_TOO_SOON`: son hesaplamadan beri asgari süre dolmadı; `retryAfter` (ISO) gösterilir.
+ * Diğer hatalarda sunucu mesajı (varsa) ya da yedek metin.
+ */
+export function computeFailureMessage(err: unknown, fallback = "DIF hesaplanamadı"): string {
+  const status = typeof err === "object" && err !== null && "status" in err ? (err as { status?: number }).status : undefined;
+  const data = typeof err === "object" && err !== null && "data" in err ? (err as { data?: unknown }).data : undefined;
+  const body = data && typeof data === "object" ? (data as { code?: unknown; retryAfter?: unknown }) : undefined;
+  if (status === 429 || body?.code === "DIF_TOO_SOON") {
+    const when = whenText(body?.retryAfter);
+    return when
+      ? `Bu madde için DIF yakın zamanda hesaplandı. ${when} tarihinden sonra yeniden deneyin.`
+      : "Bu madde için DIF yakın zamanda hesaplandı. Biraz sonra yeniden deneyin.";
+  }
+  const text = err instanceof Error ? err.message.trim() : "";
+  return text || fallback;
 }

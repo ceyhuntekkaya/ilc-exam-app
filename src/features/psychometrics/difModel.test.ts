@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSummaryLines, dimensionTitle, dimensionVerdict, formatStat, groupVerdict } from "@/src/features/psychometrics/difModel";
+import { computeFailureMessage, computeSummaryLines, dimensionTitle, dimensionVerdict, formatStat, groupVerdict, isSuppressedGroup } from "@/src/features/psychometrics/difModel";
 
 describe("groupVerdict", () => {
   it("eşik altı n yetersiz veridir, ETS düzeyi yorumlanmaz", () => {
@@ -60,5 +60,40 @@ describe("yardımcılar", () => {
     const lines = computeSummaryLines({ summary: { usedCentral: 10, usedClientProctored: 4, excluded: { NO_PROCTOR: 2, X: 0 } } });
     expect(lines).toHaveLength(3);
     expect(lines[2]).toContain("NO_PROCTOR");
+  });
+});
+
+describe("bastırılmış toplu grup (R-15)", () => {
+  const other = { group: "DİĞER (bastırıldı)", n: 14, sufficientData: false, etsLevel: "C", chiSquare: 7.7, oddsRatio: 4.1 };
+  it("'DİĞER (bastırıldı)' satırı bastırıldı olarak tanınır, ETS yorumlanmaz", () => {
+    expect(isSuppressedGroup(other)).toBe(true);
+    expect(isSuppressedGroup({ group: "Özel" })).toBe(false);
+    expect(groupVerdict(other, 30)).toMatchObject({ kind: "suppressed", label: "Bastırıldı" });
+  });
+  it("boyut durumu bastırılmış satırı saymaz: yalnız o varsa yetersiz veri", () => {
+    expect(dimensionVerdict({ key: "NATIVE_LANGUAGE", status: "COMPUTED", groups: [other] }, 30).kind).toBe("insufficient");
+    expect(
+      dimensionVerdict(
+        { key: "NATIVE_LANGUAGE", status: "COMPUTED", groups: [other, { group: "Türkçe", n: 90, sufficientData: true, etsLevel: "A" }] },
+        30,
+      ).kind,
+    ).toBe("no-bias");
+  });
+});
+
+describe("computeFailureMessage", () => {
+  it("429 DIF_TOO_SOON: yeniden deneme zamanını gösterir", () => {
+    const err = Object.assign(new Error("çok erken"), { status: 429, data: { code: "DIF_TOO_SOON", retryAfter: "2026-11-09T12:30:00Z" } });
+    const msg = computeFailureMessage(err);
+    expect(msg).toContain("yakın zamanda hesaplandı");
+    expect(msg).toContain("2026");
+  });
+  it("429 ama retryAfter yoksa genel bekleme mesajı", () => {
+    const err = Object.assign(new Error("x"), { status: 429, data: { code: "DIF_TOO_SOON" } });
+    expect(computeFailureMessage(err)).toContain("Biraz sonra");
+  });
+  it("diğer hatalarda sunucu mesajı ya da yedek metin", () => {
+    expect(computeFailureMessage(new Error("Yetki yok"))).toBe("Yetki yok");
+    expect(computeFailureMessage("?")).toBe("DIF hesaplanamadı");
   });
 });

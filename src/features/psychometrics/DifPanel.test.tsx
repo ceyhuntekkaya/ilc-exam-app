@@ -47,4 +47,25 @@ describe("DimensionTable", () => {
     expect(within(devlet).getByText("Orta düzey (B)")).toBeInTheDocument();
     expect(within(devlet).getByText("4.400")).toBeInTheDocument();
   });
+
+  it("'DİĞER (bastırıldı)' satırında istatistik yerine açıklama ve 'Bastırıldı' rozeti görünür", () => {
+    renderWithProviders(
+      <DimensionTable
+        threshold={30}
+        dimension={{
+          key: "NATIVE_LANGUAGE",
+          label: "Ana dil",
+          status: "COMPUTED",
+          groups: [
+            { group: "Türkçe", n: 200, sufficientData: true, etsLevel: "A", chiSquare: 1.1, oddsRatio: 1.01 },
+            { group: "DİĞER (bastırıldı)", n: 18, sufficientData: false, etsLevel: "C", chiSquare: 8.8, oddsRatio: 3.3 },
+          ],
+        }}
+      />,
+    );
+    const row = screen.getAllByRole("row").find((r) => within(r).queryByText(/DİĞER \(bastırıldı\)/))!;
+    expect(within(row).getByText("Bastırıldı")).toBeInTheDocument();
+    expect(within(row).getByText(/tek satırda toplanır/)).toBeInTheDocument();
+    expect(within(row).queryByText("8.800")).not.toBeInTheDocument();
+  });
 });

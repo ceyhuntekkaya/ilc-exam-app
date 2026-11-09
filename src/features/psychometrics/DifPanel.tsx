@@ -9,13 +9,15 @@ import { useCan } from "@/src/features/panel/PanelContext";
 import { QuestionVersionPicker, formatWhen, useCentralRequest } from "@/src/features/psychometrics/central";
 import { PsychometricsTabs } from "@/src/features/psychometrics/PsychometricsTabs";
 import {
+  computeFailureMessage,
   computeSummaryLines,
   dimensionTitle,
   dimensionVerdict,
   formatStat,
   groupVerdict,
+  isSuppressedGroup,
 } from "@/src/features/psychometrics/difModel";
-import { Badge, Button, ErrorState, FormCard, PageHeader, Spinner, errorMessage, notify } from "@/src/ui";
+import { Badge, Button, ErrorState, FormCard, PageHeader, Spinner, notify } from "@/src/ui";
 import { Perm } from "@/src/lib/permissions";
 
 /** R-15 (E-36): madde başına DIF paneli — boyut bazlı tablo, ETS A/B/C rozetleri, "Hesapla" düğmesi. */
@@ -54,7 +56,7 @@ export function DifItemView({ question }: { question: QuestionSummary }) {
       await queryClient.invalidateQueries({ queryKey: getItemQueryKey(question.versionId) });
       notify.success("DIF hesaplandı");
     } catch (e) {
-      notify.error(errorMessage(e, "DIF hesaplanamadı"));
+      notify.error(computeFailureMessage(e));
     }
   }
 
@@ -126,17 +128,25 @@ export function DimensionTable({ dimension, threshold }: { dimension: DimensionV
             <tbody className="divide-y divide-border">
               {groups.map((group, index) => {
                 const g = groupVerdict(group, threshold);
-                const insufficient = g.kind === "insufficient";
+                const suppressed = g.kind === "suppressed";
+                const insufficient = g.kind === "insufficient" || suppressed;
                 return (
                   <tr key={`${group.group}-${index}`}>
-                    <td className="px-3 py-2 font-medium text-fg">{group.group ?? "—"}</td>
+                    <td className="px-3 py-2 font-medium text-fg">
+                      {group.group ?? "—"}
+                      {isSuppressedGroup(group) ? (
+                        <span className="block text-xs font-normal text-fg-muted">
+                          Eşik altındaki gruplar tek satırda toplanır; kişi tanımlanmasın diye ayrıntı gösterilmez.
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="numeric px-3 py-2 text-right">{group.n ?? 0}</td>
                     <td className="numeric px-3 py-2 text-right">{insufficient ? "—" : formatStat(group.chiSquare)}</td>
                     <td className="numeric px-3 py-2 text-right">{insufficient ? "—" : formatStat(group.oddsRatio)}</td>
                     <td className="px-3 py-2">
                       <Badge tone={g.tone}>{g.label}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-fg-muted">{formatWhen(group.computedAt)}</td>
+                    <td className="px-3 py-2 text-fg-muted">{suppressed ? "—" : formatWhen(group.computedAt)}</td>
                   </tr>
                 );
               })}
