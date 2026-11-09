@@ -13,8 +13,14 @@ export function ShopPage({ title, intro, children }: { title: string; intro?: st
           <KidButtonLink href="/shop" variant="ghost">
             Ürünler
           </KidButtonLink>
+          <KidButtonLink href="/shop/entitlements" variant="ghost">
+            Haklarım
+          </KidButtonLink>
           <KidButtonLink href="/shop/orders" variant="ghost">
             Siparişlerim
+          </KidButtonLink>
+          <KidButtonLink href="/student/history" variant="ghost">
+            Geçmişim
           </KidButtonLink>
         </nav>
         <h1 className="sb-display text-3xl leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>

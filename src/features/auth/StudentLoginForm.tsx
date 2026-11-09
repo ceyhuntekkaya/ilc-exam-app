@@ -118,6 +118,12 @@ export function StudentLoginForm({ passwordChanged = false }: { passwordChanged?
             Forgot password?
           </Link>
         </p>
+        {/* R-19: bireysel aday kaydı (R-18 /register). Giriş formu İngilizce kalır (R-02 kapsamı); yalnız bağlantı eklendi. */}
+        <p className="mt-2 text-center text-sm">
+          <Link href="/register" lang="tr" className={kidLinkClass}>
+            Kayıt ol
+          </Link>
+        </p>
       </form>
     </EntryFrame>
   );

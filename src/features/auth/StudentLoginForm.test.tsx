@@ -31,6 +31,7 @@ describe("StudentLoginForm", () => {
     expect(field).toHaveAttribute("type", "password");
     expect(field).toHaveAttribute("autocomplete", "current-password");
     expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute("href", "/forgot-password");
+    expect(screen.getByRole("link", { name: "Kayıt ol" })).toHaveAttribute("href", "/register");
   });
 
   it("shows the success note after a password change", () => {

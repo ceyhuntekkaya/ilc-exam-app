@@ -130,6 +130,25 @@ export default function StudentHomePage() {
         </div>
 
         <aside className="space-y-8">
+          {/* R-19: bireysel aday mağaza/haklar/geçmiş girişi (Türkçe; mağaza ekranları R-18/R-19). */}
+          <Block title="Ürünler ve haklarım" id="magaza">
+            <KidCard className="grid gap-3 p-5 sm:p-5.5">
+              <p lang="tr" className="text-sm text-slate-600">
+                Sınav ürünlerine göz atın, satın aldığınız hakları görün ve denemeyi başlatın.
+              </p>
+              <div lang="tr" className="flex flex-wrap gap-2">
+                <KidButtonLink href="/shop/entitlements" variant="sun">
+                  Haklarım
+                </KidButtonLink>
+                <KidButtonLink href="/shop" variant="soft">
+                  Ürünler
+                </KidButtonLink>
+                <KidButtonLink href="/student/history" variant="ghost">
+                  Geçmişim
+                </KidButtonLink>
+              </div>
+            </KidCard>
+          </Block>
           <Block title="My results" count={results?.length} id="sonuclar">
             {results == null ? (
               <KidLoading rows={1} label="Loading your results…" />
