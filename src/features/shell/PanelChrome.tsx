@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { NavGroup } from "@/src/config/panel-nav";
 import { useAuth } from "@/src/components/auth-provider";
+import { useOpenReviewCount } from "@/src/features/review/useReviewScopes";
 import { cn } from "@/src/lib/utils/cn";
 
 function Icon({ d, className }: { d: string; className?: string }) {
@@ -115,6 +116,9 @@ export function PanelChrome({
     setOpen(false);
   }
   const close = useCallback(() => setOpen(false), []);
+  // R-32: menüde "İnceleme talepleri" varsa açık talep sayısı (status=OPEN&size=1 → total).
+  const hasReviewItem = groups.some((group) => group.items.some((item) => item.badge === "reviewRequests"));
+  const openReviewCount = useOpenReviewCount(hasReviewItem && !navLoading);
 
   useEffect(() => {
     document.getElementById("main")?.focus({ preventScroll: true });
@@ -201,11 +205,21 @@ export function PanelChrome({
                       >
                         <Icon d={iconFor(item.href)} className={cn("size-4.5 shrink-0", active ? "text-primary-200" : "text-(--sidebar-fg-muted) group-hover/nav:text-white")} />
                         <span className="truncate">{item.label}</span>
+                        {item.badge === "reviewRequests" && openReviewCount ? (
+                          <span
+                            className="numeric ml-auto shrink-0 rounded-full bg-secondary-300 px-1.5 text-[11px] font-bold text-neutral-950"
+                            aria-label={`${openReviewCount} açık talep`}
+                            data-testid="review-open-badge"
+                          >
+                            {openReviewCount.toLocaleString("tr-TR")}
+                          </span>
+                        ) : null}
                         {/* Optik form baloncuğu: aktif sayfa "işaretli şık". */}
                         <span
                           aria-hidden="true"
                           className={cn(
-                            "ml-auto size-2.5 shrink-0 rounded-full transition",
+                            item.badge === "reviewRequests" && openReviewCount ? "ml-2" : "ml-auto",
+                            "size-2.5 shrink-0 rounded-full transition",
                             active ? "bg-secondary-300 shadow-[0_0_0_3px_rgb(255_213_70/0.18)]" : "ring-1 ring-white/12 group-hover/nav:ring-white/30",
                           )}
                         />

@@ -11,6 +11,8 @@ export type PanelNavItem = {
   hidden?: boolean;
   /** Yalnız merkez (ILC Content) personeline görünür; izin kodu olmayan panelist ekranı için. */
   centralOnly?: boolean;
+  /** R-32: menü satırında sayı rozeti (şimdilik yalnız açık inceleme talebi sayısı). */
+  badge?: "reviewRequests";
 };
 
 /** Menü/rota kapısı: izin + (varsa) merkez personeli koşulu. Süper Admin menüsü süzülmez. */
@@ -204,6 +206,18 @@ export function adminNavGroups(): PanelNavGroup[] {
       ],
     },
     {
+      label: "İnceleme ve itiraz",
+      items: [
+        {
+          href: "/admin/review-requests",
+          label: "İnceleme talepleri",
+          description: "Adayların inceleme talepleri (bireysel havuz dahil); puan düzeltme ve sonuçlandırma",
+          perms: [Perm.assignmentEvaluate],
+          badge: "reviewRequests",
+        },
+      ],
+    },
+    {
       label: "Canlıya geçiş",
       items: [
         {
@@ -290,6 +304,13 @@ export function staffNavGroups(): PanelNavGroup[] {
           description: "Bireysel adayların insan bekleyen ve denetim bekleyen cevapları",
           perms: [Perm.assignmentEvaluate],
           centralOnly: true,
+        },
+        {
+          href: "/staff/review-requests",
+          label: "İnceleme talepleri",
+          description: "Adayların inceleme talepleri; puan düzeltme ve sonuçlandırma",
+          perms: [Perm.assignmentEvaluate],
+          badge: "reviewRequests",
         },
         {
           href: "/staff/results",
