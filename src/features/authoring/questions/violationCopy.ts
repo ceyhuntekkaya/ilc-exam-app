@@ -1,3 +1,4 @@
+import { ELEMENT_POINTS_NOTICE } from "@/src/features/authoring/templates/elementPointsNotice";
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 
 export type QuestionViolation = {
@@ -65,7 +66,7 @@ const FIELD: Record<string, string> = {
   groupOf: "Grup ataması",
   correctRegionIds: "Doğru bölgeler",
   zoneOf: "Bölge ataması",
-  elementPoints: "Parça puanları",
+  elementPoints: "Eleman puanları",
   sampleAnswers: "Örnek cevap",
   distractors: "Çeldiriciler",
   minSelections: "En az seçim",
@@ -155,7 +156,11 @@ export function describeQuestionViolation(
     if (label) bits.push(label);
   });
   const where = bits.length ? bits.join(" · ") : "Soru";
-  const text = violation.message?.trim() || "Bu alan eksik. İlgili bölümü doldurun.";
+  let text = violation.message?.trim() || "Bu alan eksik. İlgili bölümü doldurun.";
+  // E-09: eleman puanı uyarılarına aynı dille not düşülür (S2-06'ya kadar puanlamaya yansımaz).
+  if (violation.path.includes("elementPoints") && !text.includes(ELEMENT_POINTS_NOTICE)) {
+    text = `${text} ${ELEMENT_POINTS_NOTICE}`;
+  }
   return { where, text };
 }
 

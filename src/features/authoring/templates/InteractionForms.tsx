@@ -5,6 +5,7 @@ import { InlineHtmlField } from "@/src/features/authoring/blocks/InlineHtmlField
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
 import { OptionListEditor, type OptionFormat, type OptionItem } from "@/src/features/authoring/blocks/OptionListEditor";
 import { newId, nextSequentialId } from "@/src/features/authoring/blocks/ids";
+import { ELEMENT_POINTS_NOTICE } from "@/src/features/authoring/templates/elementPointsNotice";
 import { extractBlankIds } from "@/src/features/exam-player/html";
 import {
   Button,
@@ -117,6 +118,24 @@ const SETTING_HELP: Record<string, string> = {
   "Dosya yüklemeye izin ver":
     "Öğrenci kayıt yerine hazır bir video dosyası da yükleyebilir.",
 };
+
+/** Anahtarda `elementPoints` dolu mu (boş nesne / null / dizi doluluk sayılmaz). Tipten bağımsız: doğrulayıcı hangi tipe bakıyorsa o tipin anahtarında bu alan bulunur. */
+export function hasElementPoints(answerKey: unknown): boolean {
+  const raw = asObj(answerKey).elementPoints;
+  return raw != null && typeof raw === "object" && !Array.isArray(raw) && Object.keys(raw as AnyRec).length > 0;
+}
+
+/**
+ * E-09 (editör uyarısı): ObjectiveScorer (D22) `elementPoints`'i okumuyor; kısmi puan eşit bölünür. Gerçek bağlama S2-06'da.
+ */
+export function ElementPointsNotice({ answerKey }: { answerKey: unknown }) {
+  if (!hasElementPoints(answerKey)) return null;
+  return (
+    <p role="note" data-testid="element-points-notice" className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-warning">
+      {ELEMENT_POINTS_NOTICE}
+    </p>
+  );
+}
 
 function SettingToggle(props: { label: string; checked: boolean; disabled?: boolean; onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
   return <SharedSettingToggle {...props} description={SETTING_HELP[props.label]} />;

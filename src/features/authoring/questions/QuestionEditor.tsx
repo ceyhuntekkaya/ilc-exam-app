@@ -10,7 +10,7 @@ import {
 import { htmlOf } from "@/src/features/exam-player/types";
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
 import { PlaybackPolicyFields, withShownPlayback, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
-import { AnswerKeyForm, InteractionForm } from "@/src/features/authoring/templates/InteractionForms";
+import { AnswerKeyForm, ElementPointsNotice, InteractionForm } from "@/src/features/authoring/templates/InteractionForms";
 import { TEMPLATE_REGISTRY, getTemplate } from "@/src/features/authoring/templates/registry";
 import {
   describeQuestionViolation,
@@ -1065,6 +1065,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                         title={`2. ${template?.label ?? "Etkileşim"} ayarları`}
                         hint={`${template?.hint ?? ""} Doğru cevabı burada işaretleyebilirsiniz; puanlama ayrıntıları 5. adımdadır.`.trim()}
                       >
+                      <ElementPointsNotice answerKey={partDraft.answerKey} />
                       <InteractionForm
                         type={selectedPart.interactionType}
                         value={partDraft.interaction}
@@ -1171,6 +1172,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
                           </Select>
                         </Field>
                       ) : null}
+                      <ElementPointsNotice answerKey={partDraft.answerKey} />
                       <AnswerKeyForm
                         type={selectedPart.interactionType}
                         interaction={partDraft.interaction}
