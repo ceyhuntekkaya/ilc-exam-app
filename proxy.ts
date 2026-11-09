@@ -23,6 +23,8 @@ function matchProtected(pathname: string): SessionUserType | null {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return "SUPER_ADMIN";
   if (pathname === "/staff" || pathname.startsWith("/staff/")) return "STAFF";
   if (pathname === "/student" || pathname.startsWith("/student/")) return "STUDENT";
+  // R-18: bireysel aday mağazası giriş ister (yalnız /shop ve altı; /register herkese açık kalır).
+  if (pathname === "/shop" || pathname.startsWith("/shop/")) return "STUDENT";
   return null;
 }
 
