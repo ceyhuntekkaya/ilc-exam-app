@@ -1,8 +1,9 @@
 "use client";
 
-import { useMyCertificate, useOpenReviewRequest } from "@/src/api/generated/candidate-portal-controller/candidate-portal-controller";
+import { useMyCertificate, useMyReviewRequest, useOpenReviewRequest } from "@/src/api/generated/candidate-portal-controller/candidate-portal-controller";
 import { useMyHistory } from "@/src/api/generated/report-controller/report-controller";
 import { formatDay, reviewRequestFailureMessage, toCertificateView, validateReviewReason } from "@/src/features/portal/certificateModel";
+import { toReviewStatusView } from "@/src/features/portal/reviewStatusModel";
 import { Badge, Button, EmptyState, ErrorState, Skeleton, Textarea, notify } from "@/src/ui";
 import { useState } from "react";
 
@@ -20,7 +21,7 @@ export function CandidateCertificateSection({ applicationId }: { applicationId: 
   return (
     <div lang="tr" className="grid gap-4">
       <CertificateCard applicationResultId={resultId} />
-      <ReviewRequestCard applicationResultId={resultId} />
+      <ReviewRequestSection applicationResultId={resultId} />
     </div>
   );
 }
@@ -93,6 +94,46 @@ export function CertificateCard({ applicationResultId }: { applicationResultId: 
       </div>
       <p className="text-xs text-fg-muted">
         Sertifikanın geçerliliğini herkes bu bağlantıyla doğrulayabilir. Sertifika PDF&apos;i bu sürümde indirilemez.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * R-32: talep varsa durumu ("İnceleniyor" / "Sonuçlandı: puan değişmedi" / "Puanınız güncellendi" + personel notu),
+ * yoksa R-19 talep açma kutusu. Durum ucu hata verirse talep kutusu yine açılır (akış kilitlenmez).
+ */
+export function ReviewRequestSection({ applicationResultId }: { applicationResultId: string }) {
+  const query = useMyReviewRequest(applicationResultId);
+  if (query.isLoading) return <Skeleton className="h-24 rounded-xl" />;
+  const view = toReviewStatusView(query.isError ? null : query.data?.data);
+  if (view.kind === "none") return <ReviewRequestCard applicationResultId={applicationResultId} />;
+  return (
+    <section
+      aria-label="İnceleme talebi"
+      role="status"
+      data-status={view.kind}
+      className="grid gap-2 rounded-xl border border-border bg-surface p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-fg">İnceleme talebiniz</h2>
+        <Badge tone={view.kind === "open" ? "warning" : view.kind === "changed" ? "info" : "success"} dot>
+          {view.title}
+        </Badge>
+      </div>
+      <p className="text-sm text-fg">{view.body}</p>
+      {view.kind === "changed" ? (
+        <p className="text-sm text-fg-muted">Yeni sonucunuz bu sayfada gösterilir; önceki sonucunuz geçerli değildir.</p>
+      ) : null}
+      {view.note ? (
+        <div className="rounded-lg bg-bg px-3.5 py-3">
+          <p className="text-xs font-medium text-fg-subtle">Değerlendirici notu</p>
+          <p className="text-sm whitespace-pre-wrap text-fg">{view.note}</p>
+        </div>
+      ) : null}
+      <p className="text-xs text-fg-muted">
+        Talep tarihi: {formatDay(view.requestedAt)}
+        {view.resolvedAt ? ` · Sonuçlanma: ${formatDay(view.resolvedAt)}` : ""}
       </p>
     </section>
   );

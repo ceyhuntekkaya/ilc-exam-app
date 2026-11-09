@@ -1,13 +1,15 @@
 import { fireEvent, renderWithProviders, screen, waitFor } from "@/src/test/renderWithProviders";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const historyState = vi.fn();
 const certificateState = vi.fn();
 const reviewMock = vi.fn();
+const reviewStatusState = vi.fn();
 
 vi.mock("@/src/api/generated/report-controller/report-controller", () => ({ useMyHistory: () => historyState() }));
 vi.mock("@/src/api/generated/candidate-portal-controller/candidate-portal-controller", () => ({
   useMyCertificate: () => certificateState(),
+  useMyReviewRequest: () => reviewStatusState(),
   useOpenReviewRequest: () => ({ mutateAsync: reviewMock, isPending: false }),
 }));
 
@@ -15,6 +17,11 @@ const { CandidateCertificateSection } = await import("./CandidateCertificateSect
 
 const history = (items: unknown[]) => ({ isLoading: false, isError: false, data: { data: items } });
 const cert = (data: unknown) => ({ isLoading: false, isError: false, data: { data }, refetch: vi.fn() });
+
+beforeEach(() => {
+  // Varsayılan: bu sonuç için talep yok (R-19 talep açma kutusu).
+  reviewStatusState.mockReturnValue({ isLoading: false, isError: false, data: { data: { requested: false } } });
+});
 
 afterEach(() => {
   vi.clearAllMocks();
