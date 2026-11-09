@@ -115,6 +115,7 @@ export function adminNavGroups(): PanelNavGroup[] {
         { href: "/admin/policy-bundles", label: "Politika demetleri" },
         { href: "/admin/skus", label: "Ürün kataloğu (SKU)" },
         { href: "/admin/packages", label: "Paketler ve haklar" },
+        { href: "/admin/payments", label: "Ödeme onayı", description: "Havale siparişleri, onay, iade, ölü mektup" },
       ],
     },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
@@ -216,6 +217,17 @@ export function staffNavGroups(): PanelNavGroup[] {
           label: "Personel",
           description: "Kullanıcı ekle, rol ve kapsam ata",
           perms: [Perm.staffAssignScope],
+        },
+      ],
+    },
+    {
+      label: "Muhasebe",
+      items: [
+        {
+          href: "/staff/payments",
+          label: "Ödeme onayı",
+          description: "Havale siparişleri, onay, iade, ölü mektup",
+          perms: [Perm.centerManage],
         },
       ],
     },
