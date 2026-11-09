@@ -187,6 +187,17 @@ export function adminNavGroups(): PanelNavGroup[] {
         { href: "/admin/proctor-credentials", label: "Gözetmen akreditasyonu", description: "Harici gözetmen talepleri; onay, red, askı" },
       ],
     },
+    {
+      label: "Veri koruma (KVKK)",
+      items: [
+        {
+          href: "/admin/retention",
+          label: "Saklama ve silme",
+          description: "Saklama süreleri, silme koşumu, yasal tutma, silme talepleri",
+          perms: [Perm.retentionManage, Perm.erasureManage],
+        },
+      ],
+    },
     { label: "Sınav yönetimi", items: contentNavItems("/admin") },
     {
       label: "Raporlar",
@@ -326,6 +337,13 @@ export function staffNavGroups(): PanelNavGroup[] {
     {
       label: "Merkez ayarları",
       items: [
+        {
+          href: "/staff/retention",
+          label: "Saklama ve silme (KVKK)",
+          description: "Saklama süreleri, silme koşumu, yasal tutma, silme talepleri",
+          perms: [Perm.retentionManage, Perm.erasureManage],
+          centralOnly: true,
+        },
         {
           href: "/staff/level-report-jobs",
           label: "Seviye raporu işleri",

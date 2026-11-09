@@ -19,4 +19,13 @@ describe("R-27 menüleri (izne göre)", () => {
     expect(hrefs(visibleNav("SUPER_ADMIN"))).toContain("/admin/level-report-jobs");
     expect(matchingNavItem(href, staffNavGroups())?.centralOnly).toBe(true);
   });
+  it("Saklama ve silme yalnız retention:manage ya da erasure:manage + merkez personeline; admin'de görünür", () => {
+    const href = "/staff/retention";
+    expect(hrefs(visibleNav("STAFF", [Perm.retentionManage], HQ_CONTENT_ORG_ID))).toContain(href);
+    expect(hrefs(visibleNav("STAFF", [Perm.erasureManage], HQ_CONTENT_ORG_ID))).toContain(href);
+    expect(hrefs(visibleNav("STAFF", [Perm.retentionManage], "00000000-0000-0000-0000-000000000001"))).not.toContain(href);
+    expect(hrefs(visibleNav("STAFF", [Perm.centerManage, Perm.studentManage], HQ_CONTENT_ORG_ID))).not.toContain(href);
+    expect(hrefs(visibleNav("SUPER_ADMIN"))).toContain("/admin/retention");
+    expect(matchingNavItem(href, staffNavGroups())?.perms).toEqual([Perm.retentionManage, Perm.erasureManage]);
+  });
 });
