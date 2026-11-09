@@ -59,6 +59,16 @@ const nextConfig: NextConfig = {
         source: "/verify/:code",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      // F6-01 / R-18: kayıt rotaları herkese açık ve URL'de tek kullanımlık token taşır: dizine girmesin,
+      // Referer ile sızmasın, önbelleğe alınmasın. Desen YALNIZ /register ve altı (başka yola dokunmaz).
+      {
+        source: "/register/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
     ];
   },
 };
