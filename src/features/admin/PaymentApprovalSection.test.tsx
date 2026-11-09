@@ -9,13 +9,13 @@ const retryMock = vi.fn();
 const byReferenceMock = vi.fn();
 
 vi.mock("@/src/api/generated/payment/payment", () => ({
-  useList4: () => listState(),
+  useList5: () => listState(),
   useGrantJobs: () => deadState(),
-  useApprove1: () => ({ mutateAsync: approveMock, isPending: false }),
+  useApprove3: () => ({ mutateAsync: approveMock, isPending: false }),
   useRefund: () => ({ mutateAsync: refundMock, isPending: false }),
   useRetryGrantJob: () => ({ mutateAsync: retryMock, isPending: false }),
   byReference: (code: string) => byReferenceMock(code),
-  getList4QueryKey: () => ["/payment/orders"],
+  getList5QueryKey: () => ["/payment/orders"],
   getGrantJobsQueryKey: () => ["/payment/grant-jobs"],
 }));
 

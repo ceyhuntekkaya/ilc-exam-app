@@ -5,14 +5,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   byReference,
   getGrantJobsQueryKey,
-  getList4QueryKey,
-  useApprove1,
+  getList5QueryKey,
+  useApprove3,
   useGrantJobs,
-  useList4,
+  useList5,
   useRefund,
   useRetryGrantJob,
 } from "@/src/api/generated/payment/payment";
-import type { AccountingOrderDto, GrantJobDto, List4Status } from "@/src/api/generated/models";
+import type { AccountingOrderDto, GrantJobDto, List5Status } from "@/src/api/generated/models";
 import {
   ACCOUNTING_STATUS_TABS,
   canApproveOrder,
@@ -54,18 +54,18 @@ export function PaymentApprovalSection() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>("CREATED");
   const [page, setPage] = useState(0);
-  const orders = useList4({ ...(status ? { status: status as List4Status } : {}), page, size: PAGE_SIZE });
+  const orders = useList5({ ...(status ? { status: status as List5Status } : {}), page, size: PAGE_SIZE });
   const rows: AccountingOrderDto[] = orders.data?.data.items ?? [];
   const total = orders.data?.data.total ?? 0;
 
   const [approving, setApproving] = useState<AccountingOrderDto | null>(null);
   const [refunding, setRefunding] = useState<AccountingOrderDto | null>(null);
   const [approveError, setApproveError] = useState<string | undefined>();
-  const approve = useApprove1();
+  const approve = useApprove3();
 
   async function refreshAll() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: getList4QueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getList5QueryKey() }),
       queryClient.invalidateQueries({ queryKey: getGrantJobsQueryKey() }),
     ]);
   }

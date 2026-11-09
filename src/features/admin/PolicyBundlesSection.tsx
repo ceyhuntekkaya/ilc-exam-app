@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getList3QueryKey, useCreate2, useList3, useUpdate1 } from "@/src/api/generated/policy-bundles/policy-bundles";
+import { getList4QueryKey, useCreate2, useList4, useUpdate1 } from "@/src/api/generated/policy-bundles/policy-bundles";
 import type { BundleDto } from "@/src/api/generated/models";
 import {
   CERTIFICATION_LOCKED_KEYS,
@@ -45,7 +45,7 @@ import {
  * (PUT /policy-bundles/{id}). Demetin tipi değişmez. Doğrulama sunucudadır: 400 `error` metni olduğu gibi gösterilir.
  */
 export function PolicyBundlesSection() {
-  const { data, isLoading, isError, error, refetch } = useList3();
+  const { data, isLoading, isError, error, refetch } = useList4();
   const bundles = useMemo(() => sortBundles(data?.data ?? []), [data]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -134,7 +134,7 @@ export function BundleEditor({ bundle }: { bundle: BundleDto }) {
       const saved = res.data;
       setBase(saved);
       setForm(toFormState(saved));
-      await queryClient.invalidateQueries({ queryKey: getList3QueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getList4QueryKey() });
       notify.success("Demet kaydedildi");
     } catch (err) {
       // 400: backend `{"error": "..."}` metni (ör. "SCORING_MODE geçersiz: X") mutator'da Error.message olur.
@@ -273,7 +273,7 @@ function NewBundleDialog({
     setError(null);
     try {
       const res = await create.mutateAsync({ data: { examPurpose: purpose as BundleDto["examPurpose"] } });
-      await queryClient.invalidateQueries({ queryKey: getList3QueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getList4QueryKey() });
       notify.success("Demet oluşturuldu");
       onCreated(res.data?.id);
     } catch (err) {

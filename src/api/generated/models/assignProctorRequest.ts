@@ -4,8 +4,10 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { AssignProctorRequestRole } from './assignProctorRequestRole';
 
 export interface AssignProctorRequest {
   staffId?: string;
   maxCandidates?: number;
+  role?: AssignProctorRequestRole;
 }

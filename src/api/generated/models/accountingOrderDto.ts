@@ -21,4 +21,5 @@ export interface AccountingOrderDto {
   approvedAt?: string;
   expiredAt?: string;
   grantStatus?: string;
+  refundEntitlement?: string;
 }

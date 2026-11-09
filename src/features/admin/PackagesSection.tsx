@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useList6 as useListCompanies } from "@/src/api/generated/admin-companies/admin-companies";
+import { useList7 as useListCompanies } from "@/src/api/generated/admin-companies/admin-companies";
 import { useList as useListSkus } from "@/src/api/generated/product-sku-catalog/product-sku-catalog";
 import {
-  getList7QueryKey,
+  getList8QueryKey,
   useCancel1,
   useCreate5,
-  useList7,
+  useList8,
   usePurchase,
   useUpdate3,
 } from "@/src/api/generated/subscription-packages-central/subscription-packages-central";
@@ -101,7 +101,7 @@ function CompanyPicker({ value, onChange }: { value: string; onChange: (id: stri
 }
 
 function CompanyPackages({ companyId }: { companyId: string }) {
-  const packages = useList7(companyId);
+  const packages = useList8(companyId);
   const skusQuery = useListSkus();
   const skus: SkuDto[] = useMemo(() => skusQuery.data?.data ?? [], [skusQuery.data]);
   const rows: PackageDto[] = packages.data?.data ?? [];
@@ -215,7 +215,7 @@ export function PackageFormDialog({
     try {
       if (pkg?.id) await update.mutateAsync({ companyId, id: pkg.id, data });
       else await create.mutateAsync({ companyId, data });
-      await queryClient.invalidateQueries({ queryKey: getList7QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList8QueryKey(companyId) });
       notify.success(editing ? "Paket güncellendi" : "Paket tanımlandı");
       onClose();
     } catch (err) {
@@ -327,7 +327,7 @@ export function PurchaseDialog({ companyId, pkg, onClose }: { companyId: string;
     if (!pkg.id) return;
     try {
       await purchase.mutateAsync({ companyId, id: pkg.id, data: toPurchaseRequest(form, idempotencyKey) });
-      await queryClient.invalidateQueries({ queryKey: getList7QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList8QueryKey(companyId) });
       notify.success("Hak eklendi");
       onClose();
     } catch (err) {
@@ -372,7 +372,7 @@ function CancelConfirm({ companyId, pkg, onClose }: { companyId: string; pkg: Pa
     setError(undefined);
     try {
       await cancel.mutateAsync({ companyId, id: pkg.id });
-      await queryClient.invalidateQueries({ queryKey: getList7QueryKey(companyId) });
+      await queryClient.invalidateQueries({ queryKey: getList8QueryKey(companyId) });
       notify.success("Paket iptal edildi");
       close();
     } catch (err) {

@@ -12,4 +12,6 @@ export interface PanelistStat {
   ratedCount?: number;
   totalCount?: number;
   cutEstimate?: number;
+  credentialValid?: boolean;
+  counted?: boolean;
 }

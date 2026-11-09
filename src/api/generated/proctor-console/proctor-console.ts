@@ -25,11 +25,11 @@ import type {
 
 import type {
   AssignProctorRequest,
+  AssignmentView,
   CenterSession,
   IdentityCheckRequest,
   NoteRequest,
   PauseAll200,
-  ProctorAssignment,
   ResumeAll200
 } from '../models';
 
@@ -294,7 +294,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getResumeAllMutationOptions(options), queryClient);
     }
     export type listProctorsResponse200 = {
-  data: ProctorAssignment[]
+  data: AssignmentView[]
   status: 200
 }
 
@@ -400,7 +400,7 @@ export function useListProctors<TData = Awaited<ReturnType<typeof listProctors>>
 
 
 export type assignProctorResponse201 = {
-  data: ProctorAssignment
+  data: AssignmentView
   status: 201
 }
 

@@ -14,7 +14,7 @@ vi.mock("@/src/api/generated/product-sku-catalog/product-sku-catalog", () => ({
   getListQueryKey: () => ["/skus"],
 }));
 vi.mock("@/src/api/generated/policy-bundles/policy-bundles", () => ({
-  useList3: () => ({ data: { data: [] } }),
+  useList4: () => ({ data: { data: [] } }),
 }));
 vi.mock("@/src/api/generated/authoring-dictionaries/authoring-dictionaries", () => ({
   useListAgeBands: () => ({ data: { data: [] } }),

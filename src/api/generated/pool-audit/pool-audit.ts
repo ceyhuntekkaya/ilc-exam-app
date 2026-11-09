@@ -147,19 +147,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getRetire3MutationOptions(options), queryClient);
     }
-    export type approve5Response200 = {
+    export type approve7Response200 = {
   data: PoolAuditDto
   status: 200
 }
 
-export type approve5ResponseSuccess = (approve5Response200) & {
+export type approve7ResponseSuccess = (approve7Response200) & {
   headers: Headers;
 };
 ;
 
-export type approve5Response = (approve5ResponseSuccess)
+export type approve7Response = (approve7ResponseSuccess)
 
-export const getApprove5Url = (questionVersionId: string,) => {
+export const getApprove7Url = (questionVersionId: string,) => {
 
 
 
@@ -167,8 +167,8 @@ export const getApprove5Url = (questionVersionId: string,) => {
   return `/authoring/pool-audit/${questionVersionId}/approve`
 }
 
-export const approve5 = async (questionVersionId: string,
-    approveRequest: ApproveRequest, options?: Parameters<typeof customInstance>[1]): Promise<approve5Response> => {
+export const approve7 = async (questionVersionId: string,
+    approveRequest: ApproveRequest, options?: Parameters<typeof customInstance>[1]): Promise<approve7Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -184,7 +184,7 @@ export const approve5 = async (questionVersionId: string,
     }
     return headers;
   };
-return customInstance<approve5Response>(getApprove5Url(questionVersionId),
+return customInstance<approve7Response>(getApprove7Url(questionVersionId),
   {
     ...options,
     method: 'POST',
@@ -197,13 +197,13 @@ return customInstance<approve5Response>(getApprove5Url(questionVersionId),
 
 
 
-export const getApprove5MutationKey = () => ['approve5'] as const;
+export const getApprove7MutationKey = () => ['approve7'] as const;
 
-export const getApprove5MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext> => {
+export const getApprove7MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve7>>, TError,Approve7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve7>>, TError,Approve7MutationVariables, TContext> => {
 
-const mutationKey = getApprove5MutationKey();
+const mutationKey = getApprove7MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -213,10 +213,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve5>>, Approve5MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve7>>, Approve7MutationVariables> = (props) => {
           const {questionVersionId,data} = props ?? {};
 
-          return  approve5(questionVersionId,data,requestOptions)
+          return  approve7(questionVersionId,data,requestOptions)
         }
 
 
@@ -226,20 +226,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Approve5MutationResult = NonNullable<Awaited<ReturnType<typeof approve5>>>
-    export type Approve5MutationBody = BodyType<ApproveRequest>
-    export type Approve5MutationError = ErrorType<unknown>
-    export type Approve5MutationVariables = {questionVersionId: string;data: BodyType<ApproveRequest>}
+    export type Approve7MutationResult = NonNullable<Awaited<ReturnType<typeof approve7>>>
+    export type Approve7MutationBody = BodyType<ApproveRequest>
+    export type Approve7MutationError = ErrorType<unknown>
+    export type Approve7MutationVariables = {questionVersionId: string;data: BodyType<ApproveRequest>}
 
-    export const useApprove5 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useApprove7 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve7>>, TError,Approve7MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof approve5>>,
+        Awaited<ReturnType<typeof approve7>>,
         TError,
-        Approve5MutationVariables,
+        Approve7MutationVariables,
         TContext
       > => {
-      return useMutation(getApprove5MutationOptions(options), queryClient);
+      return useMutation(getApprove7MutationOptions(options), queryClient);
     }
     export type kurumVersionsAcrossCompaniesResponse200 = {
   data: KurumVersionRefDto[]

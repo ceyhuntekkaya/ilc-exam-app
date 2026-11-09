@@ -9,9 +9,9 @@ export type List14Status = typeof List14Status[keyof typeof List14Status];
 
 
 export const List14Status = {
-  PENDING: 'PENDING',
-  IN_PROGRESS: 'IN_PROGRESS',
-  APPROVED: 'APPROVED',
-  RETURNED: 'RETURNED',
-  CANCELLED: 'CANCELLED',
+  DRAFT: 'DRAFT',
+  IN_REVIEW: 'IN_REVIEW',
+  PUBLISHED: 'PUBLISHED',
+  UNPUBLISHED: 'UNPUBLISHED',
+  ARCHIVED: 'ARCHIVED',
 } as const;

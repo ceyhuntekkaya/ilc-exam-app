@@ -8,7 +8,7 @@ import {
   useActivate1,
   useDelete2,
   useGet6,
-  useSuspend,
+  useSuspend1,
 } from "@/src/api/generated/admin-companies/admin-companies";
 import {
   companyDetailNav,
@@ -42,7 +42,7 @@ export function CompanyDetailFrame({
   const queryClient = useQueryClient();
   const { data, isLoading, isError, error } = useGet6(companyId);
   const company = data?.data;
-  const suspend = useSuspend();
+  const suspend = useSuspend1();
   const activate = useActivate1();
   const remove = useDelete2();
   const [confirm, setConfirm] = useState<"suspend" | "activate" | "delete" | null>(null);

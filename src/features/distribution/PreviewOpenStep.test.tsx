@@ -9,7 +9,7 @@ vi.mock("@/src/api/generated/company-distributions/company-distributions", () =>
   useOpen: () => ({ mutateAsync: openMutateMock, isPending: false }),
   getCandidatesQueryKey: (id: string) => [`/c/${id}`],
   getDetailQueryKey: (id: string) => [`/d/${id}`],
-  getList5QueryKey: () => ["/list"],
+  getList6QueryKey: () => ["/list"],
 }));
 
 if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.showModal) {

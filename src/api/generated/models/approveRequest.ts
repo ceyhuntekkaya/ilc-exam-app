@@ -6,6 +6,5 @@
  */
 
 export interface ApproveRequest {
-  copyrightDeclaration?: string;
   note?: string;
 }

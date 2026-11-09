@@ -4,10 +4,9 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { List9Status } from './list9Status';
 
 export type List9Params = {
-status?: List9Status;
+companyId?: string;
 page?: number;
 size?: number;
 };

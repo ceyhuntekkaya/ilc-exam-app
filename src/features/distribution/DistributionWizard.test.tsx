@@ -11,7 +11,7 @@ vi.mock("@/src/api/generated/company-distributions/company-distributions", () =>
   useDetail: () => ({ data: undefined, isLoading: false, isError: false }),
   useCreate3: () => ({ mutateAsync: createMock, isPending: false }),
   useUpdate2: () => ({ mutateAsync: updateMock, isPending: false }),
-  getList5QueryKey: () => ["/list"],
+  getList6QueryKey: () => ["/list"],
   getDetailQueryKey: (id: string) => [`/d/${id}`],
   getTargetRulesQueryKey: (id: string) => [`/r/${id}`],
   getPreviewQueryKey: (id: string) => [`/p/${id}`],
@@ -30,10 +30,10 @@ vi.mock("@/src/api/generated/product-sku-catalog/product-sku-catalog", () => ({
   useList: () => query([{ id: "sku-1", name: "B1 Seviye Belirleme" }]),
 }));
 vi.mock("@/src/api/generated/exam-authoring/exam-authoring", () => ({
-  useList12: () => query({ items: [{ id: "11111111-2222-3333-4444-555555555555", title: "Kasım Sınavı", code: "K-1" }] }),
+  useList14: () => query({ items: [{ id: "11111111-2222-3333-4444-555555555555", title: "Kasım Sınavı", code: "K-1" }] }),
 }));
 vi.mock("@/src/api/generated/exam-centers/exam-centers", () => ({
-  useList8: () => query([]),
+  useList10: () => query([]),
   useListSessions: () => query([]),
 }));
 

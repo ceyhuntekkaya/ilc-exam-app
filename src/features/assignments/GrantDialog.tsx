@@ -1,6 +1,6 @@
 "use client";
 
-import { useList6 } from "@/src/api/generated/admin-companies/admin-companies";
+import { useList7 } from "@/src/api/generated/admin-companies/admin-companies";
 import { useYears } from "@/src/api/generated/admin-companies/admin-companies";
 import { useListExams } from "@/src/api/generated/admin-exams/admin-exams";
 import { useCreateGrant } from "@/src/api/generated/assignment-controller/assignment-controller";
@@ -29,7 +29,7 @@ export function GrantDialog({
     { status: "PUBLISHED" },
     { query: { enabled: open && !lockedExamId } },
   ).data?.data ?? [];
-  const companies = useList6(
+  const companies = useList7(
     { size: 100 },
     { query: { enabled: open && !lockedCompanyId } },
   ).data?.data?.content ?? [];

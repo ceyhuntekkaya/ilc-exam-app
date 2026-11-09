@@ -10,7 +10,7 @@ import {
   useRetire,
   useUpdate,
 } from "@/src/api/generated/product-sku-catalog/product-sku-catalog";
-import { useList3 as useListBundles } from "@/src/api/generated/policy-bundles/policy-bundles";
+import { useList4 as useListBundles } from "@/src/api/generated/policy-bundles/policy-bundles";
 import { useListAgeBands } from "@/src/api/generated/authoring-dictionaries/authoring-dictionaries";
 import type { AgeBandDto, BundleDto, SkuDto } from "@/src/api/generated/models";
 import { PURPOSE_ORDER, purposeLabel, shortId, sortBundles } from "@/src/features/admin/policyBundleModel";
