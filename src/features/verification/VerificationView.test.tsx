@@ -62,4 +62,28 @@ describe("VerificationView", () => {
     expect(screen.getByText("İptal edilmiştir")).toBeInTheDocument();
     expect(screen.getByText("ABCDE12345")).toBeInTheDocument();
   });
+  it("R-20: superseded=true seviye raporu 'geçersiz kılındı' der; aday/sınav/seviye alanı HİÇ görünmez (gövdede olsa bile)", () => {
+    renderWithProviders(
+      <VerificationView
+        body={{ status: "LEVEL_REPORT", superseded: true, verificationCode: "OLD1", candidateName: "Ayşe Yılmaz", examTitle: "ILC B1", cefrLevel: "B1", grade: null }}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Bu rapor geçersiz kılındı (sonuç yeniden yayınlandı veya iptal edildi).");
+    expect(screen.queryByText("Ayşe Yılmaz")).not.toBeInTheDocument();
+    expect(screen.queryByText("ILC B1")).not.toBeInTheDocument();
+    expect(screen.queryByText("CEFR bandı")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sertifika numarası")).not.toBeInTheDocument();
+    expect(screen.getByText(/bir sertifika değildir/i)).toBeInTheDocument();
+  });
+
+  it("R-20: superseded=false/null/yok → geçerli rapor görünür; null alanlar çökmez", () => {
+    for (const superseded of [false, null, undefined]) {
+      const { unmount } = renderWithProviders(
+        <VerificationView body={{ status: "LEVEL_REPORT", superseded, candidateName: null, examTitle: null, cefrLevel: null, grade: null, integrityLevel: null, assuranceLevel: null, issuedAt: null }} />,
+      );
+      expect(screen.queryByText(/geçersiz kılındı/)).not.toBeInTheDocument();
+      expect(screen.getByText("CEFR bandı")).toBeInTheDocument();
+      unmount();
+    }
+  });
 });

@@ -7,7 +7,7 @@ import { getClientAccessToken } from "@/src/api/mutator";
  * `/api/backend` aynı-kökenli BFF proxy'si, tarayıcı çerezleri otomatik gider; bellek-içi
  * istemci token'ı (varsa) `customInstance`'ın yaptığı gibi ek olarak eklenir.
  */
-async function fetchPdf(url: string): Promise<Blob> {
+export async function fetchPdf(url: string): Promise<Blob> {
   const token = getClientAccessToken();
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -27,7 +27,7 @@ async function fetchPdf(url: string): Promise<Blob> {
   return response.blob();
 }
 
-function triggerDownload(blob: Blob, filename: string) {
+export function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

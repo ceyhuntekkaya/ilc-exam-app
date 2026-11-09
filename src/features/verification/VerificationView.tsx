@@ -100,7 +100,33 @@ function CertificateOrRevokedView({ body, revoked }: { body: VerificationBody; r
   );
 }
 
+/**
+ * R-20: yeniden yayınlanan/iptal edilen sonucun ESKİ seviye raporu kodu `superseded=true` döner; aday/sınav/seviye alanı YOKTUR
+ * (geçersiz belge bilgi sızdırmaz). Alan yoksa/null ise (eski sunucu) geçerli rapor sayılır — yalnız açık `true` geçersiz kılar.
+ */
+export function isSupersededLevelReport(body: VerificationBody): boolean {
+  return body.superseded === true;
+}
+
+function SupersededLevelReportView() {
+  return (
+    <div className="grid gap-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="neutral">Seviye raporu</Badge>
+        <Badge tone="danger">Geçersiz kılındı</Badge>
+      </div>
+      <div role="alert" className="rounded-lg border border-danger/20 bg-danger-bg p-3 text-sm text-danger">
+        Bu rapor geçersiz kılındı (sonuç yeniden yayınlandı veya iptal edildi).
+      </div>
+      <div className="rounded-lg border border-border bg-neutral-50 p-3 text-sm font-medium text-fg">
+        Bu belge bir sertifika değildir / This document is not a certificate.
+      </div>
+    </div>
+  );
+}
+
 function LevelReportView({ body }: { body: VerificationBody }) {
+  if (isSupersededLevelReport(body)) return <SupersededLevelReportView />;
   const candidateName = str(body.candidateName) ?? "—";
   const examTitle = str(body.examTitle) ?? "—";
   const issuedAt = date(body.issuedAt);

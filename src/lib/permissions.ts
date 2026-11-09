@@ -28,6 +28,10 @@ export const Perm = {
   centerManage: "center:manage",
   /** Sertifika basımı, iptal ve iptal+yeniden basım (backend `PermissionCodes.CERTIFICATE_MANAGE`, R-22; yalnız merkez rolleri). */
   certificateManage: "certificate:manage",
+  /** KVKK saklama süresi, silme koşumu ve yasal tutma (backend `PermissionCodes.RETENTION_MANAGE`, R-24; yalnız merkez). */
+  retentionManage: "retention:manage",
+  /** Talep üzerine silme taleplerini yürütme/reddetme (backend `PermissionCodes.ERASURE_MANAGE`, R-24; yalnız merkez). */
+  erasureManage: "erasure:manage",
 } as const;
 
 export type PermissionCode = (typeof Perm)[keyof typeof Perm];

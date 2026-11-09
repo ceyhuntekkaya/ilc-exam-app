@@ -2,6 +2,7 @@
 
 import { customInstance } from "@/src/api/mutator";
 import { ResultPaper, type StudentReport } from "@/src/features/results/ResultsSection";
+import { LevelReportDownloadSection } from "@/src/features/reports/LevelReportDownloadSection";
 import { StudentLevelReportSection } from "@/src/features/reports/StudentLevelReportSection";
 import { CandidateCertificateSection } from "@/src/features/portal/CandidateCertificateSection";
 import { KidError, KidLoading } from "@/src/features/student/ui";
@@ -49,6 +50,7 @@ export function StudentResultView({ applicationId }: { applicationId: string }) 
         answerMediaSrc={(mediaId) => `/api/backend/me/results/${applicationId}/media/${mediaId}/content`}
       />
       <StudentLevelReportSection applicationId={applicationId} />
+      <LevelReportDownloadSection applicationId={applicationId} />
       <CandidateCertificateSection applicationId={applicationId} />
       <Link href="/student/history" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
         Geçmişimi gör
