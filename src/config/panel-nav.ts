@@ -97,6 +97,12 @@ const CONTENT: ContentDef[] = [
     perms: [Perm.psychometricsManage],
   },
   {
+    slug: "item-fit",
+    label: "Madde Uyumu",
+    description: "Infit/outfit (MNSQ) madde uyum istatistiği; salt okunur",
+    perms: [Perm.psychometricsManage],
+  },
+  {
     slug: "anchor-sets",
     label: "Anchor Setleri",
     description: "Kalibrasyon bağlayıcı maddeleri: oluştur, incele, onayla",

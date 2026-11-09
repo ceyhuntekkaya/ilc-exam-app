@@ -8,6 +8,7 @@ import { cn } from "@/src/lib/utils/cn";
 const TABS = [
   { slug: "ctt", label: "CTT" },
   { slug: "dif", label: "DIF" },
+  { slug: "item-fit", label: "Madde uyumu" },
   { slug: "anchor-sets", label: "Anchor setleri" },
   { slug: "standard-setting", label: "Standart belirleme" },
   { slug: "certificate-gate", label: "Sertifika kapısı" },
