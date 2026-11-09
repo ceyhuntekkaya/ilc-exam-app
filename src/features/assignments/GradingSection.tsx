@@ -1,6 +1,8 @@
 "use client";
 
+import { requestRun, requestSingle } from "@/src/api/generated/ai-grading-controller/ai-grading-controller";
 import { useReview } from "@/src/api/generated/evaluation-controller/evaluation-controller";
+import type { ApprovalResult, QueueItem } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import {
   AssignmentScopeFields,
@@ -16,21 +18,31 @@ import {
 } from "@/src/features/assignments/GradingAiPrompts";
 import { GradingPrerequisites, prerequisiteQueryKey } from "@/src/features/assignments/GradingPrerequisites";
 import { GradingSystemPrompt } from "@/src/features/assignments/GradingSystemPrompt";
-import { getTemplate } from "@/src/features/authoring/templates/registry";
+import { AnswerReviewCard, type CardDraft } from "@/src/features/grading/AnswerReviewCard";
+import {
+  LANE_COPY,
+  laneOf,
+  mediaIdsOf,
+  modeOf,
+  formatGradeScore,
+  percentFromAward,
+  whole,
+  type Lane,
+  type MediaTranscript,
+  type ReviewCardItem,
+} from "@/src/features/grading/answerCardModel";
+import { isUnreviewedAi, runProgressText, runSummaryText } from "@/src/features/grading/aiGradingModel";
+import { AI_RUN_POLL_MS, useAiRuns } from "@/src/features/grading/useAiRuns";
 import { useOpsHref } from "@/src/features/panel/PanelContext";
 import { cn } from "@/src/lib/utils/cn";
 import {
-  Badge,
   Button,
   ConfirmDialog,
   EmptyState,
   ErrorState,
-  Field,
   FilterTabs,
-  Input,
   PageHeader,
   Skeleton,
-  Textarea,
   errorMessage,
   notify,
 } from "@/src/ui";
@@ -38,27 +50,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Item = {
-  answerId: string;
-  applicationId: string;
-  attemptNo?: number;
-  studentId?: string | null;
-  studentName?: string | null;
-  gradeId?: string | null;
-  branchId?: string | null;
-  interactionType: string;
-  answer: Record<string, unknown>;
-  mediaIds?: string[] | null;
-  transcripts?: MediaTranscript[] | null;
-  feedback?: string | null;
-  rationale?: string | null;
-  finalScore?: number | null;
-  examPoints?: number | null;
-  percent?: number | null;
-  scored: boolean;
-  published?: boolean;
-  questionVersionId?: string | null;
-};
+/** Kuyruk satırı (`GET …/assignments/{id}/grading`, üretilmiş `QueueItem`) ekranda kart görünümüyle okunur. */
+type Item = ReviewCardItem & Pick<QueueItem, "interactionType">;
 
 type GradingSummary = {
   submitted: number;
@@ -67,6 +60,10 @@ type GradingSummary = {
   awaitingManual: number;
   ready: number;
   published: number;
+  /** R-29: örneklemde olup insan onayı bekleyen deneme (yayını engeller). */
+  awaitingAudit?: number;
+  /** R-29: AI puanı olup hiç gözden geçirilmemiş deneme. */
+  unreviewedAi?: number;
 };
 
 type AutoCompleteResult = {
@@ -79,25 +76,6 @@ type AutoCompleteResult = {
 type PublishResult = {
   published: number;
   notReady: number;
-};
-
-type AiGrade = {
-  score?: number | null;
-  percent?: number | null;
-  examPoints?: number | null;
-  rationale?: string | null;
-  feedback?: string | null;
-  raw?: string | null;
-  rejectedRaw?: string | null;
-  error?: string | null;
-};
-
-type GradeDraft = {
-  score: string;
-  percent: string;
-  rationale: string;
-  feedback: string;
-  examPoints: number | null;
 };
 
 type ModelReply = {
@@ -120,38 +98,7 @@ type AiRequestPreview = {
   error?: string | null;
 };
 
-type MediaTranscript = {
-  mediaId: string;
-  transcript?: string | null;
-  status?: string | null;
-  error?: string | null;
-};
-
-type Lane = "audio" | "text" | "video" | "image";
 type Mode = "ai" | "manual" | "prerequisites" | "prompt" | "system";
-
-const LANE_COPY: Record<Lane, { title: string; hint: string; empty: string }> = {
-  audio: {
-    title: "Sesler",
-    hint: "Konuşma kaydı. Sesi Tanımla metne çevirir. AI ile Değerlendir puanı kaydeder.",
-    empty: "Ses kaydı yok",
-  },
-  text: {
-    title: "Metinler",
-    hint: "Yazılı cevap. AI ile Değerlendir puanı, gerekçeyi ve geri bildirimi kaydeder.",
-    empty: "Metin cevap yok",
-  },
-  video: {
-    title: "Videolar",
-    hint: "Öğrencinin yüklediği video.",
-    empty: "Video yok",
-  },
-  image: {
-    title: "Görseller",
-    hint: "Öğrencinin yüklediği görsel.",
-    empty: "Görsel yok",
-  },
-};
 
 /** TEMPORARY: her AI kartında modele giden isteği gösterir. Kaldırılacak. */
 function AiRequestDump({
@@ -238,176 +185,6 @@ function DumpBlock({ label, text }: { label: string; text: string }) {
       <pre className="mt-1 max-h-72 min-w-0 overflow-auto rounded-md border border-border bg-surface p-2 font-mono text-xs leading-5 break-words whitespace-pre-wrap text-fg">
         {text || "—"}
       </pre>
-    </div>
-  );
-}
-
-function laneOf(type: string): Lane {
-  switch (type) {
-    case "AUDIO_RESPONSE":
-      return "audio";
-    case "VIDEO_RESPONSE":
-      return "video";
-    case "IMAGE_RESPONSE":
-      return "image";
-    default:
-      return "text";
-  }
-}
-
-function modeOf(lane: Lane): "ai" | "manual" {
-  return lane === "audio" || lane === "text" ? "ai" : "manual";
-}
-
-function interactionLabel(type: string) {
-  return getTemplate(type)?.label ?? type;
-}
-
-function answerText(answer: Record<string, unknown>): { text: string; raw: boolean } {
-  const direct = answer?.text;
-  if (typeof direct === "string" && direct.trim()) return { text: direct, raw: false };
-  const texts = Object.values(answer ?? {}).filter((value): value is string => typeof value === "string" && value.trim() !== "");
-  if (texts.length > 0) return { text: texts.join("\n\n"), raw: false };
-  return { text: JSON.stringify(answer ?? {}, null, 2), raw: true };
-}
-
-function mediaIdsOf(item: Item): string[] {
-  const ids = new Set<string>();
-  for (const id of item.mediaIds ?? []) {
-    if (id) ids.add(id);
-  }
-  const one = item.answer?.mediaId;
-  if (typeof one === "string" && one) ids.add(one);
-  const many = item.answer?.mediaIds;
-  if (Array.isArray(many)) {
-    for (const id of many) {
-      if (typeof id === "string" && id) ids.add(id);
-    }
-  }
-  return [...ids];
-}
-
-function formatGradeScore(value: number) {
-  if (!Number.isFinite(value)) return "";
-  return String(Math.round(value * 100) / 100);
-}
-
-function whole(value: number) {
-  if (!Number.isFinite(value)) return "";
-  return String(Math.round(value));
-}
-
-/** 38 ve sınav puanı 10 → 4. */
-function awardFromPercent(percent: number, examPoints: number | null | undefined) {
-  if (!Number.isFinite(percent)) return "";
-  const bounded = Math.min(100, Math.max(0, Math.round(percent)));
-  if (examPoints == null || !Number.isFinite(examPoints) || examPoints <= 0) return String(bounded);
-  const points = Math.round((bounded * examPoints) / 100);
-  return String(Math.min(examPoints, Math.max(0, points)));
-}
-
-function percentFromAward(award: number, examPoints: number | null | undefined) {
-  if (!Number.isFinite(award)) return "";
-  if (examPoints == null || !Number.isFinite(examPoints) || examPoints <= 0) return whole(award);
-  return String(Math.min(100, Math.max(0, Math.round((award / examPoints) * 100))));
-}
-
-function aiReady(item: Item, transcripts: Record<string, MediaTranscript>): "ready" | "audio" | "empty" {
-  const lane = laneOf(item.interactionType);
-  if (lane === "audio") {
-    const ids = mediaIdsOf(item);
-    if (ids.length === 0) return "audio";
-    const ready = ids.every((id) => {
-      const row = transcripts[id];
-      return row?.status === "READY" && Boolean(row.transcript?.trim());
-    });
-    return ready ? "ready" : "audio";
-  }
-  if (lane === "text") {
-    const { text, raw } = answerText(item.answer ?? {});
-    return !raw && text.trim() ? "ready" : "empty";
-  }
-  return "empty";
-}
-
-function formatScore(value: number) {
-  return value.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
-}
-
-function mediaSrc(companyId: string, applicationId: string, mediaId: string) {
-  return `/api/backend/companies/${companyId}/applications/${applicationId}/media/${mediaId}/content`;
-}
-
-function AnswerBody({
-  item,
-  companyId,
-  lane,
-  transcripts,
-  activeMediaId,
-}: {
-  item: Item;
-  companyId: string;
-  lane: Lane;
-  transcripts: Record<string, MediaTranscript>;
-  activeMediaId: string | null;
-}) {
-  const ids = mediaIdsOf(item);
-  if (lane === "text") {
-    const { text, raw } = answerText(item.answer ?? {});
-    return (
-      <div className="rounded-lg bg-bg px-3.5 py-3">
-        <p className="mb-1 text-xs font-medium text-fg-subtle">Öğrenci cevabı</p>
-        <p className={raw ? "font-mono text-xs whitespace-pre-wrap text-fg-muted" : "text-sm whitespace-pre-wrap text-fg"}>{text}</p>
-      </div>
-    );
-  }
-  if (ids.length === 0) {
-    return <p className="text-sm text-fg-muted">{LANE_COPY[lane].empty}.</p>;
-  }
-  return (
-    <div className="grid gap-3">
-      {ids.map((mediaId) => {
-        const src = mediaSrc(companyId, item.applicationId, mediaId);
-        if (lane === "audio") {
-          const transcript = transcripts[mediaId];
-          const listening = activeMediaId === mediaId;
-          return (
-            <div key={mediaId} className="grid gap-2">
-              <audio controls preload="none" src={src} className="w-full" />
-              {listening ? <p className="text-sm text-fg-muted">Dinleniyor…</p> : null}
-              {!listening && transcript?.status === "READY" ? (
-                <div className="rounded-lg bg-bg px-3.5 py-3">
-                  <p className="mb-1 text-xs font-medium text-fg-subtle">Metin</p>
-                  <p className="text-sm whitespace-pre-wrap text-fg">
-                    {transcript.transcript?.trim() ? transcript.transcript : "Sesten metin çıkmadı."}
-                  </p>
-                </div>
-              ) : null}
-              {!listening && transcript?.status === "FAILED" ? (
-                <p role="alert" className="text-sm text-danger">
-                  {transcript.error || "Metne çevrilemedi"}
-                </p>
-              ) : null}
-            </div>
-          );
-        }
-        if (lane === "video") {
-          return (
-            <video
-              key={mediaId}
-              controls
-              preload="metadata"
-              src={src}
-              className="aspect-video max-h-72 w-full rounded-lg bg-black object-contain"
-            />
-          );
-        }
-        return (
-          // Öğrenci yüklemesi; boyut cevap dosyasına göre değişir.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={mediaId} src={src} alt="Öğrenci görseli" className="max-h-72 w-full rounded-lg bg-bg object-contain" />
-        );
-      })}
     </div>
   );
 }
@@ -522,6 +299,10 @@ export function GradingSection({
   const query = useQuery({
     queryKey: ["grading", companyId, queueIds, scope.gradeValue, scope.branchValue],
     enabled: queueIds.length > 0,
+    // R-30: kuyrukta (PENDING/RUNNING) iş olan cevap varsa liste 5 sn'de bir yenilenir. Sayfa kapanıp açılınca
+    // sürmekte olan koşum buradan görülür; koşum kimliği saklanmaz.
+    refetchInterval: (q: { state: { data?: { data: Item[] } } }) =>
+      (q.state.data?.data ?? []).some((row) => row.jobStatus === "PENDING" || row.jobStatus === "RUNNING") ? AI_RUN_POLL_MS : false,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (scope.gradeValue) params.set("gradeId", scope.gradeValue);
@@ -551,7 +332,7 @@ export function GradingSection({
       return { data };
     },
   });
-  const rows = query.data?.data ?? [];
+  const rows = (query.data?.data ?? []) as Item[];
   const [score, setScore] = useState<Record<string, string>>({});
   const [percent, setPercent] = useState<Record<string, string>>({});
   const [rationale, setRationale] = useState<Record<string, string>>({});
@@ -559,9 +340,9 @@ export function GradingSection({
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ index: number; total: number } | null>(null);
-  const [gradingAnswerId, setGradingAnswerId] = useState<string | null>(null);
-  const [modelReplies, setModelReplies] = useState<Record<string, ModelReply>>({});
-  const [gradingProgress, setGradingProgress] = useState<{ index: number; total: number } | null>(null);
+  const [queueingAll, setQueueingAll] = useState(false);
+  const [queueingId, setQueueingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>("pending");
   const [mode, setMode] = useState<Mode>("ai");
   const [confirmPublish, setConfirmPublish] = useState(false);
@@ -623,8 +404,27 @@ export function GradingSection({
     },
   });
   const summary = summaryQ.data?.data;
+  const { track, active: runsActive, progress: runProgress } = useAiRuns(companyId, (finished) => {
+    void Promise.all([query.refetch(), summaryQ.refetch()]);
+    notify.success(
+      finished.failed > 0
+        ? `AI değerlendirmesi bitti. ${runProgressText(finished)}, ${finished.failed} iş başarısız.`
+        : `AI değerlendirmesi bitti. ${runProgressText(finished)}.`,
+    );
+  });
+  // Sayfa yeniden açılmışsa (koşum kimliği yok) sürmekte olan iş cevapların jobStatus alanından görülür;
+  // iş bitince özet sayaçları da yenilenir.
+  const activeJobCount = (query.data?.data ?? []).filter((row) => row.jobStatus === "PENDING" || row.jobStatus === "RUNNING").length;
+  const prevActiveJobs = useRef(0);
+  const refetchSummary = summaryQ.refetch;
+  useEffect(() => {
+    if (prevActiveJobs.current > 0 && activeJobCount === 0) void refetchSummary();
+    prevActiveJobs.current = activeJobCount;
+  }, [activeJobCount, refetchSummary]);
 
   const isScored = (item: Item) => item.scored || saved[item.answerId];
+  // R-30: insan bakmadığı AI puanı "Bekleyen"de kalır (Onayla / Değiştir bekliyor); "Puanlanan" yalnız insan/otomatik kararı gösterir.
+  const isSettled = (item: Item) => isScored(item) && !(isUnreviewedAi(item) && !saved[item.answerId]);
   const scoped = contextMismatch
     ? []
     : rows.filter((item) => {
@@ -635,10 +435,27 @@ export function GradingSection({
         if (scope.branchValue && item.branchId !== scope.branchValue) return false;
         return true;
       });
-  const statusRows = scoped.filter((item) => (filter === "done" ? isScored(item) : !isScored(item)));
+  const statusRows = scoped.filter((item) => (filter === "done" ? isSettled(item) : !isSettled(item)));
   const aiRows = statusRows.filter((item) => modeOf(laneOf(item.interactionType)) === "ai");
   const manualRows = statusRows.filter((item) => modeOf(laneOf(item.interactionType)) === "manual");
   const visible = mode === "ai" ? aiRows : manualRows;
+  // R-30: AI metni eksik sorular (escapeReason=PROMPT_MISSING) tekil listelenir; her biri "AI metni" sekmesine bağlanır.
+  const missingPromptQuestions = useMemo(() => {
+    const seen = new Map<string, number>();
+    for (const item of scoped) {
+      if (item.escapeReason !== "PROMPT_MISSING" || item.scored || !item.questionVersionId) continue;
+      seen.set(item.questionVersionId, (seen.get(item.questionVersionId) ?? 0) + 1);
+    }
+    return [...seen.entries()].map(([questionVersionId, answers]) => {
+      const row = promptItems.find((p) => p.questionVersionId === questionVersionId);
+      return {
+        questionVersionId,
+        answers,
+        label: row ? `${row.questionOrder}. soru${row.questionCode ? ` (${row.questionCode})` : ""}` : "Soru",
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoped, aiPrompts.data]);
   const leftLane: Lane = mode === "ai" ? "audio" : "video";
   const rightLane: Lane = mode === "ai" ? "text" : "image";
   const leftItems = visible.filter((item) => laneOf(item.interactionType) === leftLane);
@@ -676,8 +493,9 @@ export function GradingSection({
   const actionBusy =
     transcriptProgress != null ||
     activeMediaId != null ||
-    gradingAnswerId != null ||
-    gradingProgress != null ||
+    queueingAll ||
+    queueingId != null ||
+    approvingId != null ||
     savingId != null ||
     saveProgress != null ||
     autoPending ||
@@ -722,8 +540,8 @@ export function GradingSection({
     }
   }
 
-  async function save(item: Item, silent = false, draft?: GradeDraft) {
-    const raw = draft ? draft.score : scoreValue(item);
+  async function save(item: Item, silent = false) {
+    const raw = scoreValue(item);
     if (raw.trim() === "") {
       if (!silent) notify.error("Önce puan girin");
       return false;
@@ -733,12 +551,12 @@ export function GradingSection({
       if (!silent) notify.error("Puan sayı olmalı");
       return false;
     }
-    const examMax = draft?.examPoints ?? item.examPoints;
+    const examMax = item.examPoints;
     if (examMax != null && (finalScore < 0 || finalScore > examMax)) {
       if (!silent) notify.error(`Puan 0 ile ${formatGradeScore(examMax)} arasında olmalı`);
       return false;
     }
-    const percentRaw = (draft ? draft.percent : percentValue(item)).trim();
+    const percentRaw = percentValue(item).trim();
     const percentScore = percentRaw === "" ? Number(percentFromAward(finalScore, examMax)) : Number(percentRaw);
     setSavingId(item.answerId);
     try {
@@ -750,8 +568,8 @@ export function GradingSection({
             percent: Number.isNaN(percentScore) ? undefined : percentScore,
             criteria: [{ label: "General", score: finalScore }],
           },
-          feedback: draft ? draft.feedback : feedbackValue(item),
-          rationale: draft ? draft.rationale : rationaleValue(item),
+          feedback: feedbackValue(item),
+          rationale: rationaleValue(item),
         } as { finalScore: number },
       });
       setSaved((currentSaved) => ({ ...currentSaved, [item.answerId]: true }));
@@ -768,146 +586,61 @@ export function GradingSection({
     }
   }
 
-  function rememberReply(answerId: string, grade: AiGrade) {
-    setModelReplies((current) => ({
-      ...current,
-      [answerId]: {
-        raw: grade.raw ?? "",
-        rejectedRaw: grade.rejectedRaw,
-        error: grade.error,
-      },
-    }));
-  }
-
-  function applyGrade(answerId: string, grade: AiGrade, examPoints: number | null): GradeDraft | null {
-    rememberReply(answerId, grade);
-    if (grade.error || grade.score == null || Number.isNaN(Number(grade.score))) return null;
-    const max = grade.examPoints ?? examPoints;
-    const percentScore = grade.percent == null || Number.isNaN(Number(grade.percent))
-      ? Number(percentFromAward(Number(grade.score), max))
-      : Number(grade.percent);
-    const draft: GradeDraft = {
-      score: whole(Number(grade.score)),
-      percent: whole(percentScore),
-      rationale: grade.rationale ?? "",
-      feedback: grade.feedback ?? "",
-      examPoints: max,
-    };
-    setPercent((current) => ({ ...current, [answerId]: draft.percent }));
-    setScore((current) => ({ ...current, [answerId]: draft.score }));
-    setRationale((current) => ({ ...current, [answerId]: draft.rationale }));
-    setFeedback((current) => ({ ...current, [answerId]: draft.feedback }));
-    return draft;
-  }
-
-  async function evaluateOne(item: Item, silent = false): Promise<"graded" | "audio" | "empty" | "failed" | "foreign"> {
+  /**
+   * R-30: tarayıcı AI sonucunu KAYDETMEZ. İş kuyruğa atılır; puanı sunucudaki worker yazar (`AI_ACCEPTED`).
+   * Gelen sonuç gözden geçirilip Onayla / Değiştir ile insan puanına çevrilir.
+   */
+  async function queueSingle(item: Item) {
     if (promptFromAnotherExam(item.questionVersionId, promptItems)) {
-      if (!silent) notify.error(FOREIGN_EXAM_PROMPT);
-      return "foreign";
+      notify.error(FOREIGN_EXAM_PROMPT);
+      return;
     }
-    const ready = aiReady(item, transcripts);
-    if (ready !== "ready") {
-      if (!silent) {
-        notify.error(
-          ready === "audio"
-            ? "Ses metne çevrilmedi. Önce Sesi Tanımla ile çevirin."
-            : "Öğrenci cevabı yok",
-        );
-      }
-      return ready;
-    }
-    if (runLock.current) return "failed";
-    runLock.current = true;
-    setGradingAnswerId(item.answerId);
+    if (queueingId || queueingAll) return;
+    setQueueingId(item.answerId);
     try {
-      const result = await customInstance<{ data: AiGrade }>(
-        `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
-        { method: "POST" },
-      );
-      const draft = result.data ? applyGrade(item.answerId, result.data, item.examPoints ?? null) : null;
-      if (!draft) {
-        if (!silent) notify.error(result.data?.error || "Model geçerli bir değerlendirme döndürmedi");
-        return "failed";
-      }
-      if (!(await save(item, silent, draft))) return "failed";
-      return "graded";
+      const result = await requestSingle(companyId, item.answerId);
+      track(result.data?.runId ? [result.data.runId] : []);
+      notify.success("Cevap AI kuyruğuna alındı");
+      void query.refetch();
     } catch (err) {
-      if (!silent) notify.error(errorMessage(err, "Değerlendirilemedi"));
-      return "failed";
+      notify.error(errorMessage(err, "Kuyruğa alınamadı"));
     } finally {
-      runLock.current = false;
-      setGradingAnswerId(null);
+      setQueueingId(null);
     }
   }
 
-  async function evaluateAll() {
-    const items = [...leftItems, ...rightItems].filter((item) => !item.published);
-    if (items.length === 0 || actionBusy || runLock.current) return;
+  async function queueAll() {
+    if (queueIds.length === 0 || actionBusy || runLock.current) return;
     runLock.current = true;
-    let graded = 0;
-    let skippedAudio = 0;
-    let skippedForeign = 0;
-    let failed = 0;
-    let lastError = "Değerlendirilemedi";
-    setGradingProgress({ index: 0, total: items.length });
+    setQueueingAll(true);
     try {
-      for (let index = 0; index < items.length; index += 1) {
-        const item = items[index];
-        setGradingProgress({ index: index + 1, total: items.length });
-        if (promptFromAnotherExam(item.questionVersionId, promptItems)) {
-          skippedForeign += 1;
-          continue;
-        }
-        const ready = aiReady(item, transcripts);
-        if (ready === "audio") {
-          skippedAudio += 1;
-          continue;
-        }
-        if (ready === "empty") continue;
-        setGradingAnswerId(item.answerId);
-        try {
-          const result = await customInstance<{ data: AiGrade }>(
-            `/companies/${companyId}/answers/${item.answerId}/ai-evaluation`,
-            { method: "POST" },
-          );
-          const draft = result.data ? applyGrade(item.answerId, result.data, item.examPoints ?? null) : null;
-          if (draft && (await save(item, true, draft))) graded += 1;
-          else {
-            failed += 1;
-            lastError = result.data?.error || "Kaydedilemedi";
-          }
-        } catch (err) {
-          failed += 1;
-          lastError = errorMessage(err, "Değerlendirilemedi");
-          if (lastError.includes("Dil modeli") || lastError.includes("API anahtarı") || lastError.includes("Ollama")) {
-            break;
-          }
-        } finally {
-          setGradingAnswerId(null);
-        }
-      }
+      const result = await requestRun(companyId, scopeBody);
+      const summaryText = runSummaryText(result.data ?? {});
+      if ((result.data?.queued ?? 0) > 0) notify.success(summaryText);
+      else notify.error(`Sıraya alınacak cevap yok. ${summaryText}`);
+      track(result.data?.runIds ?? []);
+      void Promise.all([query.refetch(), summaryQ.refetch()]);
+    } catch (err) {
+      notify.error(errorMessage(err, "Kuyruğa alınamadı"));
     } finally {
       runLock.current = false;
-      setGradingAnswerId(null);
-      setGradingProgress(null);
+      setQueueingAll(false);
     }
-    if (graded > 0) {
-      notify.success(`${graded} cevap değerlendirilip kaydedildi`);
-      void Promise.all([query.refetch(), summaryQ.refetch()]);
-    }
-    if (skippedAudio > 0) {
-      notify.error(`${skippedAudio} ses metne çevrilmediği için atlandı. Önce Sesi Tanımla kullanın.`);
-    }
-    if (skippedForeign > 0) {
-      notify.error(
-        skippedForeign === 1
-          ? FOREIGN_EXAM_PROMPT
-          : `${skippedForeign} cevap başka sınavın metnini kullandığı için atlandı. AI metni sekmesinden bu sınav için yeniden oluşturun.`,
-      );
-    }
-    if (failed > 0) notify.error(lastError);
-    if (graded === 0 && skippedAudio === 0 && skippedForeign === 0 && failed === 0) {
-      notify.error("Değerlendirilecek cevap yok");
+  }
+
+  async function approve(item: Item) {
+    if (approvingId) return;
+    setApprovingId(item.answerId);
+    try {
+      await customInstance<{ data: ApprovalResult }>(`/companies/${companyId}/answers/${item.answerId}/evaluation/approve`, {
+        method: "POST",
+      });
+      notify.success("AI puanı onaylandı");
+      await Promise.all([query.refetch(), summaryQ.refetch()]);
+    } catch (err) {
+      notify.error(errorMessage(err, "Onaylanamadı"));
+    } finally {
+      setApprovingId(null);
     }
   }
 
@@ -1022,147 +755,55 @@ export function GradingSection({
 
   function renderCard(item: Item, index: number) {
     const lane = laneOf(item.interactionType);
-    const locked = Boolean(item.published);
     const foreignPrompt = promptFromAnotherExam(item.questionVersionId, promptItems);
-    const done = isScored(item);
-    const shownScore = scoreValue(item).trim() === "" ? null : Number(scoreValue(item));
-    const shownPercent = percentValue(item).trim() === "" ? null : Number(percentValue(item));
-    const examMax = item.examPoints;
+    const draft: CardDraft = {
+      percent: percentValue(item),
+      score: scoreValue(item),
+      rationale: rationaleValue(item),
+      feedback: feedbackValue(item),
+    };
     return (
-      <article key={item.answerId} className="grid min-w-0 gap-3 rounded-xl border border-border p-4">
-        <header className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-fg">{item.studentName?.trim() || "Öğrenci"}</p>
-            <p className="text-xs text-fg-muted">
-              <span className="numeric mr-1.5 text-fg-subtle">#{index + 1}</span>
-              {item.attemptNo && item.attemptNo > 0 ? `${item.attemptNo}. deneme · ` : ""}
-              {interactionLabel(item.interactionType)}
+      <AnswerReviewCard
+        key={item.answerId}
+        item={item}
+        index={index}
+        companyId={companyId}
+        transcripts={transcripts}
+        activeMediaId={activeMediaId}
+        draft={draft}
+        done={isScored(item)}
+        busy={actionBusy}
+        onDraftChange={(patch) => {
+          if (patch.percent !== undefined) setPercent((current) => ({ ...current, [item.answerId]: patch.percent as string }));
+          if (patch.score !== undefined) setScore((current) => ({ ...current, [item.answerId]: patch.score as string }));
+          if (patch.rationale !== undefined) setRationale((current) => ({ ...current, [item.answerId]: patch.rationale as string }));
+          if (patch.feedback !== undefined) setFeedback((current) => ({ ...current, [item.answerId]: patch.feedback as string }));
+        }}
+        saving={savingId === item.answerId}
+        onSave={() => void save(item)}
+        approving={approvingId === item.answerId}
+        onApprove={() => void approve(item)}
+        evaluating={queueingId === item.answerId}
+        evaluateDisabled={foreignPrompt || queueingAll}
+        onEvaluate={() => void queueSingle(item)}
+        notice={
+          foreignPrompt ? (
+            <p className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm break-words text-warning">
+              {FOREIGN_EXAM_PROMPT}
             </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {shownScore != null && !Number.isNaN(shownScore) ? (
-              <span className="numeric text-sm font-semibold text-fg">
-                {shownPercent != null && !Number.isNaN(shownPercent) ? `${whole(shownPercent)}% · ` : ""}
-                {formatGradeScore(shownScore)}
-                {examMax != null ? ` / ${formatGradeScore(examMax)}` : ""} puan
-              </span>
-            ) : null}
-            <Badge tone={locked ? "info" : done ? "success" : "warning"} dot>
-              {locked ? "Yayınlandı" : done ? "Puanlandı" : "Bekliyor"}
-            </Badge>
-          </div>
-        </header>
-        <AnswerBody
-          item={item}
-          companyId={companyId}
-          lane={lane}
-          transcripts={transcripts}
-          activeMediaId={activeMediaId}
-        />
-        {foreignPrompt ? (
-          <p className="rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm break-words text-warning">
-            {FOREIGN_EXAM_PROMPT}
-          </p>
-        ) : null}
-        <div className="grid min-w-0 gap-3 md:grid-cols-2">
-          <Field label="Soru puan yüzdesi" required>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              suffix="%"
-              value={percentValue(item)}
-              disabled={locked}
-              onChange={(e) => {
-                const next = e.target.value;
-                setPercent((current) => ({ ...current, [item.answerId]: next }));
-                if (next.trim() === "") {
-                  setScore((current) => ({ ...current, [item.answerId]: "" }));
-                  return;
-                }
-                const parsed = Number(next);
-                if (!Number.isNaN(parsed) && examMax != null && examMax > 0) {
-                  setScore((current) => ({ ...current, [item.answerId]: awardFromPercent(parsed, examMax) }));
-                }
-              }}
+          ) : null
+        }
+        extra={
+          lane === "audio" || lane === "text" ? (
+            <AiRequestDump
+              preview={previewByAnswer.get(item.answerId)}
+              loading={requestPreview.isLoading || requestPreview.isFetching}
+              failed={requestPreview.isError}
+              errorText={requestPreview.isError ? errorMessage(requestPreview.error, "AI isteği okunamadı") : ""}
             />
-          </Field>
-          <Field
-            label="Sınav soru puanı"
-            required
-            hint={examMax != null ? `Bu sınavda soru ${formatGradeScore(examMax)} puan.` : undefined}
-          >
-            <Input
-              type="number"
-              min={0}
-              max={examMax ?? undefined}
-              step={1}
-              suffix="puan"
-              value={scoreValue(item)}
-              disabled={locked}
-              onChange={(e) => {
-                const next = e.target.value;
-                setScore((current) => ({ ...current, [item.answerId]: next }));
-                if (next.trim() === "") {
-                  setPercent((current) => ({ ...current, [item.answerId]: "" }));
-                  return;
-                }
-                const parsed = Number(next);
-                if (!Number.isNaN(parsed) && examMax != null && examMax > 0) {
-                  setPercent((current) => ({ ...current, [item.answerId]: percentFromAward(parsed, examMax) }));
-                }
-              }}
-            />
-          </Field>
-        </div>
-        {!locked && (lane === "audio" || lane === "text") ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="min-h-11 w-full md:w-auto"
-            loading={gradingAnswerId === item.answerId}
-            disabled={foreignPrompt || (actionBusy && gradingAnswerId !== item.answerId)}
-            onClick={() => void evaluateOne(item)}
-          >
-            AI ile Değerlendir
-          </Button>
-        ) : null}
-        {lane === "audio" || lane === "text" ? (
-          <Field label="Gerekçe" hint="Rubriğe dayalı. Öğrenci bunu görmez.">
-            <Textarea
-              rows={3}
-              value={rationaleValue(item)}
-              disabled={locked}
-              onChange={(e) => setRationale((current) => ({ ...current, [item.answerId]: e.target.value }))}
-            />
-          </Field>
-        ) : null}
-        <Field label="Geri bildirim" hint="Öğrenci sonuç ekranında görür.">
-          <Textarea
-            rows={2}
-            value={feedbackValue(item)}
-            disabled={locked}
-            onChange={(e) => setFeedback((currentFeedback) => ({ ...currentFeedback, [item.answerId]: e.target.value }))}
-          />
-        </Field>
-        {lane === "audio" || lane === "text" ? (
-          <AiRequestDump
-            preview={previewByAnswer.get(item.answerId)}
-            loading={requestPreview.isLoading || requestPreview.isFetching}
-            failed={requestPreview.isError}
-            errorText={requestPreview.isError ? errorMessage(requestPreview.error, "AI isteği okunamadı") : ""}
-            reply={modelReplies[item.answerId]}
-          />
-        ) : null}
-        {locked ? null : (
-          <div className="flex justify-end">
-            <Button type="button" className="min-h-11" loading={savingId === item.answerId} disabled={actionBusy && savingId !== item.answerId} onClick={() => void save(item)}>
-              {done ? "Güncelle" : "Kaydet"}
-            </Button>
-          </div>
-        )}
-      </article>
+          ) : null
+        }
+      />
     );
   }
 
@@ -1213,6 +854,11 @@ export function GradingSection({
           >
             Sonuçları yayınla
           </Button>
+          {(summary?.awaitingAudit ?? 0) > 0 ? (
+            <p role="status" className="basis-full text-xs text-warning">
+              {summary?.awaitingAudit} deneme denetim bekliyor; denetim tamamlanmadan yayınlanmaz.
+            </p>
+          ) : null}
         </div>
       }
     />
@@ -1281,8 +927,8 @@ export function GradingSection({
               value={filter}
               onChange={setFilter}
               items={[
-                { label: "Bekleyen", value: "pending", count: query.isSuccess ? scoped.filter((item) => !isScored(item)).length : undefined },
-                { label: "Puanlanan", value: "done", count: query.isSuccess ? scoped.filter((item) => isScored(item)).length : undefined },
+                { label: "Bekleyen", value: "pending", count: query.isSuccess ? scoped.filter((item) => !isSettled(item)).length : undefined },
+                { label: "Puanlanan", value: "done", count: query.isSuccess ? scoped.filter((item) => isSettled(item)).length : undefined },
               ]}
             />
           </div>
@@ -1301,6 +947,8 @@ export function GradingSection({
                       ["Elle bekleyen", summary?.awaitingManual],
                       ["Yayına hazır", summary?.ready],
                       ["Yayınlandı", summary?.published],
+                      ["Denetim bekliyor", summary?.awaitingAudit],
+                      ["AI puanı — gözden geçirilmedi", summary?.unreviewedAi],
                     ] as const
                   ).map(([label, count]) => (
                     <div key={label} className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-bg px-3">
@@ -1346,6 +994,31 @@ export function GradingSection({
               <EmptyState tone="neutral" title={answerWaiting.title} description={answerWaiting.description} />
             ) : (
               <>
+                {mode === "ai" && missingPromptQuestions.length > 0 ? (
+                  <section
+                    role="alert"
+                    data-testid="missing-prompts"
+                    className="grid gap-2 rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-3"
+                  >
+                    <p className="text-sm font-semibold text-warning">Bu soruların AI metni yok</p>
+                    <ul className="grid gap-1.5">
+                      {missingPromptQuestions.map((q) => (
+                        <li key={q.questionVersionId} className="flex flex-wrap items-center gap-2 text-sm text-fg">
+                          <span>
+                            {q.label} · {q.answers} cevap insan kuyruğunda
+                          </span>
+                          <button
+                            type="button"
+                            className="min-h-11 text-[13px] font-medium text-primary underline-offset-2 hover:underline"
+                            onClick={() => setMode("prompt")}
+                          >
+                            AI metni
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
                 {mode === "ai" ? (
                   <div className="grid gap-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -1363,12 +1036,11 @@ export function GradingSection({
                         type="button"
                         variant="secondary"
                         className="min-h-11 w-full sm:w-auto"
+                        loading={queueingAll}
                         disabled={leftItems.length + rightItems.length === 0 || actionBusy || query.isLoading}
-                        onClick={() => void evaluateAll()}
+                        onClick={() => void queueAll()}
                       >
-                        {gradingProgress
-                          ? `Değerlendiriliyor ${gradingProgress.index}/${gradingProgress.total}`
-                          : "Tümünü AI ile değerlendir"}
+                        Tümünü değerlendir
                       </Button>
                       <Button
                         type="button"
@@ -1380,12 +1052,23 @@ export function GradingSection({
                         {saveProgress ? `Kaydediliyor ${saveProgress.index}/${saveProgress.total}` : "Tümünü kaydet"}
                       </Button>
                     </div>
+                    {runsActive ? (
+                      <div role="status" aria-live="polite" className="grid gap-1" data-testid="ai-run-progress">
+                        <progress
+                          className="h-2 w-full overflow-hidden rounded-full accent-primary"
+                          max={Math.max(runProgress.total, 1)}
+                          value={runProgress.finished}
+                          aria-label="AI değerlendirme ilerlemesi"
+                        />
+                        <p className="text-xs text-fg-muted">
+                          {runProgress.total > 0 ? runProgressText(runProgress) : "AI işleri sıraya alındı…"}
+                        </p>
+                      </div>
+                    ) : null}
                     <p className="text-xs text-fg-muted" aria-live="polite">
                       {transcriptProgress
                         ? "Sesler sırayla metne çevriliyor."
-                        : gradingProgress
-                          ? "Cevaplar sırayla seçili modele gidiyor. Metne çevrilmemiş ses gönderilmez."
-                          : "Metne çevrilmemiş ses gönderilmez. Tümünü kaydet yalnız puan, gerekçe ve geri bildirimi dolu cevapları yazar."}
+                        : "Değerlendirme sunucuda kuyruktan yürür; sayfayı kapatabilirsiniz. AI puanı Onayla ya da Değiştir ile insan puanına çevrilir. Tümünü kaydet yalnız puan, gerekçe ve geri bildirimi dolu cevapları yazar."}
                     </p>
                   </div>
                 ) : null}
@@ -1405,11 +1088,11 @@ export function GradingSection({
         tone="primary"
         confirmLabel="Yayınla"
         pending={publishPending}
-        description={
+        description={`${
           (summary?.grace ?? 0) + (summary?.awaitingAuto ?? 0) + (summary?.awaitingManual ?? 0) > 0
             ? `${summary?.ready ?? 0} öğrenci yayınlanacak, ${(summary?.grace ?? 0) + (summary?.awaitingAuto ?? 0) + (summary?.awaitingManual ?? 0)} öğrenci değerlendirmesi bitmediği için yayınlanmayacak. Yayın geri alınamaz.`
             : `${summary?.ready ?? 0} öğrenci yayınlanacak. Yayın geri alınamaz.`
-        }
+        }${(summary?.awaitingAudit ?? 0) > 0 ? ` ${summary?.awaitingAudit} deneme denetim bekliyor; bunlar yayınlanmaz.` : ""}${(summary?.unreviewedAi ?? 0) > 0 ? ` ${summary?.unreviewedAi} denemede AI puanı gözden geçirilmedi.` : ""}`}
         onClose={() => setConfirmPublish(false)}
         onConfirm={() => void publishResults()}
       />
