@@ -44,7 +44,16 @@ function applySettings(data: CompanyAiSettings) {
   };
 }
 
-export function CompanyAiSection({ companyId }: { companyId: string }) {
+/** R-30 (K-H08): sabit metin. Hukuk onayı olmadan canlıda OpenAI seçilmez; merkez satırı boşken AI kapalıdır. */
+export const OPENAI_KVKK_WARNING =
+  "OpenAI seçilirse aday cevapları yurt dışındaki sağlayıcıya gönderilir. Hukuk onayı olmadan canlıda seçmeyin (K-H08).";
+export const CENTRAL_MODEL_IN_USE = "Merkez ayarı kullanılıyor";
+
+/**
+ * `central`: merkez (HQ) ayarı ekranı. Kurum ekranında (`central` yok) sağlayıcı seçili değilse kurum merkez
+ * ayarını kullanır ve bu bir bilgi olarak gösterilir.
+ */
+export function CompanyAiSection({ companyId, central = false }: { companyId: string; central?: boolean }) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["company-ai", companyId],
@@ -156,7 +165,11 @@ export function CompanyAiSection({ companyId }: { companyId: string }) {
 
       <FormCard
         title="Dil modeli"
-        description="Ollama ve OpenAI bilgilerinden yalnız biri aktif olabilir. Kurum değerlendirmede yalnızca seçili sağlayıcıyı kullanır."
+        description={
+          central
+            ? "Ollama ve OpenAI bilgilerinden yalnız biri aktif olabilir. Kendi ayarı olmayan kurumlar ve bireysel adaylar bu modeli kullanır."
+            : "Ollama ve OpenAI bilgilerinden yalnız biri aktif olabilir. Kurum değerlendirmede yalnızca seçili sağlayıcıyı kullanır."
+        }
       >
         <fieldset>
           <legend className="sr-only">Aktif sağlayıcı</legend>
@@ -178,6 +191,11 @@ export function CompanyAiSection({ companyId }: { companyId: string }) {
               onChange={setProvider}
             />
           </div>
+          {central ? (
+            <p role="note" data-testid="kvkk-warning" className="mt-3 rounded-lg border border-warning/30 bg-warning-bg px-3.5 py-2.5 text-sm text-warning">
+              {OPENAI_KVKK_WARNING}
+            </p>
+          ) : null}
           {provider ? (
             <button
               type="button"
@@ -187,9 +205,18 @@ export function CompanyAiSection({ companyId }: { companyId: string }) {
               Aktif sağlayıcıyı kapat
             </button>
           ) : (
-            <p className="mt-3 text-[13px] text-fg-muted">
-              Sağlayıcı seçilmezse kurum dil modeli kullanamaz. STT adresi bundan bağımsız kaydedilir.
-            </p>
+            <>
+              <p className="mt-3 text-[13px] text-fg-muted">
+                {central
+                  ? "Sağlayıcı seçilmezse merkez ayarı boştur ve AI kapalıdır; elle puanlama çalışır. STT adresi bundan bağımsız kaydedilir."
+                  : "Kurumun kendi ayarı boşsa merkez ayarı kullanılır. STT adresi bundan bağımsız kaydedilir."}
+              </p>
+              {!central ? (
+                <p role="status" className="mt-2 inline-flex rounded-md bg-info-bg px-2 py-1 text-xs font-semibold text-info">
+                  {CENTRAL_MODEL_IN_USE}
+                </p>
+              ) : null}
+            </>
           )}
         </fieldset>
       </FormCard>
