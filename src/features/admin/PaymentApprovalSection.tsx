@@ -20,6 +20,8 @@ import {
   failureKindLabel,
   grantStatusLabel,
   grantStatusTone,
+  REFUND_ENTITLEMENT_FILTERS,
+  refundEntitlementBadge,
   referenceSearchFailure,
   refundOutcome,
   retryResultMessage,
@@ -54,7 +56,14 @@ export function PaymentApprovalSection() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<string | null>("CREATED");
   const [page, setPage] = useState(0);
-  const orders = useList5({ ...(status ? { status: status as List5Status } : {}), page, size: PAGE_SIZE });
+  const [refundFilter, setRefundFilter] = useState<string | null>(null);
+  const refundFilterActive = status === "REFUNDED" && refundFilter !== null;
+  const orders = useList5({
+    ...(status ? { status: status as List5Status } : {}),
+    ...(refundFilterActive ? { refundEntitlement: refundFilter } : {}),
+    page,
+    size: PAGE_SIZE,
+  });
   const rows: AccountingOrderDto[] = orders.data?.data.items ?? [];
   const total = orders.data?.data.total ?? 0;
 
@@ -94,15 +103,29 @@ export function PaymentApprovalSection() {
         <SectionTable
           loading={orders.isLoading}
           tabs={
-            <FilterTabs
-              label="Sipariş durumu"
-              items={ACCOUNTING_STATUS_TABS}
-              value={status}
-              onChange={(value) => {
-                setStatus(value);
-                setPage(0);
-              }}
-            />
+            <>
+              <FilterTabs
+                label="Sipariş durumu"
+                items={ACCOUNTING_STATUS_TABS}
+                value={status}
+                onChange={(value) => {
+                  setStatus(value);
+                  setRefundFilter(null);
+                  setPage(0);
+                }}
+              />
+              {status === "REFUNDED" ? (
+                <FilterTabs
+                  label="İade hak sonucu"
+                  items={REFUND_ENTITLEMENT_FILTERS}
+                  value={refundFilter}
+                  onChange={(value) => {
+                    setRefundFilter(value);
+                    setPage(0);
+                  }}
+                />
+              ) : null}
+            </>
           }
           toolbar={
             <SectionToolbar count={total} noun="sipariş" loading={orders.isLoading}>
@@ -173,13 +196,23 @@ function orderRow(order: AccountingOrderDto, onApprove: (o: AccountingOrderDto) 
     <Badge key="s" tone={orderStatusTone(order.status)} dot>
       {orderStatusLabel(order.status)}
     </Badge>,
-    order.grantStatus ? (
-      <Badge key="g" tone={grantStatusTone(order.grantStatus)} dot>
-        {grantStatusLabel(order.grantStatus)}
-      </Badge>
-    ) : (
-      "—"
-    ),
+    (() => {
+      const refundBadge = refundEntitlementBadge(order);
+      if (refundBadge) {
+        return (
+          <Badge key="g" tone={refundBadge.tone} dot>
+            {refundBadge.label}
+          </Badge>
+        );
+      }
+      return order.grantStatus ? (
+        <Badge key="g" tone={grantStatusTone(order.grantStatus)} dot>
+          {grantStatusLabel(order.grantStatus)}
+        </Badge>
+      ) : (
+        "—"
+      );
+    })(),
     formatDateTime(order.createdAt),
     <div key="a" className="flex justify-end gap-1.5">
       {canApproveOrder(order) ? (

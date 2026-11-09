@@ -8,6 +8,8 @@ import {
   parseAmount,
   referenceSearchFailure,
   refundOutcome,
+  refundEntitlementBadge,
+  REFUND_ENTITLEMENT_FILTERS,
   retryResultMessage,
   toRefundRequest,
   validateRefund,
@@ -75,5 +77,24 @@ describe("arama ve yeniden deneme mesajları", () => {
   it("yeniden deneme sonucu", () => {
     expect(retryResultMessage({ jobId: "j", granted: true }).ok).toBe(true);
     expect(retryResultMessage({ jobId: "j", granted: false }).ok).toBe(false);
+  });
+});
+
+describe("R-17 düzeltmesi: iade hak sonucu MANUAL_REVIEW", () => {
+  it("MANUAL_REVIEW otomatik geri alınmadı, elle inceleme uyarısı verir", () => {
+    const o = refundOutcome("MANUAL_REVIEW");
+    expect(o.needsReview).toBe(true);
+    expect(o.tone).toBe("warning");
+    expect(o.message).toMatch(/birden fazla/);
+    expect(o.message).toMatch(/Elle inceleme/);
+  });
+  it("iade satırı rozeti yalnız IN_USE/MANUAL_REVIEW için çıkar", () => {
+    expect(refundEntitlementBadge({ status: "REFUNDED", refundEntitlement: "IN_USE" })?.label).toMatch(/kullanımda/);
+    expect(refundEntitlementBadge({ status: "REFUNDED", refundEntitlement: "MANUAL_REVIEW" })?.label).toMatch(/Belirsiz/);
+    expect(refundEntitlementBadge({ status: "REFUNDED", refundEntitlement: "REVOKED" })).toBeNull();
+    expect(refundEntitlementBadge({ status: "APPROVED", refundEntitlement: "IN_USE" })).toBeNull();
+  });
+  it("süzgeç seçenekleri sunucu değerleriyle eşleşir", () => {
+    expect(REFUND_ENTITLEMENT_FILTERS.map((f) => f.value)).toEqual([null, "IN_USE", "MANUAL_REVIEW"]);
   });
 });

@@ -126,4 +126,13 @@ describe("PaymentApprovalSection", () => {
     expect(refundMock).not.toHaveBeenCalled();
     expect(await screen.findByText(/büyük olamaz/)).toBeInTheDocument();
   });
+
+  it("İade sekmesinde hak sonucu süzgeci çıkar ve MANUAL_REVIEW satırı elle inceleme rozetiyle görünür", () => {
+    listState.mockReturnValue(orders([{ ...approved, id: "o3", referenceCode: "ILC-RRRR-3", status: "REFUNDED", refundEntitlement: "MANUAL_REVIEW" }]));
+    deadState.mockReturnValue(dead([]));
+    renderWithProviders(<PaymentApprovalSection />);
+    fireEvent.click(screen.getByRole("button", { name: "İade" }));
+    expect(screen.getByRole("button", { name: "Belirsiz hak (elle inceleme)" })).toBeInTheDocument();
+    expect(screen.getAllByText("Belirsiz hak — elle inceleme").length).toBeGreaterThan(0);
+  });
 });

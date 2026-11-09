@@ -9,6 +9,21 @@ export const ACCOUNTING_STATUS_TABS: { label: string; value: string | null }[] =
   { label: "Tümü", value: null },
 ];
 
+/** İade edilmiş siparişleri hak sonucuna göre süzmek için (`refundEntitlement` sorgu parametresi). */
+export const REFUND_ENTITLEMENT_FILTERS: { label: string; value: string | null }[] = [
+  { label: "Tümü", value: null },
+  { label: "Hak kullanımda (elle inceleme)", value: "IN_USE" },
+  { label: "Belirsiz hak (elle inceleme)", value: "MANUAL_REVIEW" },
+];
+
+/** İade satırındaki hak sonucu etiketi (REFUNDED siparişte); inceleme gerektirmeyen sonuçlar için null. */
+export function refundEntitlementBadge(order: { status?: string; refundEntitlement?: string }): { label: string; tone: "warning" } | null {
+  if (order.status !== "REFUNDED") return null;
+  if (order.refundEntitlement === "IN_USE") return { label: "Hak kullanımda — elle inceleme", tone: "warning" };
+  if (order.refundEntitlement === "MANUAL_REVIEW") return { label: "Belirsiz hak — elle inceleme", tone: "warning" };
+  return null;
+}
+
 /** Hak üretim işinin ham durumu (muhasebe satırında `grantStatus`). */
 export function grantStatusLabel(status?: string | null): string {
   switch (status) {
@@ -69,6 +84,13 @@ export function refundOutcome(entitlement?: string | null): RefundOutcome {
       return { tone: "success", message: "İade kaydedildi; bu sipariş için henüz hak tanımlanmamıştı.", needsReview: false };
     case "ALREADY_REVOKED":
       return { tone: "success", message: "İade kaydedildi; hak daha önce geri alınmıştı.", needsReview: false };
+    case "MANUAL_REVIEW":
+      // R-17 düzeltmesi: pakette birden fazla iade edilmemiş satın alma varsa hangi hakkın geri alınacağı belirsiz; otomatik geri alma YOK.
+      return {
+        tone: "warning",
+        message: "İade kaydedildi ANCAK pakette birden fazla iade edilmemiş satın alma olduğu için hak otomatik geri alınmadı. Elle inceleme gerekir.",
+        needsReview: true,
+      };
     case "IN_USE":
       return {
         tone: "warning",
