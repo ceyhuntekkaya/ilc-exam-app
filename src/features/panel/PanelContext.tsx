@@ -21,6 +21,7 @@ export type ContentSection =
   | "dif"
   | "anchor-sets"
   | "standard-setting"
+  | "certificate-gate"
   | "panelist"
   | "outcome-tree";
 

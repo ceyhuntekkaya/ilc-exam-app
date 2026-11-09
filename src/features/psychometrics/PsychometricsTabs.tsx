@@ -10,6 +10,7 @@ const TABS = [
   { slug: "dif", label: "DIF" },
   { slug: "anchor-sets", label: "Anchor setleri" },
   { slug: "standard-setting", label: "Standart belirleme" },
+  { slug: "certificate-gate", label: "Sertifika kapısı" },
 ] as const;
 
 /** Psikometri ekranları arasında geçiş şeridi (CTT, DIF, anchor, standart belirleme). Menü izinleri ayrıca uygulanır. */

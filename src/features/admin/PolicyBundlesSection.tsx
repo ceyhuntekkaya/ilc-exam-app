@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getList4QueryKey, useCreate2, useList4, useUpdate1 } from "@/src/api/generated/policy-bundles/policy-bundles";
@@ -171,7 +172,12 @@ export function BundleEditor({ bundle }: { bundle: BundleDto }) {
           <p className="font-medium text-fg">Sertifikasyon demeti</p>
           <p className="mt-0.5">
             {CERTIFICATION_LOCKED_KEYS.join(" ve ")} alanları bu demette olduğu gibi kalmalıdır: sertifika kapısı açık, ceza puanlaması
-            kapalı. Sertifika kapısının açılması ayrıca iki akademik onay gerektirir; bu ekran onu değiştirmez.
+            kapalı. Sertifika kapısının açılması ayrıca iki akademik onay gerektirir; bu ekran onu değiştirmez —
+            onaylar ve kapının gerçek durumu{" "}
+            <Link href="/admin/content/certificate-gate" className="font-medium text-primary underline-offset-2 hover:underline">
+              Sertifika kapısı
+            </Link>{" "}
+            sayfasındadır.
           </p>
         </div>
       ) : null}

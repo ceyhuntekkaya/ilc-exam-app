@@ -26,6 +26,8 @@ export const Perm = {
   psychometricsManage: "psychometrics:manage",
   /** Muhasebe: ödeme onayı/iadesi/ölü mektup (backend `PermissionCodes.CENTER_MANAGE`). */
   centerManage: "center:manage",
+  /** Sertifika basımı, iptal ve iptal+yeniden basım (backend `PermissionCodes.CERTIFICATE_MANAGE`, R-22; yalnız merkez rolleri). */
+  certificateManage: "certificate:manage",
 } as const;
 
 export type PermissionCode = (typeof Perm)[keyof typeof Perm];
