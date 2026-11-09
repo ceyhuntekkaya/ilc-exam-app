@@ -191,6 +191,12 @@ export function adminNavGroups(): PanelNavGroup[] {
           description: "AI-insan uyumu, gözetimli pay",
           perms: [Perm.psychometricsManage],
         },
+        {
+          href: "/admin/level-report-jobs",
+          label: "Seviye raporu işleri",
+          description: "Üretim kuyruğu: ölü mektuplar ve yeniden kuyruğa alma",
+          perms: [Perm.psychometricsManage],
+        },
       ],
     },
   ];
@@ -314,6 +320,13 @@ export function staffNavGroups(): PanelNavGroup[] {
     {
       label: "Merkez ayarları",
       items: [
+        {
+          href: "/staff/level-report-jobs",
+          label: "Seviye raporu işleri",
+          description: "Üretim kuyruğu: ölü mektuplar ve yeniden kuyruğa alma",
+          perms: [Perm.psychometricsManage],
+          centralOnly: true,
+        },
         {
           href: "/staff/policy-settings",
           label: "Politika ayarları",

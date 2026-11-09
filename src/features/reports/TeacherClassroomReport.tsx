@@ -1,7 +1,9 @@
 "use client";
 
 import { useTeacherReport } from "@/src/api/generated/report-controller/report-controller";
-import { Button, EmptyState, ErrorState, Field, Input, PageHeader, Skeleton, errorMessage } from "@/src/ui";
+import { downloadStaffLevelReport } from "@/src/features/reports/downloadLevelReport";
+import { levelReportDownloadFailure } from "@/src/features/reports/levelReportModel";
+import { Button, EmptyState, ErrorState, Field, Input, PageHeader, Skeleton, errorMessage, notify } from "@/src/ui";
 import { useState } from "react";
 import { IntegrityAssuranceBadges, OutcomeBreakdownTable } from "./levelDisplay";
 
@@ -46,7 +48,12 @@ export function TeacherClassroomReport({ companyId }: { companyId: string }) {
             <div key={report.applicationResultId} className="rounded-xl border border-border bg-surface p-4">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-medium text-fg">CEFR: {report.cefrLevel ?? "—"}</span>
-                <IntegrityAssuranceBadges report={report} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <IntegrityAssuranceBadges report={report} />
+                  {report.applicationResultId ? (
+                    <LevelReportButton companyId={companyId} applicationResultId={report.applicationResultId} />
+                  ) : null}
+                </div>
               </div>
               <OutcomeBreakdownTable outcomes={report.outcomeBreakdown} />
             </div>
@@ -54,5 +61,25 @@ export function TeacherClassroomReport({ companyId }: { companyId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** R-20: kurum personeli için seviye raporu (PDF, saklanan belge); sunucu kurum eşleşmesi + birim kapsamı + rapor izni denetler. */
+function LevelReportButton({ companyId, applicationResultId }: { companyId: string; applicationResultId: string }) {
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      await downloadStaffLevelReport(companyId, applicationResultId);
+    } catch (err) {
+      notify.error(levelReportDownloadFailure(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button variant="secondary" size="sm" loading={busy} onClick={() => void run()}>
+      Seviye raporu (PDF)
+    </Button>
   );
 }

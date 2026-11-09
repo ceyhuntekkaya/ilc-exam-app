@@ -33,5 +33,7 @@ describe("TeacherClassroomReport", () => {
     expect(screen.getByText("%40")).toBeInTheDocument();
     expect(screen.getByText("%85")).toBeInTheDocument();
     expect(screen.queryByText(/toplam/i)).not.toBeInTheDocument();
+    // R-20: kurum personeli için seviye raporu (PDF) düğmesi sonuç başına
+    expect(screen.getByRole("button", { name: "Seviye raporu (PDF)" })).toBeInTheDocument();
   });
 });
