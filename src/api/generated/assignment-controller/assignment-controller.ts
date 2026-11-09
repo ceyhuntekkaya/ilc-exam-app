@@ -618,19 +618,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getAddRecipientMutationOptions(options), queryClient);
     }
-    export type open1Response200 = {
+    export type open2Response200 = {
   data: Assignment
   status: 200
 }
 
-export type open1ResponseSuccess = (open1Response200) & {
+export type open2ResponseSuccess = (open2Response200) & {
   headers: Headers;
 };
 ;
 
-export type open1Response = (open1ResponseSuccess)
+export type open2Response = (open2ResponseSuccess)
 
-export const getOpen1Url = (id: string,) => {
+export const getOpen2Url = (id: string,) => {
 
 
 
@@ -638,9 +638,9 @@ export const getOpen1Url = (id: string,) => {
   return `/assignments/${id}/open`
 }
 
-export const open1 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<open1Response> => {
+export const open2 = async (id: string, options?: Parameters<typeof customInstance>[1]): Promise<open2Response> => {
 
-  return customInstance<open1Response>(getOpen1Url(id),
+  return customInstance<open2Response>(getOpen2Url(id),
   {
     ...options,
     method: 'POST'
@@ -653,13 +653,13 @@ export const open1 = async (id: string, options?: Parameters<typeof customInstan
 
 
 
-export const getOpen1MutationKey = () => ['open1'] as const;
+export const getOpen2MutationKey = () => ['open2'] as const;
 
-export const getOpen1MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext> => {
+export const getOpen2MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open2>>, TError,Open2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof open2>>, TError,Open2MutationVariables, TContext> => {
 
-const mutationKey = getOpen1MutationKey();
+const mutationKey = getOpen2MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -669,10 +669,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof open1>>, Open1MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof open2>>, Open2MutationVariables> = (props) => {
           const {id} = props ?? {};
 
-          return  open1(id,requestOptions)
+          return  open2(id,requestOptions)
         }
 
 
@@ -682,20 +682,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Open1MutationResult = NonNullable<Awaited<ReturnType<typeof open1>>>
+    export type Open2MutationResult = NonNullable<Awaited<ReturnType<typeof open2>>>
 
-    export type Open1MutationError = ErrorType<unknown>
-    export type Open1MutationVariables = {id: string}
+    export type Open2MutationError = ErrorType<unknown>
+    export type Open2MutationVariables = {id: string}
 
-    export const useOpen1 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open1>>, TError,Open1MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useOpen2 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof open2>>, TError,Open2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof open1>>,
+        Awaited<ReturnType<typeof open2>>,
         TError,
-        Open1MutationVariables,
+        Open2MutationVariables,
         TContext
       > => {
-      return useMutation(getOpen1MutationOptions(options), queryClient);
+      return useMutation(getOpen2MutationOptions(options), queryClient);
     }
     export type finishRemainingResponse200 = {
   data: FinishRemaining200

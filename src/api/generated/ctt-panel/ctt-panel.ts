@@ -47,19 +47,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type itemResponse200 = {
+export type item1Response200 = {
   data: ItemReport
   status: 200
 }
 
-export type itemResponseSuccess = (itemResponse200) & {
+export type item1ResponseSuccess = (item1Response200) & {
   headers: Headers;
 };
 ;
 
-export type itemResponse = (itemResponseSuccess)
+export type item1Response = (item1ResponseSuccess)
 
-export const getItemUrl = (questionVersionId: string,) => {
+export const getItem1Url = (questionVersionId: string,) => {
 
 
 
@@ -67,9 +67,9 @@ export const getItemUrl = (questionVersionId: string,) => {
   return `/psychometrics/ctt/items/${questionVersionId}`
 }
 
-export const item = async (questionVersionId: string, options?: Parameters<typeof customInstance>[1]): Promise<itemResponse> => {
+export const item1 = async (questionVersionId: string, options?: Parameters<typeof customInstance>[1]): Promise<item1Response> => {
 
-  return customInstance<itemResponse>(getItemUrl(questionVersionId),
+  return customInstance<item1Response>(getItem1Url(questionVersionId),
   {
     ...options,
     method: 'GET'
@@ -82,66 +82,66 @@ export const item = async (questionVersionId: string, options?: Parameters<typeo
 
 
 
-export const getItemQueryKey = (questionVersionId: string,) => {
+export const getItem1QueryKey = (questionVersionId: string,) => {
     return [
     `/psychometrics/ctt/items/${questionVersionId}`
     ] as const;
     }
 
 
-export const getItemQueryOptions = <TData = Awaited<ReturnType<typeof item>>, TError = ErrorType<unknown>>(questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getItem1QueryOptions = <TData = Awaited<ReturnType<typeof item1>>, TError = ErrorType<unknown>>(questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getItemQueryKey(questionVersionId);
+  const queryKey =  queryOptions?.queryKey ?? getItem1QueryKey(questionVersionId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof item>>> = ({ signal }) => item(questionVersionId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof item1>>> = ({ signal }) => item1(questionVersionId, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: questionVersionId !== null && questionVersionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: questionVersionId !== null && questionVersionId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type ItemQueryResult = NonNullable<Awaited<ReturnType<typeof item>>>
-export type ItemQueryError = ErrorType<unknown>
+export type Item1QueryResult = NonNullable<Awaited<ReturnType<typeof item1>>>
+export type Item1QueryError = ErrorType<unknown>
 
 
-export function useItem<TData = Awaited<ReturnType<typeof item>>, TError = ErrorType<unknown>>(
- questionVersionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData>> & Pick<
+export function useItem1<TData = Awaited<ReturnType<typeof item1>>, TError = ErrorType<unknown>>(
+ questionVersionId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof item>>,
+          Awaited<ReturnType<typeof item1>>,
           TError,
-          Awaited<ReturnType<typeof item>>
+          Awaited<ReturnType<typeof item1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useItem<TData = Awaited<ReturnType<typeof item>>, TError = ErrorType<unknown>>(
- questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData>> & Pick<
+export function useItem1<TData = Awaited<ReturnType<typeof item1>>, TError = ErrorType<unknown>>(
+ questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof item>>,
+          Awaited<ReturnType<typeof item1>>,
           TError,
-          Awaited<ReturnType<typeof item>>
+          Awaited<ReturnType<typeof item1>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useItem<TData = Awaited<ReturnType<typeof item>>, TError = ErrorType<unknown>>(
- questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useItem1<TData = Awaited<ReturnType<typeof item1>>, TError = ErrorType<unknown>>(
+ questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useItem<TData = Awaited<ReturnType<typeof item>>, TError = ErrorType<unknown>>(
- questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useItem1<TData = Awaited<ReturnType<typeof item1>>, TError = ErrorType<unknown>>(
+ questionVersionId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof item1>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getItemQueryOptions(questionVersionId,options)
+  const queryOptions = getItem1QueryOptions(questionVersionId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

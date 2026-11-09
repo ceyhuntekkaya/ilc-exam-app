@@ -4,12 +4,10 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { SummaryExcluded } from './summaryExcluded';
 
 export interface Summary {
-  submitted?: number;
-  grace?: number;
-  awaitingAuto?: number;
-  awaitingManual?: number;
-  ready?: number;
-  published?: number;
+  usedCentral?: number;
+  usedClientProctored?: number;
+  excluded?: SummaryExcluded;
 }
