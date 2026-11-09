@@ -15,6 +15,9 @@ import {
 } from "@/src/api/generated/admin-companies/admin-companies";
 import type { StudentDto } from "@/src/api/generated/models";
 import { AccommodationDialog } from "@/src/features/org/AccommodationDialog";
+import { ErasureRequestDialog } from "@/src/features/org/ErasureRequestDialog";
+import { useCan } from "@/src/features/panel/PanelContext";
+import { Perm } from "@/src/lib/permissions";
 import { PasswordRevealDialog } from "@/src/features/org/PasswordRevealDialog";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { userStatusLabel } from "@/src/features/admin/labels";
@@ -96,6 +99,8 @@ export function StudentsSection({ companyId }: { companyId: string }) {
   const [completing, setCompleting] = useState<StudentDto | null>(null);
   const [moving, setMoving] = useState<StudentDto | null>(null);
   const [accommodating, setAccommodating] = useState<StudentDto | null>(null);
+  const canRequestErasure = useCan(Perm.studentManage);
+  const [erasing, setErasing] = useState<StudentDto | null>(null);
   const [moveBranch, setMoveBranch] = useState("");
   const completeEnrollment = useMutation({
     mutationFn: (body: { studentId: string; enrollmentId: string }) =>
@@ -229,6 +234,11 @@ export function StudentsSection({ companyId }: { companyId: string }) {
             <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setResetting(r)}>
               Parolayı sıfırla
             </Button>
+            {canRequestErasure ? (
+              <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setErasing(r)}>
+                Silme talebi
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="ghost"
@@ -253,6 +263,7 @@ export function StudentsSection({ companyId }: { companyId: string }) {
         </div>
       ) : null}
 
+      {erasing ? <ErasureRequestDialog student={erasing} onClose={() => setErasing(null)} /> : null}
       <FormDialog
         open={open}
         onClose={() => setOpen(false)}
