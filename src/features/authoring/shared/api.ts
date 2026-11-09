@@ -21,7 +21,9 @@ export async function authoringFetch<T>(
   if (init.body && !headers.has("Content-Type") && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
-  if (authoringCompanyId) {
+  // Pilot düzeltmesi: çağıran X-Company-Id'yi açıkça verdiyse (ör. merkezin bir kurum maddesini havuz denetiminde
+  // onaylaması — madde o kurumun kiracısında durur) seçili kiracıyla EZİLMEZ.
+  if (authoringCompanyId && !headers.has("X-Company-Id")) {
     headers.set("X-Company-Id", authoringCompanyId);
   }
 

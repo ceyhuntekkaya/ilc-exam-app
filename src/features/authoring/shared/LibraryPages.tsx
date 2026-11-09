@@ -1147,9 +1147,10 @@ export function SettingsDictionariesPage() {
   }, [loadPool]);
 
   async function approvePool() {
-    if (!selectedPoolVersionId) return;
+    const ref = poolRefs.find((row) => row.versionId === selectedPoolVersionId);
+    if (!selectedPoolVersionId || !ref) return;
     try {
-      await authoringApi.approvePoolAudit(selectedPoolVersionId, copyrightDeclaration || null, approveNote || null);
+      await authoringApi.approvePoolAudit(selectedPoolVersionId, ref.ownerOrgId, copyrightDeclaration || null, approveNote || null);
       notify.success("Madde havuza kabul edildi");
       setSelectedPoolVersionId(null);
       setCopyrightDeclaration("");
@@ -1161,9 +1162,10 @@ export function SettingsDictionariesPage() {
   }
 
   async function retirePool() {
-    if (!selectedPoolVersionId || !retireReason.trim()) return;
+    const ref = poolRefs.find((row) => row.versionId === selectedPoolVersionId);
+    if (!selectedPoolVersionId || !ref || !retireReason.trim()) return;
     try {
-      await authoringApi.retirePoolAudit(selectedPoolVersionId, retireReason.trim());
+      await authoringApi.retirePoolAudit(selectedPoolVersionId, ref.ownerOrgId, retireReason.trim());
       notify.success("Madde havuzdan kaldırıldı");
       setSelectedPoolVersionId(null);
       setRetireReason("");

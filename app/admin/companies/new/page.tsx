@@ -45,6 +45,8 @@ export default function NewCompanyPage() {
           subscriptionStart: String(fd.get("subscriptionStart") || "") || undefined,
           subscriptionEnd: String(fd.get("subscriptionEnd") || "") || undefined,
           maxStudents: Number(fd.get("maxStudents") || 0),
+          // Pilot düzeltmesi: sunucu saat dilimini zorunlu tutar (F3B-01, sessiz varsayılan yok); form göndermiyordu.
+          timeZone: String(fd.get("timeZone") || "Europe/Istanbul"),
           instituteName: String(fd.get("instituteName") || "") || undefined,
           instituteCode: String(fd.get("instituteCode") || "") || undefined,
           academicYearName: String(fd.get("academicYearName") || "") || undefined,
@@ -104,6 +106,9 @@ export default function NewCompanyPage() {
             </Field>
             <Field label="En fazla öğrenci" hint="0 = sınırsız">
               <Input name="maxStudents" type="number" min={0} defaultValue={0} />
+            </Field>
+            <Field label="Saat dilimi" required hint="Sınav pencereleri bu saate göre gösterilir">
+              <Input name="timeZone" required defaultValue="Europe/Istanbul" />
             </Field>
           </FormGrid>
         </FormCard>

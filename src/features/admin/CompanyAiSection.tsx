@@ -23,9 +23,16 @@ import {
 } from "@/src/ui";
 import { cn } from "@/src/lib/utils/cn";
 
+/**
+ * Pilot düzeltmesi: boş değer = "sınavın dilini kullan". Eskiden boş değer "tr"ye çevrilip her kayıtta kuruma
+ * açık `tr` yazılıyordu; açık kurum dili sınav dilinin önüne geçtiği için İngilizce konuşma Türkçe çözümleniyordu.
+ */
+export const EXAM_LANGUAGE_LABEL = "Sınavın dilini kullan (önerilen)";
+
 const LANGUAGES = [
-  { value: "tr", label: "Türkçe (tr)" },
+  { value: "", label: EXAM_LANGUAGE_LABEL },
   { value: "en", label: "İngilizce (en)" },
+  { value: "tr", label: "Türkçe (tr)" },
 ];
 
 type ProviderChoice = "" | AiProvider;
@@ -33,7 +40,7 @@ type ProviderChoice = "" | AiProvider;
 function applySettings(data: CompanyAiSettings) {
   return {
     sttBaseUrl: data.sttBaseUrl ?? "",
-    sttLanguage: data.sttLanguage?.trim() || "tr",
+    sttLanguage: data.sttLanguage?.trim() ?? "",
     provider: (data.provider ?? "") as ProviderChoice,
     ollamaBaseUrl: data.ollamaBaseUrl ?? "",
     ollamaUsername: data.ollamaUsername ?? "",
@@ -65,7 +72,7 @@ export function CompanyAiSection({ companyId, central = false }: { companyId: st
   });
 
   const [sttBaseUrl, setSttBaseUrl] = useState("");
-  const [sttLanguage, setSttLanguage] = useState("tr");
+  const [sttLanguage, setSttLanguage] = useState("");
   const [provider, setProvider] = useState<ProviderChoice>("");
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState("");
   const [ollamaUsername, setOllamaUsername] = useState("");
@@ -95,7 +102,7 @@ export function CompanyAiSection({ companyId, central = false }: { companyId: st
     try {
       const saved = await save.mutateAsync({
         sttBaseUrl: sttBaseUrl.trim() || undefined,
-        sttLanguage,
+        sttLanguage: sttLanguage || undefined,
         provider: provider || null,
         ollamaBaseUrl: ollamaBaseUrl.trim() || undefined,
         ollamaUsername: ollamaUsername.trim(),
@@ -135,7 +142,7 @@ export function CompanyAiSection({ companyId, central = false }: { companyId: st
               label="STT adresi"
               hint={
                 sttPreview
-                  ? `Çağrı: ${sttPreview}/transcribe/${sttLanguage}`
+                  ? `Çağrı: ${sttPreview}/transcribe/${sttLanguage || "<sınav dili>"}`
                   : "Servis kökü. Örnek: https://speaking.stt.example.com"
               }
             >
@@ -148,7 +155,7 @@ export function CompanyAiSection({ companyId, central = false }: { companyId: st
               />
             </Field>
           </div>
-          <Field label="Dil" hint="Whisper dil kodu. Adresin sonuna eklenir.">
+          <Field label="Dil" hint="Whisper dil kodu, adresin sonuna eklenir. Boş bırakılırsa her cevap kendi sınavının diliyle çözümlenir.">
             <Select value={sttLanguage} onChange={(event) => setSttLanguage(event.target.value)}>
               {LANGUAGES.some((item) => item.value === sttLanguage) ? null : (
                 <option value={sttLanguage}>{sttLanguage}</option>

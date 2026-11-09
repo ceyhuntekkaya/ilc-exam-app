@@ -758,14 +758,25 @@ export const authoringApi = {
     authoringFetch<FormSummary>(`/authoring/exams/${examId}/forms/${formId}/approve-review`, { method: "POST" }),
   listKurumVersionsAcrossCompanies: () =>
     authoringFetch<KurumVersionRef[]>("/authoring/pool-audit/kurum-versions"),
-  approvePoolAudit: (questionVersionId: string, copyrightDeclaration?: string | null, note?: string | null) =>
+  /**
+   * `ownerOrgId`: maddenin sahibi kurum. Madde o kurumun kiracısındadır; istek merkez kiracısıyla giderse sunucu
+   * maddeyi bulamaz ("Madde sürümü bulunamadı"). Bu yüzden X-Company-Id maddenin kurumuyla gönderilir.
+   */
+  approvePoolAudit: (
+    questionVersionId: string,
+    ownerOrgId: string,
+    copyrightDeclaration?: string | null,
+    note?: string | null,
+  ) =>
     authoringFetch<PoolAudit>(`/authoring/pool-audit/${questionVersionId}/approve`, {
       method: "POST",
+      headers: { "X-Company-Id": ownerOrgId },
       body: JSON.stringify({ copyrightDeclaration: copyrightDeclaration ?? null, note: note ?? null }),
     }),
-  retirePoolAudit: (questionVersionId: string, reason: string) =>
+  retirePoolAudit: (questionVersionId: string, ownerOrgId: string, reason: string) =>
     authoringFetch<void>(`/authoring/pool-audit/${questionVersionId}/retire`, {
       method: "POST",
+      headers: { "X-Company-Id": ownerOrgId },
       body: JSON.stringify({ reason }),
     }),
   listBlueprints: () => authoringFetch<BlueprintDetail[]>("/authoring/blueprints"),
