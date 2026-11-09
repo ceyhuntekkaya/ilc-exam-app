@@ -27,11 +27,11 @@ import type {
   CorrectionBody,
   CorrectionResult,
   Detail,
+  EvidencePackageView,
   List19Params,
   ListPageListItem,
   ResolutionBody,
-  ResolutionResult,
-  View
+  ResolutionResult
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -583,7 +583,7 @@ export function useDetail2<TData = Awaited<ReturnType<typeof detail2>>, TError =
 
 
 export type evidenceResponse200 = {
-  data: View
+  data: EvidencePackageView
   status: 200
 }
 

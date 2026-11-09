@@ -49,6 +49,7 @@ import type {
   Evaluation,
   ExamReportRow,
   GradeDto,
+  GradingPromptView,
   GradingQueueParams,
   GradingSystemPromptRequest,
   InstituteDto,
@@ -81,8 +82,7 @@ import type {
   UpdateGradeRequest,
   UpdateInstituteRequest,
   UpdateStaffRequest,
-  UpdateStudentRequest,
-  View
+  UpdateStudentRequest
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -109,7 +109,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 export type gradingSystemPromptResponse200 = {
-  data: View
+  data: GradingPromptView
   status: 200
 }
 
@@ -215,7 +215,7 @@ export function useGradingSystemPrompt<TData = Awaited<ReturnType<typeof grading
 
 
 export type saveGradingSystemPromptResponse200 = {
-  data: View
+  data: GradingPromptView
   status: 200
 }
 

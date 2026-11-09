@@ -25,9 +25,9 @@ import type {
 
 import type {
   AutoCompleteResult,
+  GradingBatchSummary,
   PublishResult,
   ScopeBody,
-  Summary,
   SummaryParams
 } from '../models';
 
@@ -243,7 +243,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getAutoCompleteMutationOptions(options), queryClient);
     }
     export type summaryResponse200 = {
-  data: Summary
+  data: GradingBatchSummary
   status: 200
 }
 

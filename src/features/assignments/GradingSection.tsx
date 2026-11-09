@@ -2,7 +2,7 @@
 
 import { requestRun, requestSingle } from "@/src/api/generated/ai-grading-controller/ai-grading-controller";
 import { useReview } from "@/src/api/generated/evaluation-controller/evaluation-controller";
-import type { ApprovalResult, QueueItem } from "@/src/api/generated/models";
+import type { ApprovalResult, GradingBatchSummary, QueueItem } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import {
   AssignmentScopeFields,
@@ -53,18 +53,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 /** Kuyruk satırı (`GET …/assignments/{id}/grading`, üretilmiş `QueueItem`) ekranda kart görünümüyle okunur. */
 type Item = ReviewCardItem & Pick<QueueItem, "interactionType">;
 
-type GradingSummary = {
-  submitted: number;
-  grace: number;
-  awaitingAuto: number;
-  awaitingManual: number;
-  ready: number;
-  published: number;
-  /** R-29: örneklemde olup insan onayı bekleyen deneme (yayını engeller). */
-  awaitingAudit?: number;
-  /** R-29: AI puanı olup hiç gözden geçirilmemiş deneme. */
-  unreviewedAi?: number;
-};
+type GradingSummary = GradingBatchSummary;
 
 type AutoCompleteResult = {
   scored: number;

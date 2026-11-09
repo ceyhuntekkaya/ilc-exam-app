@@ -2,11 +2,10 @@
  * R-32: inceleme talebi ekranlarının saf yardımcıları (R-31 backend'i).
  *
  * Çağrılar `customInstance` + üretilmiş tiplerle yapılır: OpenAPI'de operationId'ler (`list19`, `detail2`, `change1`) başka
- * uçlar eklendikçe kaydığı için üretilmiş fonksiyon adlarına bağlanılmaz. Kanıt paketi yanıtı için üretilmiş `View` tipi
- * KULLANILMAZ: backend'de iki ayrı `View` kaydı aynı şema adına düşüyor (CompanyGradingPromptService.View ezer);
- * `EvidenceView` bu yüzden burada elle tanımlıdır.
+ * uçlar eklendikçe kaydığı için üretilmiş fonksiyon adlarına bağlanılmaz. Kanıt paketi yanıtı üretilmiş
+ * `EvidencePackageView` tipidir (R-31/6 şema adı çakışmasını giderdi; R-33/g: elle tanım kaldırıldı).
  */
-import type { Detail, ListItem, ListPageListItem, ResolutionResult } from "@/src/api/generated/models";
+import type { Detail, EvidencePackageView, ListItem, ListPageListItem, ResolutionResult } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
 import { HQ_CONTENT_ORG_ID } from "@/src/features/authoring/shared/api";
 import { formatGradeScore, type ReviewCardItem } from "@/src/features/grading/answerCardModel";
@@ -76,15 +75,7 @@ export async function resolveRequest(companyId: string, id: string, action: "uph
 }
 
 export type EvidenceRow = Record<string, unknown>;
-export type EvidenceView = {
-  collectedAt?: string;
-  events?: EvidenceRow[];
-  answers?: EvidenceRow[];
-  evaluations?: EvidenceRow[];
-  readings?: EvidenceRow[];
-  rubricRefs?: EvidenceRow[];
-  audioRefs?: EvidenceRow[];
-};
+export type EvidenceView = EvidencePackageView;
 
 export async function fetchEvidence(companyId: string, appealId: string) {
   return (await customInstance<{ data: EvidenceView }>(`/companies/${companyId}/appeals/${appealId}/evidence`)).data;
