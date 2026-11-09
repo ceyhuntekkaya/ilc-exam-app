@@ -3,8 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAuth } from "@/src/components/auth-provider";
-import { matchingNavItem, staffNavGroups, visibleNav } from "@/src/config/panel-nav";
-import { hasAnyPermission } from "@/src/lib/permissions";
+import { matchingNavItem, navItemAllowed, staffNavGroups, visibleNav } from "@/src/config/panel-nav";
 import { PanelProvider } from "@/src/features/panel/PanelContext";
 import { PanelChrome } from "@/src/features/shell/PanelChrome";
 import { UiVariantProvider } from "@/src/ui/primitives/UiVariant";
@@ -18,10 +17,9 @@ import { ButtonLink, EmptyState, IconLock, Skeleton } from "@/src/ui";
 export function StaffShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const groups = visibleNav("STAFF", user?.permissions);
+  const groups = visibleNav("STAFF", user?.permissions, user?.companyId);
   const match = matchingNavItem(pathname, staffNavGroups());
-  const denied =
-    !loading && Boolean(match?.perms) && !hasAnyPermission(user?.permissions, match?.perms);
+  const denied = !loading && Boolean(match) && !navItemAllowed(match!, user?.permissions, user?.companyId);
 
   return (
     <PanelProvider role="STAFF" basePath="/staff">

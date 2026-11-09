@@ -17,7 +17,12 @@ export type ContentSection =
   | "rubrics"
   | "formats"
   | "settings"
-  | "ctt";
+  | "ctt"
+  | "dif"
+  | "anchor-sets"
+  | "standard-setting"
+  | "panelist"
+  | "outcome-tree";
 
 type PanelValue = {
   role: PanelRole;

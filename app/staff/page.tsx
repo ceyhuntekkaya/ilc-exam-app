@@ -93,7 +93,7 @@ export default function StaffDashboardPage() {
   const students = useStudents(companyId, undefined, on(can.students)).data?.data as StudentDto[] | undefined;
   const staff = useStaff(companyId, undefined, on(can.staff)).data?.data as StaffDto[] | undefined;
 
-  const groups = visibleNav("STAFF", perms).filter((group) => group.label !== "Genel");
+  const groups = visibleNav("STAFF", perms, companyId).filter((group) => group.label !== "Genel");
   const today = new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const name = user?.displayName?.trim();
   const openCount = assignments?.filter((row) => row.status === "OPEN").length;

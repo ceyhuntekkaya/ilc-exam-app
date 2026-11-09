@@ -9,6 +9,7 @@ import {
   type QuestionSummary,
 } from "@/src/features/authoring/shared/client";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
+import { PsychometricsTabs } from "@/src/features/psychometrics/PsychometricsTabs";
 import { ItemHealthTable } from "@/src/features/psychometrics/ItemHealthTable";
 import { psychometricsApi, type ItemReport, type ItemHealthWarning, type ReliabilityReport } from "@/src/features/psychometrics/api";
 import {
@@ -38,6 +39,7 @@ export function CttPanelPage() {
         title="CTT Paneli"
         description="Madde güçlüğü, ayırt edicilik, distraktör dağılımı ve form güvenirliği — canlı hesaplanır, geçmişi saklamaz."
       />
+      <PsychometricsTabs />
       <ItemAnalysisCard />
       <ReliabilityCard />
     </div>

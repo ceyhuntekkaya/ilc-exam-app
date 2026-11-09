@@ -1,3 +1,4 @@
+import { HQ_CONTENT_ORG_ID } from "@/src/features/authoring/shared/api";
 import { hasAnyPermission, Perm } from "@/src/lib/permissions";
 
 export type PanelNavItem = {
@@ -8,7 +9,19 @@ export type PanelNavItem = {
   perms?: string[];
   /** Menüde gösterme; rota yetki kontrolü için durur. */
   hidden?: boolean;
+  /** Yalnız merkez (ILC Content) personeline görünür; izin kodu olmayan panelist ekranı için. */
+  centralOnly?: boolean;
 };
+
+/** Menü/rota kapısı: izin + (varsa) merkez personeli koşulu. Süper Admin menüsü süzülmez. */
+export function navItemAllowed(
+  item: Pick<PanelNavItem, "perms" | "centralOnly">,
+  permissions?: readonly string[],
+  companyId?: string | null,
+): boolean {
+  if (item.centralOnly && companyId !== HQ_CONTENT_ORG_ID) return false;
+  return hasAnyPermission(permissions, item.perms);
+}
 
 export type PanelNavGroup = {
   label: string;
@@ -24,6 +37,8 @@ type ContentDef = {
   label: string;
   description: string;
   perms: string[];
+  /** Yalnız personel panelinde (izin kodu olmayan panelist ekranı). */
+  staffOnly?: boolean;
 };
 
 const CONTENT: ContentDef[] = [
@@ -76,6 +91,37 @@ const CONTENT: ContentDef[] = [
     perms: [Perm.psychometricsManage],
   },
   {
+    slug: "dif",
+    label: "DIF Paneli",
+    description: "Madde yanlılığı: yaş bandı, ana dil, kurum türü",
+    perms: [Perm.psychometricsManage],
+  },
+  {
+    slug: "anchor-sets",
+    label: "Anchor Setleri",
+    description: "Kalibrasyon bağlayıcı maddeleri: oluştur, incele, onayla",
+    perms: [Perm.psychometricsManage],
+  },
+  {
+    slug: "standard-setting",
+    label: "Standart Belirleme",
+    description: "Angoff/Bookmark çalışmaları, panelistler ve kesme puanları",
+    perms: [Perm.psychometricsManage],
+  },
+  {
+    slug: "panelist",
+    label: "Panelist Çalışmalarım",
+    description: "Atandığım standart belirleme çalışmaları",
+    perms: [],
+    staffOnly: true,
+  },
+  {
+    slug: "outcome-tree",
+    label: "Kazanım Ağacı",
+    description: "Kazanım hiyerarşisi ve merkezî çerçeve eşlemesi",
+    perms: [Perm.examRead, Perm.dictionaryManage],
+  },
+  {
     slug: "settings",
     label: "Ayarlar",
     description: "Etiket, kazanım ve yaş bantları",
@@ -84,7 +130,7 @@ const CONTENT: ContentDef[] = [
 ];
 
 export function contentNavItems(prefix: "/admin" | "/staff"): PanelNavItem[] {
-  return CONTENT.map((item) => ({
+  return CONTENT.filter((item) => prefix === "/staff" || !item.staffOnly).map((item) => ({
     href: `${prefix}/content/${item.slug}`,
     label: item.label,
     description: item.description,
@@ -92,9 +138,12 @@ export function contentNavItems(prefix: "/admin" | "/staff"): PanelNavItem[] {
       prefix === "/staff"
         ? item.slug === "exams"
           ? [...item.perms, Perm.assignmentManage, Perm.examGrantManage]
-          : item.perms
+          : item.perms.length > 0
+            ? item.perms
+            : undefined
         : undefined,
     hidden: prefix === "/staff" && item.slug === "review",
+    centralOnly: prefix === "/staff" && item.staffOnly ? true : undefined,
   }));
 }
 
@@ -267,13 +316,14 @@ export function staffNavGroups(): PanelNavGroup[] {
 export function visibleNav(
   role: "SUPER_ADMIN" | "STAFF",
   permissions?: readonly string[],
+  companyId?: string | null,
 ): PanelNavGroup[] {
   const groups = role === "STAFF" ? staffNavGroups() : adminNavGroups();
   if (role !== "STAFF") return groups;
   return groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.hidden && hasAnyPermission(permissions, item.perms)),
+      items: group.items.filter((item) => !item.hidden && navItemAllowed(item, permissions, companyId)),
     }))
     .filter((group) => group.items.length > 0);
 }
