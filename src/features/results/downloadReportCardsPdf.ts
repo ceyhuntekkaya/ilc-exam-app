@@ -45,7 +45,8 @@ export async function downloadReportCardsPdf(companyId: string, params: {
   examVersionId: string;
   branchId: string;
 }): Promise<void> {
-  const query = new URLSearchParams(params);
+  // Pilot düzeltmesi: dil verilmezse sunucu karneyi İngilizce basıyordu (personel ekranı Türkçe).
+  const query = new URLSearchParams({ ...params, locale: "tr" });
   const blob = await fetchPdf(`/api/backend/report/companies/${companyId}/report-cards/pdf?${query.toString()}`);
   triggerDownload(blob, "karneler.pdf");
 }
