@@ -4,9 +4,11 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { HumanQueueItemAnswer } from './humanQueueItemAnswer';
 import type { HumanQueueItemEscapeReason } from './humanQueueItemEscapeReason';
 import type { HumanQueueItemModelSource } from './humanQueueItemModelSource';
 import type { HumanQueueItemScoreSource } from './humanQueueItemScoreSource';
+import type { MediaTranscript } from './mediaTranscript';
 
 export interface HumanQueueItem {
   answerId?: string;
@@ -22,4 +24,9 @@ export interface HumanQueueItem {
   scoreSource?: HumanQueueItemScoreSource;
   modelSource?: HumanQueueItemModelSource;
   auditPending?: boolean;
+  answer?: HumanQueueItemAnswer;
+  mediaIds?: string[];
+  transcripts?: MediaTranscript[];
+  feedback?: string;
+  rationale?: string;
 }
