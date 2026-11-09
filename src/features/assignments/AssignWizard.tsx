@@ -11,7 +11,7 @@ import { useListAssignments, useListGrants } from "@/src/api/generated/admin-exa
 import {
   preview2,
   useCreateAssignment,
-  useOpen1,
+  useOpen2,
   useSetTargets,
 } from "@/src/api/generated/assignment-controller/assignment-controller";
 import { TargetRequestType, type StudentDto } from "@/src/api/generated/models";
@@ -106,7 +106,7 @@ export function AssignWizard({ companyId, grantId }: { companyId: string; grantI
   );
   const create = useCreateAssignment();
   const setTargets = useSetTargets();
-  const openAssignment = useOpen1();
+  const openAssignment = useOpen2();
 
   const presetBranch = searchParams.get("branchId") ?? "";
   const [step, setStep] = useState(1);

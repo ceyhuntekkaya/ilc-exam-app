@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDetail, useCreate2, useUpdate2, getList3QueryKey, getDetailQueryKey } from "@/src/api/generated/company-distributions/company-distributions";
+import { useDetail, useCreate3, useUpdate2, getList4QueryKey, getDetailQueryKey } from "@/src/api/generated/company-distributions/company-distributions";
 import { usePackages } from "@/src/api/generated/company-ledger/company-ledger";
-import { useList10 } from "@/src/api/generated/exam-authoring/exam-authoring";
-import { useList6, useListSessions } from "@/src/api/generated/exam-centers/exam-centers";
+import { useList11 } from "@/src/api/generated/exam-authoring/exam-authoring";
+import { useList7, useListSessions } from "@/src/api/generated/exam-centers/exam-centers";
 import { useList as useListSkus } from "@/src/api/generated/product-sku-catalog/product-sku-catalog";
 import type { DistributionRow } from "@/src/api/generated/models";
 import { useCan } from "@/src/features/panel/PanelContext";
@@ -115,7 +115,7 @@ export function DistributionWizard({ companyId, distributionId }: { companyId: s
 
 function WizardBody({ companyId, initialDraft }: { companyId: string; initialDraft: DistributionRow | null }) {
   const queryClient = useQueryClient();
-  const create = useCreate2();
+  const create = useCreate3();
   const update = useUpdate2();
   const [draft, setDraft] = useState<DistributionRow | null>(initialDraft);
   const [step, setStep] = useState(initialDraft ? 3 : 1);
@@ -150,7 +150,7 @@ function WizardBody({ companyId, initialDraft }: { companyId: string; initialDra
         setDraft(res.data);
         notify.success("Taslak oluşturuldu");
       }
-      await queryClient.invalidateQueries({ queryKey: getList3QueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getList4QueryKey() });
       setStep(3);
     } catch (err) {
       // 400/409: backend `{"error": "..."}` (ör. kip eksik, sınav yayında değil, paket SKU'ya ait değil).
@@ -245,7 +245,7 @@ function BasicsStep({
   const packagesQ = usePackages({ query: { queryKey: ["/my-company/ledger/packages", companyId] } });
   // SKU adı yalnız katalog izni olanlara gelir (sku:manage); yoksa kod/kimlik gösterilir.
   const skusQ = useListSkus({ query: { retry: false } });
-  const examsQ = useList10({ status: "PUBLISHED", size: 100 }, { query: { retry: false } });
+  const examsQ = useList11({ status: "PUBLISHED", size: 100 }, { query: { retry: false } });
 
   const skuName = new Map((skusQ.data?.data ?? []).map((s) => [s.id, s.name ?? s.code] as const));
   const packages = (packagesQ.data?.data ?? []).filter((p) => p.status === "ACTIVE" && p.scope !== "INDIVIDUAL");
@@ -323,7 +323,7 @@ function BasicsStep({
 
 function ModeStep({ mode, onChange }: { mode: ModeForm; onChange: (next: ModeForm) => void }) {
   const [centerId, setCenterId] = useState("");
-  const centersQ = useList6({ query: { retry: false } });
+  const centersQ = useList7({ query: { retry: false } });
   const sessionsQ = useListSessions(centerId, { query: { enabled: centerId !== "", retry: false } });
   const centers = centersQ.data?.data ?? [];
   const sessions = sessionsQ.data?.data ?? [];

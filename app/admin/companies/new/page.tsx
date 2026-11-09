@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useCreate3 } from "@/src/api/generated/admin-companies/admin-companies";
+import { useCreate4 } from "@/src/api/generated/admin-companies/admin-companies";
 import {
   Button,
   Field,
@@ -18,7 +18,7 @@ import {
 
 export default function NewCompanyPage() {
   const router = useRouter();
-  const create = useCreate3();
+  const create = useCreate4();
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {

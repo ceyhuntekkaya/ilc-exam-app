@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getCandidatesQueryKey,
   getDetailQueryKey,
-  getList3QueryKey,
+  getList4QueryKey,
   useOpen,
   usePreview,
 } from "@/src/api/generated/company-distributions/company-distributions";
@@ -56,7 +56,7 @@ export function PreviewOpenStep({
       setConfirm(false);
       notify.success("Dağıtım açıldı");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getList3QueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getList4QueryKey() }),
         queryClient.invalidateQueries({ queryKey: getDetailQueryKey(distributionId) }),
         queryClient.invalidateQueries({ queryKey: getCandidatesQueryKey(distributionId) }),
       ]);

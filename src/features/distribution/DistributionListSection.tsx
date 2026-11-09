@@ -1,6 +1,6 @@
 "use client";
 
-import { getList3QueryKey, useList3 } from "@/src/api/generated/company-distributions/company-distributions";
+import { getList4QueryKey, useList4 } from "@/src/api/generated/company-distributions/company-distributions";
 import type { DistributionRow } from "@/src/api/generated/models";
 import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
@@ -22,8 +22,8 @@ function when(value?: string | null) {
  */
 export function DistributionListSection({ companyId }: { companyId: string }) {
   // Kurum değişince sorgu tazelensin diye anahtara eklenir (URL'e girmez, bkz. LedgerSection).
-  const { data, isLoading, isError, error, refetch } = useList3({
-    query: { queryKey: [...getList3QueryKey(), companyId] },
+  const { data, isLoading, isError, error, refetch } = useList4({
+    query: { queryKey: [...getList4QueryKey(), companyId] },
   });
   const canManage = useCan(Perm.assignmentManage);
   const rows = data?.data ?? [];
