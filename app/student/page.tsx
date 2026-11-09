@@ -146,6 +146,9 @@ export default function StudentHomePage() {
                 <KidButtonLink href="/student/history" variant="ghost">
                   Geçmişim
                 </KidButtonLink>
+                <KidButtonLink href="/student/privacy" variant="ghost">
+                  Verilerim ve gizlilik
+                </KidButtonLink>
               </div>
             </KidCard>
           </Block>

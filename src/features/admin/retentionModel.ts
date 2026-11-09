@@ -359,3 +359,28 @@ export function toSubmitBody(args: { subjectUserId?: string; reason: string }): 
 export function openRequestOf(requests: readonly RequestView[] | undefined): RequestView | undefined {
   return (requests ?? []).find((r) => canActOnRequest(r));
 }
+
+/** Adaya gösterilen açıklama (Türkçe, sade). Talep açmak veriyi hemen SİLMEZ: merkez değerlendirir. */
+export function candidateRequestText(request: Pick<RequestView, "status" | "rejectedReason">): string {
+  switch (request.status) {
+    case "RECEIVED":
+      return "Talebiniz alındı, merkez tarafından değerlendirilir. Bu aşamada verileriniz silinmemiştir.";
+    case "DEFERRED":
+      return "Talebiniz değerlendirildi. Açık itiraz, yasal tutma ya da itiraz süresi gibi bir engel nedeniyle bazı verileriniz henüz silinemedi; engel kalkınca talebiniz yeniden ele alınır.";
+    case "COMPLETED":
+      return "Talebiniz tamamlandı. Silinebilen verileriniz silindi; yasal olarak saklanması gereken kayıtlar (sonuç, sertifika, ödeme, rıza ve denetim kayıtları) korunur.";
+    case "REJECTED":
+      return `Talebiniz reddedildi.${request.rejectedReason ? ` Gerekçe: ${request.rejectedReason}` : ""}`;
+    default:
+      return "Talebinizin durumu bilinmiyor.";
+  }
+}
+
+/** 409: bu kişi için zaten açık bir talep var (sunucu mesajı aynen). */
+export function submitFailureMessage(err: unknown): string {
+  const status = typeof err === "object" && err !== null && "status" in err ? (err as { status?: number }).status : undefined;
+  const text = err instanceof Error ? err.message.trim() : "";
+  if ((status === 409 || status === 400 || status === 403) && text) return text;
+  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
+  return "Talebiniz şu an iletilemedi. Lütfen biraz sonra yeniden deneyin.";
+}
