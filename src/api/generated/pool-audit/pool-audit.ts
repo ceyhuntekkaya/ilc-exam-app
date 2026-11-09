@@ -53,19 +53,19 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type retire2Response200 = {
+export type retire3Response200 = {
   data: void
   status: 200
 }
 
-export type retire2ResponseSuccess = (retire2Response200) & {
+export type retire3ResponseSuccess = (retire3Response200) & {
   headers: Headers;
 };
 ;
 
-export type retire2Response = (retire2ResponseSuccess)
+export type retire3Response = (retire3ResponseSuccess)
 
-export const getRetire2Url = (questionVersionId: string,) => {
+export const getRetire3Url = (questionVersionId: string,) => {
 
 
 
@@ -73,8 +73,8 @@ export const getRetire2Url = (questionVersionId: string,) => {
   return `/authoring/pool-audit/${questionVersionId}/retire`
 }
 
-export const retire2 = async (questionVersionId: string,
-    retireRequest: RetireRequest, options?: Parameters<typeof customInstance>[1]): Promise<retire2Response> => {
+export const retire3 = async (questionVersionId: string,
+    retireRequest: RetireRequest, options?: Parameters<typeof customInstance>[1]): Promise<retire3Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -90,7 +90,7 @@ export const retire2 = async (questionVersionId: string,
     }
     return headers;
   };
-return customInstance<retire2Response>(getRetire2Url(questionVersionId),
+return customInstance<retire3Response>(getRetire3Url(questionVersionId),
   {
     ...options,
     method: 'POST',
@@ -103,13 +103,13 @@ return customInstance<retire2Response>(getRetire2Url(questionVersionId),
 
 
 
-export const getRetire2MutationKey = () => ['retire2'] as const;
+export const getRetire3MutationKey = () => ['retire3'] as const;
 
-export const getRetire2MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext> => {
+export const getRetire3MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext> => {
 
-const mutationKey = getRetire2MutationKey();
+const mutationKey = getRetire3MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -119,10 +119,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retire2>>, Retire2MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retire3>>, Retire3MutationVariables> = (props) => {
           const {questionVersionId,data} = props ?? {};
 
-          return  retire2(questionVersionId,data,requestOptions)
+          return  retire3(questionVersionId,data,requestOptions)
         }
 
 
@@ -132,34 +132,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Retire2MutationResult = NonNullable<Awaited<ReturnType<typeof retire2>>>
-    export type Retire2MutationBody = BodyType<RetireRequest>
-    export type Retire2MutationError = ErrorType<unknown>
-    export type Retire2MutationVariables = {questionVersionId: string;data: BodyType<RetireRequest>}
+    export type Retire3MutationResult = NonNullable<Awaited<ReturnType<typeof retire3>>>
+    export type Retire3MutationBody = BodyType<RetireRequest>
+    export type Retire3MutationError = ErrorType<unknown>
+    export type Retire3MutationVariables = {questionVersionId: string;data: BodyType<RetireRequest>}
 
-    export const useRetire2 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire2>>, TError,Retire2MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useRetire3 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retire3>>, TError,Retire3MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof retire2>>,
+        Awaited<ReturnType<typeof retire3>>,
         TError,
-        Retire2MutationVariables,
+        Retire3MutationVariables,
         TContext
       > => {
-      return useMutation(getRetire2MutationOptions(options), queryClient);
+      return useMutation(getRetire3MutationOptions(options), queryClient);
     }
-    export type approve4Response200 = {
+    export type approve5Response200 = {
   data: PoolAuditDto
   status: 200
 }
 
-export type approve4ResponseSuccess = (approve4Response200) & {
+export type approve5ResponseSuccess = (approve5Response200) & {
   headers: Headers;
 };
 ;
 
-export type approve4Response = (approve4ResponseSuccess)
+export type approve5Response = (approve5ResponseSuccess)
 
-export const getApprove4Url = (questionVersionId: string,) => {
+export const getApprove5Url = (questionVersionId: string,) => {
 
 
 
@@ -167,8 +167,8 @@ export const getApprove4Url = (questionVersionId: string,) => {
   return `/authoring/pool-audit/${questionVersionId}/approve`
 }
 
-export const approve4 = async (questionVersionId: string,
-    approveRequest: ApproveRequest, options?: Parameters<typeof customInstance>[1]): Promise<approve4Response> => {
+export const approve5 = async (questionVersionId: string,
+    approveRequest: ApproveRequest, options?: Parameters<typeof customInstance>[1]): Promise<approve5Response> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -184,7 +184,7 @@ export const approve4 = async (questionVersionId: string,
     }
     return headers;
   };
-return customInstance<approve4Response>(getApprove4Url(questionVersionId),
+return customInstance<approve5Response>(getApprove5Url(questionVersionId),
   {
     ...options,
     method: 'POST',
@@ -197,13 +197,13 @@ return customInstance<approve4Response>(getApprove4Url(questionVersionId),
 
 
 
-export const getApprove4MutationKey = () => ['approve4'] as const;
+export const getApprove5MutationKey = () => ['approve5'] as const;
 
-export const getApprove4MutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext> => {
+export const getApprove5MutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext> => {
 
-const mutationKey = getApprove4MutationKey();
+const mutationKey = getApprove5MutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -213,10 +213,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve4>>, Approve4MutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approve5>>, Approve5MutationVariables> = (props) => {
           const {questionVersionId,data} = props ?? {};
 
-          return  approve4(questionVersionId,data,requestOptions)
+          return  approve5(questionVersionId,data,requestOptions)
         }
 
 
@@ -226,20 +226,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type Approve4MutationResult = NonNullable<Awaited<ReturnType<typeof approve4>>>
-    export type Approve4MutationBody = BodyType<ApproveRequest>
-    export type Approve4MutationError = ErrorType<unknown>
-    export type Approve4MutationVariables = {questionVersionId: string;data: BodyType<ApproveRequest>}
+    export type Approve5MutationResult = NonNullable<Awaited<ReturnType<typeof approve5>>>
+    export type Approve5MutationBody = BodyType<ApproveRequest>
+    export type Approve5MutationError = ErrorType<unknown>
+    export type Approve5MutationVariables = {questionVersionId: string;data: BodyType<ApproveRequest>}
 
-    export const useApprove4 = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve4>>, TError,Approve4MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const useApprove5 = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approve5>>, TError,Approve5MutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof approve4>>,
+        Awaited<ReturnType<typeof approve5>>,
         TError,
-        Approve4MutationVariables,
+        Approve5MutationVariables,
         TContext
       > => {
-      return useMutation(getApprove4MutationOptions(options), queryClient);
+      return useMutation(getApprove5MutationOptions(options), queryClient);
     }
     export type kurumVersionsAcrossCompaniesResponse200 = {
   data: KurumVersionRefDto[]

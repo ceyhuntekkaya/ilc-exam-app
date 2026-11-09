@@ -7,7 +7,7 @@ const purchaseMock = vi.fn();
 let packageRows: PackageDto[] = [];
 
 vi.mock("@/src/api/generated/admin-companies/admin-companies", () => ({
-  useList4: () => ({ data: { data: { content: [] } }, isLoading: false, isError: false }),
+  useList6: () => ({ data: { data: { content: [] } }, isLoading: false, isError: false }),
 }));
 vi.mock("@/src/api/generated/product-sku-catalog/product-sku-catalog", () => ({
   useList: () => ({
@@ -17,12 +17,12 @@ vi.mock("@/src/api/generated/product-sku-catalog/product-sku-catalog", () => ({
   }),
 }));
 vi.mock("@/src/api/generated/subscription-packages-central/subscription-packages-central", () => ({
-  useList5: () => ({ data: { data: packageRows }, isLoading: false, isError: false }),
-  useCreate4: () => ({ mutateAsync: createMock, isPending: false }),
+  useList7: () => ({ data: { data: packageRows }, isLoading: false, isError: false }),
+  useCreate5: () => ({ mutateAsync: createMock, isPending: false }),
   useUpdate3: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePurchase: () => ({ mutateAsync: purchaseMock, isPending: false }),
   useCancel1: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  getList5QueryKey: (companyId: string) => [`/commerce/companies/${companyId}/packages`],
+  getList7QueryKey: (companyId: string) => [`/commerce/companies/${companyId}/packages`],
 }));
 
 // jsdom <dialog> `showModal`/`close`'u uygulamaz — `FormDialog` bunlara dayanıyor.

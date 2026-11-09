@@ -20,7 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  Report
+  Evaluation,
+  StatusParams
 } from '../models';
 
 import { customInstance } from '../../mutator';
@@ -47,7 +48,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 export type statusResponse200 = {
-  data: Report
+  data: Evaluation
   status: 200
 }
 
@@ -58,17 +59,24 @@ export type statusResponseSuccess = (statusResponse200) & {
 
 export type statusResponse = (statusResponseSuccess)
 
-export const getStatusUrl = () => {
+export const getStatusUrl = (params?: StatusParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/policy/calibration-readiness`
+  return stringifiedParams.length > 0 ? `/policy/calibration-readiness?${stringifiedParams}` : `/policy/calibration-readiness`
 }
 
-export const status = async ( options?: Parameters<typeof customInstance>[1]): Promise<statusResponse> => {
+export const status = async (params?: StatusParams, options?: Parameters<typeof customInstance>[1]): Promise<statusResponse> => {
 
-  return customInstance<statusResponse>(getStatusUrl(),
+  return customInstance<statusResponse>(getStatusUrl(params),
   {
     ...options,
     method: 'GET'
@@ -81,23 +89,23 @@ export const status = async ( options?: Parameters<typeof customInstance>[1]): P
 
 
 
-export const getStatusQueryKey = () => {
+export const getStatusQueryKey = (params?: StatusParams,) => {
     return [
-    `/policy/calibration-readiness`
+    `/policy/calibration-readiness`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getStatusQueryOptions = <TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getStatusQueryOptions = <TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>(params?: StatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getStatusQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getStatusQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof status>>> = ({ signal }) => status({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof status>>> = ({ signal }) => status(params, { signal, ...requestOptions });
 
 
 
@@ -111,7 +119,7 @@ export type StatusQueryError = ErrorType<unknown>
 
 
 export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>> & Pick<
+ params: undefined |  StatusParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof status>>,
           TError,
@@ -121,7 +129,7 @@ export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = E
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>> & Pick<
+ params?: StatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof status>>,
           TError,
@@ -131,16 +139,16 @@ export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = E
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: StatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useStatus<TData = Awaited<ReturnType<typeof status>>, TError = ErrorType<unknown>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: StatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof status>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getStatusQueryOptions(options)
+  const queryOptions = getStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

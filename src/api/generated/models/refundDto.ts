@@ -11,4 +11,5 @@ export interface RefundDto {
   amount?: number;
   reason?: string;
   refundedAt?: string;
+  entitlement?: string;
 }

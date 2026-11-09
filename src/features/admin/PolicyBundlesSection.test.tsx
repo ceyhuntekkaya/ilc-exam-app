@@ -5,10 +5,10 @@ import type { BundleDto } from "@/src/api/generated/models";
 const updateMock = vi.fn();
 
 vi.mock("@/src/api/generated/policy-bundles/policy-bundles", () => ({
-  useList2: () => ({ data: { data: [] }, isLoading: false, isError: false }),
+  useList3: () => ({ data: { data: [] }, isLoading: false, isError: false }),
   useUpdate1: () => ({ mutateAsync: updateMock, isPending: false }),
-  useCreate1: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  getList2QueryKey: () => ["/policy-bundles"],
+  useCreate2: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  getList3QueryKey: () => ["/policy-bundles"],
 }));
 
 const { BundleEditor } = await import("./PolicyBundlesSection");

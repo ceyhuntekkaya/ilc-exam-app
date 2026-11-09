@@ -8,8 +8,8 @@ const canManageMock = vi.fn();
 vi.mock("@/src/features/panel/PanelContext", () => ({ useCan: () => canManageMock() }));
 
 vi.mock("@/src/api/generated/company-distributions/company-distributions", () => ({
-  useList3: () => useList3Mock(),
-  getList3QueryKey: () => ["/my-company/distributions"],
+  useList5: () => useList3Mock(),
+  getList5QueryKey: () => ["/my-company/distributions"],
 }));
 
 const { DistributionListSection } = await import("./DistributionListSection");
