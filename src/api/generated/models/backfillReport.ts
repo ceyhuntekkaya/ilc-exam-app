@@ -20,4 +20,6 @@ export interface BackfillReport {
   createdByRole?: BackfillReportCreatedByRole;
   companies?: CompanyLine[];
   warnings?: string[];
+  createdMembershipIds?: string[];
+  createdIdentityIds?: string[];
 }

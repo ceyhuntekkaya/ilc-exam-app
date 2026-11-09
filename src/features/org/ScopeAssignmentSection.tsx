@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useDeleteScope, useInstitutes, useYears } from "@/src/api/generated/admin-companies/admin-companies";
+import { useList19 as useOrgUnits } from "@/src/api/generated/org-units/org-units";
 import { useAssign, useRemove } from "@/src/api/generated/staff-unit-scope/staff-unit-scope";
 import type { StaffDto, StaffScopeDto } from "@/src/api/generated/models";
 import { useCan } from "@/src/features/panel/PanelContext";
-import { assignUnitBody, isUnitOnlyScope, shortId, validateOrgUnitId } from "@/src/features/org/scopeModel";
+import { OrgUnitPicker } from "@/src/features/org/OrgUnitPicker";
+import { assignUnitBody, isUnitOnlyScope, shortId, unitLabel, validateOrgUnitChoice } from "@/src/features/org/scopeModel";
 import { Perm } from "@/src/lib/permissions";
-import { Badge, Button, ConfirmDialog, Field, FormCard, FormMessage, Input, Select, errorMessage, notify } from "@/src/ui";
+import { Badge, Button, ConfirmDialog, Field, FormCard, FormMessage, Select, errorMessage, notify } from "@/src/ui";
 
 function fullName(r?: StaffDto | null) {
   return `${r?.firstName ?? ""} ${r?.lastName ?? ""}`.trim() || r?.username || "Personel";
@@ -19,8 +21,9 @@ function fullName(r?: StaffDto | null) {
  * Sunucu kuralları (kök birim atanamaz, kendi satırını değiştiremez, kapsamı aşan atama 403, yalnız-birim satırda
  * birim kaldırma 409) sunucu mesajıyla AYNEN gösterilir; ekran bunları önceden tahmin edip değiştirmez.
  *
- * Birim seçici yok: backend'de OrgUnit LİSTELEYEN uç yok (OpenAPI'de yalnız öğretmen raporunda birim kimliği geçiyor),
- * bu yüzden birim kimliği (UUID) elle girilir ve satırlarda birim adı yerine kısa kimlik gösterilir.
+ * Birim, kurumun birim ağacından (GET /companies/{id}/org-units, `staff:assign_scope`; orval'da `list_19` adıyla üretilir)
+ * seçilir; satırlarda birim adı gösterilir, liste yoksa/yüklenemediyse kısa kimlik (tam UUID title'da) gösterilir.
+ * Birim yöneticisi yalnız kendi alt ağacını görür; listeyi sunucu zaten kapsama göre süzer.
  */
 export function ScopeAssignmentSection({
   companyId,
@@ -41,6 +44,11 @@ export function ScopeAssignmentSection({
   const years = useYears(companyId).data?.data ?? [];
   const instituteName = useMemo(() => Object.fromEntries((institutesData?.data ?? []).map((i) => [i.id!, i.name ?? ""])), [institutesData]);
   const scopes = staff.scopes ?? [];
+  // Uç `staff:assign_scope` ister; izni olmayana boşuna 403 üretmemek için yalnız atayabilen kullanıcıda çekilir.
+  const orgUnits = useOrgUnits(companyId, { query: { enabled: canAssign, retry: false } });
+  const unitList = orgUnits.data?.data;
+  const unitItems = useMemo(() => unitList?.items ?? [], [unitList]);
+  const unitById = useMemo(() => new Map(unitItems.filter((u) => u.id).map((u) => [u.id!, u])), [unitItems]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState("");
@@ -52,7 +60,7 @@ export function ScopeAssignmentSection({
   const [deleteError, setDeleteError] = useState<string | undefined>();
 
   const editing = scopes.find((s) => s.id === editingId) ?? null;
-  const unitIssue = validateOrgUnitId(unitId);
+  const unitIssue = validateOrgUnitChoice(unitId);
 
   const changed = async () => {
     await onChanged?.();
@@ -125,6 +133,7 @@ export function ScopeAssignmentSection({
         <ul className="divide-y divide-border rounded-lg border border-border" data-testid="scope-rows">
           {scopes.map((s) => {
             const unitOnly = isUnitOnlyScope(s);
+            const unit = s.orgUnitId ? unitById.get(s.orgUnitId) : undefined;
             return (
               <li key={s.id} className="grid gap-2 px-3 py-2.5" data-testid={`scope-${s.id}`}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -138,7 +147,14 @@ export function ScopeAssignmentSection({
                       {s.orgUnitId ? (
                         <>
                           <span className="text-fg-muted">Birim:</span>
-                          <span className="font-mono" title={s.orgUnitId}>{shortId(s.orgUnitId)}</span>
+                          {unit ? (
+                            <span title={s.orgUnitId}>
+                              <span className="font-medium text-fg">{unitLabel(unit)}</span>
+                              {unit.code ? <span className="font-mono text-xs text-fg-subtle"> ({unit.code})</span> : null}
+                            </span>
+                          ) : (
+                            <span className="font-mono" title={s.orgUnitId}>{shortId(s.orgUnitId)}</span>
+                          )}
                           {unitOnly ? <Badge tone="warning">Yalnız birim</Badge> : null}
                         </>
                       ) : (
@@ -186,15 +202,18 @@ export function ScopeAssignmentSection({
           <p className="text-[13px] font-semibold text-fg">
             {editing.roleName ?? "Rol"} satırına birim {editing.orgUnitId ? "değiştir" : "ata"}
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field
-              label="Birim kimliği (UUID)"
-              required
-              hint="Kök birim atanamaz. Birim listesi bu ekranda yok; kimliği birim yönetiminden kopyalayın."
-              error={touched ? (unitIssue ?? undefined) : undefined}
-            >
-              <Input value={unitId} onChange={(e) => setUnitId(e.target.value)} autoComplete="off" placeholder="00000000-0000-0000-0000-000000000000" />
-            </Field>
+          <div className="grid items-start gap-3 sm:grid-cols-2">
+            <OrgUnitPicker
+              items={unitItems}
+              loading={orgUnits.isLoading}
+              error={orgUnits.error}
+              onRetry={() => void orgUnits.refetch()}
+              truncated={unitList?.truncated}
+              warning={unitList?.warning}
+              value={unitId}
+              onChange={setUnitId}
+              invalidMessage={touched ? (unitIssue ?? undefined) : undefined}
+            />
             <Field label="Sezon" hint="İsteğe bağlı. Şube biriminde birimin kendi sezonu kullanılır.">
               <Select value={yearId} onChange={(e) => setYearId(e.target.value)}>
                 <option value="">Belirtme</option>

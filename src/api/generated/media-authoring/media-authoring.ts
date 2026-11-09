@@ -24,7 +24,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  List20Params,
+  List21Params,
   ListPageMediaDto,
   MediaDto,
   MediaUsage,
@@ -426,19 +426,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getUploadMutationOptions(options), queryClient);
     }
-    export type list20Response200 = {
+    export type list21Response200 = {
   data: ListPageMediaDto
   status: 200
 }
 
-export type list20ResponseSuccess = (list20Response200) & {
+export type list21ResponseSuccess = (list21Response200) & {
   headers: Headers;
 };
 ;
 
-export type list20Response = (list20ResponseSuccess)
+export type list21Response = (list21ResponseSuccess)
 
-export const getList20Url = (params?: List20Params,) => {
+export const getList21Url = (params?: List21Params,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -453,9 +453,9 @@ export const getList20Url = (params?: List20Params,) => {
   return stringifiedParams.length > 0 ? `/authoring/media?${stringifiedParams}` : `/authoring/media`
 }
 
-export const list20 = async (params?: List20Params, options?: Parameters<typeof customInstance>[1]): Promise<list20Response> => {
+export const list21 = async (params?: List21Params, options?: Parameters<typeof customInstance>[1]): Promise<list21Response> => {
 
-  return customInstance<list20Response>(getList20Url(params),
+  return customInstance<list21Response>(getList21Url(params),
   {
     ...options,
     method: 'GET'
@@ -468,66 +468,66 @@ export const list20 = async (params?: List20Params, options?: Parameters<typeof 
 
 
 
-export const getList20QueryKey = (params?: List20Params,) => {
+export const getList21QueryKey = (params?: List21Params,) => {
     return [
     `/authoring/media`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getList20QueryOptions = <TData = Awaited<ReturnType<typeof list20>>, TError = ErrorType<unknown>>(params?: List20Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getList21QueryOptions = <TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(params?: List21Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getList20QueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getList21QueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof list20>>> = ({ signal }) => list20(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof list21>>> = ({ signal }) => list21(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type List20QueryResult = NonNullable<Awaited<ReturnType<typeof list20>>>
-export type List20QueryError = ErrorType<unknown>
+export type List21QueryResult = NonNullable<Awaited<ReturnType<typeof list21>>>
+export type List21QueryError = ErrorType<unknown>
 
 
-export function useList20<TData = Awaited<ReturnType<typeof list20>>, TError = ErrorType<unknown>>(
- params: undefined |  List20Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData>> & Pick<
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+ params: undefined |  List21Params, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list20>>,
+          Awaited<ReturnType<typeof list21>>,
           TError,
-          Awaited<ReturnType<typeof list20>>
+          Awaited<ReturnType<typeof list21>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList20<TData = Awaited<ReturnType<typeof list20>>, TError = ErrorType<unknown>>(
- params?: List20Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData>> & Pick<
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+ params?: List21Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof list20>>,
+          Awaited<ReturnType<typeof list21>>,
           TError,
-          Awaited<ReturnType<typeof list20>>
+          Awaited<ReturnType<typeof list21>>
         > , 'initialData'
       >, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useList20<TData = Awaited<ReturnType<typeof list20>>, TError = ErrorType<unknown>>(
- params?: List20Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+ params?: List21Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useList20<TData = Awaited<ReturnType<typeof list20>>, TError = ErrorType<unknown>>(
- params?: List20Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list20>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export function useList21<TData = Awaited<ReturnType<typeof list21>>, TError = ErrorType<unknown>>(
+ params?: List21Params, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof list21>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getList20QueryOptions(params,options)
+  const queryOptions = getList21QueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

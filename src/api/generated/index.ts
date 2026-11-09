@@ -38,6 +38,7 @@ export * from './madde-uyumu/madde-uyumu';
 export * from './media-authoring/media-authoring';
 export * from './media-content/media-content';
 export * from './membership-admin/membership-admin';
+export * from './org-units/org-units';
 export * from './payment/payment';
 export * from './policy-bundles/policy-bundles';
 export * from './policy-settings/policy-settings';
