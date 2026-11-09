@@ -20,7 +20,7 @@ vi.mock("@/src/api/generated/admin-companies/admin-companies", () => ({
 }));
 
 vi.mock("@/src/api/generated/org-units/org-units", () => ({
-  useList19: (companyId: string, options?: unknown) => orgUnitsMock(companyId, options),
+  useList20: (companyId: string, options?: unknown) => orgUnitsMock(companyId, options),
 }));
 
 if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.showModal) {
