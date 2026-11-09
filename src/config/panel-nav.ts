@@ -188,6 +188,22 @@ export function adminNavGroups(): PanelNavGroup[] {
       ],
     },
     {
+      label: "AI puanlama",
+      items: [
+        {
+          href: "/admin/grading/individual",
+          label: "Bireysel havuz kuyruğu",
+          description: "Bireysel adayların insan bekleyen, denetim bekleyen ve gözden geçirilmemiş AI puanlı cevapları",
+          perms: [Perm.assignmentEvaluate],
+        },
+        {
+          href: "/admin/ai",
+          label: "Merkez AI ayarı",
+          description: "Kendi ayarı olmayan kurumlar ve bireysel adaylar bu modeli kullanır",
+        },
+      ],
+    },
+    {
       label: "Canlıya geçiş",
       items: [
         {
@@ -268,6 +284,13 @@ export function staffNavGroups(): PanelNavGroup[] {
           perms: [Perm.assignmentEvaluate],
         },
 
+        {
+          href: "/staff/grading/individual",
+          label: "Bireysel havuz kuyruğu",
+          description: "Bireysel adayların insan bekleyen ve denetim bekleyen cevapları",
+          perms: [Perm.assignmentEvaluate],
+          centralOnly: true,
+        },
         {
           href: "/staff/results",
           label: "Sınav Sonuçları",
