@@ -11,6 +11,7 @@ import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import {
   Button,
   EmptyState,
+  ConfirmDialog,
   ErrorState,
   Field,
   FormCard,
@@ -392,6 +393,8 @@ export function RubricsPage() {
   }
 
   const [query, setQuery] = useState("");
+  // Onay ve silme/emekliye ayırma tarayıcı confirm()'ü yerine uygulamanın onay modalıyla sorulur.
+  const [confirmAction, setConfirmAction] = useState<"approve" | "remove" | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editCode, setEditCode] = useState("");
   const [editName, setEditName] = useState("");
@@ -412,7 +415,6 @@ export function RubricsPage() {
   async function removeRubric() {
     if (!detail) return;
     const retired = Boolean(rows.find((row) => row.id === detail.id)?.currentVersionId);
-    if (!confirm(retired ? "Onaylı rubrik emekliye ayrılsın mı? Listeden ve seçiciden kalkar." : "Taslak rubrik silinsin mi?")) return;
     setBusy(true);
     try {
       await authoringApi.deleteRubric(detail.id);
@@ -579,18 +581,28 @@ export function RubricsPage() {
                 </span>
                 {headquarters || !canManage ? null : (
                   <>
-                    <Button variant="ghost" disabled={busy} onClick={() => void removeRubric()}>
+                    <Button variant="ghost" disabled={busy} onClick={() => setConfirmAction("remove")}>
                       {rows.find((row) => row.id === detail.id)?.currentVersionId ? "Emekliye ayır" : "Sil"}
                     </Button>
                     <Button variant="secondary" disabled={!editable || busy || !dirty} onClick={() => void saveDef()}>
                       Maddeleri kaydet
                     </Button>
-                    <Button
-                      disabled={!canApprove || busy || !totalOk}
-                      onClick={() => confirm("Rubrik onaylansın mı? Onaylanan sürüm soru editöründe seçilebilir ve artık düzenlenemez.") && void approve()}
-                    >
+                    <Button disabled={!canApprove || busy || !totalOk} onClick={() => setConfirmAction("approve")}>
                       Onayla
                     </Button>
+                    <RubricConfirm
+                      action={confirmAction}
+                      name={detail.name}
+                      code={detail.code}
+                      retired={Boolean(rows.find((row) => row.id === detail.id)?.currentVersionId)}
+                      unsaved={dirty}
+                      pending={busy}
+                      onClose={() => setConfirmAction(null)}
+                      onConfirm={() => {
+                        const run = confirmAction === "approve" ? approve() : removeRubric();
+                        void run.finally(() => setConfirmAction(null));
+                      }}
+                    />
                   </>
                 )}
               </>
@@ -858,5 +870,47 @@ function RubricItemCard({
         </details>
       </div>
     </div>
+  );
+}
+
+/** Rubrik onayı ve silme/emekliye ayırma onayı — sonucu (geri alınabilir mi, kimi etkiler) açıkça söyler. */
+export function RubricConfirm({
+  action,
+  name,
+  code,
+  retired,
+  unsaved,
+  pending,
+  onClose,
+  onConfirm,
+}: {
+  action: "approve" | "remove" | null;
+  name: string;
+  code: string;
+  retired: boolean;
+  unsaved: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const label = `“${name}” (${code})`;
+  const approve = action === "approve";
+  return (
+    <ConfirmDialog
+      open={action !== null}
+      tone={approve ? "primary" : "danger"}
+      title={approve ? "Rubriği onayla" : retired ? "Rubriği emekliye ayır" : "Taslak rubriği sil"}
+      description={
+        approve
+          ? `${label} onaylanınca soru editöründe seçilebilir ve bu sürümün maddeleri artık değiştirilemez; değişiklik için yeni sürüm açılır.${unsaved ? " Kaydedilmemiş madde değişiklikleri önce kaydedilir." : ""}`
+          : retired
+            ? `${label} emekliye ayrılınca listeden ve soru editöründeki seçiciden kalkar. Bu rubriği kullanan sorular etkilenmez.`
+            : `${label} taslağı kalıcı olarak silinir. Bu işlem geri alınamaz.`
+      }
+      confirmLabel={approve ? "Onayla" : retired ? "Emekliye ayır" : "Sil"}
+      pending={pending}
+      onClose={onClose}
+      onConfirm={onConfirm}
+    />
   );
 }
