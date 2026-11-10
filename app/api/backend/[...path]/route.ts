@@ -4,7 +4,8 @@ import { ACCESS_TOKEN_COOKIE } from "@/src/lib/auth-constants";
 import { getApiBaseUrl } from "@/src/lib/env";
 import { clientForwardHeaders } from "@/src/lib/server/clientForwardHeaders";
 import { proxyResponse } from "@/src/lib/server/proxyResponse";
-import { ensureAccessToken } from "@/src/lib/server/session-cookies";
+import { isInvalidTokenResponse, isPublicAuthPath } from "@/src/lib/server/bffAuth";
+import { clearSessionCookies, ensureAccessToken } from "@/src/lib/server/session-cookies";
 
 type RouteParams = { params: Promise<{ path: string[] }> };
 
@@ -16,7 +17,9 @@ async function forward(request: NextRequest, path: string[]) {
   });
 
   const store = await cookies();
-  const token = await ensureAccessToken(store);
+  // Giriş/yenileme gibi kimlik doğrulamasız uçlara oturum token'ı eklenmez: geçersiz (ör. eski anahtarla imzalı)
+  // bir çerez girişi de 401'e çevirip kullanıcıyı kilitliyordu.
+  const token = isPublicAuthPath(targetPath, request.method) ? null : await ensureAccessToken(store);
 
   const headers = new Headers();
   const contentType = request.headers.get("content-type");
@@ -63,6 +66,10 @@ async function forward(request: NextRequest, path: string[]) {
   }
 
   const upstream = await fetch(url, init);
+  if (token && isInvalidTokenResponse(upstream.status, upstream.headers.get("www-authenticate"))) {
+    // Backend token'ı artık tanımıyor: çerezler silinir, kullanıcı girişe düşer ve yeniden girebilir.
+    clearSessionCookies(store);
+  }
   const upstreamType = upstream.headers.get("content-type") ?? "";
   const passthrough =
     upstream.status === 206 ||
