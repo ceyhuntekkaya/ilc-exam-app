@@ -221,7 +221,7 @@ function WizardBody({ companyId, initialDraft }: { companyId: string; initialDra
         {step === 1 ? <BasicsStep companyId={companyId} basics={basics} onChange={setBasics} locked={draftExists} /> : null}
         {step === 2 ? <ModeStep mode={mode} onChange={setMode} /> : null}
         {step === 3 && draft?.id ? (
-          <TargetingStep distributionId={draft.id} onBack={() => setStep(2)} onNext={() => setStep(4)} />
+          <TargetingStep companyId={companyId} distributionId={draft.id} onBack={() => setStep(2)} onNext={() => setStep(4)} />
         ) : null}
         {step === 4 && draft?.id ? <PreviewOpenStep distributionId={draft.id} canOpen onBack={() => setStep(3)} /> : null}
       </FormCard>

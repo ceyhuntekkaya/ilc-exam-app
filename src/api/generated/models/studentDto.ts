@@ -19,4 +19,6 @@ export interface StudentDto {
   enrollments?: EnrollmentDto[];
   /** Yalnız oluşturma yanıtında ve yalnız parola sunucuda üretildiyse dolu; bir daha okunamaz */
   initialPassword?: string;
+  /** Bağlı ILC kimliği (dağıtım hedeflemesinde öğrenci seçimi için); hesap henüz bir kimliğe bağlanmadıysa null */
+  ilcIdentityId?: string;
 }

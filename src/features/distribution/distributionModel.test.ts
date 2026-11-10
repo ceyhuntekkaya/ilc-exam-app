@@ -19,6 +19,10 @@ import {
   validateBasics,
   validateMode,
   validateRule,
+  branchOptions,
+  describeRule,
+  ruleTypeLabel,
+  studentOptions,
 } from "./distributionModel";
 
 const ID = "11111111-2222-3333-4444-555555555555";
@@ -106,10 +110,60 @@ describe("hedefleme kuralları", () => {
     });
   });
 
-  it("UUID doğrulaması", () => {
-    expect(validateRule({ ...EMPTY_RULE, refId: "x" })).toMatch(/UUID/);
+  it("seçim doğrulaması: şube/öğrenci seçilmeli, yükleme kimliği UUID olmalı", () => {
+    expect(validateRule({ ...EMPTY_RULE, refId: "" })).toBe("Bir şube seçin.");
+    expect(validateRule({ ...EMPTY_RULE, type: "STATIC_LIST", refId: "" })).toBe("Bir öğrenci seçin.");
+    expect(validateRule({ ...EMPTY_RULE, type: "UPLOADED_LIST", refId: "x" })).toMatch(/UUID/);
     expect(validateRule({ ...EMPTY_RULE, refId: ID })).toBeNull();
     expect(validateRule({ ...EMPTY_RULE, type: "MEMBERSHIP_ROLE" })).toBeNull();
+  });
+
+  it("kural türleri kullanıcı diliyle: Şube ve Öğrenci", () => {
+    expect(ruleTypeLabel("UNIT")).toBe("Şube");
+    expect(ruleTypeLabel("STATIC_LIST")).toBe("Öğrenci");
+  });
+
+  it("şube seçenekleri: yalnız BRANCH düğümleri, kök hariç üst yoluyla", () => {
+    const units = [
+      { id: "r", name: "Kurum", unitType: "ROOT" },
+      { id: "c", parentId: "r", name: "Kampüs A", unitType: "INSTITUTE" },
+      { id: "g", parentId: "c", name: "9. Sınıf", unitType: "GRADE" },
+      { id: "b1", parentId: "g", name: "9-A", unitType: "BRANCH" },
+      { id: "b2", parentId: "g", name: "9-B", unitType: "BRANCH" },
+    ];
+    expect(branchOptions(units)).toEqual([
+      { value: "b1", label: "Kampüs A › 9. Sınıf › 9-A" },
+      { value: "b2", label: "Kampüs A › 9. Sınıf › 9-B" },
+    ]);
+  });
+
+  it("şube yoksa (K12 dışı ağaç) kök dışındaki birimler listelenir", () => {
+    const units = [
+      { id: "r", name: "Şirket", unitType: "ROOT" },
+      { id: "d", parentId: "r", name: "Satış", unitType: "DEPARTMENT" },
+    ];
+    expect(branchOptions(units)).toEqual([{ value: "d", label: "Satış" }]);
+  });
+
+  it("öğrenci seçenekleri: değer ilcIdentityId; bağlanmamış ve aktif olmayanlar seçilemez", () => {
+    const { options, unlinked } = studentOptions([
+      { ilcIdentityId: "i2", firstName: "Zeynep", lastName: "Kaya", studentNumber: "12", status: "ACTIVE" },
+      { ilcIdentityId: "i1", firstName: "Ali", lastName: "Yılmaz", username: "ali.y", status: "ACTIVE" },
+      { firstName: "Veli", lastName: "Can", status: "ACTIVE" },
+      { ilcIdentityId: "i3", firstName: "Eski", lastName: "Öğrenci", status: "PASSIVE" },
+    ]);
+    expect(options).toEqual([
+      { value: "i1", label: "Ali Yılmaz (ali.y)" },
+      { value: "i2", label: "Zeynep Kaya (12)" },
+    ]);
+    expect(unlinked).toBe(1);
+  });
+
+  it("kural satırı kimlik yerine adı gösterir; ad bilinmiyorsa kısa kimlik", () => {
+    const names = { units: new Map([[ID, "Kampüs A › 9-A"]]), students: new Map([[ID, "Ali Yılmaz"]]) };
+    expect(describeRule({ type: "UNIT", refId: ID, includeSubtree: false }, names)).toBe("Kampüs A › 9-A");
+    expect(describeRule({ type: "STATIC_LIST", refId: ID }, names)).toBe("Ali Yılmaz");
+    expect(describeRule({ type: "STATIC_LIST", refId: ID })).toMatch(/^Öğrenci /);
   });
 
   it("yalnız hariç tutma kuralı hedef sayılmaz", () => {

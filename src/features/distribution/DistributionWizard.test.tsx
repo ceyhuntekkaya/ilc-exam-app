@@ -37,6 +37,9 @@ vi.mock("@/src/api/generated/exam-centers/exam-centers", () => ({
   useListSessions: () => query([]),
 }));
 
+vi.mock("@/src/api/generated/org-units/org-units", () => ({ useList20: () => query({ items: [] }) }));
+vi.mock("@/src/api/mutator", () => ({ customInstance: vi.fn(async () => ({ data: [] })) }));
+
 const { DistributionWizard } = await import("./DistributionWizard");
 
 function fillBasics() {

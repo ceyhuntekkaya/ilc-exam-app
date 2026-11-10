@@ -324,10 +324,10 @@ export function StudentsSection({ companyId }: { companyId: string }) {
             </Field>
           </div>
         </FormGroup>
-        <FormGroup title="Kayıt" hint="İsteğe bağlı; sonradan da yapılabilir.">
+        <FormGroup title="Kayıt" hint="Zorunlu: öğrenci bir sınıfa kaydedilir ve ILC kimliği otomatik oluşturulur.">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Sezon">
-              <Select value={yearId} onChange={(e) => { setYearId(e.target.value); setBranchId(""); }}>
+            <Field label="Sezon" required>
+              <Select required value={yearId} onChange={(e) => { setYearId(e.target.value); setBranchId(""); }}>
                 <option value="">Seçilmedi</option>
                 {years.map((y) => (
                   <option key={y.id} value={y.id}>
@@ -336,8 +336,8 @@ export function StudentsSection({ companyId }: { companyId: string }) {
                 ))}
               </Select>
             </Field>
-            <Field label="Kampüs">
-              <Select value={instituteId} onChange={(e) => { setInstituteId(e.target.value); setBranchId(""); }}>
+            <Field label="Kampüs" required>
+              <Select required value={instituteId} onChange={(e) => { setInstituteId(e.target.value); setBranchId(""); }}>
                 <option value="">Seçilmedi</option>
                 {institutes.map((i) => (
                   <option key={i.id} value={i.id}>
@@ -346,8 +346,8 @@ export function StudentsSection({ companyId }: { companyId: string }) {
                 ))}
               </Select>
             </Field>
-            <Field label="Seviye">
-              <Select value={gradeId} onChange={(e) => { setGradeId(e.target.value); setBranchId(""); }}>
+            <Field label="Seviye" required>
+              <Select required value={gradeId} onChange={(e) => { setGradeId(e.target.value); setBranchId(""); }}>
                 <option value="">Seçilmedi</option>
                 {grades.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -356,8 +356,9 @@ export function StudentsSection({ companyId }: { companyId: string }) {
                 ))}
               </Select>
             </Field>
-            <Field label="Sınıf" hint={branchOptions.length === 0 ? "Bu seçime uyan sınıf yok." : undefined}>
+            <Field label="Sınıf" required hint={branchOptions.length === 0 ? "Bu seçime uyan sınıf yok." : undefined}>
               <Select
+                required
                 value={branchId}
                 disabled={branchOptions.length === 0}
                 onChange={(e) => {

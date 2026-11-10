@@ -82,9 +82,9 @@ export function omitReasonLabel(reason: string): string {
 }
 
 export const RULE_TYPES = [
-  { value: "UNIT", label: "Birim", hint: "Seçilen birimdeki kişiler. Alt birimler varsayılan olarak dahil değildir." },
+  { value: "UNIT", label: "Şube", hint: "Seçilen şubedeki öğrenciler." },
   { value: "MEMBERSHIP_ROLE", label: "Rol", hint: "Kurumdaki belirli roldeki herkes." },
-  { value: "STATIC_LIST", label: "Kimlik listesi", hint: "Tek tek seçilen kimlik (ilcIdentityId)." },
+  { value: "STATIC_LIST", label: "Öğrenci", hint: "Listeden tek tek seçilen öğrenci." },
   { value: "UPLOADED_LIST", label: "Yüklenen liste", hint: "Toplu yükleme (batch) kimliği ile gelen liste." },
 ] as const;
 
@@ -110,15 +110,20 @@ export function isUuid(value: string): boolean {
   return UUID.test(value.trim());
 }
 
-/** Kural satırı için okunur açıklama. */
-export function describeRule(rule: RuleRow): string {
+/** Kural satırında kimlik yerine gösterilecek adlar (şube: org-unit id → yol; öğrenci: ilcIdentityId → ad soyad). */
+export type RuleNames = { units?: ReadonlyMap<string, string>; students?: ReadonlyMap<string, string> };
+
+/** Kural satırı için okunur açıklama. Ad bilinmiyorsa kısa kimliğe düşer. */
+export function describeRule(rule: RuleRow, names: RuleNames = {}): string {
+  const unitText = rule.refId ? names.units?.get(rule.refId) : undefined;
+  const studentText = rule.refId ? names.students?.get(rule.refId) : undefined;
   switch (rule.type) {
     case "UNIT":
-      return `Birim ${shortId(rule.refId)}${rule.includeSubtree ? " ve alt birimleri" : " (alt birimler hariç)"}`;
+      return `${unitText ?? `Şube ${shortId(rule.refId)}`}${rule.includeSubtree ? " ve alt birimleri" : ""}`;
     case "MEMBERSHIP_ROLE":
       return `Rol: ${roleLabel(rule.role)}`;
     case "STATIC_LIST":
-      return `Kimlik ${shortId(rule.refId)}`;
+      return studentText ?? `Öğrenci ${shortId(rule.refId)}`;
     case "UPLOADED_LIST":
       return `Yükleme ${shortId(rule.refId)}`;
     default:
@@ -275,11 +280,72 @@ export const EMPTY_RULE: RuleForm = {
 export function validateRule(form: RuleForm): string | null {
   if (form.type === "MEMBERSHIP_ROLE") return form.role ? null : "Bir rol seçin.";
   if (!isUuid(form.refId)) {
-    const what =
-      form.type === "UNIT" ? "Birim kimliği" : form.type === "STATIC_LIST" ? "Kimlik" : "Yükleme kimliği";
-    return `${what} geçerli bir UUID olmalı.`;
+    if (form.type === "UNIT") return "Bir şube seçin.";
+    if (form.type === "STATIC_LIST") return "Bir öğrenci seçin.";
+    return "Yükleme kimliği geçerli bir UUID olmalı.";
   }
   return null;
+}
+
+// ── Hedefleme seçicileri ─────────────────────────────────────────────────────
+
+export type PickOption = { value: string; label: string };
+
+type UnitLike = { id?: string; parentId?: string; name?: string; code?: string; unitType?: string; childCount?: number };
+
+/**
+ * Şube seçeneği: org-unit ağacındaki BRANCH düğümleri, üst birimlerin adıyla (kök hariç) "Kampüs › Seviye › Şube".
+ * Kurumda hiç BRANCH düğümü yoksa (K12 dışı ağaç) kök dışındaki tüm birimler listelenir ki hedefleme yapılabilsin.
+ */
+export function branchOptions(units: readonly UnitLike[]): PickOption[] {
+  const byId = new Map<string, UnitLike>();
+  for (const u of units) if (u.id) byId.set(u.id, u);
+  const branches = units.filter((u) => u.unitType === "BRANCH");
+  const pool = branches.length > 0 ? branches : units.filter((u) => u.unitType !== "ROOT");
+  return pool
+    .filter((u): u is UnitLike & { id: string } => Boolean(u.id))
+    .map((u) => ({ value: u.id, label: unitPath(u, byId) }));
+}
+
+function unitPath(unit: UnitLike, byId: ReadonlyMap<string, UnitLike>): string {
+  const parts: string[] = [];
+  const seen = new Set<string>();
+  let cur: UnitLike | undefined = unit;
+  while (cur && cur.id && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    if (cur.unitType !== "ROOT") parts.unshift(cur.name?.trim() || cur.code || shortId(cur.id));
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return parts.join(" › ");
+}
+
+type StudentLike = {
+  ilcIdentityId?: string;
+  firstName?: string;
+  lastName?: string;
+  studentNumber?: string;
+  username?: string;
+  status?: string;
+};
+
+export function studentName(s: StudentLike): string {
+  return [s.firstName, s.lastName].filter(Boolean).join(" ").trim() || s.username || "Öğrenci";
+}
+
+/**
+ * Öğrenci seçeneği: değer `ilcIdentityId` (kural bunu bekler). Kimliğe bağlanmamış ya da aktif olmayan hesaplar
+ * seçilemez; `unlinked` bağlanmamış aktif öğrenci sayısıdır (ekranda uyarı için). Ada göre Türkçe sıralı.
+ */
+export function studentOptions(students: readonly StudentLike[]): { options: PickOption[]; unlinked: number } {
+  const active = students.filter((s) => s.status === undefined || s.status === "ACTIVE");
+  const options = active
+    .filter((s): s is StudentLike & { ilcIdentityId: string } => Boolean(s.ilcIdentityId))
+    .map((s) => {
+      const extra = [s.studentNumber, s.username].filter(Boolean).join(" · ");
+      return { value: s.ilcIdentityId, label: extra ? `${studentName(s)} (${extra})` : studentName(s) };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, "tr"));
+  return { options, unlinked: active.length - options.length };
 }
 
 /** Tipe ait olmayan alanlar isteğe girmez (rol yalnız ROLE, alt ağaç yalnız UNIT). */

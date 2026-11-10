@@ -60,4 +60,15 @@ describe("StudentLoginForm", () => {
     expect(loginErrorMessage(429)).toMatch(/Too many tries/);
     expect(loginErrorMessage(500)).toMatch(/could not log you in/);
   });
+
+  it("username-only mode hides the password field and sends only the username", async () => {
+    loginMock.mockResolvedValue({ data: { accessToken: "a", userType: "STUDENT" } });
+    renderWithProviders(<StudentLoginForm usernameOnly />);
+    expect(screen.queryByLabelText("Your password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Forgot password?" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Your username"), { target: { value: " ayse " } });
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(establishSession).toHaveBeenCalled());
+    expect(loginMock).toHaveBeenCalledWith({ data: { username: "ayse" } });
+  });
 });

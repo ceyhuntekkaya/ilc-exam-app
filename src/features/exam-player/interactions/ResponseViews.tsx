@@ -769,6 +769,7 @@ export function AudioResponseView({
             </button>
           </>
         )}
+        {recording && maxDur != null && maxDur > 0 ? <SpeakingTimeBar totalSec={maxDur} startedAt={speakStartedAt} /> : null}
         {analyser ? <RecordingWave analyser={analyser} countdown={countdown} /> : null}
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
@@ -798,6 +799,28 @@ export function AudioResponseView({
         )}
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
+    </div>
+  );
+}
+
+/** Konuşma süresi geri sayımı: kalan saniye + azalan çubuk. Sessiz giriş sürerken süre tam görünür. */
+function SpeakingTimeBar({ totalSec, startedAt }: { totalSec: number; startedAt: { current: number | null } }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 100);
+    return () => window.clearInterval(id);
+  }, []);
+  const begun = startedAt.current;
+  const leftMs = begun == null ? totalSec * 1000 : Math.max(0, totalSec * 1000 - (now - begun));
+  const sec = Math.ceil(leftMs / 1000);
+  const pct = Math.min(100, (leftMs / (totalSec * 1000)) * 100);
+  const low = sec <= 5;
+  return (
+    <div className="mx-auto w-full max-w-md space-y-1" role="timer" aria-label={`${sec} seconds left`}>
+      <p className={cn("text-3xl font-extrabold tabular-nums", low ? "text-exam-bad" : "text-exam-slate-700")}>{sec}s</p>
+      <div className="h-3 w-full overflow-hidden rounded-full bg-exam-slate-200">
+        <div className={cn("h-full rounded-full", low ? "bg-exam-bad" : "bg-exam-navy-900")} style={{ width: `${pct}%`, transition: "width 100ms linear" }} />
+      </div>
     </div>
   );
 }

@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { customInstance } from "@/src/api/mutator";
+import type { StudentDto } from "@/src/api/generated/models";
+import { useList20 as useOrgUnits } from "@/src/api/generated/org-units/org-units";
 import {
   getPreviewQueryKey,
   getTargetRulesQueryKey,
@@ -14,23 +17,30 @@ import {
   EMPTY_RULE,
   ROLES,
   RULE_TYPES,
+  branchOptions,
   describeRule,
   hasIncludeRule,
   ruleTypeLabel,
+  studentOptions,
   toRuleRequest,
   validateRule,
   type RuleForm,
+  type RuleNames,
 } from "@/src/features/distribution/distributionModel";
 
 /**
- * Hedefleme: dahil/hariç kuralları. Birim kuralında alt ağaç varsayılan KAPALI. Yalnız DRAFT'ta çağrılır;
- * her kural sunucuda ayrıca kapsam denetiminden geçer (kapsam dışı birim 403 döner, mesaj gösterilir).
+ * Hedefleme: dahil/hariç kuralları. Şube (UNIT) ve öğrenci (STATIC_LIST) listeden seçilir; kimlik elle girilmez.
+ * Şube listesi org-unit ağacından (kapsam süzülü), öğrenci listesi kurum öğrenci listesinden gelir (değer `ilcIdentityId`).
+ * Birim kuralında alt ağaç varsayılan KAPALI. Yalnız DRAFT'ta çağrılır; her kural sunucuda ayrıca kapsam denetiminden geçer
+ * (kapsam dışı birim 403 döner, mesaj gösterilir).
  */
 export function TargetingStep({
+  companyId,
   distributionId,
   onBack,
   onNext,
 }: {
+  companyId: string;
   distributionId: string;
   onBack: () => void;
   onNext: () => void;
@@ -43,6 +53,24 @@ export function TargetingStep({
   const [error, setError] = useState<string | null>(null);
   const rules = rulesQ.data?.data ?? [];
   const typeInfo = RULE_TYPES.find((t) => t.value === form.type);
+
+  const unitsQ = useOrgUnits(companyId, { query: { retry: false } });
+  const studentsQ = useQuery({
+    queryKey: ["distribution-target-students", companyId],
+    queryFn: () => customInstance<{ data: StudentDto[] }>(`/companies/${companyId}/students`),
+    retry: false,
+  });
+  const units = useMemo(() => unitsQ.data?.data?.items ?? [], [unitsQ.data]);
+  const branches = useMemo(() => branchOptions(units), [units]);
+  const students = useMemo(() => studentOptions(studentsQ.data?.data ?? []), [studentsQ.data]);
+  const names: RuleNames = useMemo(
+    () => ({
+      units: new Map(branches.map((o) => [o.value, o.label])),
+      students: new Map(students.options.map((o) => [o.value, o.label])),
+    }),
+    [branches, students],
+  );
+  const selectedUnit = form.type === "UNIT" ? units.find((u) => u.id === form.refId) : undefined;
 
   function patch(next: Partial<RuleForm>) {
     setForm((s) => ({ ...s, ...next }));
@@ -99,7 +127,7 @@ export function TargetingStep({
               <li key={rule.id} className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-sm">
                 <Badge tone={rule.exclude ? "danger" : "success"}>{rule.exclude ? "Hariç tut" : "Dahil et"}</Badge>
                 <span className="font-medium text-fg">{ruleTypeLabel(rule.type)}</span>
-                <span className="text-fg-muted">{describeRule(rule)}</span>
+                <span className="text-fg-muted">{describeRule(rule, names)}</span>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -118,7 +146,10 @@ export function TargetingStep({
       <div className="grid gap-3 rounded-lg border border-border bg-bg/60 p-3 sm:p-4">
         <h3 className="text-sm font-semibold text-fg">Kural ekle</h3>
         <Field label="Kural türü" hint={typeInfo?.hint}>
-          <Select value={form.type} onChange={(e) => patch({ type: e.target.value as RuleForm["type"] })}>
+          <Select
+            value={form.type}
+            onChange={(e) => patch({ type: e.target.value as RuleForm["type"], refId: "", includeSubtree: false })}
+          >
             {RULE_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}
@@ -137,17 +168,67 @@ export function TargetingStep({
               ))}
             </Select>
           </Field>
-        ) : (
+        ) : form.type === "UNIT" ? (
           <Field
-            label={form.type === "UNIT" ? "Birim kimliği" : form.type === "STATIC_LIST" ? "Kimlik (ilcIdentityId)" : "Yükleme (batch) kimliği"}
+            label="Şube"
             required
-            hint={form.type === "UNIT" ? "Birimin UUID’si. Birim ağacı seçicisi henüz yok; kimlik elle girilir." : "UUID."}
+            hint={
+              unitsQ.isError
+                ? errorMessage(unitsQ.error, "Şube listesi yüklenemedi")
+                : unitsQ.data?.data?.warning ?? undefined
+            }
           >
+            <Select
+              searchable
+              searchPlaceholder="Şube ara"
+              value={form.refId}
+              disabled={unitsQ.isLoading || unitsQ.isError}
+              onChange={(e) => patch({ refId: e.target.value, includeSubtree: false })}
+            >
+              <option value="">{unitsQ.isLoading ? "Şubeler yükleniyor…" : branches.length ? "Şube seçin" : "Şube yok"}</option>
+              {branches.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : form.type === "STATIC_LIST" ? (
+          <Field
+            label="Öğrenci"
+            required
+            hint={
+              studentsQ.isError
+                ? errorMessage(studentsQ.error, "Öğrenci listesi yüklenemedi")
+                : students.unlinked > 0
+                  ? `${students.unlinked} öğrencinin hesabı henüz bir ILC kimliğine bağlı olmadığı için listede yok.`
+                  : undefined
+            }
+          >
+            <Select
+              searchable
+              searchPlaceholder="Ad, numara ya da kullanıcı adı"
+              value={form.refId}
+              disabled={studentsQ.isLoading || studentsQ.isError}
+              onChange={(e) => patch({ refId: e.target.value })}
+            >
+              <option value="">
+                {studentsQ.isLoading ? "Öğrenciler yükleniyor…" : students.options.length ? "Öğrenci seçin" : "Öğrenci yok"}
+              </option>
+              {students.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <Field label="Yükleme (batch) kimliği" required hint="UUID.">
             <Input value={form.refId} autoComplete="off" onChange={(e) => patch({ refId: e.target.value })} placeholder="00000000-0000-0000-0000-000000000000" />
           </Field>
         )}
 
-        {form.type === "UNIT" ? (
+        {form.type === "UNIT" && (selectedUnit?.childCount ?? 0) > 0 ? (
           <Checkbox
             label="Alt birimleri de dahil et"
             description="Kapalıyken yalnız seçilen birimin kendisi hedeflenir."
