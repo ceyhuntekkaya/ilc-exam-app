@@ -1121,8 +1121,6 @@ export function SettingsDictionariesPage() {
   const [poolLoaded, setPoolLoaded] = useState(false);
   const [poolError, setPoolError] = useState<string | null>(null);
   const [selectedPoolVersionId, setSelectedPoolVersionId] = useState<string | null>(null);
-  const [copyrightDeclaration, setCopyrightDeclaration] = useState("");
-  const [approveNote, setApproveNote] = useState("");
   const [retireReason, setRetireReason] = useState("");
 
   // K-03/lint taban çizgisi: react-hooks/set-state-in-effect `async`+`await` örüntüsünü (bu
@@ -1146,27 +1144,14 @@ export function SettingsDictionariesPage() {
     loadPool();
   }, [loadPool]);
 
-  async function approvePool() {
-    const ref = poolRefs.find((row) => row.versionId === selectedPoolVersionId);
-    if (!selectedPoolVersionId || !ref) return;
-    try {
-      await authoringApi.approvePoolAudit(selectedPoolVersionId, ref.ownerOrgId, copyrightDeclaration || null, approveNote || null);
-      notify.success("Madde havuza kabul edildi");
-      setSelectedPoolVersionId(null);
-      setCopyrightDeclaration("");
-      setApproveNote("");
-      loadPool();
-    } catch (e) {
-      fail(e, "Onaylanamadı");
-    }
-  }
-
+  // 2026-11-10: kurum kendi maddesini kendisi onaylar; merkez ön onayı (havuza kabul) kaldırıldı.
+  // Merkez yalnız görür ve gerekirse gerekçeyle kaldırır (soru arşivlenir, kurum geri alamaz).
   async function retirePool() {
     const ref = poolRefs.find((row) => row.versionId === selectedPoolVersionId);
     if (!selectedPoolVersionId || !ref || !retireReason.trim()) return;
     try {
       await authoringApi.retirePoolAudit(selectedPoolVersionId, ref.ownerOrgId, retireReason.trim());
-      notify.success("Madde havuzdan kaldırıldı");
+      notify.success("Madde kaldırıldı ve arşivlendi");
       setSelectedPoolVersionId(null);
       setRetireReason("");
       loadPool();
@@ -1375,7 +1360,7 @@ export function SettingsDictionariesPage() {
             { label: "Yaş bantları", value: "ages", count: ageBands.length },
             { label: "Kazanımlar", value: "outcomes", count: outcomes.length },
             ...(canReviewPool && tenant?.contentHq
-              ? [{ label: "Kurum havuzu", value: "pool", count: poolRefs.length }]
+              ? [{ label: "Kurum maddeleri", value: "pool", count: poolRefs.length }]
               : []),
             { label: "Toplu içe aktarma", value: "import" },
             { label: "Geliştirici araçları", value: "dev" },
@@ -1655,14 +1640,14 @@ export function SettingsDictionariesPage() {
 
       {section === "pool" && canReviewPool && tenant?.contentHq ? (
         <FormCard
-          title="Kurum havuzu denetimi"
-          description="Kurumların yazdığı KURUM scope'lu maddeler, hangi kurumda olduklarına bakılmaksızın. Onay (telif beyanıyla) ve kaldırma yalnız merkezin yetkisi."
+          title="Kurum maddeleri"
+          description="Kurumların kendi yazıp kendi onayıyla yayına aldığı maddeler; merkez onayı gerekmez. Merkez, gerekirse bir maddeyi gerekçesiyle kaldırır: soru arşivlenir ve kurum geri alamaz."
         >
           {poolError ? <p className="text-sm text-danger">{poolError}</p> : null}
           {!poolLoaded ? (
             <p className="text-sm text-fg-subtle">Yükleniyor…</p>
           ) : poolRefs.length === 0 ? (
-            <p className="text-sm text-fg-subtle">Denetim bekleyen/onaylı KURUM scope&apos;lu madde yok.</p>
+            <p className="text-sm text-fg-subtle">Kurumların yazdığı madde yok.</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {poolRefs.map((ref) => (
@@ -1675,7 +1660,6 @@ export function SettingsDictionariesPage() {
                     <span className="font-mono font-medium">{ref.questionCode ?? ref.versionId}</span>
                     {ref.versionNo != null ? <span className="text-fg-subtle">s{ref.versionNo}</span> : null}
                     {ref.status ? <StatusBadge status={ref.status} /> : null}
-                    {ref.audited ? <span className="text-success">Havuz onaylı</span> : <span className="text-warning">Denetim bekliyor</span>}
                   </span>
                   <span className="text-fg-subtle">{ref.companyName ?? <span className="font-mono">{ref.ownerOrgId}</span>}</span>
                 </li>
@@ -1685,15 +1669,6 @@ export function SettingsDictionariesPage() {
 
           {selectedPoolVersionId ? (
             <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-              <FormGroup title="Havuza kabul et">
-                <Field label="Telif beyanı" hint="Opsiyonel — telif metni hukuk işi">
-                  <Textarea rows={2} value={copyrightDeclaration} onChange={(e) => setCopyrightDeclaration(e.target.value)} />
-                </Field>
-                <Field label="Not" hint="Opsiyonel">
-                  <Input value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
-                </Field>
-                <Button type="button" onClick={() => void approvePool()}>Onayla</Button>
-              </FormGroup>
               <FormGroup title="Merkez kaldırması">
                 <Field label="Gerekçe" hint="Zorunlu — sessiz kaldırma yok">
                   <Textarea rows={2} value={retireReason} onChange={(e) => setRetireReason(e.target.value)} />
