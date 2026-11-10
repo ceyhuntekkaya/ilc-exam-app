@@ -3,11 +3,10 @@
 import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
 
-import { authoringApi, type KurumVersionRef, type MediaItem, type MediaUsage, type ReviewItem } from "@/src/features/authoring/shared/client";
+import { authoringApi, type KurumVersionRef, type MediaItem, type MediaUsage } from "@/src/features/authoring/shared/client";
 import { FormGroup } from "@/src/features/authoring/shared/FormGroup";
 import { StatusBadge } from "@/src/features/authoring/shared/StatusBadge";
 import { useAuthoringTenant } from "@/src/features/authoring/shared/tenant";
-import { useContentBasePath } from "@/src/features/panel/PanelContext";
 import {
   Button,
   ConfirmDialog,
@@ -24,7 +23,6 @@ import {
   IconUpload,
   Input,
   PageHeader,
-  SectionTable,
   Select,
   Skeleton,
   Textarea,
@@ -34,8 +32,6 @@ import {
   IconArrowDown,
   IconX,
 } from "@/src/ui";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const KIND_LABEL: Record<string, string> = { IMAGE: "Görsel", AUDIO: "Ses", VIDEO: "Video" };
@@ -364,137 +360,7 @@ function MediaCard({ m, onChanged }: { m: MediaItem; onChanged: () => void }) {
 
 /* ───────── İnceleme kuyruğu ───────── */
 
-const REVIEW_TARGET: Record<string, string> = { QUESTION_VERSION: "Soru", EXAM: "Sınav" };
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3600000);
-  if (h < 1) return `${Math.max(1, Math.floor(diff / 60000))} dk önce`;
-  if (h < 24) return `${h} sa önce`;
-  const d = Math.floor(h / 24);
-  return d < 30 ? `${d} gün önce` : new Date(iso).toLocaleDateString("tr-TR");
-}
-
-export function ReviewQueuePage() {
-  const questionBasePath = useContentBasePath("questions");
-  const examBasePath = useContentBasePath("exams");
-  const requestedType = useSearchParams().get("type");
-  const { tenant } = useAuthoringTenant();
-  const [rows, setRows] = useState<ReviewItem[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>("OPEN");
-  const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [type, setType] = useState(requestedType === "Soru" || requestedType === "Sınav" ? requestedType : "");
-
-  const load = useCallback(async () => {
-    if (!tenant) {
-      setRows([]);
-      setLoaded(true);
-      return;
-    }
-    try {
-      const result = await authoringApi.listReviews(
-        status && status !== "OPEN" && status !== "ALL" ? status : undefined,
-        page,
-        50,
-        status === "ALL",
-      );
-      setRows(result.items);
-      setTotal(result.total);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Yüklenemedi");
-    } finally {
-      setLoaded(true);
-    }
-  }, [tenant, status, page]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const shown = rows.filter((r) => !type || (REVIEW_TARGET[r.targetType] ?? r.targetType) === type);
-
-  const href = (r: ReviewItem) =>
-    r.targetType === "QUESTION_VERSION" ? `${questionBasePath}/${r.targetId}` : r.targetType.startsWith("EXAM") ? `${examBasePath}/${r.targetId}` : null;
-
-  return (
-    <div className="space-y-5">
-      <PageHeader
-        title="İnceleme kuyruğu"
-        description="Açık işler en eski gönderim üstte durur. Dört göz kuralı yalnız genel merkez sorusunda yazarın kendi onayını kapatır. Okulda yönetici kendi sorusunu onaylayabilir."
-        count={loaded ? total : undefined}
-      />
-      <section className="rounded-xl border border-border bg-surface shadow-sm">
-        <div className="flex flex-col-reverse gap-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
-          <FilterTabs
-            label="İnceleme durumu"
-            value={status}
-            onChange={(value) => { setStatus(value); setPage(0); }}
-            items={[
-              { label: "Açık", value: "OPEN" },
-              { label: "Bekliyor", value: "PENDING" },
-              { label: "İnceleniyor", value: "IN_PROGRESS" },
-              { label: "Onaylı", value: "APPROVED" },
-              { label: "İade", value: "RETURNED" },
-              { label: "Tümü", value: "ALL" },
-            ]}
-          />
-          <div className="px-3 pt-3 sm:w-44 sm:py-2">
-            <Select value={type} onChange={(e) => setType(e.target.value)} aria-label="İçerik türü">
-              <option value="">Tüm içerik</option>
-              <option value="Soru">Sorular</option>
-              <option value="Sınav">Sınavlar</option>
-            </Select>
-          </div>
-        </div>
-        <div className="p-4">
-          {error ? (
-            <ErrorState title="Kuyruk alınamadı" message={error} onRetry={() => void load()} compact />
-          ) : (
-            <SectionTable
-              flush
-              loading={!loaded}
-              empty={rows.length ? "Filtreye uyan kayıt yok" : "Kuyruk boş"}
-              emptyHint={rows.length ? "Filtreleri değiştirin." : "İncelemeye gönderilen içerik burada listelenir."}
-              columns={["İçerik", "Tür", "Gönderilme", "Durum", ""]}
-              rows={shown.map((r) => {
-                const link = href(r);
-                return [
-                  <span key="t" className="grid gap-0.5" title={r.targetId}>
-                    <span className="text-[13px] font-medium text-fg">{r.label || "Adsız"}</span>
-                    {r.resolutionNote ? <span className="text-xs text-fg-muted">{r.resolutionNote}</span> : null}
-                  </span>,
-                  <span key="k" className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-fg-muted">{REVIEW_TARGET[r.targetType] ?? r.targetType}</span>,
-                  <span key="d" title={new Date(r.submittedAt).toLocaleString("tr-TR")}>{timeAgo(r.submittedAt)}</span>,
-                  <StatusBadge key="s" status={r.status} />,
-                  link ? (
-                    <Link key="a" href={link} className="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-xs font-medium text-fg hover:border-primary-300 hover:text-primary">
-                      İncele →
-                    </Link>
-                  ) : (
-                    ""
-                  ),
-                ];
-              })}
-            />
-          )}
-          {total > 50 ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-fg-muted">{page * 50 + 1}–{Math.min(total, (page + 1) * 50)} / {total}</p>
-              <div className="flex gap-2">
-                <Button type="button" variant="secondary" className="min-h-11" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Önceki</Button>
-                <Button type="button" variant="secondary" className="min-h-11" disabled={(page + 1) * 50 >= total} onClick={() => setPage((p) => p + 1)}>Sonraki</Button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </section>
-    </div>
-  );
-}
+export { ReviewQueuePage } from "@/src/features/authoring/review/ReviewQueuePage";
 
 export { RubricsPage } from "@/src/features/authoring/rubrics/RubricEditor";
 
