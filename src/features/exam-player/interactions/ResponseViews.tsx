@@ -6,6 +6,8 @@ import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player
 import { enqueueRecording, mediaUploadAgeMs, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
 import { MediaArt } from "@/src/features/exam-player/media/MediaArt";
 import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
+import { ThinkCountdown } from "@/src/features/exam-player/media/ThinkCountdown";
+import { finishLockSeconds, playStartBeep } from "@/src/features/exam-player/media/speakingTimer";
 import { checkMediaQuota, classifyRecordingError, STUCK_UPLOAD_THRESHOLD_MS, timeIsUp } from "@/src/features/exam-player/media/recordingGuard";
 import { enqueueEvent } from "@/src/features/exam-flow/eventQueue";
 import { applicationMediaContentUrl, openAnswerContentTicket, openMediaIntent } from "@/src/features/exam-player/session/studentMediaApi";
@@ -456,6 +458,14 @@ export function AudioResponseView({
   const maxAttempts = preview ? Number.POSITIVE_INFINITY : (interaction.maxAttempts as number) || 1;
   const prep = interaction.prepTimeSec as number | null | undefined;
   const maxDur = interaction.maxDurationSec as number | null | undefined;
+  const minDur = interaction.minDurationSec as number | null | undefined;
+  const thinkSec = prep != null && prep > 0 ? prep : 0;
+  // Düşünme süresi: dokunuşla başlar (AudioContext dokunuşta açılır — iOS), bitince bip + otomatik kayıt.
+  const [thinking, setThinking] = useState(false);
+  const thinkCtx = useRef<AudioContext | null>(null);
+  // Konuşmanın gerçekten başladığı an (sessiz giriş sonrası); "Done" kilidi buna göre sayılır.
+  const speakStartedAt = useRef<number | null>(null);
+  const [finishLock, setFinishLock] = useState(0);
   const restored = useRestoredEntries(itemId, preview);
   const [attempts, setAttempts] = useAttempts(itemId, 0);
   const [recording, setRecording] = useState(false);
@@ -524,8 +534,36 @@ export function AudioResponseView({
         window.clearInterval(leadInTimer.current);
         leadInTimer.current = null;
       }
+      const pendingThink = thinkCtx.current;
+      thinkCtx.current = null;
+      void pendingThink?.close().catch(() => undefined);
     };
   }, [lockId]);
+
+  // En kısa konuşma süresi (minDurationSec) dolana kadar "Done" kilitli.
+  useEffect(() => {
+    if (!recording || minDur == null || !(minDur > 0)) return;
+    const timer = window.setInterval(() => {
+      setFinishLock(finishLockSeconds(minDur, speakStartedAt.current, Date.now()));
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [recording, minDur]);
+
+  function beginThinking() {
+    setError(null);
+    // Dokunuşun içinde aç: düşünme bitince bip ve dalga bu bağlamla çalışır (iOS).
+    const ctx = new AudioContext();
+    void ctx.resume();
+    thinkCtx.current = ctx;
+    setThinking(true);
+  }
+
+  function endThinking() {
+    setThinking(false);
+    const ctx = thinkCtx.current;
+    thinkCtx.current = null;
+    void startRecording(ctx ?? undefined);
+  }
 
   // F3-10/Kural 1: bölüm/sınav süresi sıfıra inerse AKTİF kayıt durur — unmount'u beklemez
   // (sunucu sayfayı hemen kapatmayabilir, bir heartbeat turu geçebilir). stopRecording her
@@ -537,13 +575,15 @@ export function AudioResponseView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, timeRemainingMs]);
 
-  async function startRecording() {
+  /** prepared: düşünme süresinden gelen (dokunuşta açılmış) bağlam — bu yolda sessiz giriş yok, bip var. */
+  async function startRecording(prepared?: AudioContext) {
     setError(null);
     setUploadProblem(null);
     setQuotaWarning(null);
     if (!preview) void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
     // Dokunuşun içinde aç: iOS, await sonrasında açılan AudioContext'i susturabiliyor.
-    const audioCtx = new AudioContext();
+    const afterThink = prepared != null;
+    const audioCtx = prepared ?? new AudioContext();
     void audioCtx.resume();
     const abandonWave = () => {
       void audioCtx.close().catch(() => undefined);
@@ -610,10 +650,15 @@ export function AudioResponseView({
       };
       mediaRecorderRef.current = recorder;
       const tracks = stream.getAudioTracks();
-      // Geri sayım boyunca iz sessiz: dosyanın başında 3 saniye boşluk kalır.
-      for (const track of tracks) track.enabled = false;
+      // Düşünme süresinden gelindiyse öğrenci zaten hazır: sessiz giriş yok, bip çalar ve kayıt hemen başlar.
+      // Yoksa geri sayım boyunca iz sessiz: dosyanın başında 3 saniye boşluk kalır.
+      const leadInSec = afterThink ? 0 : RECORDING_LEAD_IN_SEC;
+      if (afterThink) playStartBeep(audioCtx);
+      for (const track of tracks) track.enabled = leadInSec === 0;
       recorder.start();
       startedAt.current = Date.now();
+      speakStartedAt.current = leadInSec === 0 ? startedAt.current : null;
+      setFinishLock(minDur != null && minDur > 0 ? Math.ceil(minDur) : 0);
       setRecording(true);
       let leadMs = 0;
       try {
@@ -624,21 +669,25 @@ export function AudioResponseView({
         source.connect(node);
         liveRef.current = { ctx: audioCtx, stream };
         setAnalyser(node);
-        setCountdown(RECORDING_LEAD_IN_SEC);
-        leadMs = RECORDING_LEAD_IN_SEC * 1000;
-        const leadStarted = Date.now();
-        leadInTimer.current = window.setInterval(() => {
-          const left = RECORDING_LEAD_IN_SEC - Math.floor((Date.now() - leadStarted) / 1000);
-          if (left <= 0) {
-            clearLeadIn();
-            for (const track of tracks) track.enabled = true;
-            if (mounted.current) setCountdown(null);
-            return;
-          }
-          if (mounted.current) setCountdown(left);
-        }, 200);
+        if (leadInSec > 0) {
+          setCountdown(leadInSec);
+          leadMs = leadInSec * 1000;
+          const leadStarted = Date.now();
+          leadInTimer.current = window.setInterval(() => {
+            const left = leadInSec - Math.floor((Date.now() - leadStarted) / 1000);
+            if (left <= 0) {
+              clearLeadIn();
+              for (const track of tracks) track.enabled = true;
+              speakStartedAt.current = Date.now();
+              if (mounted.current) setCountdown(null);
+              return;
+            }
+            if (mounted.current) setCountdown(left);
+          }, 200);
+        }
       } catch {
         for (const track of tracks) track.enabled = true;
+        speakStartedAt.current = Date.now();
         abandonWave();
       }
       // Süre sınırı konuşma süresidir; baştaki sessizlik bu süreden düşülmez.
@@ -665,12 +714,15 @@ export function AudioResponseView({
     }
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") recorder.stop();
+    speakStartedAt.current = null;
+    setFinishLock(0);
     setRecording(false);
     closeWave();
   }
 
   const attemptsExhausted = !preview && shownAttempts >= maxAttempts;
   const left = Number.isFinite(maxAttempts) ? Math.max(0, maxAttempts - shownAttempts) : null;
+  const lockLeft = recording ? finishLock : 0;
 
   return (
     <div className="space-y-3">
@@ -681,18 +733,42 @@ export function AudioResponseView({
             {maxDur != null ? `You can speak for ${maxDur} seconds.` : ""}
           </p>
         ) : null}
-        {recording ? null : <MediaArt kind="record" px={112} className="mx-auto rounded-3xl ring-1 ring-exam-slate-200" />}
-        <button
-          type="button"
-          disabled={disabled || busy || (!recording && attemptsExhausted)}
-          onClick={() => {
-            if (!recording) void startRecording();
-            else stopRecording();
-          }}
-          className={cn(recording ? epRecordStop : epRecordStart, "min-h-12", (disabled || (!recording && attemptsExhausted) || busy) && "opacity-50")}
-        >
-          {recording ? "Stop" : busy || uploading ? "Saving…" : entry ? "Record again" : "Record"}
-        </button>
+        {thinking ? (
+          <ThinkCountdown seconds={thinkSec} onDone={endThinking} />
+        ) : (
+          <>
+            {recording ? null : <MediaArt kind="record" px={112} className="mx-auto rounded-3xl ring-1 ring-exam-slate-200" />}
+            {recording && countdown == null ? (
+              <p className="text-sm font-bold text-exam-bad" aria-live="polite">● Recording</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={disabled || busy || (!recording && attemptsExhausted) || lockLeft > 0}
+              onClick={() => {
+                if (recording) stopRecording();
+                else if (thinkSec > 0) beginThinking();
+                else void startRecording();
+              }}
+              className={cn(
+                recording ? epRecordStop : epRecordStart,
+                "min-h-12",
+                (disabled || (!recording && attemptsExhausted) || busy || lockLeft > 0) && "opacity-50",
+              )}
+            >
+              {recording
+                ? lockLeft > 0
+                  ? `Keep speaking… ${lockLeft}`
+                  : "Done"
+                : busy || uploading
+                  ? "Saving…"
+                  : entry
+                    ? "Record again"
+                    : thinkSec > 0
+                      ? "Start"
+                      : "Record"}
+            </button>
+          </>
+        )}
         {analyser ? <RecordingWave analyser={analyser} countdown={countdown} /> : null}
         {entry ? (
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
@@ -710,7 +786,7 @@ export function AudioResponseView({
             {preview
               ? "Önizleme · sınırsız deneme"
               : recording
-                ? "Recording… Tap Stop when you finish."
+                ? "Recording… Tap Done when you finish."
                 : uploading
                   ? "Saving your recording…"
                   : entry?.mediaId
