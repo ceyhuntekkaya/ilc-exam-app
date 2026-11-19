@@ -2,6 +2,10 @@
 
 import { customInstance } from "@/src/api/mutator";
 import {
+  getResultRosterQueryKey,
+  resultRoster,
+} from "@/src/api/generated/result-action-controller/result-action-controller";
+import {
   AssignmentScopeFields,
   filtersToQuery,
   useAssignmentScope,
@@ -9,11 +13,13 @@ import {
 import { getTemplate } from "@/src/features/authoring/templates/registry";
 import { cn } from "@/src/lib/utils/cn";
 import { Button, EmptyState, ErrorState, IconFile, PageHeader, RichText, Skeleton, errorMessage, notify } from "@/src/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { answerKeyVisible, choicePaint, type ChoicePaint } from "./choiceTone";
+import { canOpenPaper } from "./attemptProgress";
 import { downloadReportCardsPdf } from "./downloadReportCardsPdf";
+import { ResultRosterTable } from "./ResultRosterTable";
 import { skillClass, skillFamily } from "./skill";
 
 type StudentRow = {
@@ -254,10 +260,33 @@ export function ResultsSection({ companyId }: { companyId: string }) {
   const askedApplication = searchParams.get("applicationId") ?? "";
   const askedStudent = searchParams.get("studentId") ?? "";
   const [creatingReport, setCreatingReport] = useState(false);
+  const queryClient = useQueryClient();
+
+  const rosterParams = {
+    instituteId: scope.campusId,
+    academicYearId: scope.seasonId,
+    examVersionId: scope.examValue,
+    branchId: scope.branchValue,
+  };
+  const rosterQ = useQuery({
+    queryKey: getResultRosterQueryKey(companyId, rosterParams),
+    enabled: scope.ready,
+    queryFn: ({ signal }) => resultRoster(companyId, rosterParams, { signal }),
+  });
+  const roster = rosterQ.data?.data;
+  // Kâğıdı açılabilen denemeler: cevabı olan teslim ya da süren sınav. Girmeyen öğrenci listede olsa da açılmaz.
+  const openable = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of roster?.students ?? []) {
+      if (canOpenPaper(row.progress) && row.progress?.applicationId) ids.add(row.progress.applicationId);
+    }
+    return ids;
+  }, [roster]);
+  const detailMode = Boolean(askedApplication || askedStudent) && openable.size > 0;
 
   const reportQ = useQuery({
     queryKey: ["exam-results", companyId, scope.campusId, scope.seasonId, scope.examValue, scope.branchValue],
-    enabled: scope.ready,
+    enabled: scope.ready && detailMode,
     queryFn: () => {
       const params = new URLSearchParams({
         instituteId: scope.campusId,
@@ -269,7 +298,10 @@ export function ResultsSection({ companyId }: { companyId: string }) {
     },
   });
 
-  const students = reportQ.data?.data.students ?? [];
+  const students = useMemo(
+    () => (reportQ.data?.data.students ?? []).filter((row) => openable.has(row.applicationId)),
+    [reportQ.data, openable],
+  );
   const selected = useMemo(() => {
     const byApplication = askedApplication ? students.find((row) => row.applicationId === askedApplication) : undefined;
     if (byApplication) return byApplication;
@@ -303,22 +335,36 @@ export function ResultsSection({ companyId }: { companyId: string }) {
     }
   }
 
-  function choose(applicationId: string) {
-    const params = new URLSearchParams(filtersToQuery({
+  function filterParams() {
+    return new URLSearchParams(filtersToQuery({
       instituteId: scope.campusId,
       yearId: scope.seasonId,
       examVersionId: scope.examValue,
       gradeId: scope.gradeValue,
       branchId: scope.branchValue,
     }).toString());
+  }
+
+  function choose(applicationId: string) {
+    const params = filterParams();
     params.set("applicationId", applicationId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
+
+  function backToTable() {
+    router.replace(`${pathname}?${filterParams().toString()}`, { scroll: false });
+  }
+
+  function refreshResults() {
+    void queryClient.invalidateQueries({ queryKey: getResultRosterQueryKey(companyId, rosterParams) });
+    void queryClient.invalidateQueries({ queryKey: ["exam-results", companyId] });
+    void queryClient.invalidateQueries({ queryKey: ["exam-result", companyId] });
   }
 
   const header = (
     <PageHeader
       title="Sınav sonuçları"
-      description="Şubeyi seçin. Sezondaki her sınav uygulaması ayrı satırda durur; puan, cevap ve kazanım o uygulamanın kâğıdıdır."
+      description="Şubeyi seçin. Şubedeki her öğrenci, sınava girsin girmesin, tabloda durur. Bir öğrenciye tıklayınca kâğıdı açılır."
     />
   );
 
@@ -330,42 +376,58 @@ export function ResultsSection({ companyId }: { companyId: string }) {
       ) : (
         <AssignmentScopeFields
           scope={scope}
-          description="Sınav, seviye ve şubeyi seçin. Liste, o şubede bu sınava girmiş her uygulamayla dolar."
+          description="Sınav, seviye ve şubeyi seçin. Tablo, o şubede kayıtlı her öğrenciyle dolar."
         />
       )}
 
       {scope.listLoading ? (
         <Skeleton className="h-48 rounded-xl" />
       ) : !scope.ready ? (
-        <EmptyState tone="neutral" title="Şubeyi seçin" description="Sınav, seviye ve şube seçilince o sınıfta sınava giren öğrenciler listelenir." />
+        <EmptyState tone="neutral" title="Şubeyi seçin" description="Sınav, seviye ve şube seçilince o sınıftaki öğrenciler listelenir." />
+      ) : rosterQ.isLoading ? (
+        <Skeleton className="h-64 rounded-xl" />
+      ) : rosterQ.isError ? (
+        <ErrorState error={rosterQ.error} onRetry={() => void rosterQ.refetch()} />
+      ) : !detailMode ? (
+        roster ? (
+          <ResultRosterTable
+            companyId={companyId}
+            roster={roster}
+            onOpen={choose}
+            onChanged={refreshResults}
+            creatingReport={creatingReport}
+            onCreateReport={() => void createReport()}
+          />
+        ) : null
       ) : reportQ.isLoading ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : reportQ.isError ? (
         <ErrorState error={reportQ.error} onRetry={() => void reportQ.refetch()} />
-      ) : students.length === 0 ? (
-        <EmptyState
-          tone="neutral"
-          title="Bu şubede sınava giren öğrenci yok"
-          description="Atanmış ya da katılmamış öğrenciler bu listede durmaz. Sınavı başlatmış veya bitirmiş bir şube seçin."
-        />
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-stretch">
-          <StudentList
-            title={reportQ.data?.data.examTitle ?? "Sınav"}
-            examTotal={num(reportQ.data?.data.examTotal)}
-            students={students}
-            selectedId={selected?.applicationId ?? ""}
-            onChoose={choose}
-            creatingReport={creatingReport}
-            onCreateReport={() => void createReport()}
-          />
-          {detailQ.isLoading ? (
-            <Skeleton className="h-96 rounded-xl" />
-          ) : detailQ.isError ? (
-            <ErrorState error={detailQ.error} onRetry={() => void detailQ.refetch()} title="Sonuç açılamadı" message={errorMessage(detailQ.error, "Sonuç açılamadı")} />
-          ) : detailQ.data?.data ? (
-            <ResultPaper companyId={companyId} report={detailQ.data.data} />
-          ) : null}
+        <div className="grid gap-3">
+          <div>
+            <Button type="button" size="sm" variant="ghost" onClick={backToTable}>
+              ← Öğrenci tablosuna dön
+            </Button>
+          </div>
+          <div className="grid items-start gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-stretch">
+            <StudentList
+              title={reportQ.data?.data.examTitle ?? "Sınav"}
+              examTotal={num(reportQ.data?.data.examTotal)}
+              students={students}
+              selectedId={selected?.applicationId ?? ""}
+              onChoose={choose}
+              creatingReport={creatingReport}
+              onCreateReport={() => void createReport()}
+            />
+            {detailQ.isLoading ? (
+              <Skeleton className="h-96 rounded-xl" />
+            ) : detailQ.isError ? (
+              <ErrorState error={detailQ.error} onRetry={() => void detailQ.refetch()} title="Sonuç açılamadı" message={errorMessage(detailQ.error, "Sonuç açılamadı")} />
+            ) : detailQ.data?.data ? (
+              <ResultPaper companyId={companyId} report={detailQ.data.data} />
+            ) : null}
+          </div>
         </div>
       )}
     </div>
@@ -389,7 +451,7 @@ function StudentList({
   creatingReport: boolean;
   onCreateReport: () => void;
 }) {
-  const average = students.reduce((sum, row) => sum + percent(num(row.score), num(row.maxScore)), 0) / students.length;
+  const average = students.reduce((sum, row) => sum + percent(num(row.score), num(row.maxScore)), 0) / Math.max(1, students.length);
   const studentCount = new Set(students.map((row) => row.studentId)).size;
   return (
     <section className="flex max-h-80 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-sm lg:max-h-[calc(100dvh-22rem)]">

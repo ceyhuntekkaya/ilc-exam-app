@@ -52,6 +52,7 @@ export * from './public-result-api-controller/public-result-api-controller';
 export * from './public-verification-controller/public-verification-controller';
 export * from './question-authoring/question-authoring';
 export * from './report-controller/report-controller';
+export * from './result-action-controller/result-action-controller';
 export * from './retention/retention';
 export * from './review-request-controller/review-request-controller';
 export * from './rubric-authoring/rubric-authoring';

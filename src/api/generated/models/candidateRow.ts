@@ -4,6 +4,7 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { AttemptProgress } from './attemptProgress';
 
 export interface CandidateRow {
   recipientId?: string;
@@ -15,4 +16,5 @@ export interface CandidateRow {
   orgUnitId?: string;
   createdAt?: string;
   latestApplicationId?: string;
+  progress?: AttemptProgress;
 }

@@ -6,9 +6,19 @@ import {
   useCandidates,
   useDetail,
 } from "@/src/api/generated/company-distributions/company-distributions";
+import { TargetingStep } from "@/src/features/distribution/TargetingStep";
+import { DistributionManageActions } from "@/src/features/distribution/DistributionManageActions";
+import { useState } from "react";
 import { useCan } from "@/src/features/panel/PanelContext";
 import { Perm } from "@/src/lib/permissions";
-import { Badge, BackLink, ButtonLink, ErrorState, SectionTable, Skeleton } from "@/src/ui";
+import { Badge, BackLink, Button, ButtonLink, ErrorState, SectionTable, Skeleton } from "@/src/ui";
+import {
+  attendanceLabel,
+  canOpenPaper,
+  evaluationLabel,
+  progressCounts,
+  type Tone,
+} from "@/src/features/results/attemptProgress";
 import {
   NOT_STARTED_MESSAGE,
   STATUS_TONE,
@@ -21,7 +31,20 @@ import {
   statusLabel,
 } from "@/src/features/distribution/distributionModel";
 
-const CANDIDATE_COLUMNS = ["Ad Soyad", "Durum", "Birim", "Kayıt tarihi", ""];
+const CANDIDATE_COLUMNS = ["Ad Soyad", "Katılım", "Değerlendirme", "Hak", ""];
+
+function StateCell({ label, detail, tone }: { label: string; detail?: string; tone: Tone }) {
+  return (
+    <span className="grid gap-0.5">
+      <span>
+        <Badge tone={tone} dot>
+          {label}
+        </Badge>
+      </span>
+      {detail ? <span className="text-xs text-fg-subtle">{detail}</span> : null}
+    </span>
+  );
+}
 
 function when(value?: string | null) {
   if (!value) return "—";
@@ -48,10 +71,13 @@ export function DistributionDetailSection({ companyId, distributionId }: { compa
   const detailQ = useDetail(distributionId, { query: { queryKey: [...getDetailQueryKey(distributionId), companyId] } });
   const candidatesQ = useCandidates(distributionId, { query: { queryKey: [...getCandidatesQueryKey(distributionId), companyId] } });
   const canManage = useCan(Perm.assignmentManage);
+  const [editingRules, setEditingRules] = useState(false);
 
   const distribution = detailQ.data?.data;
   const candidates = candidatesQ.data?.data ?? [];
   const counts = candidateCounts(candidates);
+  // K6: hak durumu (ayrıldı/başladı/iptal) yerine öğrencinin sınavdaki gerçek durumu ve değerlendirmenin nerede olduğu.
+  const progress = progressCounts(candidates.filter((row) => row.status !== "CANCELLED").map((row) => row.progress));
 
   if (detailQ.isError) {
     return <ErrorState error={detailQ.error} onRetry={() => void detailQ.refetch()} compact />;
@@ -94,14 +120,43 @@ export function DistributionDetailSection({ companyId, distributionId }: { compa
             <span className="px-1.5 text-fg-subtle">·</span>
             Paket {shortId(distribution.packageId)}
           </p>
-          {candidatesQ.isSuccess ? (
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Stat label="Toplam aday" value={counts.total} />
-              <Stat label="Başlamadı" value={counts.notStarted} />
-              <Stat label="Başladı" value={counts.started} />
-              <Stat label="İptal" value={counts.cancelled} />
+          {canManage ? (
+            <div className="mt-3">
+              <DistributionManageActions distribution={distribution} />
             </div>
           ) : null}
+          {candidatesQ.isSuccess ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+              <Stat label="Toplam aday" value={counts.total - counts.cancelled} />
+              <Stat label="Girmedi / henüz girmedi" value={progress.notTaken} />
+              <Stat label="Sınavda" value={progress.inExam} />
+              <Stat label="Teslim etti" value={progress.taken} />
+              <Stat label="Değerlendirme eksik" value={progress.pending} />
+              <Stat label="Değerlendirme tamam" value={progress.complete} />
+              <Stat label="Yayınlandı" value={progress.published} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {canManage && distribution?.status === "OPEN" ? (
+        <div className="rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-fg">Hedefleme kuralları</h2>
+            <Button type="button" size="sm" variant="secondary" className="ml-auto" onClick={() => setEditingRules((v) => !v)}>
+              {editingRules ? "Kapat" : "Kuralları düzenle"}
+            </Button>
+          </div>
+          {editingRules ? (
+            <div className="mt-4">
+              <TargetingStep companyId={companyId} distributionId={distributionId} live />
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-fg-muted">
+              Kural eklediğinizde yeni hedeflenen kişilere hak ayrılır; çıkardığınızda sınava başlamamış kişilerin hakkı iade edilir.
+              Sınava başlamış adaylara dokunulmaz.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -116,12 +171,20 @@ export function DistributionDetailSection({ companyId, distributionId }: { compa
           emptyTone="neutral"
           rows={candidates.map((row) => [
             `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim() || "—",
-            <Badge key="s" tone={candidateStatusTone(row.status)} dot>
+            row.status === "CANCELLED" ? (
+              <span key="s" className="text-xs text-fg-subtle">—</span>
+            ) : (
+              <StateCell key="s" {...attendanceLabel(row.progress)} />
+            ),
+            row.status === "CANCELLED" ? (
+              <span key="e" className="text-xs text-fg-subtle">—</span>
+            ) : (
+              <StateCell key="e" {...evaluationLabel(row.progress)} />
+            ),
+            <Badge key="h" tone={candidateStatusTone(row.status)}>
               {candidateStatusLabel(row.status)}
             </Badge>,
-            shortId(row.orgUnitId),
-            when(row.createdAt),
-            canViewResult(row) ? (
+            canViewResult(row) && canOpenPaper(row.progress) ? (
               <ButtonLink
                 key="a"
                 size="sm"

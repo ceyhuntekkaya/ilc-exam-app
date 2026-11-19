@@ -14,4 +14,5 @@ export interface GradingBatchSummary {
   published?: number;
   awaitingAudit?: number;
   unreviewedAi?: number;
+  absent?: number;
 }

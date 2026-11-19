@@ -1,6 +1,11 @@
 import type {
   CandidateRow,
   CreateRequest,
+  DistributionCancelRow,
+  DistributionCloseRow,
+  DistributionRow,
+  DistributionWindowRequest,
+  ReconcileRow,
   ModeRequest,
   OpenRow,
   PreviewRow,
@@ -430,4 +435,107 @@ export const NOT_STARTED_MESSAGE = "Aday henüz sınava başlamadı";
 /** Backend 400 metni ("Aday bu dağıtımda henüz sınava başlamadı: …") için. */
 export function isNotStartedError(err: unknown): boolean {
   return err instanceof Error && /henüz sınava başlamadı/i.test(err.message);
+}
+
+// ── Dağıtım yönetimi (iptal, tarih, ad, silme) ───────────────────────────────
+
+export type ManageActions = { rename: boolean; reschedule: boolean; close: boolean; cancel: boolean; remove: boolean };
+
+/**
+ * Hangi yönetim eylemi hangi durumda görünür (backend kurallarının aynası):
+ * ad DRAFT/OPEN, tarih yalnız açılmış açık-pencere, iptal DRAFT/OPEN, silme yalnız taslak.
+ */
+export function manageActions(row: Pick<DistributionRow, "status" | "mode">): ManageActions {
+  const draft = row.status === "DRAFT";
+  const open = row.status === "OPEN";
+  return {
+    rename: draft || open,
+    reschedule: open && row.mode === "OPEN_WINDOW",
+    close: open,
+    cancel: draft || open,
+    remove: draft,
+  };
+}
+
+export function toWindowRequest(opensWall: string, closesWall: string): DistributionWindowRequest {
+  return { windowOpensAt: istanbulInstant(opensWall), windowClosesAt: istanbulInstant(closesWall) };
+}
+
+/**
+ * Açılmış dağıtımın yeni tarihlerini sunucuya gitmeden denetler (sunucu yine aynı kuralları uygular):
+ * kapanış yalnız ileri alınır ve gelecekte olur; pencere başladıysa açılış değişmez.
+ */
+export function validateReschedule(
+  current: Pick<DistributionRow, "windowOpensAt" | "windowClosesAt">,
+  opensWall: string,
+  closesWall: string,
+  now: Date = new Date(),
+): string | null {
+  const opens = istanbulInstant(opensWall);
+  const closes = istanbulInstant(closesWall);
+  if (!opens || !closes) return "Açılış ve kapanış tarihi zorunlu.";
+  const opensMs = Date.parse(opens);
+  const closesMs = Date.parse(closes);
+  if (closesMs <= opensMs) return "Kapanış, açılıştan sonra olmalı.";
+  if (current.windowClosesAt && closesMs < Date.parse(current.windowClosesAt)) {
+    return "Kapanış yalnız ileri alınabilir; mevcut kapanıştan önceye çekilemez.";
+  }
+  if (closesMs <= now.getTime()) return "Yeni kapanış gelecekte olmalı.";
+  if (current.windowOpensAt && opensMs !== Date.parse(current.windowOpensAt) && now.getTime() >= Date.parse(current.windowOpensAt)) {
+    return "Pencere başladı; açılış tarihi değiştirilemez, yalnız kapanış uzatılabilir.";
+  }
+  return null;
+}
+
+/** İptal onayı metni: ne olur, kime dokunulmaz, geri alınır mı. */
+export function cancelDescription(status?: string | null): string {
+  if (status === "DRAFT") {
+    return "Taslak iptal edilir; hiçbir hak ayrılmadığı için kota etkilenmez. Bu işlem geri alınamaz.";
+  }
+  return (
+    "Dağıtım iptal edilir. Sınava henüz başlamamış adayların ayrılan hakkı kuruma iade edilir ve bu adaylar sınava giremez. " +
+    "Sınava başlamış veya teslim etmiş adayların hakkı ve sonucu korunur. Bu işlem geri alınamaz."
+  );
+}
+
+/** K4 "Teslim ettir": açık dağıtımı hemen kapatır. */
+export const CLOSE_DESCRIPTION =
+  "Sınavı süren her öğrencinin sınavı şimdi teslim edilir; o ana kadar verdiği bütün cevaplar korunur ve değerlendirilir. " +
+  "Dağıtım kapanır, artık kimse sınava giremez. Hiç cevap vermemiş öğrenciler \"Girmedi\" sayılır. Hak (kota) iadesi yapılmaz. " +
+  "Bu işlem geri alınamaz.";
+
+export function closeOutcome(result: Pick<DistributionCloseRow, "submittedCount" | "failedCount" | "notStartedCount">): string {
+  const submitted = result.submittedCount ?? 0;
+  const failed = result.failedCount ?? 0;
+  const notStarted = result.notStartedCount ?? 0;
+  const parts = ["Dağıtım kapandı."];
+  parts.push(submitted > 0 ? `${submitted} öğrencinin sınavı teslim edildi.` : "Sınavı süren öğrenci yoktu.");
+  if (notStarted > 0) parts.push(`${notStarted} öğrenci sınavı hiç açmadı.`);
+  if (failed > 0) parts.push(`${failed} sınav hemen teslim edilemedi; bir dakika içinde kendiliğinden teslim edilecek.`);
+  return parts.join(" ");
+}
+
+export function cancelOutcome(result: Pick<DistributionCancelRow, "releasedCount" | "keptStartedCount">): string {
+  const released = result.releasedCount ?? 0;
+  const kept = result.keptStartedCount ?? 0;
+  const parts = ["Dağıtım iptal edildi."];
+  if (released > 0) parts.push(`${released} adayın hakkı iade edildi.`);
+  if (kept > 0) parts.push(`${kept} aday sınava başladığı için korundu.`);
+  return parts.join(" ");
+}
+
+/** Açılmış dağıtımda kural değişikliğinin sonucu: kaç kişiye hak ayrıldı/iade edildi, kaç kişi hak yetmediği için eklenemedi. */
+export function reconcileOutcome(result: Pick<ReconcileRow, "addedCount" | "cancelledCount" | "skippedForQuotaCount">): {
+  tone: Tone;
+  message: string;
+} {
+  const added = result.addedCount ?? 0;
+  const cancelled = result.cancelledCount ?? 0;
+  const skipped = result.skippedForQuotaCount ?? 0;
+  const parts: string[] = [];
+  if (added > 0) parts.push(`${added} kişiye hak ayrıldı.`);
+  if (cancelled > 0) parts.push(`${cancelled} kişi hedeften çıktı, hakkı iade edildi.`);
+  if (skipped > 0) parts.push(`${skipped} kişi hak yetmediği için eklenemedi.`);
+  if (parts.length === 0) parts.push("Hedef küme değişmedi.");
+  return { tone: skipped > 0 ? "warning" : "success", message: `Kural kaydedildi. ${parts.join(" ")}` };
 }

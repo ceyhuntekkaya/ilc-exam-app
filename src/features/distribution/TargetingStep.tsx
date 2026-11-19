@@ -6,9 +6,11 @@ import { customInstance } from "@/src/api/mutator";
 import type { StudentDto } from "@/src/api/generated/models";
 import { useList20 as useOrgUnits } from "@/src/api/generated/org-units/org-units";
 import {
+  getCandidatesQueryKey,
   getPreviewQueryKey,
   getTargetRulesQueryKey,
   useAddTargetRule,
+  useReconcileDistribution,
   useRemoveTargetRule,
   useTargetRules,
 } from "@/src/api/generated/company-distributions/company-distributions";
@@ -20,6 +22,7 @@ import {
   branchOptions,
   describeRule,
   hasIncludeRule,
+  reconcileOutcome,
   ruleTypeLabel,
   studentOptions,
   toRuleRequest,
@@ -31,27 +34,36 @@ import {
 /**
  * Hedefleme: dahil/hariç kuralları. Şube (UNIT) ve öğrenci (STATIC_LIST) listeden seçilir; kimlik elle girilmez.
  * Şube listesi org-unit ağacından (kapsam süzülü), öğrenci listesi kurum öğrenci listesinden gelir (değer `ilcIdentityId`).
- * Birim kuralında alt ağaç varsayılan KAPALI. Yalnız DRAFT'ta çağrılır; her kural sunucuda ayrıca kapsam denetiminden geçer
+ * Birim kuralında alt ağaç varsayılan KAPALI. Her kural sunucuda ayrıca kapsam denetiminden geçer
  * (kapsam dışı birim 403 döner, mesaj gösterilir).
+ *
+ * `live` (açılmış dağıtım): sihirbaz düğmeleri yoktur; her kural değişikliğinden sonra hedef küme sunucuda
+ * uyarlanır (`reconcile`): yeni hedeflenene hak ayrılır, hedeften çıkan ve başlamamış adayın hakkı iade edilir,
+ * başlamış adaya dokunulmaz. Son "dahil et" kuralı kaldırılamaz (tüm adayları düşürürdü; bunun yolu iptaldir).
  */
 export function TargetingStep({
   companyId,
   distributionId,
   onBack,
   onNext,
+  live = false,
 }: {
   companyId: string;
   distributionId: string;
-  onBack: () => void;
-  onNext: () => void;
+  onBack?: () => void;
+  onNext?: () => void;
+  live?: boolean;
 }) {
   const queryClient = useQueryClient();
   const rulesQ = useTargetRules(distributionId);
   const add = useAddTargetRule();
   const remove = useRemoveTargetRule();
+  const reconcile = useReconcileDistribution();
   const [form, setForm] = useState<RuleForm>(EMPTY_RULE);
   const [error, setError] = useState<string | null>(null);
   const rules = rulesQ.data?.data ?? [];
+  const includeCount = rules.filter((r) => !r.exclude).length;
+  const isLastInclude = (rule: { exclude?: boolean }) => !rule.exclude && includeCount <= 1;
   const typeInfo = RULE_TYPES.find((t) => t.value === form.type);
 
   const unitsQ = useOrgUnits(companyId, { query: { retry: false } });
@@ -82,6 +94,16 @@ export function TargetingStep({
     await queryClient.invalidateQueries({ queryKey: getPreviewQueryKey(distributionId) });
   }
 
+  /** Açılmış dağıtımda kural değişince hedef kümeyi uyarlar ve sonucu bildirir. */
+  async function applyLive() {
+    if (!live) return;
+    const result = await reconcile.mutateAsync({ distributionId });
+    await queryClient.invalidateQueries({ queryKey: getCandidatesQueryKey(distributionId) });
+    const outcome = reconcileOutcome(result.data);
+    if (outcome.tone === "warning") notify.error(outcome.message);
+    else notify.success(outcome.message);
+  }
+
   async function submit() {
     setError(null);
     const problem = validateRule(form);
@@ -92,6 +114,7 @@ export function TargetingStep({
     try {
       await add.mutateAsync({ distributionId, data: toRuleRequest(form) });
       await refresh();
+      await applyLive();
       setForm((s) => ({ ...EMPTY_RULE, type: s.type, role: s.role }));
     } catch (err) {
       setError(errorMessage(err, "Kural eklenemedi"));
@@ -103,7 +126,8 @@ export function TargetingStep({
     try {
       await remove.mutateAsync({ distributionId, ruleId });
       await refresh();
-      notify.success("Kural kaldırıldı");
+      if (live) await applyLive();
+      else notify.success("Kural kaldırıldı");
     } catch (err) {
       setError(errorMessage(err, "Kural kaldırılamadı"));
     }
@@ -132,7 +156,8 @@ export function TargetingStep({
                   size="sm"
                   variant="ghost"
                   className="ml-auto"
-                  disabled={remove.isPending}
+                  disabled={remove.isPending || reconcile.isPending || (live && isLastInclude(rule))}
+                  title={live && isLastInclude(rule) ? "Son “dahil et” kuralı kaldırılamaz; dağıtımı iptal edebilirsiniz." : undefined}
                   onClick={() => rule.id && void removeRule(rule.id)}
                 >
                   Kaldır
@@ -243,7 +268,7 @@ export function TargetingStep({
           onChange={(e) => patch({ exclude: e.target.checked })}
         />
         <div>
-          <Button type="button" variant="secondary" loading={add.isPending} onClick={() => void submit()}>
+          <Button type="button" variant="secondary" loading={add.isPending || reconcile.isPending} onClick={() => void submit()}>
             Kuralı ekle
           </Button>
         </div>
@@ -255,14 +280,16 @@ export function TargetingStep({
         </div>
       ) : null}
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          Geri
-        </Button>
-        <Button type="button" disabled={!hasIncludeRule(rules)} onClick={onNext}>
-          Önizlemeye geç
-        </Button>
-      </div>
+      {live ? null : (
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onBack}>
+            Geri
+          </Button>
+          <Button type="button" disabled={!hasIncludeRule(rules)} onClick={onNext}>
+            Önizlemeye geç
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { requestRun, requestSingle } from "@/src/api/generated/ai-grading-controller/ai-grading-controller";
+import { approveAllAi } from "@/src/api/generated/result-action-controller/result-action-controller";
 import { useReview } from "@/src/api/generated/evaluation-controller/evaluation-controller";
 import type { ApprovalResult, GradingBatchSummary, QueueItem } from "@/src/api/generated/models";
 import { customInstance } from "@/src/api/mutator";
@@ -330,6 +331,8 @@ export function GradingSection({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState<{ index: number; total: number } | null>(null);
   const [queueingAll, setQueueingAll] = useState(false);
+  const [approvingAll, setApprovingAll] = useState(false);
+  const [confirmApproveAll, setConfirmApproveAll] = useState(false);
   const [queueingId, setQueueingId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>("pending");
@@ -614,6 +617,28 @@ export function GradingSection({
     } finally {
       runLock.current = false;
       setQueueingAll(false);
+    }
+  }
+
+  /** K9: kapsamdaki bütün AI puanlarını değiştirmeden insan onaylı yapar (denetim ve yayın kapısı açılır). */
+  async function approveAll() {
+    if (queueIds.length === 0 || approvingAll) return;
+    setApprovingAll(true);
+    try {
+      const result = await approveAllAi(companyId, scopeBody);
+      const approved = result.data?.approved ?? 0;
+      const skipped = result.data?.skipped ?? 0;
+      const failed = result.data?.failed ?? 0;
+      const extra = [skipped > 0 ? `${skipped} puan yayınlanmış ya da süre penceresi açık olduğu için atlandı` : "",
+        failed > 0 ? `${failed} puan onaylanamadı` : ""].filter(Boolean).join(", ");
+      if (approved > 0) notify.success(`${approved} AI puanı onaylandı.${extra ? ` ${extra}.` : ""}`);
+      else notify.error(`Onaylanacak AI puanı yok.${extra ? ` ${extra}.` : ""}`);
+      setConfirmApproveAll(false);
+      await Promise.all([query.refetch(), summaryQ.refetch()]);
+    } catch (err) {
+      notify.error(errorMessage(err, "AI puanları onaylanamadı"));
+    } finally {
+      setApprovingAll(false);
     }
   }
 
@@ -1035,6 +1060,16 @@ export function GradingSection({
                         type="button"
                         variant="secondary"
                         className="min-h-11 w-full sm:w-auto"
+                        loading={approvingAll}
+                        disabled={actionBusy || query.isLoading || ![...leftItems, ...rightItems].some((item) => item.scoreSource === "AI_ACCEPTED" && !item.published)}
+                        onClick={() => setConfirmApproveAll(true)}
+                      >
+                        Tüm AI puanlarını onayla
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="min-h-11 w-full sm:w-auto"
                         disabled={leftItems.length + rightItems.length === 0 || actionBusy || query.isLoading}
                         onClick={() => void saveAll()}
                       >
@@ -1084,6 +1119,16 @@ export function GradingSection({
         }${(summary?.awaitingAudit ?? 0) > 0 ? ` ${summary?.awaitingAudit} deneme denetim bekliyor; bunlar yayınlanmaz.` : ""}${(summary?.unreviewedAi ?? 0) > 0 ? ` ${summary?.unreviewedAi} denemede AI puanı gözden geçirilmedi.` : ""}`}
         onClose={() => setConfirmPublish(false)}
         onConfirm={() => void publishResults()}
+      />
+      <ConfirmDialog
+        open={confirmApproveAll}
+        title="Bütün AI puanları onaylansın mı?"
+        tone="primary"
+        confirmLabel="Hepsini onayla"
+        pending={approvingAll}
+        description="Seçili kapsamdaki, AI'ın verdiği bütün puanlar değiştirilmeden insan onaylı olur; denetim bekleyen denemeler yayına hazır hale gelir. Onaydan sonra da yayına kadar her puanı tek tek değiştirebilirsiniz."
+        onClose={() => setConfirmApproveAll(false)}
+        onConfirm={() => void approveAll()}
       />
     </div>
   );

@@ -23,4 +23,16 @@ describe("downloadReportCardsPdf (pilot)", () => {
     expect(new URL(url, "http://x").searchParams.get("locale")).toBe("tr");
     expect(new URL(url, "http://x").searchParams.get("branchId")).toBe("b1");
   });
+
+  it("404'te 'Not Found' yerine puanlanmış karne olmadığını söyler", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      json: async () => ({ detail: "Bu sonuç için rapor verisi kaydedilmemiş" }),
+    })));
+    await expect(
+      downloadReportCardsPdf("c1", { instituteId: "i1", academicYearId: "y1", examVersionId: "e1", branchId: "b1" }),
+    ).rejects.toThrow(/puanlanmış karne yok/);
+  });
 });

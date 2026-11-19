@@ -47,13 +47,25 @@ export async function downloadReportCardsPdf(companyId: string, params: {
 }): Promise<void> {
   // Pilot düzeltmesi: dil verilmezse sunucu karneyi İngilizce basıyordu (personel ekranı Türkçe).
   const query = new URLSearchParams({ ...params, locale: "tr" });
-  const blob = await fetchPdf(`/api/backend/report/companies/${companyId}/report-cards/pdf?${query.toString()}`);
+  let blob: Blob;
+  try {
+    blob = await fetchPdf(`/api/backend/report/companies/${companyId}/report-cards/pdf?${query.toString()}`);
+  } catch (error) {
+    // Sunucu, kapsamda puanlanmış (sonuç kaydı oluşmuş) hiç başvuru yoksa 404 döner; gövde
+    // Spring'in `detail` alanında gelir ve fetchPdf yalnız `error` okuduğundan "Not Found" görünürdü.
+    if ((error as { status?: number }).status === 404) {
+      throw new Error(
+        "Bu şube için puanlanmış karne yok. Sınavı bitiren öğrencilerin sonucu henüz hesaplanmamış; sonuçlar puanlandıktan sonra tekrar deneyin.",
+      );
+    }
+    throw error;
+  }
   triggerDownload(blob, "karneler.pdf");
 }
 
 /** Tek bir sonucun karne PDF'i — personel görünümü ({@code ReportController.staffReportPdf}). */
 export async function downloadStaffReportPdf(companyId: string, applicationResultId: string): Promise<void> {
-  const blob = await fetchPdf(`/api/backend/report/companies/${companyId}/results/${applicationResultId}/pdf`);
+  const blob = await fetchPdf(`/api/backend/report/companies/${companyId}/results/${applicationResultId}/pdf?locale=tr`);
   triggerDownload(blob, `karne-${applicationResultId}.pdf`);
 }
 

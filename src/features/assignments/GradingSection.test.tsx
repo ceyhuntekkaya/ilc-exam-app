@@ -20,6 +20,7 @@ function reply(url: string, init?: RequestInit) {
     return { data: { runIds: ["run-1"], queued: 2, skippedScored: 1, skippedGrace: 0, skippedPublished: 0, skippedActive: 0 }, status: 200 };
   if (path.includes("/grading/ai-runs/")) return { data: runStatuses.shift() ?? runStatuses[0], status: 200 };
   if (path.endsWith("/ai-jobs")) return { data: { runId: "run-s", jobId: "j1", queued: true }, status: 200 };
+  if (path.endsWith("/grading/ai-approvals") && method === "POST") return { data: { approved: 1, skipped: 0, failed: 0 }, status: 200 };
   if (path.endsWith("/evaluation/approve")) return { data: { answerId: "a2", source: "HUMAN", finalScore: 6, versionNo: 3 }, status: 200 };
   return { data: {} };
 }
@@ -83,6 +84,18 @@ afterEach(() => vi.clearAllMocks());
 const urls = () => calls.map((c) => `${c.method} ${c.url.split("?")[0]}`);
 
 describe("GradingSection (R-30)", () => {
+  it("K9: 'Tüm AI puanlarını onayla' onaydan sonra kapsamla tek istek atar", async () => {
+    renderWithProviders(<GradingSection companyId="co-1" assignmentId="as-1" />);
+    const button = await screen.findByRole("button", { name: "Tüm AI puanlarını onayla" });
+    await waitFor(() => expect(button).not.toBeDisabled());
+    fireEvent.click(button);
+    expect(urls()).not.toContain("POST /companies/co-1/grading/ai-approvals");
+    fireEvent.click(await screen.findByRole("button", { name: "Hepsini onayla" }));
+    await waitFor(() => expect(urls()).toContain("POST /companies/co-1/grading/ai-approvals"));
+    const call = calls.find((c) => c.url.endsWith("/grading/ai-approvals"));
+    expect(call?.body).toEqual({ assignmentIds: ["as-1"] });
+  });
+
   it("Tümünü değerlendir ai-runs çağırır; ai-evaluation ve PUT evaluation çağırmaz", async () => {
     renderWithProviders(<GradingSection companyId="co-1" assignmentId="as-1" />);
     const button = await screen.findByRole("button", { name: "Tümünü değerlendir" });

@@ -26,9 +26,14 @@ import type {
 import type {
   CandidateRow,
   CreateRequest,
+  DistributionCancelRow,
+  DistributionCloseRow,
+  DistributionNameRequest,
   DistributionRow,
+  DistributionWindowRequest,
   OpenRow,
   PreviewRow,
+  ReconcileRow,
   RuleRequest,
   RuleRow,
   StudentReport,
@@ -257,6 +262,85 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdate2MutationOptions(options), queryClient);
+    }
+    export type deleteDraftDistributionResponse200 = {
+  data: void
+  status: 200
+}
+
+export type deleteDraftDistributionResponseSuccess = (deleteDraftDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteDraftDistributionResponse = (deleteDraftDistributionResponseSuccess)
+
+export const getDeleteDraftDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}`
+}
+
+export const deleteDraftDistribution = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<deleteDraftDistributionResponse> => {
+
+  return customInstance<deleteDraftDistributionResponse>(getDeleteDraftDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteDraftDistributionMutationKey = () => ['deleteDraftDistribution'] as const;
+
+export const getDeleteDraftDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDraftDistribution>>, TError,DeleteDraftDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDraftDistribution>>, TError,DeleteDraftDistributionMutationVariables, TContext> => {
+
+const mutationKey = getDeleteDraftDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDraftDistribution>>, DeleteDraftDistributionMutationVariables> = (props) => {
+          const {distributionId} = props ?? {};
+
+          return  deleteDraftDistribution(distributionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDraftDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDraftDistribution>>>
+
+    export type DeleteDraftDistributionMutationError = ErrorType<unknown>
+    export type DeleteDraftDistributionMutationVariables = {distributionId: string}
+
+    export const useDeleteDraftDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDraftDistribution>>, TError,DeleteDraftDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDraftDistribution>>,
+        TError,
+        DeleteDraftDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteDraftDistributionMutationOptions(options), queryClient);
     }
     export type list6Response200 = {
   data: DistributionRow[]
@@ -657,6 +741,85 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getAddTargetRuleMutationOptions(options), queryClient);
     }
+    export type reconcileDistributionResponse200 = {
+  data: ReconcileRow
+  status: 200
+}
+
+export type reconcileDistributionResponseSuccess = (reconcileDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type reconcileDistributionResponse = (reconcileDistributionResponseSuccess)
+
+export const getReconcileDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/reconcile`
+}
+
+export const reconcileDistribution = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<reconcileDistributionResponse> => {
+
+  return customInstance<reconcileDistributionResponse>(getReconcileDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReconcileDistributionMutationKey = () => ['reconcileDistribution'] as const;
+
+export const getReconcileDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileDistribution>>, TError,ReconcileDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof reconcileDistribution>>, TError,ReconcileDistributionMutationVariables, TContext> => {
+
+const mutationKey = getReconcileDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reconcileDistribution>>, ReconcileDistributionMutationVariables> = (props) => {
+          const {distributionId} = props ?? {};
+
+          return  reconcileDistribution(distributionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReconcileDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof reconcileDistribution>>>
+
+    export type ReconcileDistributionMutationError = ErrorType<unknown>
+    export type ReconcileDistributionMutationVariables = {distributionId: string}
+
+    export const useReconcileDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reconcileDistribution>>, TError,ReconcileDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reconcileDistribution>>,
+        TError,
+        ReconcileDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReconcileDistributionMutationOptions(options), queryClient);
+    }
     export type openResponse200 = {
   data: OpenRow
   status: 200
@@ -735,6 +898,352 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getOpenMutationOptions(options), queryClient);
+    }
+    export type closeDistributionResponse200 = {
+  data: DistributionCloseRow
+  status: 200
+}
+
+export type closeDistributionResponseSuccess = (closeDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type closeDistributionResponse = (closeDistributionResponseSuccess)
+
+export const getCloseDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/close`
+}
+
+export const closeDistribution = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<closeDistributionResponse> => {
+
+  return customInstance<closeDistributionResponse>(getCloseDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCloseDistributionMutationKey = () => ['closeDistribution'] as const;
+
+export const getCloseDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeDistribution>>, TError,CloseDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof closeDistribution>>, TError,CloseDistributionMutationVariables, TContext> => {
+
+const mutationKey = getCloseDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeDistribution>>, CloseDistributionMutationVariables> = (props) => {
+          const {distributionId} = props ?? {};
+
+          return  closeDistribution(distributionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CloseDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof closeDistribution>>>
+
+    export type CloseDistributionMutationError = ErrorType<unknown>
+    export type CloseDistributionMutationVariables = {distributionId: string}
+
+    export const useCloseDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeDistribution>>, TError,CloseDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof closeDistribution>>,
+        TError,
+        CloseDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCloseDistributionMutationOptions(options), queryClient);
+    }
+    export type cancelDistributionResponse200 = {
+  data: DistributionCancelRow
+  status: 200
+}
+
+export type cancelDistributionResponseSuccess = (cancelDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type cancelDistributionResponse = (cancelDistributionResponseSuccess)
+
+export const getCancelDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/cancel`
+}
+
+export const cancelDistribution = async (distributionId: string, options?: Parameters<typeof customInstance>[1]): Promise<cancelDistributionResponse> => {
+
+  return customInstance<cancelDistributionResponse>(getCancelDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelDistributionMutationKey = () => ['cancelDistribution'] as const;
+
+export const getCancelDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelDistribution>>, TError,CancelDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelDistribution>>, TError,CancelDistributionMutationVariables, TContext> => {
+
+const mutationKey = getCancelDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelDistribution>>, CancelDistributionMutationVariables> = (props) => {
+          const {distributionId} = props ?? {};
+
+          return  cancelDistribution(distributionId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof cancelDistribution>>>
+
+    export type CancelDistributionMutationError = ErrorType<unknown>
+    export type CancelDistributionMutationVariables = {distributionId: string}
+
+    export const useCancelDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelDistribution>>, TError,CancelDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof cancelDistribution>>,
+        TError,
+        CancelDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelDistributionMutationOptions(options), queryClient);
+    }
+    export type rescheduleDistributionResponse200 = {
+  data: DistributionRow
+  status: 200
+}
+
+export type rescheduleDistributionResponseSuccess = (rescheduleDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type rescheduleDistributionResponse = (rescheduleDistributionResponseSuccess)
+
+export const getRescheduleDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/window`
+}
+
+export const rescheduleDistribution = async (distributionId: string,
+    distributionWindowRequest: DistributionWindowRequest, options?: Parameters<typeof customInstance>[1]): Promise<rescheduleDistributionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<rescheduleDistributionResponse>(getRescheduleDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(distributionWindowRequest)
+  }
+);}
+
+
+
+
+
+export const getRescheduleDistributionMutationKey = () => ['rescheduleDistribution'] as const;
+
+export const getRescheduleDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleDistribution>>, TError,RescheduleDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof rescheduleDistribution>>, TError,RescheduleDistributionMutationVariables, TContext> => {
+
+const mutationKey = getRescheduleDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rescheduleDistribution>>, RescheduleDistributionMutationVariables> = (props) => {
+          const {distributionId,data} = props ?? {};
+
+          return  rescheduleDistribution(distributionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RescheduleDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof rescheduleDistribution>>>
+    export type RescheduleDistributionMutationBody = BodyType<DistributionWindowRequest>
+    export type RescheduleDistributionMutationError = ErrorType<unknown>
+    export type RescheduleDistributionMutationVariables = {distributionId: string;data: BodyType<DistributionWindowRequest>}
+
+    export const useRescheduleDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rescheduleDistribution>>, TError,RescheduleDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof rescheduleDistribution>>,
+        TError,
+        RescheduleDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRescheduleDistributionMutationOptions(options), queryClient);
+    }
+    export type renameDistributionResponse200 = {
+  data: DistributionRow
+  status: 200
+}
+
+export type renameDistributionResponseSuccess = (renameDistributionResponse200) & {
+  headers: Headers;
+};
+;
+
+export type renameDistributionResponse = (renameDistributionResponseSuccess)
+
+export const getRenameDistributionUrl = (distributionId: string,) => {
+
+
+
+
+  return `/my-company/distributions/${distributionId}/name`
+}
+
+export const renameDistribution = async (distributionId: string,
+    distributionNameRequest: DistributionNameRequest, options?: Parameters<typeof customInstance>[1]): Promise<renameDistributionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customInstance<renameDistributionResponse>(getRenameDistributionUrl(distributionId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(distributionNameRequest)
+  }
+);}
+
+
+
+
+
+export const getRenameDistributionMutationKey = () => ['renameDistribution'] as const;
+
+export const getRenameDistributionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameDistribution>>, TError,RenameDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof renameDistribution>>, TError,RenameDistributionMutationVariables, TContext> => {
+
+const mutationKey = getRenameDistributionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof renameDistribution>>, RenameDistributionMutationVariables> = (props) => {
+          const {distributionId,data} = props ?? {};
+
+          return  renameDistribution(distributionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RenameDistributionMutationResult = NonNullable<Awaited<ReturnType<typeof renameDistribution>>>
+    export type RenameDistributionMutationBody = BodyType<DistributionNameRequest>
+    export type RenameDistributionMutationError = ErrorType<unknown>
+    export type RenameDistributionMutationVariables = {distributionId: string;data: BodyType<DistributionNameRequest>}
+
+    export const useRenameDistribution = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renameDistribution>>, TError,RenameDistributionMutationVariables, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof renameDistribution>>,
+        TError,
+        RenameDistributionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRenameDistributionMutationOptions(options), queryClient);
     }
     export type previewResponse200 = {
   data: PreviewRow

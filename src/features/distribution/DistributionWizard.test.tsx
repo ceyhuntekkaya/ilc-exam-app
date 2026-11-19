@@ -18,6 +18,7 @@ vi.mock("@/src/api/generated/company-distributions/company-distributions", () =>
   useTargetRules: () => query([]),
   useAddTargetRule: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRemoveTargetRule: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useReconcileDistribution: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePreview: () => query({ recipientCount: 0, omittedByReason: {}, duplicateCount: 0 }),
   useOpen: () => ({ mutateAsync: vi.fn(), isPending: false }),
   getCandidatesQueryKey: (id: string) => [`/c/${id}`],

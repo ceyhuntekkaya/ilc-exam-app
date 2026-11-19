@@ -2,6 +2,8 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "@/src/t
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const addMock = vi.fn();
+const removeMock = vi.fn();
+const reconcileMock = vi.fn();
 const query = (data: unknown) => ({ data: { data }, isLoading: false, isError: false, error: null, refetch: vi.fn() });
 const BRANCH_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 const IDENTITY_ID = "bbbbbbbb-0000-0000-0000-000000000002";
@@ -11,9 +13,11 @@ let rules: unknown[] = [];
 vi.mock("@/src/api/generated/company-distributions/company-distributions", () => ({
   getTargetRulesQueryKey: (id: string) => [`/r/${id}`],
   getPreviewQueryKey: (id: string) => [`/p/${id}`],
+  getCandidatesQueryKey: (id: string) => [`/c/${id}`],
   useTargetRules: () => query(rules),
   useAddTargetRule: () => ({ mutateAsync: addMock, isPending: false }),
-  useRemoveTargetRule: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRemoveTargetRule: () => ({ mutateAsync: removeMock, isPending: false }),
+  useReconcileDistribution: () => ({ mutateAsync: reconcileMock, isPending: false }),
 }));
 vi.mock("@/src/api/generated/org-units/org-units", () => ({
   useList20: () =>
@@ -43,6 +47,8 @@ function renderStep() {
 describe("TargetingStep", () => {
   afterEach(() => {
     addMock.mockReset();
+    removeMock.mockReset();
+    reconcileMock.mockReset();
     rules = [];
   });
 
@@ -97,5 +103,64 @@ describe("TargetingStep", () => {
     expect(within(list).getByText("Kampüs A › 9-A")).toBeInTheDocument();
     expect(await within(list).findByText("Ali Yılmaz (12)")).toBeInTheDocument();
     expect(within(list).queryByText(/bbbbbbbb/)).toBeNull();
+  });
+
+  it("sihirbazda kural eklemek hedef kümeyi uyarlamaz (dağıtım henüz taslak)", async () => {
+    addMock.mockResolvedValue({});
+    renderStep();
+
+    fireEvent.change(screen.getByLabelText(/^Şube/), { target: { value: BRANCH_ID } });
+    fireEvent.click(screen.getByRole("button", { name: "Kuralı ekle" }));
+
+    await waitFor(() => expect(addMock).toHaveBeenCalled());
+    expect(reconcileMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Önizlemeye geç" })).toBeInTheDocument();
+  });
+
+  describe("açılmış dağıtım (live)", () => {
+    function renderLive() {
+      return renderWithProviders(<TargetingStep companyId="c1" distributionId="d1" live />);
+    }
+
+    it("kural eklenince hedef küme uyarlanır; sihirbaz düğmeleri yoktur", async () => {
+      addMock.mockResolvedValue({});
+      reconcileMock.mockResolvedValue({ data: { addedCount: 4, cancelledCount: 0, skippedForQuotaCount: 0 } });
+      renderLive();
+
+      fireEvent.change(screen.getByLabelText(/^Şube/), { target: { value: BRANCH_ID } });
+      fireEvent.click(screen.getByRole("button", { name: "Kuralı ekle" }));
+
+      await waitFor(() => expect(reconcileMock).toHaveBeenCalledWith({ distributionId: "d1" }));
+      expect(screen.queryByRole("button", { name: "Önizlemeye geç" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Geri" })).toBeNull();
+    });
+
+    it("kural kaldırılınca da hedef küme uyarlanır", async () => {
+      rules = [
+        { id: "r1", type: "UNIT", refId: BRANCH_ID, includeSubtree: false, exclude: false },
+        { id: "r2", type: "STATIC_LIST", refId: IDENTITY_ID, exclude: true },
+      ];
+      removeMock.mockResolvedValue({});
+      reconcileMock.mockResolvedValue({ data: { addedCount: 0, cancelledCount: 0, skippedForQuotaCount: 0 } });
+      renderLive();
+
+      const buttons = screen.getAllByRole("button", { name: "Kaldır" });
+      fireEvent.click(buttons[1]);
+
+      await waitFor(() => expect(removeMock).toHaveBeenCalledWith({ distributionId: "d1", ruleId: "r2" }));
+      await waitFor(() => expect(reconcileMock).toHaveBeenCalled());
+    });
+
+    it("son 'dahil et' kuralı kaldırılamaz, hariç tutma kuralı kaldırılabilir", () => {
+      rules = [
+        { id: "r1", type: "UNIT", refId: BRANCH_ID, includeSubtree: false, exclude: false },
+        { id: "r2", type: "STATIC_LIST", refId: IDENTITY_ID, exclude: true },
+      ];
+      renderLive();
+
+      const [includeRemove, excludeRemove] = screen.getAllByRole("button", { name: "Kaldır" });
+      expect(includeRemove).toBeDisabled();
+      expect(excludeRemove).toBeEnabled();
+    });
   });
 });
