@@ -21,5 +21,7 @@ export interface AssignmentSummaryDto {
   availableUntil?: string;
   createdAt?: string;
   examStatus?: AssignmentSummaryDtoExamStatus;
+  examTitle?: string;
+  examCode?: string;
   targets?: AssignmentTargetSummary[];
 }

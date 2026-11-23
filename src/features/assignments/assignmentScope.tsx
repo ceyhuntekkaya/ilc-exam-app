@@ -158,7 +158,7 @@ export function useAssignmentScope(companyId: string, options?: { includeLicense
       const grant =
         grants.find((item) => item.examVersionId === row.examVersionId && item.academicYearId === seasonId) ??
         grants.find((item) => item.examVersionId === row.examVersionId);
-      const title = grant?.examTitle ?? "Sınav";
+      const title = row.examTitle ?? grant?.examTitle ?? "Sınav";
       seen.set(row.examVersionId, {
         id: row.examVersionId,
         title,
