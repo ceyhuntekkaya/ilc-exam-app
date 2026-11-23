@@ -170,11 +170,11 @@ describe("answerContract — 14 madde tipi", () => {
     expect(outbox.getAnswer(itemId)).toEqual({ zoneOf: { d1: "z-head" } });
   });
 
-  it("OPEN_ENDED: metin yazılır, kaydedilir → {text}", async () => {
+  it("OPEN_ENDED: metin yazılır, kutudan çıkınca kendiliğinden kaydedilir → {text}", async () => {
     const outbox = renderItem("OPEN_ENDED", openEndedFixture);
 
     await userEvent.type(screen.getByLabelText("Your answer"), "My essay text");
-    await userEvent.click(screen.getByRole("button", { name: "Save answer" }));
+    await userEvent.tab();
 
     expect(outbox.getAnswer(itemId)).toEqual({ text: "My essay text" });
   });

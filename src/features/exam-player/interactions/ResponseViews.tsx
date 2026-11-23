@@ -2,8 +2,16 @@
 
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
-import { claimMedia, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
-import { enqueueRecording, mediaUploadAgeMs, mediaUploadError, retryMediaUpload, subscribeMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
+import { claimMedia, mediaHolderOtherThan, releaseMedia, setUnsaved } from "@/src/features/exam-player/session/playerGuard";
+import {
+  enqueueRecording,
+  mediaUploadAgeMs,
+  mediaUploadError,
+  mediaUploadQueued,
+  mediaUploadRevision,
+  retryMediaUpload,
+  subscribeMediaUploads,
+} from "@/src/features/exam-player/session/mediaOutbox";
 import { MediaArt } from "@/src/features/exam-player/media/MediaArt";
 import { RecordingWave } from "@/src/features/exam-player/media/RecordingWave";
 import { ThinkCountdown } from "@/src/features/exam-player/media/ThinkCountdown";
@@ -18,7 +26,7 @@ import { expectFullscreenExit, settleExpectedExitSoon, withExpectedExit } from "
 import { cn } from "@/src/lib/utils/cn";
 import { IconCheck, IconImage, IconTrash, IconUpload } from "@/src/ui/icons";
 import { useParams } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode, type SyntheticEvent } from "react";
 
 function ManualAnswerHints({
   answerKey,
@@ -55,9 +63,15 @@ function ManualAnswerHints({
 
 const countWords = (s: string) => (s.trim() ? s.trim().split(/\s+/).length : 0);
 
+/** Yazmaya ara verince bu kadar sonra kaydedilir. */
+const AUTOSAVE_PAUSE_MS = 3000;
+/** Hiç ara vermeden yazılsa bile en geç bu aralıkla kaydedilir. */
+const AUTOSAVE_MAX_WAIT_MS = 30_000;
+
 /**
- * Writing: otomatik kaydetme yok. Öğrenci "Save answer" ile kaydeder; kaydedilmemiş metin varken
- * soru geçişinde sınav sayfası sorar (playerGuard). Süre biterken / bölüm bitirilirken bekleyen metin yine kaydedilir.
+ * Writing: otomatik kaydedilir — yazmaya ara verince (3 sn), uzun süre ara vermeden yazarken en geç 30 sn'de bir
+ * ve kutudan çıkınca. Öğrenci kaydetmeyi unutsa da yazdığı kaybolmaz (tarayıcı çökmesi, sayfa yenileme, pil).
+ * Henüz kaydedilmemiş metin playerGuard'a bildirilir: soru geçişi, süre bitişi ve bölüm kapanışı onu önce kutuya yazar.
  */
 export function OpenEndedView({
   interaction,
@@ -82,7 +96,10 @@ export function OpenEndedView({
   const [text, setText] = useState(() => (saved?.text as string | undefined) ?? "");
   const [savedText, setSavedText] = useState(() => (saved?.text as string | undefined) ?? "");
   const [justSaved, setJustSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Kaydedilmemiş metnin ilk değiştiği an: kesintisiz yazımda en geç AUTOSAVE_MAX_WAIT_MS sonra kaydetmek için.
+  const dirtySince = useRef<number | null>(null);
   const words = countWords(text);
   const over = maxWords != null && words > maxWords;
   const under = minWords != null && words > 0 && words < minWords;
@@ -100,14 +117,17 @@ export function OpenEndedView({
       if (!itemId || !session?.saveAnswer) return;
       const text = textRef.current;
       setSaveError(null);
+      setSaving(true);
       return Promise.resolve(session.saveAnswer(itemId, { text })).then(
         () => {
           if (textRef.current !== text) return;
+          setSaving(false);
           setSavedText(text);
           setJustSaved(true);
         },
         (err: unknown) => {
           if (textRef.current !== text) return;
+          setSaving(false);
           setSaveError(err instanceof Error ? err.message : "Not saved. Trying again…");
         },
       );
@@ -118,6 +138,19 @@ export function OpenEndedView({
     if (!itemId || !live) return;
     setUnsaved(itemId, dirty ? () => saveRef.current() : null);
   }, [dirty, itemId, live]);
+
+  // Otomatik kayıt: her tuşta zamanlayıcı yeniden kurulur; ara verince ya da en geç 30 sn'de bir kaydeder.
+  useEffect(() => {
+    if (!dirty) {
+      dirtySince.current = null;
+      return;
+    }
+    const now = Date.now();
+    if (dirtySince.current == null) dirtySince.current = now;
+    const wait = Math.min(AUTOSAVE_PAUSE_MS, Math.max(0, AUTOSAVE_MAX_WAIT_MS - (now - dirtySince.current)));
+    const timer = window.setTimeout(() => saveRef.current(), wait);
+    return () => window.clearTimeout(timer);
+  }, [dirty, text]);
   useEffect(() => () => {
     if (itemId) setUnsaved(itemId, null);
   }, [itemId]);
@@ -138,6 +171,9 @@ export function OpenEndedView({
         aria-label="Your answer"
         onPaste={(e) => {
           if (!pasteAllowed) e.preventDefault();
+        }}
+        onBlur={() => {
+          if (dirty) saveRef.current();
         }}
         onChange={(e) => {
           const next = e.target.value;
@@ -165,32 +201,24 @@ export function OpenEndedView({
                 : ""}
         </p>
         {live ? (
-          <div className="flex items-center gap-3">
-            <span
-              aria-live="polite"
-              className={cn("flex items-center gap-1 text-sm font-semibold", saveError ? "text-exam-bad-ink" : dirty ? "text-exam-warn" : "text-exam-ok-ink")}
-            >
-              {saveError ? (
-                saveError
-              ) : dirty ? (
-                "Not saved yet"
-              ) : savedText ? (
-                <>
-                  <IconCheck className="size-4" strokeWidth={3} aria-hidden />
-                  {justSaved ? "Saved!" : "Saved"}
-                </>
-              ) : null}
-            </span>
-            <button
-              type="button"
-              disabled={!dirty}
-              onClick={() => saveRef.current()}
-              className="inline-flex h-11 items-center gap-1.5 rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white transition hover:bg-exam-navy-600 disabled:bg-exam-slate-200 disabled:text-exam-slate-500 disabled:shadow-none"
-            >
-              <IconCheck className="size-4" strokeWidth={3} aria-hidden />
-              Save answer
-            </button>
-          </div>
+          <span
+            aria-live="polite"
+            className={cn(
+              "flex min-h-11 items-center gap-1 text-sm font-semibold",
+              saveError ? "text-exam-bad-ink" : dirty || saving ? "text-exam-slate-500" : "text-exam-ok-ink",
+            )}
+          >
+            {saveError ? (
+              saveError
+            ) : dirty || saving ? (
+              "Saving…"
+            ) : savedText ? (
+              <>
+                <IconCheck className="size-4" strokeWidth={3} aria-hidden />
+                {justSaved ? "Saved!" : "Saved"}
+              </>
+            ) : null}
+          </span>
         ) : null}
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />
@@ -228,7 +256,77 @@ function useAttempts(itemId: string | undefined, fallback: number): [number, (fn
   return [value, update];
 }
 
-type UploadEntry = { key: string; name: string; url: string; mediaId: string | null; intentId?: string | null };
+type UploadEntry = {
+  key: string;
+  name: string;
+  url: string;
+  mediaId: string | null;
+  intentId?: string | null;
+  /** Sunucunun kaydettiği konuşma süresi (sessiz giriş düşülmüş); "Saved · 18 seconds" için. */
+  speakMs?: number | null;
+};
+
+/** Hata nesnesindeki sunucu kodu (ör. ATTEMPT_LIMIT). */
+function errorCode(err: unknown): string | undefined {
+  return typeof err === "object" && err && "code" in err ? String((err as { code?: unknown }).code ?? "") : undefined;
+}
+
+/** Kilidi başkası tutarken öğrenciye ne beklediği söylenir; sessizce hiçbir şey olmaması yok. */
+function waitMessage(holder: string): string {
+  return holder.startsWith("answer-upload:")
+    ? "Please wait. Your recording is still being sent."
+    : "Please wait. Finish listening or watching first.";
+}
+
+/**
+ * Bu sorunun kayıt yükleme kuyruğu: bekleyen iş (sayfa yenilendikten sonra sürdürülen dahil), yeniden denenen
+ * hata, uzun sürme. Modül durumundan render sırasında okunur; kuyruk her değiştiğinde yeniden çizilir.
+ */
+function useQueuedUpload(itemId: string | undefined) {
+  useSyncExternalStore(subscribeMediaUploads, mediaUploadRevision, () => 0);
+  if (!itemId) return { queued: false, problem: null as string | null, stuck: false };
+  const age = mediaUploadAgeMs(itemId);
+  return {
+    queued: mediaUploadQueued(itemId),
+    problem: mediaUploadError(itemId),
+    stuck: age != null && age >= STUCK_UPLOAD_THRESHOLD_MS,
+  };
+}
+
+/** Yükleme sürerken öğrenciye: kayıt güvende, deneme sürüyor, uzarsa öğretmene söyle. "Try upload again" yalnız iş varken. */
+function UploadProgress({ itemId, problem, stuck }: { itemId?: string; problem: string | null; stuck: boolean }) {
+  if (!problem && !stuck) return null;
+  return (
+    <div className="mx-auto max-w-md space-y-2">
+      {problem ? <p className="text-sm font-semibold text-exam-warn">{problem}</p> : null}
+      <p className="text-sm text-exam-slate-600">
+        Your recording is safe on this computer. We keep trying to send it. If this takes long, please tell your teacher.
+      </p>
+      {problem && itemId ? (
+        <button
+          type="button"
+          onClick={() => retryMediaUpload(itemId)}
+          className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white"
+        >
+          Try upload again
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** "✓ Saved · 18 seconds · Tries left: 1" — süre sunucunun onayladığı kayıttan gelir. */
+function SavedLine({ speakMs, left }: { speakMs?: number | null; left: number | null }) {
+  const seconds = speakMs != null && speakMs > 0 ? Math.max(1, Math.round(speakMs / 1000)) : null;
+  return (
+    <span className="inline-flex items-center gap-1 font-semibold text-exam-ok-ink">
+      <IconCheck className="size-4" strokeWidth={3} aria-hidden />
+      Saved
+      {seconds != null ? ` · ${seconds} ${seconds === 1 ? "second" : "seconds"}` : ""}
+      {left != null && left > 0 ? <span className="font-normal text-exam-slate-500">{` · Tries left: ${left}`}</span> : null}
+    </span>
+  );
+}
 
 function savedMediaIds(saved: Record<string, unknown> | undefined): string[] {
   const many = saved?.mediaIds;
@@ -486,18 +584,13 @@ export function AudioResponseView({
   const { session, busy, error, setError } = useUploader(itemId);
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
   const [uploading, setUploading] = useState(false);
-  const [uploadProblem, setUploadProblem] = useState<string | null>(null);
+  // Kayıt izni (hak kontrolü) sunucudan bekleniyor.
+  const [starting, setStarting] = useState(false);
   const [quotaWarning, setQuotaWarning] = useState<string | null>(null);
-  const [stuck, setStuck] = useState(false);
-
-  useEffect(() => {
-    if (!itemId) return;
-    return subscribeMediaUploads(() => {
-      setUploadProblem(mediaUploadError(itemId));
-      const age = mediaUploadAgeMs(itemId);
-      setStuck(age != null && age >= STUCK_UPLOAD_THRESHOLD_MS);
-    });
-  }, [itemId]);
+  const upload = useQueuedUpload(itemId);
+  const sending = uploading || upload.queued;
+  // Bu kaydın başındaki sessiz giriş: gösterilen konuşma süresinden düşülür.
+  const leadMsRef = useRef(0);
 
   function clearLeadIn() {
     if (leadInTimer.current != null) {
@@ -549,21 +642,51 @@ export function AudioResponseView({
     return () => window.clearInterval(timer);
   }, [recording, minDur]);
 
-  function beginThinking() {
-    setError(null);
-    // Dokunuşun içinde aç: düşünme bitince bip ve dalga bu bağlamla çalışır (iOS).
-    const ctx = new AudioContext();
-    void ctx.resume();
-    thinkCtx.current = ctx;
-    setThinking(true);
+  async function prepareRecording(ctx: AudioContext) {
+    if (!preview && session && itemId && params.recipientId) {
+      setStarting(true);
+      try {
+        intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
+      } catch (err) {
+        void ctx.close().catch(() => undefined);
+        releaseMedia(lockId);
+        if (!mounted.current) return;
+        // Sunucu "hakkın bitti" diyorsa (başka sekme/cihazda kullanılmış) düğme de kapanır.
+        if (errorCode(err) === "ATTEMPT_LIMIT") setAttempts((count) => Math.max(count, maxAttempts));
+        setError(err instanceof Error && err.message ? err.message : "We could not start the recording. Please try again.");
+        return;
+      } finally {
+        if (mounted.current) setStarting(false);
+      }
+    }
+    if (!mounted.current) {
+      void ctx.close().catch(() => undefined);
+      return;
+    }
+    if (thinkSec > 0) {
+      thinkCtx.current = ctx;
+      setThinking(true);
+    } else {
+      void startRecording(ctx, false);
+    }
   }
 
   function endThinking() {
     setThinking(false);
     const ctx = thinkCtx.current;
     thinkCtx.current = null;
-    void startRecording(ctx ?? undefined);
+    void startRecording(ctx ?? undefined, true);
   }
+
+  // Düşünürken süre biterse ya da soru kapanırsa geri sayım kalkar, kayıt başlamaz, kilit bırakılır.
+  const thinkingLive = thinking && !(disabled || timeIsUp(timeRemainingMs));
+  useEffect(() => {
+    if (!thinking || thinkingLive) return;
+    const ctx = thinkCtx.current;
+    thinkCtx.current = null;
+    void ctx?.close().catch(() => undefined);
+    releaseMedia(lockId);
+  }, [thinking, thinkingLive, lockId]);
 
   // F3-10/Kural 1: bölüm/sınav süresi sıfıra inerse AKTİF kayıt durur — unmount'u beklemez
   // (sunucu sayfayı hemen kapatmayabilir, bir heartbeat turu geçebilir). stopRecording her
@@ -575,31 +698,24 @@ export function AudioResponseView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, timeRemainingMs]);
 
-  /** prepared: düşünme süresinden gelen (dokunuşta açılmış) bağlam — bu yolda sessiz giriş yok, bip var. */
-  async function startRecording(prepared?: AudioContext) {
+  /**
+   * prepared: dokunuşta açılmış bağlam (kayıt izni onRecordButton'da alındı).
+   * afterThink: düşünme süresinden gelindi — sessiz giriş yok, bip var.
+   */
+  async function startRecording(prepared: AudioContext | undefined, afterThink: boolean) {
     setError(null);
-    setUploadProblem(null);
     setQuotaWarning(null);
     if (!preview) void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
-    // Dokunuşun içinde aç: iOS, await sonrasında açılan AudioContext'i susturabiliyor.
-    const afterThink = prepared != null;
     const audioCtx = prepared ?? new AudioContext();
     void audioCtx.resume();
     const abandonWave = () => {
       void audioCtx.close().catch(() => undefined);
     };
-    if (!preview && session && itemId && params.recipientId) {
-      try {
-        intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
-      } catch (err) {
-        abandonWave();
-        setError(err instanceof Error ? err.message : "We could not start the recording. Please try again.");
-        return;
-      }
-    }
-    // Kayıt sürerken başka ses çalmasın ve soru geçişi kilitli olsun (önizlemede kilit yok).
+    // Kayıt sürerken başka ses çalmasın ve soru geçişi kilitli olsun (önizlemede kilit yok). Kilit normalde
+    // dokunuşta alındı; alınamıyorsa öğrenci sebebini görür.
     if (!preview && !claimMedia(lockId)) {
       abandonWave();
+      setError(waitMessage(mediaHolderOtherThan(lockId) ?? ""));
       return;
     }
     let stream: MediaStream | null = null;
@@ -625,6 +741,7 @@ export function AudioResponseView({
         const file = new File([blob], `recording-${Date.now()}.${ext}`, { type });
         const intentId = intentRef.current;
         const recipientId = params.recipientId;
+        const leadMs = leadMsRef.current;
         releaseMedia(lockId);
         if (!preview && session && itemId && recipientId && intentId) {
           setUploading(true);
@@ -637,11 +754,14 @@ export function AudioResponseView({
             durationMs,
           }).then((saved) => {
             if (!mounted.current) return;
-            setLocalEntry({ key: saved.mediaId, name: file.name, url: saved.url, mediaId: saved.mediaId });
+            // "Saved" yalnız sunucu aynı baytları kaydettiğini ve cevabı yazdığını onayladıktan sonra.
+            const speakMs = saved.durationMs != null ? Math.max(0, saved.durationMs - leadMs) : null;
+            setLocalEntry({ key: saved.mediaId, name: file.name, url: saved.url, mediaId: saved.mediaId, speakMs });
             const stored = Number(sessionStorage.getItem(`ilc-attempts:${session.applicationId}:${itemId}`)) || 0;
             setAttempts((count) => Math.max(count, stored));
           }).catch((err: unknown) => {
             if (!mounted.current) return;
+            if (errorCode(err) === "ATTEMPT_LIMIT") setAttempts((count) => Math.max(count, maxAttempts));
             setError(err instanceof Error ? err.message : "We could not save your recording. Please try again.");
           }).finally(() => {
             if (mounted.current) setUploading(false);
@@ -690,6 +810,7 @@ export function AudioResponseView({
         speakStartedAt.current = Date.now();
         abandonWave();
       }
+      leadMsRef.current = leadMs;
       // Süre sınırı konuşma süresidir; baştaki sessizlik bu süreden düşülmez.
       if (maxDur != null && maxDur > 0) stopTimer.current = window.setTimeout(stopRecording, maxDur * 1000 + leadMs);
     } catch (err) {
@@ -720,9 +841,39 @@ export function AudioResponseView({
     closeWave();
   }
 
+  /**
+   * Kayıt düğmesi. Sıra önemli:
+   * 1) Kilit başkasındaysa (ses çalıyor / önceki kayıt yükleniyor) öğrenciye söylenir — eskiden düşünme süresi
+   *    boşuna sayılıyor, sonra kayıt sessizce başlamıyordu.
+   * 2) Kilit alınır: düşünme + kayıt boyunca soru geçişi kapalı.
+   * 3) AudioContext dokunuşun içinde açılır (iOS, await sonrası açılanı susturabiliyor).
+   * 4) Kayıt izni sunucudan alınır (prepareRecording): hak bittiyse öğrenci daha düşünmeden öğrenir.
+   */
+  function onRecordButton() {
+    if (recording) {
+      stopRecording();
+      return;
+    }
+    setError(null);
+    if (!preview) {
+      const holder = mediaHolderOtherThan(lockId);
+      if (holder) {
+        setError(waitMessage(holder));
+        return;
+      }
+      claimMedia(lockId);
+    }
+    const ctx = new AudioContext();
+    void ctx.resume();
+    void prepareRecording(ctx);
+  }
+
   const attemptsExhausted = !preview && shownAttempts >= maxAttempts;
   const left = Number.isFinite(maxAttempts) ? Math.max(0, maxAttempts - shownAttempts) : null;
   const lockLeft = recording ? finishLock : 0;
+  // Hak kalmadıysa düğme hiç görünmez: "Record again" yazıp tıklanmayan düğme öğrenciyi yanıltıyordu.
+  const showButton = recording || !attemptsExhausted;
+  const buttonOff = recording ? lockLeft > 0 : disabled || busy || sending || starting;
 
   return (
     <div className="space-y-3">
@@ -733,7 +884,7 @@ export function AudioResponseView({
             {maxDur != null ? `You can speak for ${maxDur} seconds.` : ""}
           </p>
         ) : null}
-        {thinking ? (
+        {thinkingLive ? (
           <ThinkCountdown seconds={thinkSec} onDone={endThinking} />
         ) : (
           <>
@@ -741,32 +892,28 @@ export function AudioResponseView({
             {recording && countdown == null ? (
               <p className="text-sm font-bold text-exam-bad" aria-live="polite">● Recording</p>
             ) : null}
-            <button
-              type="button"
-              disabled={disabled || busy || (!recording && attemptsExhausted) || lockLeft > 0}
-              onClick={() => {
-                if (recording) stopRecording();
-                else if (thinkSec > 0) beginThinking();
-                else void startRecording();
-              }}
-              className={cn(
-                recording ? epRecordStop : epRecordStart,
-                "min-h-12",
-                (disabled || (!recording && attemptsExhausted) || busy || lockLeft > 0) && "opacity-50",
-              )}
-            >
-              {recording
-                ? lockLeft > 0
-                  ? `Keep speaking… ${lockLeft}`
-                  : "Done"
-                : busy || uploading
-                  ? "Saving…"
-                  : entry
-                    ? "Record again"
-                    : thinkSec > 0
-                      ? "Start"
-                      : "Record"}
-            </button>
+            {showButton ? (
+              <button
+                type="button"
+                disabled={buttonOff}
+                onClick={onRecordButton}
+                className={cn(recording ? epRecordStop : epRecordStart, "min-h-12", buttonOff && "opacity-50")}
+              >
+                {recording
+                  ? lockLeft > 0
+                    ? `Keep speaking… ${lockLeft}`
+                    : "Done"
+                  : starting
+                    ? "Starting…"
+                    : busy || sending
+                      ? "Saving…"
+                      : entry
+                        ? "Record again"
+                        : thinkSec > 0
+                          ? "Start"
+                          : "Record"}
+              </button>
+            ) : null}
           </>
         )}
         {recording && maxDur != null && maxDur > 0 ? <SpeakingTimeBar totalSec={maxDur} startedAt={speakStartedAt} /> : null}
@@ -775,26 +922,23 @@ export function AudioResponseView({
           <audio controls src={entry.url} className="mx-auto w-full max-w-md" onLoadedMetadata={fixInfiniteDuration} />
         ) : null}
         {quotaWarning ? <p className="text-sm font-semibold text-exam-warn">{quotaWarning}</p> : null}
-        {stuck && uploading ? <p className="text-sm font-medium text-exam-slate-500">Still trying to send your recording… it will keep trying.</p> : null}
-        {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
-        {uploadProblem && itemId ? (
-          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">
-            Try upload again
-          </button>
-        ) : null}
+        {sending ? <UploadProgress itemId={itemId} problem={upload.problem} stuck={upload.stuck} /> : null}
+        {error ? <p className="text-sm font-semibold text-exam-bad">{error}</p> : null}
         {recording && analyser ? null : (
           <p className="text-sm text-exam-slate-500">
-            {preview
-              ? "Önizleme · sınırsız deneme"
-              : recording
-                ? "Recording… Tap Done when you finish."
-                : uploading
-                  ? "Saving your recording…"
-                  : entry?.mediaId
-                    ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
-                    : left != null
-                      ? `Tries left: ${left}`
-                      : ""}
+            {preview ? (
+              "Önizleme · sınırsız deneme"
+            ) : recording ? (
+              "Recording… Tap Done when you finish."
+            ) : sending ? (
+              "Saving your recording… Please wait."
+            ) : entry?.mediaId ? (
+              <SavedLine speakMs={entry.speakMs} left={left} />
+            ) : left != null ? (
+              left > 0 ? `Tries left: ${left}` : "You have no more tries."
+            ) : (
+              ""
+            )}
           </p>
         )}
       </div>
@@ -862,18 +1006,10 @@ export function VideoResponseView({
   const { session, busy, error, setError, uploadOne, run } = useUploader(itemId);
   const shownAttempts = Math.max(attempts, entry ? 1 : 0);
   const [uploading, setUploading] = useState(false);
-  const [uploadProblem, setUploadProblem] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [quotaWarning, setQuotaWarning] = useState<string | null>(null);
-  const [stuck, setStuck] = useState(false);
-
-  useEffect(() => {
-    if (!itemId) return;
-    return subscribeMediaUploads(() => {
-      setUploadProblem(mediaUploadError(itemId));
-      const age = mediaUploadAgeMs(itemId);
-      setStuck(age != null && age >= STUCK_UPLOAD_THRESHOLD_MS);
-    });
-  }, [itemId]);
+  const upload = useQueuedUpload(itemId);
+  const sending = uploading || upload.queued;
 
   useEffect(() => {
     mounted.current = true;
@@ -893,20 +1029,34 @@ export function VideoResponseView({
     if (recording && timeIsUp(timeRemainingMs)) stopRecording();
   }, [recording, timeRemainingMs]);
 
+  /** AudioResponseView ile aynı sıra: önce kilit (alınamazsa mesaj), sonra kayıt izni (hak kontrolü), sonra kamera. */
   async function startRecording() {
     setError(null);
-    setUploadProblem(null);
     setQuotaWarning(null);
-    if (!preview) void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
+    if (!preview) {
+      const holder = mediaHolderOtherThan(lockId);
+      if (holder) {
+        setError(waitMessage(holder));
+        return;
+      }
+      claimMedia(lockId);
+      void checkMediaQuota(0).then((status) => setQuotaWarning(status.message));
+    }
     if (!preview && session && itemId && params.recipientId) {
+      setStarting(true);
       try {
         intentRef.current = await openMediaIntent(session.applicationId, session.sessionToken, itemId);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "We could not start the recording. Please try again.");
+        releaseMedia(lockId);
+        if (!mounted.current) return;
+        if (errorCode(err) === "ATTEMPT_LIMIT") setAttempts((count) => Math.max(count, maxAttempts));
+        setError(err instanceof Error && err.message ? err.message : "We could not start the recording. Please try again.");
         return;
+      } finally {
+        if (mounted.current) setStarting(false);
       }
     }
-    if (!preview && !claimMedia(lockId)) return;
+    if (!mounted.current) return;
     try {
       const stream = await withExpectedExit(() => navigator.mediaDevices.getUserMedia({ audio: true, video: true }));
       if (liveRef.current) {
@@ -939,11 +1089,18 @@ export function VideoResponseView({
             durationMs,
           }).then((saved) => {
             if (!mounted.current) return;
-            setLocalEntry({ key: saved.mediaId, name: file.name, url: saved.url, mediaId: saved.mediaId });
+            setLocalEntry({
+              key: saved.mediaId,
+              name: file.name,
+              url: saved.url,
+              mediaId: saved.mediaId,
+              speakMs: saved.durationMs,
+            });
             const stored = Number(sessionStorage.getItem(`ilc-attempts:${session.applicationId}:${itemId}`)) || 0;
             setAttempts((count) => Math.max(count, stored));
           }).catch((err: unknown) => {
             if (!mounted.current) return;
+            if (errorCode(err) === "ATTEMPT_LIMIT") setAttempts((count) => Math.max(count, maxAttempts));
             setError(err instanceof Error ? err.message : "We could not save your recording. Please try again.");
           }).finally(() => {
             if (mounted.current) setUploading(false);
@@ -1006,8 +1163,7 @@ export function VideoResponseView({
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-exam-ok-ink">
-                {entry.mediaId ? <IconCheck className="size-4" strokeWidth={3} aria-hidden /> : null}
-                {entry.mediaId ? "Your video is saved." : entry.name}
+                {entry.mediaId ? <SavedLine speakMs={entry.speakMs} left={null} /> : entry.name}
               </p>
               {!disabled && (left == null || left > 0) ? (
                 <RemoveButton
@@ -1032,11 +1188,11 @@ export function VideoResponseView({
           <div className="space-y-3">
             <button
               type="button"
-              disabled={disabled || busy || attemptsExhausted}
+              disabled={disabled || busy || sending || starting || attemptsExhausted}
               onClick={() => void startRecording()}
-              className={cn(epRecordStart, "min-h-12", (disabled || attemptsExhausted || busy) && "opacity-50")}
+              className={cn(epRecordStart, "min-h-12", (disabled || attemptsExhausted || busy || sending || starting) && "opacity-50")}
             >
-              {busy || uploading ? "Saving…" : "Record"}
+              {starting ? "Starting…" : busy || sending ? "Saving…" : "Record"}
             </button>
             {uploadAllowed ? (
               <UploadDrop
@@ -1064,25 +1220,18 @@ export function VideoResponseView({
           </div>
         )}
         {quotaWarning ? <p className="text-sm font-semibold text-exam-warn">{quotaWarning}</p> : null}
-        {stuck && uploading ? <p className="text-sm font-medium text-exam-slate-500">Still trying to send your recording… it will keep trying.</p> : null}
-        {error || uploadProblem ? <p className="text-sm font-semibold text-exam-bad">{error || uploadProblem}</p> : null}
-        {uploadProblem && itemId ? (
-          <button type="button" onClick={() => retryMediaUpload(itemId)} className="inline-flex min-h-11 items-center rounded-[10px] bg-exam-navy-900 px-4 text-sm font-bold text-white">
-            Try upload again
-          </button>
-        ) : null}
+        {sending ? <UploadProgress itemId={itemId} problem={upload.problem} stuck={upload.stuck} /> : null}
+        {error ? <p className="text-sm font-semibold text-exam-bad">{error}</p> : null}
         <p className="text-sm text-exam-slate-500">
           {preview
             ? "Önizleme · sınırsız deneme"
             : recording
               ? "Recording… Tap Stop when you finish."
-              : uploading
-                ? "Saving your recording…"
-                : entry?.mediaId
-                  ? `Saved.${left != null ? ` Tries left: ${left}` : ""}`
-                  : left != null
-                    ? `Tries left: ${left}`
-                    : ""}
+              : sending
+                ? "Saving your recording… Please wait."
+                : left != null && left > 0
+                  ? `Tries left: ${left}`
+                  : ""}
         </p>
       </div>
       <ManualAnswerHints answerKey={answerKey} preview={preview} />

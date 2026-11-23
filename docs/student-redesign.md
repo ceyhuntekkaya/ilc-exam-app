@@ -281,7 +281,7 @@ B6. **Açık uçlu boşluk doldurma**: tıklanınca oluşan çirkin kutu yerine 
 B7. **Eşleştirme**: iki sütun kart (sol hedef, sağ seçenek), eşleşen çiftler aynı renk/numara rozeti, çizgi yok (tablette kaymaz). Görsel eşleştirmede havuz görselleri büyük (incelemek için), hedef yuvaya yerleşince küçük küçük önizleme; havuz altta, hedefler üstte.
 B8. **Gruplama / sıralama**: sütunlar sabit min-yükseklik (bırakınca zıplama yok), sıralamada yuvalar numaralı; görsel öğelerde havuzda büyük, sütunda küçük.
 B9. **Görsel/video yükleme**: yüklendikten sonra input gizli, düzgün önizleme (oran korunur) + çöp kutusu ikonu → onay → kaldır, yükleme alanı tekrar açılır. Yükleniyor/hata durumu.
-B10. **Writing (textarea)**: otomatik kaydetme yok; "Save answer" düğmesi, durum "Saved ✓ / Not saved yet" ve kelime sayısı. Kaydedilmemişken Next/Back'te KidDialog uyarısı ("Save your answer?" Save / Leave). Not: bugünkü genel autosave yalnız bu format için kapatılır.
+B10. **Writing (textarea)**: otomatik kaydedilir (2026-11-23, ilk tasarımdaki "Save answer" düğmesinin yerine): yazmaya ara verince 3 sn sonra, kesintisiz yazarken en geç 30 sn'de bir ve kutudan çıkınca. Durum "Saving… / Saved ✓" ve kelime sayısı. Geçişte soru sorulmaz; bekleyen metin önce kaydedilir. Sebep: öğrenci kaydetmeyi unutabiliyor ve tarayıcı çökmesi, sayfa yenileme ya da pil bitmesi kaydedilmemiş metni siliyordu.
 
 ### Faz C — Sınav kabuğu
 C1. **Süre**: süre limiti varsa geri sayım (Time left), yoksa sayaç gizli (geçen süre gösterilmez) — **karar: hiç mi gösterme, yoksa "Time spent" kalsın mı?** Varsayılan: gizle.
@@ -322,7 +322,7 @@ A1+A2 → B7/B8/B5 (sürükle-bırak formatları) → A3+B3+B2 → B1 → B6 →
 - Boşluk doldurma (seçmeli): numaralı, kesik çerçeveli "Choose ▾" yuvası; liste başlığı "Gap 2 · Choose a word", "Empty this gap". Kelime havuzlu: metin içi bırakma yuvaları + havuz.
 - Açık uçlu boşluk: numaralı değil, "Write here" yer tutuculu kutu; boşken kesik mavi, doluyken düz; yazdıkça genişler.
 - Görsel üstü seçme: seçilen yer ✓, bölgeler gizli olsa da seçim görünür. Görsel üstü yerleştirme: PlaceBoard.
-- Writing: otomatik kaydetme kaldırıldı → "Save answer" + "Not saved yet / Saved". Kaydedilmemişken geçişte KidDialog "Save your answer?" (Save and go / Stay here); süre bitince bekleyen metin kaydedilir.
+- Writing: önce otomatik kaydetme kaldırılıp "Save answer" konmuştu; 2026-11-23'te otomatik kayda dönüldü (bkz. B10). "Save your answer?" penceresi kalktı; geçişte, süre bitince ve bölüm kapanınca bekleyen metin kaydedilir.
 - Görsel/video yükleme: büyük yükleme alanı → önizleme kartı + "Remove" (onaylı); kaldırınca yükleme alanı geri gelir. Yüklenen dosyalar cevap olarak (`{ mediaIds }`) kaydedilir: soru "cevaplandı" sayılır, kaldırma da yansır, soruya dönünce önizleme geri yüklenir.
 
 **Sınav akışı**

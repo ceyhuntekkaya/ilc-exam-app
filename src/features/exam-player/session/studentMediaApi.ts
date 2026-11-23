@@ -5,7 +5,37 @@ export type StudentMediaUploadResult = {
   mediaId: string;
   status: string;
   contentUrl?: string;
+  /** Sunucunun diske yazdığı dosya: istemci kendi gönderdiğiyle karşılaştırır. */
+  sizeBytes?: number;
+  sha256?: string;
+  /** Kaydın sunucuda ölçülen (okunamazsa istemcinin bildirdiği) süresi. */
+  durationMs?: number;
 };
+
+/** Hash'i tarayıcı belleğinde hesaplanacak en büyük dosya; daha büyüğünde (uzun video) yalnız boyut karşılaştırılır. */
+const HASH_LIMIT_BYTES = 64 * 1024 * 1024;
+
+/** Dosyanın SHA-256'sı (küçük harf hex). Güvenli olmayan bağlamda (http LAN) crypto.subtle yoktur: null. */
+export async function sha256Hex(file: Blob): Promise<string | null> {
+  const subtle = typeof crypto !== "undefined" ? crypto.subtle : undefined;
+  if (!subtle || file.size > HASH_LIMIT_BYTES) return null;
+  try {
+    const digest = await subtle.digest("SHA-256", await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Sunucu "kaydettim" dediği dosyanın boyutunu ve parmak izini döner; gönderilenle birebir aynı değilse yükleme
+ * başarısız sayılır (öğrenci "Saved" görmez, kayıt yeniden gönderilir). Sunucu alanı göndermezse o alan atlanır.
+ */
+export function uploadMatches(sent: { size: number; sha256: string | null }, stored: StudentMediaUploadResult): boolean {
+  if (typeof stored.sizeBytes === "number" && stored.sizeBytes !== sent.size) return false;
+  if (sent.sha256 && typeof stored.sha256 === "string" && stored.sha256.toLowerCase() !== sent.sha256) return false;
+  return true;
+}
 
 /**
  * Öğrenci cevap medyası — multipart, session header ile.
@@ -72,7 +102,15 @@ export async function uploadApplicationMedia(
 
   const body = await readJson(res);
   if (!res.ok) throw uploadError(res.status, body);
-  return body as StudentMediaUploadResult;
+  const stored = body as StudentMediaUploadResult;
+  if (!uploadMatches({ size: file.size, sha256: await sha256Hex(file) }, stored)) {
+    // Ağ yolunda bozulma: kayıt "kaydedildi" sayılmaz; ses kuyruğu aynı kayıt kimliğiyle kendisi yeniden gönderir.
+    throw Object.assign(new Error("Your file did not arrive correctly. Please try again."), {
+      status: 0,
+      code: "UPLOAD_MISMATCH",
+    });
+  }
+  return stored;
 }
 
 async function readJson(res: Response): Promise<unknown> {

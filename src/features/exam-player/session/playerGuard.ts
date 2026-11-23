@@ -43,6 +43,11 @@ export function claimMedia(id: string): boolean {
   return true;
 }
 
+/** Kilidi `id` dışında biri tutuyorsa onun kimliği (ör. "answer-upload:<soru>" = kayıt yükleniyor), yoksa null. */
+export function mediaHolderOtherThan(id: string): string | null {
+  return state.activeMedia && state.activeMedia !== id ? state.activeMedia : null;
+}
+
 export function releaseMedia(id: string) {
   if (state.activeMedia === id) emit({ ...state, activeMedia: null });
 }

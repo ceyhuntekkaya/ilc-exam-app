@@ -9,6 +9,7 @@ import {
   laneOf,
   mediaIdsOf,
   mediaSrc,
+  overLimitNote,
   percentFromAward,
   whole,
   type Lane,
@@ -51,12 +52,19 @@ function AnswerBody({
     <div className="grid gap-3">
       {ids.map((mediaId) => {
         const src = mediaSrc(companyId, item.applicationId, mediaId);
+        const overLimit = overLimitNote(item, mediaId);
+        const overLimitBadge = overLimit ? (
+          <span className="justify-self-start">
+            <Badge tone="warning">{overLimit}</Badge>
+          </span>
+        ) : null;
         if (lane === "audio") {
           const transcript = transcripts[mediaId];
           const listening = activeMediaId === mediaId;
           return (
             <div key={mediaId} className="grid gap-2">
               <audio controls preload="none" src={src} className="w-full" />
+              {overLimitBadge}
               {listening ? <p className="text-sm text-fg-muted">Dinleniyor…</p> : null}
               {!listening && transcript?.status === "READY" ? (
                 <div className="rounded-lg bg-bg px-3.5 py-3">
@@ -76,13 +84,15 @@ function AnswerBody({
         }
         if (lane === "video") {
           return (
-            <video
-              key={mediaId}
-              controls
-              preload="metadata"
-              src={src}
-              className="aspect-video max-h-72 w-full rounded-lg bg-black object-contain"
-            />
+            <div key={mediaId} className="grid gap-2">
+              <video
+                controls
+                preload="metadata"
+                src={src}
+                className="aspect-video max-h-72 w-full rounded-lg bg-black object-contain"
+              />
+              {overLimitBadge}
+            </div>
           );
         }
         return (

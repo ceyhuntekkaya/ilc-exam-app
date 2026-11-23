@@ -11,7 +11,22 @@ export type MediaTranscript = {
   transcript?: string | null;
   status?: string | null;
   error?: string | null;
+  /** Kaydın süresi (sunucu ölçüsü; okunamadıysa öğrencinin cihazının bildirdiği). */
+  durationMs?: number | null;
+  /** Kayıt sorunun konuşma süresini aştı. Kayıt kabul edildi; değerlendirici not olarak görür. */
+  overLimit?: boolean | null;
 };
+
+/**
+ * "Süre aşıldı · 42 sn" notu. Kuyruk satırının sunucudan gelen kayıt bilgisinden okunur (Tanımla ile gelen
+ * transkript yanıtı bu bilgiyi taşımaz); not yoksa null.
+ */
+export function overLimitNote(item: ReviewCardItem, mediaId: string): string | null {
+  const row = item.transcripts?.find((entry) => entry.mediaId === mediaId);
+  if (!row?.overLimit) return null;
+  const seconds = row.durationMs != null && row.durationMs > 0 ? Math.round(row.durationMs / 1000) : null;
+  return seconds != null ? `Süre aşıldı · ${seconds} sn` : "Süre aşıldı";
+}
 
 /** Kartın okuduğu cevap görünümü (QueueItem'ın ekrandaki alt kümesi; insan kuyruğu satırı da buna çevrilir). */
 export type ReviewCardItem = {

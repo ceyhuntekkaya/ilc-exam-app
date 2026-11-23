@@ -39,7 +39,6 @@ export default function SectionQuestionPage() {
   // Ses/video çalarken geçiş kilitli; kaydedilmemiş yazı varken geçişte sorulur.
   const guard = usePlayerGuard();
   const mediaBusy = guard.activeMedia != null;
-  const [pendingNav, setPendingNav] = useState<(() => void) | null>(null);
   useEffect(() => () => resetPlayerGuard(), []);
   const [items, setItems] = useState<Item[]>([]);
   const [index, setIndex] = useState(0);
@@ -159,14 +158,12 @@ export default function SectionQuestionPage() {
   const saving = records.some((row) => !row.hidden && (row.state === "pending" || row.state === "sending"));
   const failedCount = items.filter((entry) => phaseOf(entry) === "failed").length;
   const last = index >= items.length - 1;
-  const canNext = !mediaBusy && (section.allowSkip || answered || last);
-  /** Geçiş: medya çalarken yok; kaydedilmemiş yazı varsa önce sor. */
+  // Henüz kaydedilmemiş yazı da cevaptır: geçişte kendiliğinden kaydedilir (Writing otomatik kaydeder).
+  const canNext = !mediaBusy && (section.allowSkip || answered || last || guard.unsaved.size > 0);
+  /** Geçiş: medya çalarken yok; kaydedilmemiş yazı önce kutuya yazılır (soru sorulmaz, senkron). */
   function go(action: () => void) {
     if (mediaBusy) return;
-    if (guard.unsaved.size) {
-      setPendingNav(() => action);
-      return;
-    }
+    if (guard.unsaved.size) void saveAllUnsaved();
     action();
   }
   const goTo = (target: number) => go(() => setIndex(Math.max(0, Math.min(items.length - 1, target))));
@@ -311,7 +308,7 @@ export default function SectionQuestionPage() {
             </p>
           ) : !canNext ? (
             <p className={cn("pb-1.5 text-center text-xs font-semibold text-amber-700", STAGE_INSET)}>
-              {guard.unsaved.size ? "Save your answer to continue." : "Answer this question to continue."}
+              Answer this question to continue.
             </p>
           ) : section.allowSkip && item && !answered && !guard.unsaved.size ? (
             <p className={cn("pb-1.5 text-center text-xs font-medium text-slate-400", STAGE_INSET)} aria-live="polite">
@@ -406,24 +403,6 @@ export default function SectionQuestionPage() {
               setResetRound((value) => value + 1);
             }}
             onCancel={() => setConfirmReset(false)}
-          />
-        ) : null}
-        {pendingNav ? (
-          <KidDialog
-            title="Save your answer?"
-            mascot="thinking"
-            tone="sun"
-            body="You wrote something new but you did not save it. Save it before you go."
-            confirmLabel="Save and go"
-            cancelLabel="Stay here"
-            onConfirm={() => {
-              void saveAllUnsaved().then(() => {
-                const next = pendingNav;
-                setPendingNav(null);
-                next();
-              });
-            }}
-            onCancel={() => setPendingNav(null)}
           />
         ) : null}
         {confirm === "complete" ? (
