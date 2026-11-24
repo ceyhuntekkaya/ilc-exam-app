@@ -13,6 +13,7 @@ export function RichText({ value, className }: { value: string; className?: stri
       className={cn(
         base,
         "min-w-0 break-words",
+        "[&_[data-size='sm']]:text-[0.875em] [&_[data-size='lg']]:text-[1.25em] [&_[data-size='xl']]:text-[1.5em] [&_[data-size='2xl']]:text-[2em]",
         "[&_a]:text-primary [&_a]:underline [&_b]:text-fg [&_strong]:text-fg",
         "[&_h1]:mt-3 [&_h1]:text-[15px] [&_h1]:font-semibold [&_h1]:text-fg [&_h2]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-fg [&_h3]:mt-3 [&_h3]:font-semibold [&_h3]:text-fg [&_h4]:mt-3 [&_h4]:font-semibold [&_h4]:text-fg",
         "[&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-1",

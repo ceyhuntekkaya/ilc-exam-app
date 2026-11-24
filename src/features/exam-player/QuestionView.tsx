@@ -11,7 +11,8 @@ import { epInstructionBanner } from "@/src/features/exam-player/styles";
 import type { QuestionViewModel } from "@/src/features/exam-player/types";
 import { htmlOf } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import type { ReactNode } from "react";
+import { PoolSlotContext } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { useState, type ReactNode } from "react";
 
 export function QuestionView({
   model,
@@ -45,6 +46,13 @@ export function QuestionView({
   youngLearnerMode?: boolean;
 }) {
   const hasStimulus = (model.stimulus?.length ?? 0) > 0;
+  // Hotspot yerleştirme (tek bölüm): iki sütun — SOLDA uyaran metni + kart havuzu, SAĞDA tahta (kalan alanı doldurur).
+  // Uyaran olsun olmasın: metin sütunun üstünde, havuz altında; tahta sağ sütunun tamamında.
+  const fillBoard = model.parts?.length === 1 && model.parts[0].interactionType === "HOTSPOT_PLACE";
+  // Sıralama sorusunda metin varsa kart havuzu sol sütunda metnin altında durur (OrderingView oraya portal eder);
+  // hotspot yerleştirmede de aynı (HotspotPlaceView oraya portal eder).
+  const [poolSlot, setPoolSlot] = useState<HTMLElement | null>(null);
+  const poolInStimulus = (hasStimulus && model.parts?.length === 1 && model.parts[0].interactionType === "ORDERING") || fillBoard;
   const hasMainAudio = !!model.mainAudio?.mediaId;
   const instructionHtml = htmlOf(model.instruction);
   const parts = [...(model.parts ?? [])].sort((a, b) => a.position - b.position);
@@ -53,7 +61,8 @@ export function QuestionView({
   const hintKey = (p: (typeof parts)[number]) => `${p.interactionType}:${String(p.interaction?.supply ?? "")}`;
   const sharedHint = parts.length && parts.every((p) => hintKey(p) === hintKey(parts[0])) ? { type: parts[0].interactionType, interaction: parts[0].interaction } : null;
   // Sürükle-bırak soruları tam satır: kendi içinde kart | kutu sütunlarına ayrılır (BoardLayout); metin üstte durur.
-  const fullRow = parts.length > 0 && parts.every(isBoardPart);
+  // İstisna fillBoard: metin + kartlar sol sütunda, tahta sağ sütunda (yukarıdaki iki sütunlu düzen).
+  const fullRow = parts.length > 0 && parts.every(isBoardPart) && !fillBoard;
   // Uyaran yok → içerik tam genişlik: görsel çoktan seçmelide şıklar genişliği paylaşır (≤4 hepsi tek satır, fazlası 4'erli);
   // hotspot seçmede görsel kalan alanı doldurur (HotspotSelectView `fill`).
   // Tek bölümse içerik yönergenin altında kalan boş alana oturur: şıklar dikey ortalanır, hotspot görseli alanı doldurur.
@@ -62,13 +71,14 @@ export function QuestionView({
   const fullWidth = !hasStimulus;
   const centerChoices = !hasStimulus && parts.length === 1 && isImageChoicePart(parts[0]);
   const fillStage = !hasStimulus && parts.length === 1 && parts[0].interactionType === "HOTSPOT_SELECT";
+  const fillParts = fillStage || fillBoard;
 
   const body = (
     <div
       className={cn(
         "exam-player @container min-h-0 w-full bg-white text-exam-slate-800",
         "px-0 py-4 @sm:px-4 @md:px-8",
-        (centerChoices || fillStage) && "flex flex-1 flex-col",
+        (centerChoices || fillParts) && "flex flex-1 flex-col",
         largeFont && "exam-player--large-font",
         highContrast && "exam-player--high-contrast",
         youngLearnerMode && YOUNG_LEARNER_MODE_CLASS,
@@ -124,22 +134,37 @@ export function QuestionView({
           "grid gap-6",
           // Metin + soru yan yana yalnız alan ≥ 48rem iken (tablet yatay / masaüstü). @md'de (28rem) tablet dikeyde
           // iki ~320px sütuna sıkışıyordu (sürükle-bırak havuzu ve kutular daralıyordu); dikeyde alt alta.
-          hasStimulus && !fullRow ? "@3xl:grid-cols-2 @3xl:items-start" : "grid-cols-1",
+          fillBoard
+            ? // Dar: uyaran+havuz üstte, tahta altta (kalan yüksekliği 1fr alır). Geniş: sol 4 : sağ 5, ikisi de satır boyunca uzar
+              // (items-start YOK) → sağ sütundaki tahta sahnesi tüm yüksekliği kullanır.
+              // min-h: kap içerik kadarsa (önizleme) satır çökmesin; ekran çok kısaysa tahta kullanılamayacak kadar küçülmesin.
+              "flex-1 grid-cols-1 grid-rows-[auto_1fr] @3xl:min-h-[30rem] @3xl:grid-cols-[minmax(0,4fr)_minmax(0,5fr)] @3xl:grid-rows-[1fr]"
+            : hasStimulus && !fullRow
+              ? "@3xl:grid-cols-2 @3xl:items-start"
+              : "grid-cols-1",
           // Kalan yüksekliği al, tek satırlık içeriği ortala (içerik taşarsa kap uzar, üstten akar).
           centerChoices && "flex-1 content-center",
           // Tek satırlık grid satırı kalan yüksekliğe uzar (align-content: stretch); içindeki zincir flex ile devam eder.
           fillStage && "flex-1",
         )}
       >
-        {hasStimulus ? (
-          <aside className="min-w-0 space-y-4">
+        {hasStimulus || poolInStimulus ? (
+          <aside
+            className={cn(
+              "min-w-0 space-y-4",
+              // Geniş düzende sol sütun satır yüksekliğini BELİRLEMEZ (contain: size): yoksa kartlar yerleştikçe sütun kısalır,
+              // tahta küçülür/zıplar. Sütun taşarsa kendi içinde kayar (BoardLayout'taki kart sütunuyla aynı kalıp).
+              fillBoard && "@3xl:overflow-y-auto @3xl:overscroll-contain @3xl:[contain:size]",
+            )}
+          >
             <ContentBlockListView blocks={model.stimulus ?? []} />
+            {poolInStimulus ? <div ref={setPoolSlot} className="min-w-0" /> : null}
           </aside>
         ) : null}
 
-        <div className={cn("min-w-0 space-y-8", fillStage && "flex flex-col")}>
+        <div className={cn("min-w-0 space-y-8", fillParts && "flex flex-1 flex-col")}>
           {parts.map((part, idx) => (
-            <section key={part.id} className={cn("space-y-4", fillStage && "flex flex-1 flex-col")}>
+            <section key={part.id} className={cn("space-y-4", fillParts && "flex flex-1 flex-col")}>
               {parts.length > 1 ? (
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-exam-slate-500">
                   Part {idx + 1} of {parts.length}
@@ -159,8 +184,8 @@ export function QuestionView({
                 itemId={part.id}
                 answerKey={part.answerKey}
                 timeRemainingMs={timeRemainingMs}
-                // Hotspot görseli yalnız tek bölümde alanı doldurur: çok bölümde doldurulacak boş yükseklik zinciri yok.
-                fullWidth={part.interactionType === "HOTSPOT_SELECT" ? fillStage : fullWidth}
+                // Hotspot görseli/tahtası yalnız tek bölümde alanı doldurur: çok bölümde doldurulacak boş yükseklik zinciri yok.
+                fullWidth={part.interactionType.startsWith("HOTSPOT_") ? fillParts : fullWidth}
               />
             </section>
           ))}
@@ -173,7 +198,9 @@ export function QuestionView({
     </div>
   );
 
-  return <PlayerPreviewProvider preview={preview}>{body}</PlayerPreviewProvider>;
+  return <PlayerPreviewProvider preview={preview}>
+      <PoolSlotContext.Provider value={poolInStimulus ? poolSlot : undefined}>{body}</PoolSlotContext.Provider>
+    </PlayerPreviewProvider>;
 }
 
 /** Şıkları görsel olan çoktan seçmeli / çoklu yanıt bölümü. */

@@ -91,7 +91,7 @@ export function ExamFlowProvider({ recipientId, children }: { recipientId: strin
       if (last.to === to && now - last.at < 1000) {
         last.count += 1;
         if (last.count >= 3 && process.env.NODE_ENV !== "production") {
-          console.warn("[exam-flow] yönlendirme döngüsü engellendi", { to, reason, path: window.location.pathname });
+          console.warn("[exam-flow] redirect loop prevented", { to, reason, path: window.location.pathname });
         }
         return;
       }

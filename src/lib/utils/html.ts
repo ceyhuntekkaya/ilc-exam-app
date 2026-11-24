@@ -85,8 +85,19 @@ function sanitizePass(html: string): string {
         const src = safeAttribute(tag, attrs, "src");
         return src ? `<img${src}>` : "";
       }
+      if (tag === "span") return `<span${safeSize(attrs)}${safeStyle(attrs)}>`;
       return `<${tag}${safeStyle(attrs)}>`;
     });
+}
+
+/** Editörün yazı boyutu işareti. Backend `style` atar; boyut `span[data-size]` ile taşınır (değerler sabit liste). */
+export const FONT_SIZES = ["sm", "lg", "xl", "2xl"] as const;
+export type FontSize = (typeof FONT_SIZES)[number];
+
+function safeSize(attrs: string): string {
+  const match = /\sdata-size\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+  const value = (match?.[2] ?? match?.[3] ?? match?.[4] ?? "").trim().toLowerCase();
+  return (FONT_SIZES as readonly string[]).includes(value) ? ` data-size="${value}"` : "";
 }
 
 /** Editörün ürettiği hizalama ve palet rengi; başka stil (konum, url, expression) geçmez. */

@@ -5,9 +5,11 @@
  * OpenAPI spec version: v0
  */
 import type { ContentBlock } from './contentBlock';
+import type { ImageBlockSize } from './imageBlockSize';
 
 export type ImageBlock = ContentBlock & {
   id?: string;
   mediaId?: string;
   caption?: string;
+  size?: ImageBlockSize;
 };

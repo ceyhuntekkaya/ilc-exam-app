@@ -1,3 +1,6 @@
+/** Tek görsel bloğunun genişliği. Eski kayıtlarda alan yok: SMALL sayılır. */
+export type ImageSize = "SMALL" | "MEDIUM" | "LARGE";
+
 export type OptionFormat = "TEXT" | "IMAGE" | "AUDIO" | "VIDEO";
 
 export type PlaybackPolicy = {
@@ -17,7 +20,7 @@ export type PlayerOption = {
 
 export type ContentBlock =
   | { type: "TEXT"; id: string; text: HtmlValue }
-  | { type: "IMAGE"; id: string; mediaId: string | null; caption?: HtmlValue }
+  | { type: "IMAGE"; id: string; mediaId: string | null; caption?: HtmlValue; size?: ImageSize | null }
   | {
       type: "GALLERY";
       id: string;

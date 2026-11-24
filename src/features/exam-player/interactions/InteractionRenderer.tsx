@@ -40,7 +40,7 @@ export function InteractionRenderer({
   timeRemainingMs?: number | null;
   /**
    * Soruda uyaran yok → içerik tam genişlik. MULTIPLE_CHOICE/MULTIPLE_RESPONSE: görsel şıklar genişliği paylaşır;
-   * HOTSPOT_SELECT: görsel kalan alanı oranını bozmadan doldurur. Diğer türler okumaz.
+   * HOTSPOT_SELECT / HOTSPOT_PLACE: görsel/tahta kalan alanı oranını bozmadan doldurur. Diğer türler okumaz.
    */
   fullWidth?: boolean;
 }) {
@@ -109,7 +109,14 @@ export function InteractionRenderer({
       );
     case "HOTSPOT_PLACE":
       return (
-        <HotspotPlaceView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
+        <HotspotPlaceView
+          interaction={i}
+          disabled={disabled}
+          answerKey={key}
+          preview={preview}
+          itemId={itemId}
+          fill={fullWidth}
+        />
       );
     case "OPEN_ENDED":
       return <OpenEndedView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;

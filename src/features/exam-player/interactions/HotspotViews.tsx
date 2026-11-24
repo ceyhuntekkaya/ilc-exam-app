@@ -3,11 +3,11 @@
 import { IconCheck } from "@/src/ui/icons";
 import { OptionContent, OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
 import { MediaImageSlot } from "@/src/features/exam-player/media/MediaContext";
-import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver } from "@/src/features/exam-player/dnd/PlaceBoard";
+import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver, usePoolPortal } from "@/src/features/exam-player/dnd/PlaceBoard";
 
 import { htmlOf, type OptionFormat, type PlayerOption, type Region, type Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type SyntheticEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { nextFocusIndex } from "@/src/features/exam-player/interactions/hotspotNav";
 
@@ -86,6 +86,38 @@ function pointInShape(nx: number, ny: number, shape: Shape): boolean {
 /** Görselin doğal oranı henüz bilinmiyorken (yükleniyor) kutunun varsayılan oranı. */
 const DEFAULT_IMAGE_RATIO = 3 / 2;
 
+/**
+ * fill modu: görsel kutusunun sınıfları. Genişlik = sahnenin genişliği ya da (sahne boyu × oran) — hangisi küçükse;
+ * yükseklik orandan türer, oran bozulmaz. `--ratio` kutunun style'ından gelir; `cqw/cqh` en yakın `FitStage`'e bakar.
+ */
+const FIT_BOX = "aspect-(--ratio) w-[min(100cqw,calc(100cqh*var(--ratio)))]";
+
+/**
+ * Görselin kendi en/boy oranı (yüklenince okunur). fill modunda kutu BU orandadır: bölgeler/alanlar kutunun yüzdesiyle
+ * konumlanır, oran kayarsa tıklama/bırakma noktası da kayar.
+ */
+function useImageRatio() {
+  const [ratio, setRatio] = useState(DEFAULT_IMAGE_RATIO);
+  function onLoad(e: SyntheticEvent<HTMLImageElement>) {
+    const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+    if (w > 0 && h > 0) setRatio(w / h);
+  }
+  return { ratio, ratioStyle: { "--ratio": ratio } as CSSProperties, onLoad };
+}
+
+/**
+ * Sığdırma sahnesi: flex zincirinden kalan yüksekliği alır. `container-type: size` → içerik yüksekliğe katkı yapmaz,
+ * kutu `cqw/cqh` ile bu alana sığdırılır; çevresindeki dolgu (className) görselin etrafındaki sabit boşluktur.
+ * min-h (className): kap içerik kadarsa (önizleme) ya da ekran çok kısaysa görsel kullanılamayacak kadar küçülmesin.
+ */
+function FitStage({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <div className={cn("grid flex-1 basis-0 place-items-center", className)} style={{ containerType: "size" }}>
+      {children}
+    </div>
+  );
+}
+
 export function HotspotSelectView({
   interaction,
   disabled,
@@ -120,13 +152,7 @@ export function HotspotSelectView({
   const [touched, setTouched] = useState(false);
   useAnswerSync(itemId, { regionIds: selected }, !preview && !disabled && touched);
   const regionRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  // fill modda kutu görselin KENDİ oranında olmalı: bölgeler kutunun yüzdesiyle konumlanır, oran kayarsa tıklama kayar.
-  const [ratio, setRatio] = useState(DEFAULT_IMAGE_RATIO);
-
-  function onImageLoad(e: SyntheticEvent<HTMLImageElement>) {
-    const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
-    if (w > 0 && h > 0) setRatio(w / h);
-  }
+  const { ratioStyle, onLoad: onImageLoad } = useImageRatio();
 
   function onRegionKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number, total: number) {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -165,12 +191,9 @@ export function HotspotSelectView({
     <div
       className={cn(
         "relative cursor-pointer overflow-hidden rounded-[10px] border-2 border-exam-slate-200",
-        fill
-          ? // Genişlik = boş alanın genişliği ya da (boy × oran) — hangisi küçükse; yükseklik orandan türer.
-            "aspect-(--ratio) w-[min(100cqw,calc(100cqh*var(--ratio)))]"
-          : "mx-auto w-full max-w-2xl",
+        fill ? FIT_BOX : "mx-auto w-full max-w-2xl",
       )}
-      style={fill ? ({ "--ratio": ratio } as CSSProperties) : undefined}
+      style={fill ? ratioStyle : undefined}
       onClick={onImageClick}
     >
       <MediaImageSlot
@@ -220,16 +243,8 @@ export function HotspotSelectView({
   return (
     <div className={fill ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-2"}>
       {fill ? (
-        // Sahne: flex zincirinden kalan yüksekliği alır. `container-type: size` → içerik yüksekliğe katkı yapmaz,
-        // kutu `cqw/cqh` ile bu alana sığdırılır; p-4 görselin çevresindeki sabit boşluk.
-        // min-h: kap içerik kadarsa (önizleme) ya da ekran çok kısaysa görsel kullanılamayacak kadar küçülmesin (≈20rem boy);
-        // bunun üstündeki her ekranda sahne sayfaya sığar, kaydırma çıkmaz.
-        <div
-          className="grid min-h-[calc(20rem+2rem)] flex-1 basis-0 place-items-center p-4"
-          style={{ containerType: "size" }}
-        >
-          {picture}
-        </div>
+        // p-4: görselin çevresindeki sabit boşluk. min-h ≈ 20rem boy: bunun üstündeki her ekranda sahne sayfaya sığar.
+        <FitStage className="min-h-[calc(20rem+2rem)] p-4">{picture}</FitStage>
       ) : (
         picture
       )}
@@ -252,12 +267,19 @@ export function HotspotPlaceView({
   answerKey,
   preview,
   itemId,
+  fill,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
   itemId?: string;
+  /**
+   * Tek bölümlü soruda iki sütun: SOLDA uyaran metni + kart havuzu (QuestionView'ın slotuna taşınır), SAĞDA tahta;
+   * tahta kalan alanı oranı bozulmadan doldurur (ekrana sığar, ekran değişince ölçeklenir). Kapalıyken eski görünüm:
+   * kartlar solda, tahta sağda, tahta ekran yüksekliğiyle sınırlı.
+   */
+  fill?: boolean;
 }) {
   const mediaId = interaction.mediaId as string | undefined;
   const zones = (interaction.zones as Region[]) || [];
@@ -272,6 +294,7 @@ export function HotspotPlaceView({
   );
   const [touched, setTouched] = useState(false);
   useAnswerSync(itemId, { zoneOf }, !preview && !disabled && touched);
+  const { ratioStyle, onLoad: onImageLoad } = useImageRatio();
 
   const unplaced = draggables.filter((d) => !zoneOf[d.id]);
   const countIn = (zoneId: string) => Object.values(zoneOf).filter((z) => z === zoneId).length;
@@ -287,6 +310,93 @@ export function HotspotPlaceView({
     });
   }
 
+  function reset() {
+    setTouched(true);
+    setZoneOf({});
+  }
+
+  const canReset = unplaced.length < draggables.length;
+
+  const board = (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[10px] border-2 border-exam-slate-200",
+        fill ? FIT_BOX : "mx-auto w-fit max-w-full",
+      )}
+      style={fill ? ratioStyle : undefined}
+    >
+      <MediaImageSlot
+        mediaId={mediaId}
+        className={fill ? "absolute inset-0 block size-full" : "block h-auto max-h-[calc(100dvh-11rem)] w-auto max-w-full"}
+        onLoad={fill ? onImageLoad : undefined}
+      />
+      {zones.map((z, index) => {
+        const members = draggables.filter((d) => zoneOf[d.id] === z.id);
+        return (
+          <DropZone
+            key={z.id}
+            id={z.id}
+            full={capacity != null && countIn(z.id) >= capacity}
+            filled={members.length > 0}
+            label={htmlOf(z.label) || `place ${index + 1}`}
+            variant="overlay"
+            correct={!!preview && members.some((m) => correctZoneOf[m.id] === z.id)}
+            style={zoneBoxStyle(z.shape)}
+            className={
+              tiles && members.length
+                ? // Görsel parça alanı tamamen kaplar (puzzle); birden fazla parça yan yana paylaşır. Elips alanda köşeler kırpılır.
+                  "absolute grid grid-flow-col auto-cols-fr overflow-hidden p-0"
+                : "absolute flex flex-wrap content-center items-center justify-center gap-1 overflow-visible p-1"
+            }
+          >
+            {members.map((m) =>
+              tiles ? (
+                <DragItem key={m.id} id={m.id} placed fill zone={z.id} label={htmlOf(m.text) || "Card"} className="size-full">
+                  <OptionContent option={m} format={format} size="fill" />
+                </DragItem>
+              ) : (
+                <DragItem key={m.id} id={m.id} placed zone={z.id} label={htmlOf(m.text) || "Card"} compact className="max-w-full">
+                  <OptionContent option={m} format={format} size="sm" />
+                </DragItem>
+              ),
+            )}
+            {!members.length ? (
+              <span className="grid size-6 place-items-center rounded-full bg-exam-sky-600 text-xs font-bold text-white" aria-hidden>
+                {index + 1}
+              </span>
+            ) : null}
+          </DropZone>
+        );
+      })}
+    </div>
+  );
+
+  // Kart havuzu: eski düzende solda (BoardLayout), fill modunda QuestionView'ın sol sütundaki slotuna (uyaran metninin altı)
+  // taşınır. Kendi @container'ı: ızgara sütun sayısı sayfaya değil bu dar sütuna göre seçilir.
+  const poolNode = (
+    <div className="@container min-w-0">
+      <DragPool
+        hint="Drag each card to the correct place on the picture. Or tap a card, then tap a place."
+        pickedHint="Now tap a place on the picture."
+        isEmpty={unplaced.length === 0}
+        listClassName={poolListClass(format)}
+        footer={
+          // fill: "Start over" tahtanın altında (sağ sütun) — sol sütunda yer tutmasın.
+          canReset && !fill ? (
+            <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+              <StartOver disabled={disabled} onReset={reset} />
+            </div>
+          ) : null
+        }
+      >
+        {unplaced.map((d) => (
+          <OptionDragItem key={d.id} id={d.id} option={d} format={format} label={htmlOf(d.text) || "Card"} compact={fill} />
+        ))}
+      </DragPool>
+    </div>
+  );
+  const { inline: poolInline, portal: poolPortal } = usePoolPortal(poolNode);
+
   return (
     <PlaceBoard
       disabled={disabled}
@@ -296,71 +406,25 @@ export function HotspotPlaceView({
         return d ? <OptionContent option={d} format={format} size="sm" /> : null;
       }}
     >
-      <BoardLayout
-        pool={
-          <DragPool
-            hint="Drag each card to the correct place on the picture. Or tap a card, then tap a place."
-            pickedHint="Now tap a place on the picture."
-            isEmpty={unplaced.length === 0}
-            listClassName={poolListClass(format)}
-            footer={
-              unplaced.length < draggables.length ? (
-                <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
-                  <StartOver disabled={disabled} onReset={() => { setTouched(true); setZoneOf({}); }} />
-                </div>
-              ) : null
-            }
-          >
-            {unplaced.map((d) => (
-              <OptionDragItem key={d.id} id={d.id} option={d} format={format} label={htmlOf(d.text) || "Card"} />
-            ))}
-          </DragPool>
-        }
-      >
-        {/* Resim ekran yüksekliğine sığar: tüm alanlar aynı anda görünür, sürüklerken sayfa kaydırmak gerekmez.
-            Kap resim kadar (w-fit); alanlar yüzdeyle konumlandığı için küçülünce de yerinde kalır. */}
-        <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-[10px] border-2 border-exam-slate-200">
-          <MediaImageSlot mediaId={mediaId} className="block h-auto max-h-[calc(100dvh-11rem)] w-auto max-w-full" />
-          {zones.map((z, index) => {
-            const members = draggables.filter((d) => zoneOf[d.id] === z.id);
-            return (
-              <DropZone
-                key={z.id}
-                id={z.id}
-                full={capacity != null && countIn(z.id) >= capacity}
-                filled={members.length > 0}
-                label={htmlOf(z.label) || `place ${index + 1}`}
-                variant="overlay"
-                correct={!!preview && members.some((m) => correctZoneOf[m.id] === z.id)}
-                style={zoneBoxStyle(z.shape)}
-                className={
-                  tiles && members.length
-                    ? // Görsel parça alanı tamamen kaplar (puzzle); birden fazla parça yan yana paylaşır. Elips alanda köşeler kırpılır.
-                      "absolute grid grid-flow-col auto-cols-fr overflow-hidden p-0"
-                    : "absolute flex flex-wrap content-center items-center justify-center gap-1 overflow-visible p-1"
-                }
-              >
-                {members.map((m) =>
-                  tiles ? (
-                    <DragItem key={m.id} id={m.id} placed fill zone={z.id} label={htmlOf(m.text) || "Card"} className="size-full">
-                      <OptionContent option={m} format={format} size="fill" />
-                    </DragItem>
-                  ) : (
-                    <DragItem key={m.id} id={m.id} placed zone={z.id} label={htmlOf(m.text) || "Card"} compact className="max-w-full">
-                      <OptionContent option={m} format={format} size="sm" />
-                    </DragItem>
-                  ),
-                )}
-                {!members.length ? (
-                  <span className="grid size-6 place-items-center rounded-full bg-exam-sky-600 text-xs font-bold text-white" aria-hidden>
-                    {index + 1}
-                  </span>
-                ) : null}
-              </DropZone>
-            );
-          })}
+      {fill ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          {/* Slot yoksa (QuestionView dışında) havuz tahtanın üstünde yerinde kalır. */}
+          {poolInline}
+          {poolPortal}
+          {/* min-h-72 (18rem): çok kısa ekranda tahta kullanılamayacak kadar küçülmesin; üstündeki her ekranda sayfaya sığar. */}
+          <FitStage className="min-h-72 p-2">{board}</FitStage>
+          {/* invisible: yer HER ZAMAN ayrılır — ilk kart yerleşince "Start over" çıkıp tahtayı küçültmesin; klavye/okuyucuya da kapalı. */}
+          <div className={cn("flex justify-end", !canReset && "invisible")}>
+            <StartOver disabled={disabled} onReset={reset} />
+          </div>
         </div>
-      </BoardLayout>
+      ) : (
+        <BoardLayout pool={poolNode}>
+          {/* Resim ekran yüksekliğine sığar: tüm alanlar aynı anda görünür, sürüklerken sayfa kaydırmak gerekmez.
+              Kap resim kadar (w-fit); alanlar yüzdeyle konumlandığı için küçülünce de yerinde kalır. */}
+          {board}
+        </BoardLayout>
+      )}
     </PlaceBoard>
   );
 }

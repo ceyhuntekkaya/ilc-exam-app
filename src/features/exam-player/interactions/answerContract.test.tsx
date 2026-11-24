@@ -144,6 +144,21 @@ describe("answerContract — 14 madde tipi", () => {
     }
   });
 
+  it("ORDERING (IMAGE): kart seç, numaralı kutuya dokun → {order} boş kutular \"\"", async () => {
+    const outbox = renderItem("ORDERING", {
+      format: "IMAGE",
+      items: [
+        { id: "i1", text: "Sun" },
+        { id: "i2", text: "Moon" },
+      ],
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Moon" }));
+    await userEvent.click(screen.getByRole("button", { name: "Put the card in position 1" }));
+
+    expect(outbox.getAnswer(itemId)).toEqual({ order: ["i2", ""] });
+  });
+
   it("GROUPING: kart seçilir, gruba dokunulur → {groupOf}", async () => {
     const outbox = renderItem("GROUPING", groupingFixture);
 

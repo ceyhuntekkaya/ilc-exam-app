@@ -175,9 +175,18 @@ export function startAnswerOutbox(applicationId: string, recipientId: string) {
   };
 }
 
-/** Kapanış isteğinin gövdesine girecek, henüz onaylanmamış cevaplar. */
-export function takeCloseBatch(applicationId: string): OutgoingAnswer[] {
-  return getAnswerOutbox(applicationId).snapshot();
+/**
+ * Kapanış isteğinin gövdesine girecek, henüz onaylanmamış cevaplar.
+ * `skipFailed`: sunucunun daha önce reddettiği cevapları taşıma (ara verirken; bölüm kapanmıyor).
+ */
+export function takeCloseBatch(applicationId: string, options?: { skipFailed?: boolean }): OutgoingAnswer[] {
+  return getAnswerOutbox(applicationId).snapshot(options);
+}
+
+/** Kapanış isteğinde sunucunun reddettiği cevapları soru takibinde "!" olarak işaretler. */
+export function markRejectedAnswers(applicationId: string, itemIds: readonly string[] | undefined) {
+  if (!itemIds?.length) return;
+  getAnswerOutbox(applicationId).markRejected(itemIds);
 }
 
 /** Kapanış isteği 200 döndüyse bu sürümler veritabanına yazılmıştır. */

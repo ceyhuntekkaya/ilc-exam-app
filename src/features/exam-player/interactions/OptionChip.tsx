@@ -46,6 +46,9 @@ function VideoThumb({ mediaId, className }: { mediaId?: string | null; className
   );
 }
 
+/** Kompakt havuz kartının görsel yüksekliği: ekran yüksekliğiyle ölçeklenir (64–88px). */
+export const STRIP_IMAGE_HEIGHT = "h-[clamp(4rem,8dvh,5.5rem)]";
+
 /** Havuzdaki kartların dizilimi: görsel 2–4 sütun, video yan yana 2 sütun, diğerleri satır içi. */
 export function poolListClass(format: OptionFormat): string | undefined {
   if (format === "IMAGE") return POOL_IMAGE_GRID;
@@ -54,25 +57,38 @@ export function poolListClass(format: OptionFormat): string | undefined {
   return undefined;
 }
 
-/** Havuzdaki seçenek kartı: içerik + (ses/video ise) "önce izle/dinle" kilidi. Izgarada tam genişlik. */
+/**
+ * Havuzdaki seçenek kartı: içerik + (ses/video ise) "önce izle/dinle" kilidi. Izgarada tam genişlik.
+ * compact: dar sütundaki havuz (uyaran metninin altı) — görsel yüksekliği ekran yüksekliğiyle ölçeklenir (64–88px),
+ * böylece sütun kısa kalır ve yandaki tahta kalan yüksekliği alabilir.
+ */
 export function OptionDragItem({
   id,
   option,
   format,
   label,
+  compact = false,
 }: {
   id: string;
   option: PlayerOption;
   format: OptionFormat;
   label: string;
+  compact?: boolean;
 }) {
   const lock = useOptionLock(option, format);
   const video = format === "VIDEO";
   // Ses kartları havuzda 2'şer dar sütunda: uzun cümle 3 satıra bölünüyordu, kısa not tek satır.
   const hint = lock && format === "AUDIO" ? "Listen first" : lock;
   return (
-    <DragItem id={id} label={label} locked={!!lock} lockedHint={hint ?? undefined} tile={video} className={poolListClass(format) ? "w-full" : undefined}>
-      <OptionContent option={option} format={format} size="lg" note={video ? lockNote(lock) : undefined} />
+    <DragItem
+      id={id}
+      label={label}
+      locked={!!lock}
+      lockedHint={hint ?? undefined}
+      tile={video}
+      className={poolListClass(format) ? "w-full" : undefined}
+    >
+      <OptionContent option={option} format={format} size={compact ? "strip" : "lg"} note={video ? lockNote(lock) : undefined} />
     </DragItem>
   );
 }
@@ -94,8 +110,9 @@ export function OptionContent({
   /**
    * fill: kabı tamamen kaplar (kutuya yerleşmiş görsel/video).
    * panel: tam genişlikli çoktan seçmeli — görsel panelin genişliğine uyar (sabit yükseklik yok), oranı 4:3.
+   * strip: dar sütundaki kompakt havuz kartı — görsel yüksekliği ekran yüksekliğiyle ölçeklenir.
    */
-  size?: "sm" | "md" | "lg" | "fill" | "row" | "panel";
+  size?: "sm" | "md" | "lg" | "fill" | "row" | "panel" | "strip";
 }) {
   const caption = option.text ? (
     <HtmlInline value={option.text} className={cn("block", size === "sm" ? "text-xs" : "text-sm")} />
@@ -141,7 +158,13 @@ export function OptionContent({
           className={cn(
             "mx-auto w-full rounded-[6px] bg-exam-slate-50 object-contain",
             // panel: yükseklik genişlikten türer; çok az seçenekte (1–2) ekranı aşmasın diye görünür alanın %55'iyle sınırlı.
-            size === "panel" ? "aspect-[4/3] h-auto max-h-[55dvh]" : size === "lg" ? "h-28 @sm:h-36" : "h-40 @sm:h-52 @lg:h-64",
+            size === "panel"
+              ? "aspect-[4/3] h-auto max-h-[55dvh]"
+              : size === "strip"
+                ? STRIP_IMAGE_HEIGHT
+                : size === "lg"
+                  ? "h-28 @sm:h-36"
+                  : "h-40 @sm:h-52 @lg:h-64",
           )}
         />
         {caption}

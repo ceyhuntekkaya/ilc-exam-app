@@ -381,6 +381,7 @@ export * from './humanQueueParams';
 export * from './humanQueueReason';
 export * from './identityCheckRequest';
 export * from './imageBlock';
+export * from './imageBlockSize';
 export * from './imageResponse';
 export * from './impactDto';
 export * from './importResult';

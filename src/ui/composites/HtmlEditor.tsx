@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type ReactNode } from "react";
 import { cn } from "@/src/lib/utils/cn";
-import { sanitizeRichText } from "@/src/lib/utils/html";
+import { sanitizeRichText, type FontSize } from "@/src/lib/utils/html";
 import { useField } from "@/src/ui/primitives/Field";
 
 export interface HtmlEditorProps {
@@ -222,6 +222,37 @@ export function HtmlEditor({
     emit();
   };
 
+  const handleSize = (size: FontSize | "normal") => {
+    const el = editorRef.current;
+    if (disabled || showHtml || !el) return;
+    restoreSelection();
+    const sel = document.getSelection();
+    if (!sel || sel.rangeCount === 0 || !isSelectionInside(el, sel)) return;
+    const range = sel.getRangeAt(0);
+    if (size === "normal") {
+      // Seçime değen boyut işaretleri açılır.
+      el.querySelectorAll<HTMLElement>("span[data-size]").forEach((span) => {
+        if (!range.intersectsNode(span)) return;
+        span.replaceWith(...Array.from(span.childNodes));
+      });
+      emit();
+      return;
+    }
+    if (range.collapsed) return;
+    // Tarayıcı yalnız 1-7 ölçeği bilir: 7'yi işaretçi olarak yazdırıp span[data-size]'a çeviririz.
+    document.execCommand("styleWithCSS", false, "false");
+    document.execCommand("fontSize", false, "7");
+    el.querySelectorAll<HTMLElement>('font[size="7"]').forEach((font) => {
+      const span = document.createElement("span");
+      span.setAttribute("data-size", size);
+      span.append(...Array.from(font.childNodes));
+      // İçteki eski boyut işaretleri yeni boyutla çakışmasın.
+      span.querySelectorAll("span[data-size]").forEach((inner) => inner.replaceWith(...Array.from(inner.childNodes)));
+      font.replaceWith(span);
+    });
+    emit();
+  };
+
   const handleColor = (color: string) => {
     if (disabled || showHtml) return;
     restoreSelection();
@@ -264,6 +295,24 @@ export function HtmlEditor({
             <option value="h1">Başlık 1</option>
             <option value="h2">Başlık 2</option>
             <option value="h3">Başlık 3</option>
+          </select>
+          <select
+            aria-label="Yazı boyutu"
+            title="Yazı boyutu (metni seçip uygulayın)"
+            disabled={disabled || showHtml}
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) handleSize(e.target.value as FontSize | "normal");
+              e.target.value = "";
+            }}
+            className="h-11 rounded-md border border-border bg-surface px-2 text-[13px] text-fg disabled:opacity-40"
+          >
+            <option value="">Boyut</option>
+            <option value="sm">Küçük</option>
+            <option value="normal">Normal</option>
+            <option value="lg">Büyük</option>
+            <option value="xl">Çok büyük</option>
+            <option value="2xl">Dev</option>
           </select>
           <ToolbarBtn title="Kalın" disabled={disabled || showHtml} onClick={() => run("bold")}>
             <Icon><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" /></Icon>
@@ -354,6 +403,7 @@ export function HtmlEditor({
               }}
               className={cn(
                 "w-full px-3.5 py-2.5 text-sm leading-relaxed text-fg outline-none",
+                "[&_[data-size='sm']]:text-[0.875em] [&_[data-size='lg']]:text-[1.25em] [&_[data-size='xl']]:text-[1.5em] [&_[data-size='2xl']]:text-[2em]",
                 "[&_b]:font-bold [&_em]:italic [&_h1]:mb-1 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:mb-1 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mb-0.5 [&_h3]:font-semibold [&_i]:italic [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-1 [&_strong]:font-bold [&_u]:underline [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5",
                 minHeight,
                 disabled && "cursor-not-allowed",

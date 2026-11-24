@@ -16,7 +16,22 @@ import { OptionContent, useOptionLock } from "@/src/features/exam-player/interac
 import { HtmlInline } from "@/src/features/exam-player/html";
 import { MediaImageSlot, MediaVideoPopup } from "@/src/features/exam-player/media/MediaContext";
 import { htmlOf } from "@/src/features/exam-player/types";
-import { DND_A11Y, OVERLAY_STYLE, StartOver, followPointer, overlayRoot, tapMediaTrigger } from "@/src/features/exam-player/dnd/PlaceBoard";
+import {
+  BoardLayout,
+  DND_A11Y,
+  DragItem,
+  DragPool,
+  DropZone,
+  EmptySlot,
+  OVERLAY_STYLE,
+  PlaceBoard,
+  StartOver,
+  followPointer,
+  overlayRoot,
+  tapMediaTrigger,
+  usePoolPortal,
+} from "@/src/features/exam-player/dnd/PlaceBoard";
+import { OptionDragItem, poolListClass } from "@/src/features/exam-player/interactions/OptionChip";
 import { PreviewAnswerBanner, previewLabel } from "@/src/features/exam-player/preview/PreviewAnswerBanner";
 import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
@@ -38,7 +53,153 @@ function shuffleIds(ids: string[]): string[] {
  * Sıralama: kartı tutup yeni yerine sürükle (diğerleri yer açar) ya da ok düğmeleriyle bir yukarı/aşağı taşı.
  * "Start over" ilk karışık sıraya döner.
  */
-export function OrderingView({
+export function OrderingView(props: OrderingProps) {
+  const format = (props.interaction.format as OptionFormat) || "TEXT";
+  // Görsel / ses / video: havuzdan numaralı kutulara yerleştirme. Metin: mevcut sürükle-sırala listesi.
+  return format === "TEXT" ? <OrderingListView {...props} /> : <OrderingPlaceView {...props} format={format} />;
+}
+
+type OrderingProps = {
+  interaction: Record<string, unknown>;
+  disabled?: boolean;
+  answerKey?: Record<string, unknown> | null;
+  preview?: boolean;
+  itemId?: string;
+};
+
+const SLOT = (i: number) => `slot-${i}`;
+
+/**
+ * Yerleştirme biçimi: kartlar üstte karışık havuzda, altta 1..N numaralı kutular.
+ * Cevap `{ order }` (uzunluk N); boş kutu "" olarak gider → puanlayıcı o pozisyonu yanlış sayar.
+ */
+function OrderingPlaceView({ interaction, disabled, answerKey, preview, itemId, format }: OrderingProps & { format: OptionFormat }) {
+  const items = useMemo(() => (interaction.items as PlayerOption[]) || [], [interaction.items]);
+  const n = items.length;
+  const byId = useMemo(() => new Map(items.map((it) => [it.id, it])), [items]);
+  const correctOrder = useMemo(() => {
+    if (!preview) return null as string[] | null;
+    const fromKey = answerKey?.correctOrder as string[] | undefined;
+    return fromKey?.length ? fromKey : items.map((i) => i.id);
+  }, [preview, answerKey, items]);
+
+  // Havuz sırası bir kez karıştırılır (kartlar yerleştikçe sıra zıplamasın).
+  const [poolOrder] = useState(() => shuffleIds(items.map((i) => i.id)));
+  const saved = useSavedAnswer(itemId, preview);
+  const [slots, setSlots] = useState<string[]>(() => {
+    if (preview && correctOrder) return Array.from({ length: n }, (_, i) => correctOrder[i] ?? "");
+    const restored = saved?.order as string[] | undefined;
+    const ok = restored && restored.length === n && restored.every((id) => id === "" || byId.has(id));
+    return ok ? [...restored] : Array<string>(n).fill("");
+  });
+  const [touched, setTouched] = useState(false);
+  useAnswerSync(itemId, { order: slots }, !preview && !disabled && touched);
+
+  function place(itemId: string, target: string | null) {
+    setTouched(true);
+    setSlots((prev) => {
+      const next = prev.map((id) => (id === itemId ? "" : id));
+      if (target === null) return next;
+      const idx = Number(target.replace("slot-", ""));
+      if (!Number.isInteger(idx) || idx < 0 || idx >= next.length) return prev;
+      // Dolu kutuya bırakılan kart yer değiştirir: eski kart havuza döner (next'te zaten o kutu boşaltılmadı → üzerine yazılır).
+      next[idx] = itemId;
+      return next;
+    });
+  }
+
+  const placed = new Set(slots.filter(Boolean));
+  const inPool = poolOrder.filter((id) => !placed.has(id));
+  const tiles = format === "IMAGE" || format === "VIDEO";
+
+  const poolNode = (
+            <DragPool
+              title="Cards"
+              hint="Drag each card to its place, 1 to last. Or tap a card, then tap a numbered box."
+              pickedHint="Now tap a numbered box to put the card there."
+              isEmpty={inPool.length === 0}
+              listClassName={poolListClass(format)}
+              footer={
+                placed.size > 0 ? (
+                  <div className="mt-3 flex justify-end border-t border-exam-slate-100 pt-2">
+                    <StartOver disabled={disabled} onReset={() => { setTouched(true); setSlots(Array<string>(n).fill("")); }} />
+                  </div>
+                ) : null
+              }
+            >
+              {inPool.map((id) => {
+                const it = byId.get(id);
+                return it ? <OptionDragItem key={id} id={id} option={it} format={format} label={htmlOf(it.text) || "Card"} /> : null;
+              })}
+            </DragPool>
+  );
+  const { inline: poolInline, portal: poolPortal } = usePoolPortal(poolNode);
+
+  return (
+    <PlaceBoard
+      disabled={disabled}
+      onPlace={place}
+      overlay={(id) => {
+        const it = byId.get(id);
+        return it ? <OptionContent option={it} format={format} size="sm" /> : null;
+      }}
+    >
+      {poolPortal}
+      <div className="space-y-4">
+        <BoardLayout
+          stacked
+          pool={poolInline}
+        >
+          <ol className={cn("grid gap-3", tiles ? "grid-cols-2 @lg:grid-cols-3 @3xl:grid-cols-5" : "grid-cols-1 @lg:grid-cols-2")}>
+            {slots.map((id, i) => {
+              const it = id ? byId.get(id) : undefined;
+              return (
+                <li key={i} className="min-w-0">
+                  <DropZone
+                    id={SLOT(i)}
+                    filled={!!it}
+                    correct={!!preview && !!it && correctOrder?.[i] === id}
+                    label={`position ${i + 1}`}
+                    className="@container flex min-h-28 flex-col"
+                  >
+                    <div className="flex items-center gap-2 border-b-2 border-inherit px-2 py-1.5">
+                      <span aria-hidden className="grid size-7 place-items-center rounded-full bg-exam-navy-900 text-sm font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <span className="sr-only">Position {i + 1}</span>
+                    </div>
+                    <div className="grid flex-1 place-items-stretch p-2">
+                      {it ? (
+                        <DragItem id={it.id} placed fill={tiles} zone={SLOT(i)} label={htmlOf(it.text) || "Card"} className={tiles ? "aspect-square w-full" : "w-full"}>
+                          <OptionContent option={it} format={format} size={tiles ? "fill" : "sm"} />
+                        </DragItem>
+                      ) : (
+                        <span className="grid min-h-16 w-full place-items-center">
+                          <EmptySlot />
+                        </span>
+                      )}
+                    </div>
+                  </DropZone>
+                </li>
+              );
+            })}
+          </ol>
+        </BoardLayout>
+        {preview && correctOrder ? (
+          <PreviewAnswerBanner>
+            <ol className="list-decimal space-y-0.5 pl-4 text-xs">
+              {correctOrder.map((id) => (
+                <li key={id}>{previewLabel(byId.get(id)?.text, id)}</li>
+              ))}
+            </ol>
+          </PreviewAnswerBanner>
+        ) : null}
+      </div>
+    </PlaceBoard>
+  );
+}
+
+function OrderingListView({
   interaction,
   disabled,
   answerKey,

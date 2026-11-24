@@ -21,10 +21,32 @@ import {
   errorMessage,
   notify,
   type GridColDef,
+  type GridSortModel,
 } from "@/src/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+const VIEW_KEY = "ilc.questionBank.view";
+
+interface SavedView {
+  status: string;
+  includeArchived: boolean;
+  query: string;
+  skill: string;
+  cefr: string;
+  page: number;
+  sort: GridSortModel | null;
+}
+
+function readSavedView(): Partial<SavedView> {
+  try {
+    const raw = typeof window === "undefined" ? null : window.sessionStorage.getItem(VIEW_KEY);
+    return raw ? (JSON.parse(raw) as Partial<SavedView>) : {};
+  } catch {
+    return {};
+  }
+}
 
 export function QuestionBankPage() {
   const canCreate = useCan(Perm.questionCreate);
@@ -35,13 +57,24 @@ export function QuestionBankPage() {
   const router = useRouter();
   const { tenant, loading: tenantLoading } = useAuthoringTenant();
   const [rows, setRows] = useState<QuestionSummary[]>([]);
-  const [status, setStatus] = useState("");
-  const [includeArchived, setIncludeArchived] = useState(false);
-  const [query, setQuery] = useState("");
-  const [draftQuery, setDraftQuery] = useState("");
-  const [skill, setSkill] = useState("");
-  const [cefr, setCefr] = useState("");
-  const [page, setPage] = useState(0);
+  const [saved] = useState(readSavedView);
+  const [status, setStatus] = useState(saved.status ?? "");
+  const [includeArchived, setIncludeArchived] = useState(saved.includeArchived ?? false);
+  const [query, setQuery] = useState(saved.query ?? "");
+  const [draftQuery, setDraftQuery] = useState(saved.query ?? "");
+  const [skill, setSkill] = useState(saved.skill ?? "");
+  const [cefr, setCefr] = useState(saved.cefr ?? "");
+  const [page, setPage] = useState(saved.page ?? 0);
+  const [sort, setSort] = useState<GridSortModel | null>(saved.sort ?? null);
+
+  useEffect(() => {
+    try {
+      const view: SavedView = { status, includeArchived, query, skill, cefr, page, sort };
+      window.sessionStorage.setItem(VIEW_KEY, JSON.stringify(view));
+    } catch {
+      /* depolama kapalıysa görünüm yalnız bellekte kalır */
+    }
+  }, [status, includeArchived, query, skill, cefr, page, sort]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,6 +305,8 @@ export function QuestionBankPage() {
             getRowId={(r) => r.versionId}
             loading={tenantLoading || loading}
             embedded
+            initialSort={sort}
+            onSortChange={setSort}
             onRowClick={({ row }) => router.push(`${basePath}/${row.versionId}`)}
             emptyState={{
               title: "Henüz soru yok",

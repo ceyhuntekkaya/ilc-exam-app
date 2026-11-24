@@ -477,7 +477,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               mediaId: instructionAudioId,
               playback: { maxPlays: null, autoplay: false, seekable: true },
             }
-          : existing.instructionAudio ?? null,
+          : null,
         mainAudio: mainAudioId
           ? {
               type: "AUDIO",
@@ -485,7 +485,7 @@ export function QuestionEditorPage({ versionId }: { versionId: string }) {
               mediaId: mainAudioId,
               playback: mainPlayback,
             }
-          : existing.mainAudio ?? null,
+          : null,
         stimulus: contentBlocksToWire(stimulus),
       };
       const next = await authoringApi.updateBody(q.versionId, body);

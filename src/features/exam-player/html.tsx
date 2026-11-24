@@ -5,6 +5,9 @@ import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import type { ReactNode } from "react";
 
+/** Öğrenci karşısında görseller çok büyük durmasın: yükseklik sınırı, oran korunur. Dokununca lightbox tam boy açar. */
+const IMG_SIZE = "[&_img]:h-auto [&_img]:w-auto [&_img]:max-h-48 [&_img]:max-w-full [&_img]:object-contain";
+
 const ZOOM_HINT = "Tap a picture to make it bigger.";
 
 function hasImage(html: string) {
@@ -26,7 +29,7 @@ export function HtmlInline({
   const html = htmlOf(value) || fallback;
   if (!html) return null;
   if (zoomImages && hasImage(html)) return <ZoomHtmlInline html={html} className={className} inline />;
-  return <span className={cn("[&_p]:inline [&_p]:m-0", className)} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <span className={cn("[&_p]:inline [&_p]:m-0", IMG_SIZE, className)} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 export function HtmlBlock({
@@ -44,11 +47,11 @@ export function HtmlBlock({
   const html = htmlOf(value);
   if (!html) return fallback ? <>{fallback}</> : null;
   if (zoomImages && hasImage(html)) {
-    return <ZoomHtmlInline html={html} className={cn("prose-section max-w-none text-exam-slate-800 [&_img]:max-w-full", className)} />;
+    return <ZoomHtmlInline html={html} className={cn("prose-section max-w-none text-exam-slate-800", IMG_SIZE, className)} />;
   }
   return (
     <div
-      className={cn("prose-section max-w-none text-exam-slate-800 [&_img]:max-w-full", className)}
+      className={cn("prose-section max-w-none text-exam-slate-800", IMG_SIZE, className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -61,7 +64,7 @@ function ZoomHtmlInline({ html, className, inline = false }: { html: string; cla
   return (
     <>
       <Tag
-        className={cn(inline && "[&_p]:m-0", "[&_img]:cursor-zoom-in", className)}
+        className={cn(inline && "[&_p]:m-0", "[&_img]:cursor-zoom-in", IMG_SIZE, className)}
         dangerouslySetInnerHTML={{ __html: html }}
         onClick={zoom.onClick}
       />

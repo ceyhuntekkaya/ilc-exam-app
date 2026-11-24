@@ -8,7 +8,7 @@ import { loadSectionContent, useExamClock, useExamFlow } from "@/src/features/ex
 import { ReconnectOverlay } from "@/src/features/exam-flow/ReconnectOverlay";
 import { formatClock } from "@/src/features/exam-flow/format";
 import { QuestionFrame, QuestionView } from "@/src/features/exam-player";
-import { confirmCloseBatch, flushAnswerOutbox, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
+import { confirmCloseBatch, flushAnswerOutbox, markRejectedAnswers, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
 import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { LiveExamSessionProvider } from "@/src/features/exam-player/session/LiveExamSessionProvider";
@@ -181,17 +181,29 @@ export default function SectionQuestionPage() {
     try {
       await saveAllUnsaved();
       await waitForMediaUploads();
-      const answers = takeCloseBatch(session.applicationId);
-      const next = await postState(
-        `/applications/${session.applicationId}/sections/${params.sectionId}/${path}`,
-        session.sessionToken,
-        { answers },
-      );
+      const url = `/applications/${session.applicationId}/sections/${params.sectionId}/${path}`;
+      const send = (answers: ReturnType<typeof takeCloseBatch>) => postState(url, session.sessionToken, { answers });
+      // Ara verirken bölüm kapanmaz: sunucunun daha önce reddettiği cevaplar taşınmaz (yoksa her seferinde yeniden
+      // reddedilir ve öğrenci hiç çıkamaz). Finish'te taşınır: reddedilen cevap varsa bölüm bilerek açık kalır.
+      let answers = takeCloseBatch(session.applicationId, { skipFailed: path === "leave" });
+      let next;
+      try {
+        next = await send(answers);
+      } catch (err) {
+        const rejected = err instanceof ExamApiError ? err.rejectedItemIds : undefined;
+        if (path !== "leave" || !rejected?.length) throw err;
+        // Bu istekte yeni reddedilenler "!" olarak kalır (soru takibinde görünür); ara verme tek tıkta sürer.
+        markRejectedAnswers(session.applicationId, rejected);
+        answers = takeCloseBatch(session.applicationId, { skipFailed: true });
+        next = await send(answers);
+      }
       confirmCloseBatch(session.applicationId, answers);
       applyState(next);
     } catch (err) {
       const flow = err instanceof ExamApiError ? err : null;
       if (flow?.state) applyState(flow.state);
+      // Uyarı "! işaretli sorulara bak" diyor: reddedilen cevaplar gerçekten işaretlensin.
+      markRejectedAnswers(session.applicationId, flow?.rejectedItemIds);
       setError(flow?.message || "Something went wrong. Please try again.");
     } finally {
       setBusy(false);

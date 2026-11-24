@@ -15,7 +15,7 @@ export type TemplateSpec = {
 export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   {
     type: "MULTIPLE_CHOICE",
-    label: "Çoktan seçmeli",
+    label: "Multiple choice",
     hint: "Tek doğru seçenek; hızlı otomatik puanlama.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING"],
@@ -24,7 +24,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "MULTIPLE_RESPONSE",
-    label: "Çoklu seçim",
+    label: "Multiple select",
     hint: "Birden fazla doğru; kısmi puan desteklenir.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL", "PARTIAL_WITH_PENALTY"],
@@ -33,7 +33,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "TRUE_FALSE",
-    label: "Doğru / Yanlış",
+    label: "True / False",
     hint: "İfadeleri True/False/Not given ile işaretle.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -42,7 +42,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "FILL_IN_THE_BLANKS",
-    label: "Boşluk doldurma",
+    label: "Fill in the blanks",
     hint: "Metinde seçenekli boşluklar veya kelime bankası.",
     defaultSkill: "USE_OF_ENGLISH",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -51,7 +51,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "SHORT_ANSWER",
-    label: "Kısa cevap",
+    label: "Short answer",
     hint: "Serbest yazım; kabul edilen cevap listesiyle otomatik.",
     defaultSkill: "WRITING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -60,7 +60,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "MATCHING",
-    label: "Eşleştirme",
+    label: "Matching",
     hint: "Sol-sağ eşleme; sağ öğe yeniden kullanılabilir.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -69,7 +69,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "ORDERING",
-    label: "Sıralama",
+    label: "Ordering",
     hint: "Öğeleri doğru sıraya koy.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -78,7 +78,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "GROUPING",
-    label: "Gruplama",
+    label: "Grouping",
     hint: "Öğeleri etiketli gruplara yerleştir.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -87,7 +87,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "HOTSPOT_SELECT",
-    label: "Hotspot seç",
+    label: "Select hotspot",
     hint: "Görsel üzerinde bölge seçimi.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL", "PARTIAL_WITH_PENALTY"],
@@ -96,7 +96,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "HOTSPOT_PLACE",
-    label: "Hotspot yerleştir",
+    label: "Place on hotspot",
     hint: "Öğeleri görsel bölgelerine sürükle.",
     defaultSkill: "READING",
     scoringModes: ["ALL_OR_NOTHING", "PARTIAL"],
@@ -105,7 +105,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "OPEN_ENDED",
-    label: "Açık uçlu yazma",
+    label: "Open-ended writing",
     hint: "Writing görevi; rubrik zorunlu (yayın).",
     defaultSkill: "WRITING",
     scoringModes: ["RUBRIC"],
@@ -114,7 +114,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "AUDIO_RESPONSE",
-    label: "Sesli cevap",
+    label: "Audio response",
     hint: "Speaking veya Listening. Öğrenci ses kaydeder; transkript rubriğe göre AI ile puanlanır.",
     defaultSkill: "SPEAKING",
     scoringModes: ["RUBRIC"],
@@ -123,7 +123,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "VIDEO_RESPONSE",
-    label: "Video cevap",
+    label: "Video response",
     hint: "Video kaydı veya yükleme; rubrik gerekir.",
     defaultSkill: "SPEAKING",
     scoringModes: ["RUBRIC"],
@@ -132,7 +132,7 @@ export const TEMPLATE_REGISTRY: TemplateSpec[] = [
   },
   {
     type: "IMAGE_RESPONSE",
-    label: "Görsel yükleme",
+    label: "Image upload",
     hint: "Aday görsel yükler; rubrik ile puanlanır.",
     defaultSkill: "WRITING",
     scoringModes: ["RUBRIC"],

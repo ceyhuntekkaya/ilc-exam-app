@@ -15,25 +15,43 @@ export class ExamApiError extends Error {
   status?: number;
   code?: string;
   state?: ExamState;
+  /** ANSWERS_NOT_SAVED: kapanış isteğinde sunucunun REDDETTİĞİ soru kimlikleri (cevap kutusundaki itemId). */
+  rejectedItemIds?: string[];
 
-  constructor(message: string, status?: number, code?: string, state?: ExamState) {
+  constructor(message: string, status?: number, code?: string, state?: ExamState, rejectedItemIds?: string[]) {
     super(message);
     this.status = status;
     this.code = code;
     this.state = state;
+    this.rejectedItemIds = rejectedItemIds;
   }
+}
+
+/** Sunucu 422 gövdesindeki `results` satırlarından yalnız REDDEDİLENlerin itemId'leri. */
+function rejectedIdsOf(results: unknown): string[] | undefined {
+  if (!Array.isArray(results)) return undefined;
+  const ids = results.flatMap((row) => {
+    const entry = row as { itemId?: unknown; status?: unknown } | null;
+    return entry && entry.status === "REJECTED" && typeof entry.itemId === "string" && entry.itemId ? [entry.itemId] : [];
+  });
+  return ids.length ? ids : undefined;
 }
 
 // Öğrenci hata metinleri: studentErrors.ts
 function asExamError(err: unknown): ExamApiError {
   if (err instanceof ExamApiError) return err;
-  const raw = err as { message?: string; status?: number; data?: { error?: string; code?: string; state?: unknown } };
+  const raw = err as { message?: string; status?: number; data?: { error?: string; code?: string; state?: unknown; results?: unknown } };
   let state: ExamState | undefined;
   const parsed = examStateSchema.safeParse(raw.data?.state);
   if (parsed.success) state = parsed.data;
   // Ham backend metni öğrenciye gösterilmez (Türkçe/teknik olabilir): İngilizce, sebebi söyleyen cümle.
   const message = studentErrorMessage({ status: raw.status, code: raw.data?.code, raw: raw.data?.error || raw.message }, "exam");
-  return new ExamApiError(message, raw.status, raw.data?.code, state);
+  const rejected = rejectedIdsOf(raw.data?.results);
+  if (rejected) {
+    // Geliştirici için: hangi soru hangi sebeple reddedildi (öğrenciye gösterilmez).
+    console.warn("[student-error:exam] rejected answers", raw.data?.results);
+  }
+  return new ExamApiError(message, raw.status, raw.data?.code, state, rejected);
 }
 
 async function parse<T>(path: string, schema: ZodType<T>, init?: RequestInit): Promise<T> {

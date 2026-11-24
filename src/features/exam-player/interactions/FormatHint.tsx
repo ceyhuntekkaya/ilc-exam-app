@@ -17,6 +17,7 @@ const HELP: Record<string, Help> = {
   SHORT_ANSWER: { label: "Write the word", how: "Tap a gap and write your answer." },
   MATCHING: { label: "Match", how: "Drag each answer to the correct box. Or tap an answer, then tap a box. Tap × to take it back." },
   ORDERING: { label: "Put in order", how: "Drag the cards to put them in the correct order. You can also use the arrows." },
+  ORDERING_PLACE: { label: "Put in order", how: "Drag each card to its numbered box. Or tap a card, then tap a box. Tap a card in a box to take it back." },
   GROUPING: { label: "Sort into groups", how: "Drag each card to the correct group. Or tap a card, then tap a group. Tap × to take it back." },
   HOTSPOT_SELECT: { label: "Tap on the picture", how: "Look at the picture. Tap the correct place." },
   HOTSPOT_PLACE: { label: "Put on the picture", how: "Drag each card to the correct place on the picture. Or tap a card, then tap a place." },
@@ -28,6 +29,7 @@ const HELP: Record<string, Help> = {
 
 export function formatHelp(type: string, interaction?: Record<string, unknown>): Help | null {
   if (type === "FILL_IN_THE_BLANKS" && interaction?.supply === "WORD_BANK") return HELP.FILL_IN_THE_BLANKS_BANK;
+  if (type === "ORDERING" && interaction?.format && interaction.format !== "TEXT") return HELP.ORDERING_PLACE;
   return HELP[type] ?? null;
 }
 

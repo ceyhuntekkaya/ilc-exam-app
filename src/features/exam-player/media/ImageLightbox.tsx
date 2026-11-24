@@ -136,7 +136,7 @@ export function ZoomableMediaImage({
         <MediaImageSlot
           mediaId={mediaId}
           alt=""
-          className={cn(className ?? "max-h-64 w-full rounded-[6px] object-contain", "pointer-events-none")}
+          className={cn(className ?? "max-h-48 w-full rounded-[6px] object-contain", "pointer-events-none")}
         />
         <span
           aria-hidden

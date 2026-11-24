@@ -63,6 +63,19 @@ const Ctx = createContext<BoardCtx>({
 export const useBoard = () => useContext(Ctx);
 
 /**
+ * Kart havuzunun açılacağı dış yer (örn. sol sütunda metnin altı). undefined = yok, havuz yerinde kalır;
+ * null = slot bekleniyor (ilk çizim), HTMLElement = havuz oraya portal edilir (DndContext/Ctx korunur).
+ */
+export const PoolSlotContext = createContext<HTMLElement | null | undefined>(undefined);
+
+/** Havuzu slot varsa oraya taşır; slot yoksa null döner ve çağıran havuzu yerinde çizer. */
+export function usePoolPortal(pool: ReactNode): { inline: ReactNode; portal: ReactNode } {
+  const slot = useContext(PoolSlotContext);
+  if (slot === undefined) return { inline: pool, portal: null };
+  return { inline: null, portal: slot ? createPortal(pool, slot) : null };
+}
+
+/**
  * Sürüklenen kopyanın açılacağı yer: panel kökü (öğrenci/admin fontu ve teması korunur), yoksa body.
  * Kart/tablo overflow'unda kırpılmaz; panel kökünde transform yoktur (fixed konum bozulmaz).
  */
@@ -495,7 +508,16 @@ export function DragPool({
  * Dar alanda (dikey tablet / telefon) kartlar üstte, kutular altta. Her sütun kendi @container'ı (iç ızgaralar sütuna göre).
  * Sticky için atalarda overflow: hidden olmamalı (QuestionFrame overflow-clip kullanır).
  */
-export function BoardLayout({ pool, children }: { pool: ReactNode; children: ReactNode }) {
+export function BoardLayout({ pool, children, stacked = false }: { pool: ReactNode; children: ReactNode; stacked?: boolean }) {
+  // stacked: geniş ekranda da kartlar üstte, kutular altta (yan yana değil).
+  if (stacked) {
+    return (
+      <div className="@container space-y-4">
+        {pool ? <div className="min-w-0">{pool}</div> : null}
+        <div className="@container min-w-0">{children}</div>
+      </div>
+    );
+  }
   return (
     <div className="@container">
       <div className="grid gap-4 @2xl:grid-cols-[minmax(13rem,2fr)_minmax(0,3fr)] @2xl:items-start @2xl:gap-5">

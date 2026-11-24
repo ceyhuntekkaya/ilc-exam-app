@@ -6,7 +6,7 @@ import { InlineHtmlField } from "@/src/features/authoring/blocks/InlineHtmlField
 import { MediaPicker } from "@/src/features/authoring/blocks/MediaPicker";
 import { PlaybackPolicyFields, shownPlayback, type PlaybackPolicy } from "@/src/features/authoring/blocks/PlaybackPolicyFields";
 import { newId } from "@/src/features/authoring/blocks/ids";
-import { htmlOf, type HtmlValue } from "@/src/features/exam-player/types";
+import { htmlOf, type HtmlValue, type ImageSize } from "@/src/features/exam-player/types";
 import {
   Button,
   Field,
@@ -19,10 +19,20 @@ import {
 
 export type ContentBlock =
   | { type: "TEXT"; id: string; text: HtmlValue }
-  | { type: "IMAGE"; id: string; mediaId: string | null; caption?: HtmlValue }
+  | { type: "IMAGE"; id: string; mediaId: string | null; caption?: HtmlValue; size: ImageSize }
   | { type: "GALLERY"; id: string; columns: number; items: Array<{ id?: string; mediaId: string; caption?: HtmlValue }> }
   | { type: "AUDIO"; id: string; mediaId: string | null; playback?: PlaybackPolicy | null }
   | { type: "VIDEO"; id: string; mediaId: string | null; playback?: PlaybackPolicy | null };
+
+const IMAGE_SIZES: Array<{ value: ImageSize; label: string }> = [
+  { value: "SMALL", label: "Küçük" },
+  { value: "MEDIUM", label: "Orta" },
+  { value: "LARGE", label: "Büyük" },
+];
+
+function normalizeImageSize(size: unknown): ImageSize {
+  return size === "MEDIUM" || size === "LARGE" ? size : "SMALL";
+}
 
 /** Normalize API wire values (string or {html}) into editor-friendly objects. */
 export function normalizeContentBlocks(blocks: ContentBlock[] | unknown[] | null | undefined): ContentBlock[] {
@@ -38,6 +48,7 @@ export function normalizeContentBlocks(blocks: ContentBlock[] | unknown[] | null
         id: b.id,
         mediaId: b.mediaId ?? null,
         caption: b.caption == null ? { html: "" } : asHtmlObj(b.caption),
+        size: normalizeImageSize(b.size),
       };
     }
     if (b.type === "GALLERY") {
@@ -76,6 +87,7 @@ export function contentBlocksToWire(blocks: ContentBlock[]): unknown[] {
         id: b.id,
         mediaId: b.mediaId,
         caption: b.caption == null ? null : htmlOf(b.caption),
+        size: b.size,
       };
     }
     if (b.type === "GALLERY") {
@@ -103,7 +115,7 @@ function emptyBlock(type: ContentBlock["type"]): ContentBlock {
     case "TEXT":
       return { type, id, text: { html: "" } };
     case "IMAGE":
-      return { type, id, mediaId: null, caption: { html: "" } };
+      return { type, id, mediaId: null, caption: { html: "" }, size: "SMALL" };
     case "GALLERY":
       return { type, id, columns: 2, items: [] };
     case "AUDIO":
@@ -230,6 +242,17 @@ export function ContentBlockList({
                   {b.type === "IMAGE" ? (
                     <>
                       <MediaPicker kind="IMAGE" label="Görsel" value={b.mediaId} onChange={(mediaId) => update(i, { ...b, mediaId })} disabled={disabled} />
+                      <div className="w-36">
+                        <Field label="Boyut">
+                          <Select value={b.size} disabled={disabled} onChange={(e) => update(i, { ...b, size: normalizeImageSize(e.target.value) })}>
+                            {IMAGE_SIZES.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </Select>
+                        </Field>
+                      </div>
                       <InlineHtmlField label="Altyazı" placeholder="İsteğe bağlı" value={b.caption} onChange={(caption) => update(i, { ...b, caption })} disabled={disabled} />
                     </>
                   ) : null}

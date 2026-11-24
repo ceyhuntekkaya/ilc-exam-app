@@ -307,14 +307,39 @@ export class AnswerOutbox {
     this.wake();
   }
 
-  /** Kapanış isteğine girecek, henüz onaylanmamış cevaplar. Seq burada sabitlenir. */
-  snapshot(): OutgoingAnswer[] {
-    const pending = [...this.records.values()].filter((record) => record.state !== "confirmed" && !record.hidden);
+  /**
+   * Kapanış isteğine girecek, henüz onaylanmamış cevaplar. Seq burada sabitlenir.
+   * `skipFailed`: sunucunun zaten reddettiği cevaplar dışarıda kalır. Aksi hâlde aynı cevap her kapanışta yeniden
+   * gider, yeniden reddedilir ve öğrenci bölümden hiç çıkamaz ("Break" işe yaramaz).
+   */
+  snapshot(options?: { skipFailed?: boolean }): OutgoingAnswer[] {
+    const skipFailed = options?.skipFailed === true;
+    const pending = [...this.records.values()].filter(
+      (record) => record.state !== "confirmed" && !record.hidden && !(skipFailed && record.state === "failed"),
+    );
     for (const record of pending) {
       if (record.seq == null) record.seq = ++this.nextSeq;
     }
     if (pending.length) this.persist();
     return pending.map(toOutgoing);
+  }
+
+  /**
+   * Kapanış isteğinde sunucu bu cevapları reddetti: soru numarasında "!" görünsün ve kuyruk onları tekrar denemesin.
+   * Yeni cevap girilirse `put` kaydı yeniden "pending" yapar.
+   */
+  markRejected(itemIds: readonly string[]) {
+    let changed = false;
+    for (const itemId of itemIds) {
+      const current = this.records.get(itemId);
+      if (!current || current.hidden || current.state === "confirmed" || current.state === "failed") continue;
+      if (this.inflight?.itemId === itemId) this.inflight = null;
+      current.state = "failed";
+      current.error = "REJECTED";
+      this.settle(itemId, current.localVersion, new Error("This answer was not saved."));
+      changed = true;
+    }
+    if (changed) this.persist();
   }
 
   confirmSnapshot(sent: OutgoingAnswer[]) {

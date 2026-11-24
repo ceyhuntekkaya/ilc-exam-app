@@ -63,6 +63,45 @@ describe("answer outbox", () => {
     expect(out.snapshot()).toHaveLength(1);
   });
 
+  it("leaves a rejected answer out of a break batch but keeps it for finish", () => {
+    const out = box();
+    out.hydrate([]);
+    out.put("q1", { optionId: "a" });
+    const sent = out.nextSend();
+    out.applyTransportError("q1", sent!.localVersion, { status: 400, message: "bad shape" });
+    out.put("q2", { optionId: "b" });
+    // Ara verme: reddedilen q1 taşınmaz, yoksa her seferinde yeniden reddedilip çıkış engellenir.
+    expect(out.snapshot({ skipFailed: true }).map((row) => row.itemId)).toEqual(["q2"]);
+    // Finish: reddedilen cevap taşınır, bölüm bilerek açık kalır.
+    expect(out.snapshot().map((row) => row.itemId).sort()).toEqual(["q1", "q2"]);
+  });
+
+  it("marks answers the server rejected on close as failed, so they show a ! and are not retried", () => {
+    const out = box();
+    out.hydrate([]);
+    out.put("q1", { optionId: "a" });
+    out.put("q2", { optionId: "b" });
+    out.markRejected(["q1", "unknown"]);
+    const rows = out.getSnapshot();
+    expect(rows.find((row) => row.itemId === "q1")?.state).toBe("failed");
+    expect(rows.find((row) => row.itemId === "q2")?.state).toBe("pending");
+    expect(out.nextSend()?.itemId).toBe("q2");
+    expect(out.nextSend()).toBeNull();
+    // Yeni cevap girilince kayıt yeniden denenir.
+    out.put("q1", { optionId: "c" });
+    expect(out.getSnapshot().find((row) => row.itemId === "q1")?.state).toBe("pending");
+  });
+
+  it("does not touch confirmed answers when the server rejects a close", () => {
+    const out = box();
+    out.hydrate([]);
+    out.put("q1", { optionId: "a" });
+    const sent = out.nextSend();
+    out.applyResult("q1", sent!.localVersion, { status: "WRITTEN", serverSeq: 1 });
+    out.markRejected(["q1"]);
+    expect(out.getSnapshot().find((row) => row.itemId === "q1")?.state).toBe("confirmed");
+  });
+
   it("pauses on a replaced session without deleting the queue", () => {
     const out = box();
     out.hydrate([]);

@@ -70,6 +70,13 @@
   font-weight: 600;
 }
 
+/* Yazar yazı boyutu: backend style atar, boyut span[data-size] ile gelir. em: öğrenci yazı ölçeğiyle birlikte büyür.
+   .prose-section şartı YOK: şık, etiket, boşluk kelimesi gibi satır içi metinler o sınıfı taşımıyor. */
+.exam-player [data-size="sm"] { font-size: 0.875em; }
+.exam-player [data-size="lg"] { font-size: 1.25em; }
+.exam-player [data-size="xl"] { font-size: 1.5em; }
+.exam-player [data-size="2xl"] { font-size: 2em; line-height: 1.25; }
+
 .exam-player .prose-section p:first-child {
   margin-top: 0;
 }
