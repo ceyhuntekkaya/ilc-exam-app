@@ -10,18 +10,18 @@ export function CandidateHistorySection() {
 
   if (historyQ.isLoading) return <Skeleton className="h-48 rounded-xl" />;
   if (historyQ.isError) {
-    return <ErrorState error={historyQ.error} onRetry={() => void historyQ.refetch()} message={errorMessage(historyQ.error, "Geçmiş açılamadı")} />;
+    return <ErrorState error={historyQ.error} onRetry={() => void historyQ.refetch()} message={errorMessage(historyQ.error, "We could not open your history")} />;
   }
   const reports = [...(historyQ.data?.data ?? [])].sort((a, b) =>
     (a.publishedAt ?? "").localeCompare(b.publishedAt ?? ""),
   );
   if (reports.length === 0) {
-    return <EmptyState tone="neutral" title="Henüz bir sonuç yok" description="Yayınlanmış bir sonuç bulununca burada görünecek." />;
+    return <EmptyState tone="neutral" title="No results yet" description="Your results will appear here once they are published." />;
   }
 
   return (
     <div className="grid gap-4">
-      <PageHeader title="Geçmişim" description="Yıllar arası gelişim — en eski sonuçtan en yeniye." />
+      <PageHeader title="My history" description="Your progress over the years — from oldest result to newest." />
       <ol className="grid gap-2">
         {reports.map((report, i) => {
           const prev = i > 0 ? reports[i - 1] : null;
@@ -30,10 +30,10 @@ export function CandidateHistorySection() {
             <li key={report.applicationResultId} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3">
               <div>
                 <p className="text-sm font-medium text-fg">{String(report.membership?.companyName ?? "—")}</p>
-                <p className="text-xs text-fg-muted">{report.publishedAt ? new Date(report.publishedAt).toLocaleDateString("tr-TR") : "—"}</p>
+                <p className="text-xs text-fg-muted">{report.publishedAt ? new Date(report.publishedAt).toLocaleDateString("en-GB") : "—"}</p>
               </div>
               <div className="flex items-center gap-2">
-                {improved ? <Badge tone="success">İlerleme</Badge> : null}
+                {improved ? <Badge tone="success">Progress</Badge> : null}
                 <Badge tone="brand">{report.cefrLevel ?? "—"}</Badge>
               </div>
             </li>

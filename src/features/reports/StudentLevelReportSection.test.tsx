@@ -32,7 +32,7 @@ describe("StudentLevelReportSection", () => {
 
     renderWithProviders(<StudentLevelReportSection applicationId="app-1" />);
 
-    expect(screen.getByText("Hazırlanıyor.")).toBeInTheDocument();
+    expect(screen.getByText("Being prepared.")).toBeInTheDocument();
   });
 
   it("onaylı set varsa can-do ifadelerini gösterir", () => {
@@ -54,7 +54,7 @@ describe("StudentLevelReportSection", () => {
 
     renderWithProviders(<StudentLevelReportSection applicationId="app-1" />);
 
-    expect(screen.getByText("%72")).toBeInTheDocument();
+    expect(screen.getByText("72%")).toBeInTheDocument();
     expect(screen.queryByText(/toplam/i)).not.toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import { assignmentStatusLabel } from "@/src/features/admin/labels";
 import { AssignmentCloseActions } from "@/src/features/assignments/AssignmentCloseActions";
 import { useOpsHref, usePanelRole } from "@/src/features/panel/PanelContext";
 import { Badge, ButtonLink, ErrorState, FilterTabs, SectionTable, SectionToolbar } from "@/src/ui";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 const COLUMNS = [
@@ -17,6 +18,12 @@ const COLUMNS = [
   { label: "Girmedi", align: "right" as const },
   { label: "Yayınlı sonuç", align: "right" as const },
   "",
+];
+
+const SHORTCUTS = [
+  { href: "/staff/results", title: "Sınav Sonuçları", text: "Öğrenci sonuçları ve toplu karne (PDF)" },
+  { href: "/staff/reports/classroom", title: "Sınıf Isı Haritası", text: "Şube bazında kazanım zorlanması" },
+  { href: "/staff/reports/institution", title: "Seviye Raporu — Kurum", text: "Kohort dağılımı ve güvence kırılımı" },
 ];
 
 function shortDate(value?: string) {
@@ -52,6 +59,18 @@ export function ReportsSection({ companyId }: { companyId: string }) {
 
   return (
     <div className="grid gap-4">
+      <nav aria-label="Diğer raporlar" className="grid gap-3 sm:grid-cols-3">
+        {SHORTCUTS.map((c) => (
+          <Link
+            key={c.href}
+            href={c.href}
+            className="rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-neutral-50"
+          >
+            <p className="text-sm font-semibold text-fg">{c.title}</p>
+            <p className="mt-1 text-xs text-fg-muted">{c.text}</p>
+          </Link>
+        ))}
+      </nav>
       <SectionTable
         tabs={
           <FilterTabs
@@ -115,6 +134,14 @@ export function ReportsSection({ companyId }: { companyId: string }) {
                   companyId={id}
                   items={[{ id: r.assignmentId, status: r.status, inProgress: r.recipientsInProgress ?? 0 }]}
                 />
+                <ButtonLink
+                  href={`/staff/results?instituteId=${r.instituteId ?? ""}&examVersionId=${r.examVersionId ?? ""}`}
+                  variant="ghost"
+                  size="sm"
+                  className="min-h-11"
+                >
+                  Sonuçlar
+                </ButtonLink>
                 {role === "SUPER_ADMIN" ? (
                   <ButtonLink href={hrefs.monitor(r.assignmentId)} variant="ghost" size="sm" className="min-h-11">
                     Ayrıntı

@@ -21,7 +21,7 @@ describe("CandidateHistorySection", () => {
 
     renderWithProviders(<CandidateHistorySection />);
 
-    expect(screen.getByText("İlerleme")).toBeInTheDocument();
+    expect(screen.getByText("Progress")).toBeInTheDocument();
     expect(screen.getByText("A2")).toBeInTheDocument();
     expect(screen.getByText("B1")).toBeInTheDocument();
   });

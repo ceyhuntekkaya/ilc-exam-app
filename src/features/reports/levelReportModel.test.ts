@@ -46,7 +46,7 @@ describe("levelReportRefetchInterval", () => {
 
 describe("hatalar ve paylaşım", () => {
   it("404 tek mesaj; http dışı bağlantı paylaşılmaz", () => {
-    expect(levelReportDownloadFailure(Object.assign(new Error("x"), { status: 404 }))).toMatch(/henüz hazır değil/);
+    expect(levelReportDownloadFailure(Object.assign(new Error("x"), { status: 404 }))).toMatch(/not ready yet/);
     expect(safeShareUrl("javascript:alert(1)")).toBeNull();
     expect(safeShareUrl("https://app.example/verify/A")).toBe("https://app.example/verify/A");
     expect(safeShareUrl(null)).toBeNull();

@@ -8,6 +8,14 @@ vi.mock("@/src/api/generated/report-controller/report-controller", () => ({
   useTeacherReport: (companyId: string, orgUnitId: string, options: unknown) => useTeacherReportMock(companyId, orgUnitId, options),
 }));
 
+vi.mock("@/src/api/generated/org-units/org-units", () => ({
+  useList20: () => ({
+    isLoading: false,
+    isError: false,
+    data: { data: { items: [{ id: "unit-1", name: "Kadıköy Şubesi", unitType: "BRANCH", parentId: null }] } },
+  }),
+}));
+
 const { TeacherClassroomReport } = await import("./TeacherClassroomReport");
 
 const REPORT: ReportModel = {
@@ -22,16 +30,16 @@ const REPORT: ReportModel = {
 };
 
 describe("TeacherClassroomReport", () => {
-  it("birim kimliği girilip gönderilmeden sorgu ETKİN değildir, sonra kazanım kırılımını TOPLAMADAN gösterir", () => {
+  it("şube seçilip gönderilmeden sorgu ETKİN değildir, sonra kazanım kırılımını TOPLAMADAN gösterir", () => {
     useTeacherReportMock.mockReturnValue({ isLoading: false, isError: false, data: { data: [REPORT] } });
 
     renderWithProviders(<TeacherClassroomReport companyId="c-1" />);
-    fireEvent.change(screen.getByPlaceholderText("UUID"), { target: { value: "unit-1" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "unit-1" } });
     fireEvent.click(screen.getByRole("button", { name: "Göster" }));
 
     expect(screen.getByText("Listening for gist")).toBeInTheDocument();
-    expect(screen.getByText("%40")).toBeInTheDocument();
-    expect(screen.getByText("%85")).toBeInTheDocument();
+    expect(screen.getByText("40%")).toBeInTheDocument();
+    expect(screen.getByText("85%")).toBeInTheDocument();
     expect(screen.queryByText(/toplam/i)).not.toBeInTheDocument();
     // R-20: kurum personeli için seviye raporu (PDF) düğmesi sonuç başına
     expect(screen.getByRole("button", { name: "Seviye raporu (PDF)" })).toBeInTheDocument();

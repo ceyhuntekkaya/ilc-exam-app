@@ -21,7 +21,7 @@ export function StudentLevelReportSection({ applicationId }: { applicationId: st
     return <Skeleton className="h-40 rounded-xl" />;
   }
   if (historyQ.isError) {
-    return <p className="text-sm text-danger">{errorMessage(historyQ.error, "Seviye raporu açılamadı")}</p>;
+    return <p className="text-sm text-danger">{errorMessage(historyQ.error, "We could not open the level report")}</p>;
   }
 
   const report = historyQ.data?.data.find((r) => r.applicationId === applicationId);
@@ -34,7 +34,7 @@ export function StudentLevelReportSection({ applicationId }: { applicationId: st
     try {
       await downloadMyReportCardPdf(applicationId);
     } catch (err) {
-      notify.error(errorMessage(err, "Karne indirilemedi"));
+      notify.error(errorMessage(err, "Could not download the report card"));
     } finally {
       setDownloading(false);
     }
@@ -43,19 +43,19 @@ export function StudentLevelReportSection({ applicationId }: { applicationId: st
   return (
     <section className="grid gap-4 rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-fg">Seviye raporu</h2>
+        <h2 className="text-sm font-semibold text-fg">Level report</h2>
         <Button variant="secondary" size="sm" onClick={() => void download()} disabled={downloading}>
-          {downloading ? "İndiriliyor…" : "PDF indir"}
+          {downloading ? "Downloading…" : "Download PDF"}
         </Button>
       </div>
       <IntegrityAssuranceBadges report={report} />
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone="brand">{`CEFR: ${report.cefrLevel ?? "—"}`}</Badge>
-        {report.overallSkillBand ? <Badge tone="neutral">{`Genel beceri bandı: ${report.overallSkillBand}`}</Badge> : null}
+        {report.overallSkillBand ? <Badge tone="neutral">{`Overall skill band: ${report.overallSkillBand}`}</Badge> : null}
       </div>
       {report.skillBands && Object.keys(report.skillBands).length > 0 ? (
         <div>
-          <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">Beceri profili</h3>
+          <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">Skill profile</h3>
           <div className="flex flex-wrap gap-2">
             {Object.entries(report.skillBands).map(([skill, band]) => (
               <Badge key={skill} tone="neutral">{`${skill}: ${String(band)}`}</Badge>
@@ -65,7 +65,7 @@ export function StudentLevelReportSection({ applicationId }: { applicationId: st
       ) : null}
       <CanDoBlock applicationResultId={report.applicationResultId} />
       <div>
-        <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">Kazanım kırılımı</h3>
+        <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">Outcome breakdown</h3>
         <OutcomeBreakdownTable outcomes={report.outcomeBreakdown} />
       </div>
     </section>
@@ -81,14 +81,14 @@ function CanDoBlock({ applicationResultId }: { applicationResultId: string }) {
   if (body.pending || !body.statements || Object.keys(body.statements).length === 0) {
     return (
       <div>
-        <h3 className="mb-1 text-xs font-medium text-fg-subtle">Yapabildiklerin</h3>
-        <p className="text-sm text-fg-muted">Hazırlanıyor.</p>
+        <h3 className="mb-1 text-xs font-medium text-fg-subtle">What you can do</h3>
+        <p className="text-sm text-fg-muted">Being prepared.</p>
       </div>
     );
   }
   return (
     <div>
-      <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">Yapabildiklerin</h3>
+      <h3 className="mb-1.5 text-xs font-medium text-fg-subtle">What you can do</h3>
       <div className="grid gap-2">
         {Object.entries(body.statements).map(([skill, lines]) => (
           <div key={skill}>

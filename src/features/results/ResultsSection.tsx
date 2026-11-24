@@ -123,9 +123,9 @@ type SectionView = {
 };
 
 const PHASE: Record<string, string> = {
-  IN_PROGRESS: "Sınavda",
-  FINISHED: "Tamamlandı",
-  EVALUATED: "Yayınlandı",
+  IN_PROGRESS: "In exam",
+  FINISHED: "Completed",
+  EVALUATED: "Published",
 };
 
 const CHOICE_TONE: Record<ChoicePaint, string> = {
@@ -136,11 +136,11 @@ const CHOICE_TONE: Record<ChoicePaint, string> = {
 };
 
 const VERDICT: Record<string, { label: string; mark: string; tone: string }> = {
-  CORRECT: { label: "Doğru", mark: "✓", tone: "bg-success-bg text-success ring-success/25" },
-  WRONG: { label: "Yanlış", mark: "✕", tone: "bg-danger-bg text-danger ring-danger/25" },
-  PARTIAL: { label: "Kısmi", mark: "½", tone: "bg-warning-bg text-warning ring-warning/30" },
-  BLANK: { label: "Boş", mark: "–", tone: "bg-neutral-100 text-fg-muted ring-border" },
-  PENDING: { label: "Bekliyor", mark: "…", tone: "bg-info-bg text-info ring-info/25" },
+  CORRECT: { label: "Correct", mark: "✓", tone: "bg-success-bg text-success ring-success/25" },
+  WRONG: { label: "Wrong", mark: "✕", tone: "bg-danger-bg text-danger ring-danger/25" },
+  PARTIAL: { label: "Partial", mark: "½", tone: "bg-warning-bg text-warning ring-warning/30" },
+  BLANK: { label: "Blank", mark: "–", tone: "bg-neutral-100 text-fg-muted ring-border" },
+  PENDING: { label: "Pending", mark: "…", tone: "bg-info-bg text-info ring-info/25" },
 };
 
 function num(value: number | string | null | undefined) {
@@ -152,7 +152,7 @@ function num(value: number | string | null | undefined) {
 function points(value: number | string | null | undefined) {
   if (value == null || value === "") return "—";
   const parsed = num(value);
-  return parsed.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  return parsed.toLocaleString("en-GB", { maximumFractionDigits: 2 });
 }
 
 function percent(score: number, max: number) {
@@ -199,7 +199,7 @@ function sectionsFromAnswers(answers: AnswerView[], examTotal: number): SectionV
   const order: string[] = [];
   const buckets = new Map<string, { earned: number; max: number }>();
   for (const answer of answers) {
-    const title = answer.sectionTitle?.trim() || "Bölüm";
+    const title = answer.sectionTitle?.trim() || "Section";
     let bucket = buckets.get(title);
     if (!bucket) {
       bucket = { earned: 0, max: 0 };
@@ -235,11 +235,11 @@ function when(value: string | null | undefined) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function sittingLabel(row: { phase: string; attemptNo?: number; startedAt?: string | null; submittedAt?: string | null }) {
-  const attempt = row.attemptNo && row.attemptNo > 0 ? `${row.attemptNo}. deneme` : "";
+  const attempt = row.attemptNo && row.attemptNo > 0 ? `Attempt ${row.attemptNo}` : "";
   const clock = when(row.submittedAt || row.startedAt);
   return [PHASE[row.phase] ?? row.phase, attempt, clock].filter(Boolean).join(" · ");
 }
@@ -528,11 +528,11 @@ export function ResultPaper({
   const ratio = percent(score, max);
   const scaled = headline(score, max, num(report.examTotal));
   const stats = [
-    { label: "Doğru", value: report.correct, tone: "text-success" },
-    { label: "Yanlış", value: report.wrong, tone: "text-danger" },
-    { label: "Boş", value: report.blank, tone: "text-fg-muted" },
-    { label: "Kısmi", value: report.partial, tone: "text-warning" },
-    { label: "Bekleyen", value: report.pending, tone: "text-info" },
+    { label: "Correct", value: report.correct, tone: "text-success" },
+    { label: "Wrong", value: report.wrong, tone: "text-danger" },
+    { label: "Blank", value: report.blank, tone: "text-fg-muted" },
+    { label: "Partial", value: report.partial, tone: "text-warning" },
+    { label: "Pending", value: report.pending, tone: "text-info" },
   ];
 
   return (
@@ -551,10 +551,10 @@ export function ResultPaper({
             {points(scaled.shown)}
             <span className="text-xl font-medium text-ilc-navy/45">/{points(scaled.scale)}</span>
           </p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`Puanın %${ratio}'i`}>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${ratio}% of the score`}>
             <div className="h-full rounded-full bg-ilc-teal" style={{ width: `${ratio}%` }} />
           </div>
-          <p className="numeric mt-1 text-right text-xs text-ilc-navy/60">%{ratio}</p>
+          <p className="numeric mt-1 text-right text-xs text-ilc-navy/60">{ratio}%</p>
         </div>
       </header>
 
@@ -576,9 +576,9 @@ export function ResultPaper({
       <SectionScores sections={karneSections(report, scaled.scale)} />
 
       <div className="grid gap-3 px-4 py-4 sm:px-5">
-        <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Cevaplar</h3>
+        <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Answers</h3>
         {report.answers.length === 0 ? (
-          <p className="rounded-lg bg-white/70 px-3 py-3 text-sm text-ilc-navy/70">Bu kâğıtta puanlanan cevap yok.</p>
+          <p className="rounded-lg bg-white/70 px-3 py-3 text-sm text-ilc-navy/70">No scored answers on this paper.</p>
         ) : (
           report.answers.map((answer, index) => (
             <div key={`${answer.number}-${answer.interactionType}`} className="grid gap-3">
@@ -636,7 +636,7 @@ function AnswerCard({
         {answer.promptHtml ? <RichText value={answer.promptHtml} className="mt-2 text-ilc-navy" /> : null}
         {answer.sceneMediaId ? (
           <div className="mt-3">
-            <CatalogMedia mediaId={answer.sceneMediaId} kind={answer.sceneMediaKind} large alt="Soru görseli" />
+            <CatalogMedia mediaId={answer.sceneMediaId} kind={answer.sceneMediaKind} large alt="Question image" />
           </div>
         ) : null}
         {answer.choices.length > 0 ? (
@@ -656,10 +656,10 @@ function AnswerCard({
                   <AnswerPiece html={choice.html} mediaId={choice.mediaId} mediaKind={choice.mediaKind} />
                   {choice.selected ? (
                     <span className="mt-0.5 block text-xs font-medium text-ilc-navy/70">
-                      {choice.correct ? "Öğrencinin cevabı, doğru" : "Öğrencinin cevabı"}
+                      {choice.correct ? "Your answer, correct" : "Your answer"}
                     </span>
                   ) : null}
-                  {!choice.selected && choice.correct ? <span className="mt-0.5 block text-xs font-medium text-ilc-teal">Doğru cevap</span> : null}
+                  {!choice.selected && choice.correct ? <span className="mt-0.5 block text-xs font-medium text-ilc-teal">Correct answer</span> : null}
                 </span>
               </li>
             ))}
@@ -675,7 +675,7 @@ function AnswerCard({
                   <AnswerPiece text={line.value} mediaId={line.valueMediaId} mediaKind={line.valueMediaKind} emphasize />
                 </span>
                 {line.ok == null ? null : (
-                  <span className={cn("text-xs font-semibold", line.ok ? "text-success" : "text-danger")}>{line.ok ? "Doğru" : "Yanlış"}</span>
+                  <span className={cn("text-xs font-semibold", line.ok ? "text-success" : "text-danger")}>{line.ok ? "Correct" : "Wrong"}</span>
                 )}
               </li>
             ))}
@@ -697,7 +697,7 @@ function AnswerCard({
         ) : null}
         {answer.transcript ? (
           <p className="mt-2 text-sm whitespace-pre-wrap text-ilc-navy/80">
-            <span className="font-medium text-ilc-navy/55">Metin. </span>
+            <span className="font-medium text-ilc-navy/55">Transcript. </span>
             {answer.transcript}
           </p>
         ) : null}
@@ -705,7 +705,7 @@ function AnswerCard({
           <p className="mt-2 border-l-2 border-ilc-teal pl-3 text-sm text-ilc-navy/80">{answer.feedback}</p>
         ) : null}
         {answer.verdict === "BLANK" && answer.choices.length === 0 && answer.lines.length === 0 && !answer.responseText ? (
-          <p className="mt-3 text-sm text-ilc-navy/55">Bu soru boş bırakıldı.</p>
+          <p className="mt-3 text-sm text-ilc-navy/55">This question was left blank.</p>
         ) : null}
       </div>
     </section>
@@ -729,11 +729,11 @@ function AnswerPiece({
   const hasCaption = caption.length > 0 && caption !== "Boş";
   const hasHtml = Boolean(html && html.trim());
   if (!mediaId && !hasCaption && !hasHtml) {
-    return <span className="text-ilc-navy/45">Boş</span>;
+    return <span className="text-ilc-navy/45">Blank</span>;
   }
   return (
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2">
-      {mediaId ? <CatalogMedia mediaId={mediaId} kind={mediaKind} alt={hasCaption ? caption : "Öğrenci cevabı"} /> : null}
+      {mediaId ? <CatalogMedia mediaId={mediaId} kind={mediaKind} alt={hasCaption ? caption : "Student answer"} /> : null}
       {hasHtml ? <RichText value={html!} className="text-ilc-navy" /> : null}
       {!hasHtml && hasCaption ? (
         <span className={cn("min-w-0", emphasize ? "font-medium text-ilc-navy" : "text-ilc-navy/80")}>{caption}</span>
@@ -784,7 +784,7 @@ function CatalogMedia({
 function MediaPiece({ type, src }: { type: string; src: string }) {
   if (type === "AUDIO_RESPONSE") return <audio controls preload="none" src={src} className="w-full" />;
   if (type === "VIDEO_RESPONSE") return <video controls preload="metadata" src={src} className="max-h-80 w-full rounded-md bg-black" />;
-  if (type === "IMAGE_RESPONSE") return <img src={src} alt="Öğrencinin yüklediği görsel" className="max-h-80 w-full rounded-md object-contain" />;
+  if (type === "IMAGE_RESPONSE") return <img src={src} alt="Image uploaded by the student" className="max-h-80 w-full rounded-md object-contain" />;
   return null;
 }
 
@@ -792,7 +792,7 @@ function SectionScores({ sections }: { sections: SectionView[] }) {
   if (sections.length === 0) return null;
   return (
     <section className="border-b border-ilc-line px-4 py-4 sm:px-5">
-      <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Bölümler</h3>
+      <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Sections</h3>
       <ul className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
         {sections.map((section, index) => {
           const earned = num(section.earned);
@@ -804,13 +804,13 @@ function SectionScores({ sections }: { sections: SectionView[] }) {
             <li key={`${section.title}-${index}`} className="min-w-0 rounded-lg bg-white/80 px-3 py-2.5 ring-1 ring-ilc-line ring-inset">
               <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-ilc-navy/60 uppercase">
                 {tone ? <span aria-hidden className={cn("size-2 shrink-0 rounded-full", tone.solid)} /> : null}
-                <span className="truncate">{section.title || "Bölüm"}</span>
+                <span className="truncate">{section.title || "Section"}</span>
               </p>
               <p className="numeric mt-1 font-display text-xl leading-none font-semibold">
                 {points(earned)}
                 <span className="text-sm font-medium text-ilc-navy/45">/{points(available)}</span>
               </p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${section.title} %${ratio}`}>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${section.title} ${ratio}%`}>
                 <div className={cn("h-full rounded-full", tone?.solid ?? "bg-ilc-teal")} style={{ width: `${ratio}%` }} />
               </div>
             </li>
@@ -824,12 +824,12 @@ function SectionScores({ sections }: { sections: SectionView[] }) {
 function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {
   return (
     <section className="border-t border-ilc-line px-4 py-4 sm:px-5">
-      <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Kazanımlar</h3>
+      <h3 className="text-sm font-semibold tracking-wide text-ilc-navy/80 uppercase">Learning outcomes</h3>
       <p className="mt-1 max-w-2xl text-sm text-ilc-navy/65">
-        Bir sorunun puanı, bağlı olduğu her kazanıma tam yazılır. Soru 5 puansa her kazanım da 5 puan üzerinden hesaplanır.
+        A question&apos;s full score counts towards every outcome it is linked to. If a question is worth 5 points, each linked outcome is scored out of 5.
       </p>
       {outcomes.length === 0 ? (
-        <p className="mt-3 text-sm text-ilc-navy/60">Bu sınavın sorularına kazanım bağlı değil.</p>
+        <p className="mt-3 text-sm text-ilc-navy/60">No learning outcomes are linked to this exam&apos;s questions.</p>
       ) : (
         <>
           <ul className="mt-3 grid gap-2 sm:hidden">
@@ -838,13 +838,13 @@ function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {
                 <p className="text-sm font-medium">{row.name}</p>
                 {row.code ? <p className="mt-0.5 font-mono text-[11px] text-ilc-navy/50">{row.code}</p> : null}
                 {row.pendingQuestions > 0 ? (
-                  <p className="text-xs text-info">{row.pendingQuestions} sorunun puanı bekliyor</p>
+                  <p className="text-xs text-info">{row.pendingQuestions === 1 ? "1 question" : `${row.pendingQuestions} questions`} awaiting score</p>
                 ) : null}
                 <p className="numeric mt-2 text-sm">
-                  <span className="text-ilc-navy/55">Alınabilecek </span>
+                  <span className="text-ilc-navy/55">Available </span>
                   {points(row.available)}
                   <span className="px-2 text-ilc-navy/30">·</span>
-                  <span className="text-ilc-navy/55">Alınan </span>
+                  <span className="text-ilc-navy/55">Earned </span>
                   {points(row.earned)}
                 </p>
                 <ScoreBar earned={num(row.earned)} available={num(row.available)} />
@@ -855,9 +855,9 @@ function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="sticky top-0 border-b border-ilc-line bg-ilc-paper text-left text-xs text-ilc-navy/55">
-                  <th className="px-3 py-2 font-medium">Kazanım</th>
-                  <th className="w-32 px-3 py-2 text-right font-medium">Alınabilecek</th>
-                  <th className="w-28 px-3 py-2 text-right font-medium">Alınan</th>
+                  <th className="px-3 py-2 font-medium">Outcome</th>
+                  <th className="w-32 px-3 py-2 text-right font-medium">Available</th>
+                  <th className="w-28 px-3 py-2 text-right font-medium">Earned</th>
                 </tr>
               </thead>
               <tbody>
@@ -867,7 +867,7 @@ function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {
                       <p className="font-medium">{row.name}</p>
                       {row.code ? <p className="font-mono text-[11px] text-ilc-navy/45">{row.code}</p> : null}
                       {row.pendingQuestions > 0 ? (
-                        <p className="text-xs text-info">{row.pendingQuestions} sorunun puanı bekliyor</p>
+                        <p className="text-xs text-info">{row.pendingQuestions === 1 ? "1 question" : `${row.pendingQuestions} questions`} awaiting score</p>
                       ) : null}
                       <ScoreBar earned={num(row.earned)} available={num(row.available)} />
                     </td>
@@ -887,7 +887,7 @@ function OutcomeTable({ outcomes }: { outcomes: OutcomeView[] }) {
 function ScoreBar({ earned, available }: { earned: number; available: number }) {
   const ratio = available > 0 ? Math.min(100, Math.round((earned / available) * 100)) : 0;
   return (
-    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`%${ratio}`}>
+    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ilc-sand" role="img" aria-label={`${ratio}%`}>
       <div className="h-full rounded-full bg-ilc-teal" style={{ width: `${ratio}%` }} />
     </div>
   );

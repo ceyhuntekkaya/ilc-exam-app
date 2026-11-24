@@ -33,9 +33,9 @@ describe("LevelReportDownloadSection", () => {
     const state = cert({ levelReportReady: false });
     certState.mockReturnValue(state);
     renderWithProviders(<LevelReportDownloadSection applicationId="app-1" />);
-    expect(screen.getByRole("status")).toHaveTextContent("hazırlanıyor");
-    expect(screen.queryByRole("button", { name: "Seviye raporunu indir" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Yeniden sorgula" }));
+    expect(screen.getByRole("status")).toHaveTextContent("being prepared");
+    expect(screen.queryByRole("button", { name: "Download level report" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
     expect(state.refetch).toHaveBeenCalled();
   });
 
@@ -46,10 +46,10 @@ describe("LevelReportDownloadSection", () => {
     );
     downloadMock.mockResolvedValue(undefined);
     renderWithProviders(<LevelReportDownloadSection applicationId="app-1" />);
-    fireEvent.click(screen.getByRole("button", { name: "Seviye raporunu indir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download level report" }));
     await waitFor(() => expect(downloadMock).toHaveBeenCalledWith("ar-1", "/report/me/results/ar-1/level-report"));
     expect(screen.getByRole("link", { name: "https://app.example/verify/ABC" })).toHaveAttribute("href", "https://app.example/verify/ABC");
-    expect(screen.getByText(/bir sertifika değildir/)).toBeInTheDocument();
+    expect(screen.getByText(/not a certificate/)).toBeInTheDocument();
   });
 
   it("alan yoksa (bilinmiyor) kart gösterilmez", () => {

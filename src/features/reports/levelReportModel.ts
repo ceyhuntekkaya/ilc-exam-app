@@ -53,11 +53,11 @@ function statusOf(err: unknown): number | undefined {
 /** 404: belge yok / henüz hazır değil / başkasının (varlık sızdırılmaz, tek mesaj). */
 export function levelReportDownloadFailure(err: unknown): string {
   const status = statusOf(err);
-  if (status === 404) return "Seviye raporu henüz hazır değil ya da bu sonuç için bulunamadı. Biraz sonra yeniden deneyin.";
-  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
-  if (status === 403) return "Bu raporu indirme yetkiniz yok.";
+  if (status === 404) return "The level report is not ready yet or could not be found for this result. Please try again shortly.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status === 403) return "You are not allowed to download this report.";
   const text = err instanceof Error ? err.message.trim() : "";
-  return text || "Seviye raporu indirilemedi.";
+  return text || "Could not download the level report.";
 }
 
 /** Paylaşım için yalnız http(s) bağlantısı kabul edilir. */
