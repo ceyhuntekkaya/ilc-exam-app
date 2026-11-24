@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import { usePlayerPreview } from "@/src/features/exam-player/preview/PlayerPreviewContext";
 import { useExamSession } from "@/src/features/exam-player/session/ExamSessionContext";
 import { applyPlayTicket, limitFromPlayStatus, playbackAsksServer } from "@/src/features/exam-player/session/playTicket";
@@ -72,10 +72,13 @@ export function MediaImageSlot({
   mediaId,
   alt,
   className,
+  onLoad,
 }: {
   mediaId?: string | null;
   alt?: string;
   className?: string;
+  /** Görsel yüklenince (doğal en/boy `e.currentTarget.naturalWidth/Height`'ten okunur). */
+  onLoad?: (e: SyntheticEvent<HTMLImageElement>) => void;
 }) {
   const url = useMediaUrl(mediaId);
   if (!url) return <Placeholder kind="IMAGE" mediaId={mediaId} className={className} />;
@@ -85,6 +88,7 @@ export function MediaImageSlot({
       src={url}
       alt={alt || ""}
       draggable={false}
+      onLoad={onLoad}
       className={className ?? "max-h-64 w-full rounded-[6px] object-contain"}
     />
   );

@@ -10,7 +10,7 @@ import type { OptionFormat, PlayerOption } from "@/src/features/exam-player/type
 import { htmlOf } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
 import { IconCheck, IconLock } from "@/src/ui/icons";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 /**
  * Ses/video seçeneği en az bir kez sonuna kadar oynatılmadan taşınamaz / seçilemez (öğrenci).
@@ -91,8 +91,11 @@ export function OptionContent({
   format: OptionFormat;
   /** Video kartı kilitliyken kapak altında gösterilen kısa metin. */
   note?: string | null;
-  /** fill: kabı tamamen kaplar (kutuya yerleşmiş görsel/video). */
-  size?: "sm" | "md" | "lg" | "fill" | "row";
+  /**
+   * fill: kabı tamamen kaplar (kutuya yerleşmiş görsel/video).
+   * panel: tam genişlikli çoktan seçmeli — görsel panelin genişliğine uyar (sabit yükseklik yok), oranı 4:3.
+   */
+  size?: "sm" | "md" | "lg" | "fill" | "row" | "panel";
 }) {
   const caption = option.text ? (
     <HtmlInline value={option.text} className={cn("block", size === "sm" ? "text-xs" : "text-sm")} />
@@ -135,7 +138,11 @@ export function OptionContent({
         <MediaImageSlot
           mediaId={option.mediaId}
           alt={htmlOf(option.text)}
-          className={cn("mx-auto w-full rounded-[6px] bg-exam-slate-50 object-contain", size === "lg" ? "h-28 @sm:h-36" : "h-32 @sm:h-40")}
+          className={cn(
+            "mx-auto w-full rounded-[6px] bg-exam-slate-50 object-contain",
+            // panel: yükseklik genişlikten türer; çok az seçenekte (1–2) ekranı aşmasın diye görünür alanın %55'iyle sınırlı.
+            size === "panel" ? "aspect-[4/3] h-auto max-h-[55dvh]" : size === "lg" ? "h-28 @sm:h-36" : "h-40 @sm:h-52 @lg:h-64",
+          )}
         />
         {caption}
       </span>
@@ -173,16 +180,47 @@ function pressOnKey(e: KeyboardEvent<HTMLElement>) {
   }
 }
 
-/** Seçenek listesinin düzeni: görseller yan yana ızgara, video 2 sütun, metin alt alta. */
-export function OptionGrid({ format, children, label, multi = false }: { format: OptionFormat; children: ReactNode; label?: string; multi?: boolean }) {
+/** Tam genişlikli görsel çoktan seçmelide bir satıra en fazla bu kadar panel sığar. */
+export const WIDE_IMAGE_MAX_COLUMNS = 4;
+
+/** Seçenek sayısına göre yan yana panel sayısı: 1–4 seçenek hepsi tek satır (genişliği paylaşır), 4'ten fazlası 4'erli satırlar. */
+export function wideImageColumns(count: number): number {
+  return Math.min(Math.max(Math.trunc(count) || 1, 1), WIDE_IMAGE_MAX_COLUMNS);
+}
+
+/**
+ * Seçenek listesinin düzeni: görseller yan yana ızgara, video 2 sütun, metin alt alta.
+ * wide + IMAGE (soruda metin/uyaran yok → içerik tam genişlik): paneller `wideImageColumns(count)` sütunda genişliği doldurur.
+ * Yalnız çok dar kapta (< @lg ≈ 512px, dikey telefon) en fazla 2 sütun; tablet ve üstünde ≤4 şık her zaman tek satır.
+ */
+export function OptionGrid({
+  format,
+  children,
+  label,
+  multi = false,
+  wide = false,
+  count = 0,
+}: {
+  format: OptionFormat;
+  children: ReactNode;
+  label?: string;
+  multi?: boolean;
+  wide?: boolean;
+  /** wide modda sütun sayısını belirler (seçenek sayısı). */
+  count?: number;
+}) {
+  const wideCols = wide && format === "IMAGE" ? wideImageColumns(count) : null;
   return (
     <div className="@container">
       <div
         role={multi ? "group" : "radiogroup"}
         aria-label={label}
+        style={wideCols ? ({ "--cols": wideCols, "--cols-narrow": Math.min(wideCols, 2) } as CSSProperties) : undefined}
         className={cn(
           "grid gap-2.5",
-          format === "IMAGE" && "grid-cols-2 gap-3 @lg:grid-cols-3 @3xl:grid-cols-4",
+          format === "IMAGE" && !wideCols && "grid-cols-2 gap-3 @lg:gap-4",
+          wideCols !== null &&
+            "grid-cols-[repeat(var(--cols-narrow),minmax(0,1fr))] gap-3 @lg:grid-cols-[repeat(var(--cols),minmax(0,1fr))] @lg:gap-4",
           // Video kapağı küçük (oynatma modalda): otomatik dolan eşit sütunlar.
           format === "VIDEO" && "grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-3",
           format === "AUDIO" && "@lg:grid-cols-2",
@@ -207,6 +245,7 @@ export function OptionButton({
   marker,
   multi,
   correct,
+  wide,
 }: {
   option: PlayerOption;
   format: OptionFormat;
@@ -218,6 +257,8 @@ export function OptionButton({
   multi?: boolean;
   /** Önizleme: doğru cevap. */
   correct?: boolean;
+  /** Tam genişlikli görsel çoktan seçmeli: görsel panelin genişliğine uyar (bkz. OptionGrid `wide`). */
+  wide?: boolean;
 }) {
   const tile = format === "IMAGE" || format === "VIDEO";
   const lock = useOptionLock(option, format);
@@ -271,7 +312,12 @@ export function OptionButton({
               </span>
             ) : null}
           </div>
-          <OptionContent option={option} format={format} note={format === "VIDEO" ? lockNote(lock) : undefined} />
+          <OptionContent
+            option={option}
+            format={format}
+            size={wide && format === "IMAGE" ? "panel" : undefined}
+            note={format === "VIDEO" ? lockNote(lock) : undefined}
+          />
         </>
       ) : (
         <>

@@ -13,12 +13,15 @@ export function MultipleChoiceView({
   answerKey,
   preview,
   itemId,
+  wide,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
   itemId?: string;
+  /** Soruda uyaran yok → içerik tam genişlik; görsel şıklar genişliği doldurur (bkz. OptionGrid `wide`). */
+  wide?: boolean;
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const options = (interaction.options as PlayerOption[]) || [];
@@ -28,7 +31,7 @@ export function MultipleChoiceView({
   useAnswerSync(itemId, selected ? { optionId: selected } : null, !preview && !disabled);
 
   return (
-    <OptionGrid format={format} label="Answers">
+    <OptionGrid format={format} label="Answers" wide={wide} count={options.length}>
       {options.map((opt, i) => (
         <OptionButton
           key={opt.id}
@@ -38,6 +41,7 @@ export function MultipleChoiceView({
           selected={selected === opt.id}
           correct={preview && !!correctId && opt.id === correctId}
           disabled={disabled}
+          wide={wide}
           onSelect={() => setSelected(opt.id)}
         />
       ))}
@@ -51,12 +55,15 @@ export function MultipleResponseView({
   answerKey,
   preview,
   itemId,
+  wide,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
   itemId?: string;
+  /** Soruda uyaran yok → içerik tam genişlik; görsel şıklar genişliği doldurur (bkz. OptionGrid `wide`). */
+  wide?: boolean;
 }) {
   const format = (interaction.format as OptionFormat) || "TEXT";
   const options = (interaction.options as PlayerOption[]) || [];
@@ -84,7 +91,7 @@ export function MultipleResponseView({
   return (
     <div className="space-y-2">
       <SelectionCount min={interaction.minSelections as number | null | undefined} max={max} count={selected.length} />
-      <OptionGrid format={format} label="Answers" multi>
+      <OptionGrid format={format} label="Answers" multi wide={wide} count={options.length}>
       {options.map((opt, i) => (
         <OptionButton
           key={opt.id}
@@ -94,6 +101,7 @@ export function MultipleResponseView({
           selected={selected.includes(opt.id)}
           correct={preview && correctIds.has(opt.id)}
           disabled={disabled}
+          wide={wide}
           multi
           onSelect={() => toggle(opt.id)}
         />

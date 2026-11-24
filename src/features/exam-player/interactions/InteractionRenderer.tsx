@@ -29,6 +29,7 @@ export function InteractionRenderer({
   itemId,
   answerKey,
   timeRemainingMs,
+  fullWidth,
 }: {
   type: string;
   interaction: Record<string, unknown>;
@@ -37,6 +38,11 @@ export function InteractionRenderer({
   answerKey?: Record<string, unknown> | null;
   /** F3-10/Kural 1: yalnız AUDIO_RESPONSE/VIDEO_RESPONSE okur — aktif kaydı sıfırda durdurur. */
   timeRemainingMs?: number | null;
+  /**
+   * Soruda uyaran yok → içerik tam genişlik. MULTIPLE_CHOICE/MULTIPLE_RESPONSE: görsel şıklar genişliği paylaşır;
+   * HOTSPOT_SELECT: görsel kalan alanı oranını bozmadan doldurur. Diğer türler okumaz.
+   */
+  fullWidth?: boolean;
 }) {
   const { preview } = usePlayerPreview();
   const i = { ...interaction, type };
@@ -45,11 +51,25 @@ export function InteractionRenderer({
   switch (type) {
     case "MULTIPLE_CHOICE":
       return (
-        <MultipleChoiceView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
+        <MultipleChoiceView
+          interaction={i}
+          disabled={disabled}
+          answerKey={key}
+          preview={preview}
+          itemId={itemId}
+          wide={fullWidth}
+        />
       );
     case "MULTIPLE_RESPONSE":
       return (
-        <MultipleResponseView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
+        <MultipleResponseView
+          interaction={i}
+          disabled={disabled}
+          answerKey={key}
+          preview={preview}
+          itemId={itemId}
+          wide={fullWidth}
+        />
       );
     case "TRUE_FALSE":
       return <TrueFalseView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
@@ -78,7 +98,14 @@ export function InteractionRenderer({
       return <GroupingView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />;
     case "HOTSPOT_SELECT":
       return (
-        <HotspotSelectView interaction={i} disabled={disabled} answerKey={key} preview={preview} itemId={itemId} />
+        <HotspotSelectView
+          interaction={i}
+          disabled={disabled}
+          answerKey={key}
+          preview={preview}
+          itemId={itemId}
+          fill={fullWidth}
+        />
       );
     case "HOTSPOT_PLACE":
       return (

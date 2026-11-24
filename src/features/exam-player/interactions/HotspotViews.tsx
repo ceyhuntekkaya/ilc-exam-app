@@ -7,7 +7,7 @@ import { BoardLayout, DragItem, DragPool, DropZone, PlaceBoard, StartOver } from
 
 import { htmlOf, type OptionFormat, type PlayerOption, type Region, type Shape } from "@/src/features/exam-player/types";
 import { cn } from "@/src/lib/utils/cn";
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type SyntheticEvent } from "react";
 import { useAnswerSync, useSavedAnswer } from "@/src/features/exam-player/session/useAnswerSync";
 import { nextFocusIndex } from "@/src/features/exam-player/interactions/hotspotNav";
 
@@ -83,18 +83,28 @@ function pointInShape(nx: number, ny: number, shape: Shape): boolean {
   return inside;
 }
 
+/** Görselin doğal oranı henüz bilinmiyorken (yükleniyor) kutunun varsayılan oranı. */
+const DEFAULT_IMAGE_RATIO = 3 / 2;
+
 export function HotspotSelectView({
   interaction,
   disabled,
   answerKey,
   preview,
   itemId,
+  fill,
 }: {
   interaction: Record<string, unknown>;
   disabled?: boolean;
   answerKey?: Record<string, unknown> | null;
   preview?: boolean;
   itemId?: string;
+  /**
+   * Soruda uyaran yok → içerik tam genişlik: görsel, kabın kalan boş alanını doldurur (en-boy oranı bozulmaz,
+   * çevresinde boşluk kalır). Kalan alan `QuestionView`'ın flex zincirinden gelir; ekran/çözünürlük değişince
+   * görsel de ölçeklenir. Kapalıyken eski görünüm: en fazla `max-w-2xl`.
+   */
+  fill?: boolean;
 }) {
   const mediaId = interaction.mediaId as string | undefined;
   const regions = (interaction.regions as Region[]) || [];
@@ -110,6 +120,13 @@ export function HotspotSelectView({
   const [touched, setTouched] = useState(false);
   useAnswerSync(itemId, { regionIds: selected }, !preview && !disabled && touched);
   const regionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // fill modda kutu görselin KENDİ oranında olmalı: bölgeler kutunun yüzdesiyle konumlanır, oran kayarsa tıklama kayar.
+  const [ratio, setRatio] = useState(DEFAULT_IMAGE_RATIO);
+
+  function onImageLoad(e: SyntheticEvent<HTMLImageElement>) {
+    const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+    if (w > 0 && h > 0) setRatio(w / h);
+  }
 
   function onRegionKeyDown(e: KeyboardEvent<HTMLButtonElement>, index: number, total: number) {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -144,50 +161,78 @@ export function HotspotSelectView({
   // Bölgeler gizli olsa da öğrencinin seçtiği yer işaretli görünür (✓).
   const visible = showRegions ? regions : regions.filter((r) => selected.includes(r.id));
 
+  const picture = (
+    <div
+      className={cn(
+        "relative cursor-pointer overflow-hidden rounded-[10px] border-2 border-exam-slate-200",
+        fill
+          ? // Genişlik = boş alanın genişliği ya da (boy × oran) — hangisi küçükse; yükseklik orandan türer.
+            "aspect-(--ratio) w-[min(100cqw,calc(100cqh*var(--ratio)))]"
+          : "mx-auto w-full max-w-2xl",
+      )}
+      style={fill ? ({ "--ratio": ratio } as CSSProperties) : undefined}
+      onClick={onImageClick}
+    >
+      <MediaImageSlot
+        mediaId={mediaId}
+        className={fill ? "absolute inset-0 block size-full" : "block w-full"}
+        onLoad={fill ? onImageLoad : undefined}
+      />
+      {visible.map((r, index) => {
+        const isSelected = selected.includes(r.id);
+        const isCorrect = preview && correctIds.has(r.id);
+        return (
+          <button
+            key={r.id}
+            ref={(el) => {
+              regionRefs.current[index] = el;
+            }}
+            type="button"
+            disabled={disabled}
+            aria-pressed={isSelected}
+            aria-label={`${htmlOf(r.label) || `Place ${index + 1}`}${isSelected ? ", chosen" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleRegion(r.id);
+            }}
+            onKeyDown={(e) => onRegionKeyDown(e, index, visible.length)}
+            className={cn(
+              "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
+              isCorrect
+                ? "border-exam-ok bg-exam-ok/35"
+                : isSelected
+                  ? "border-exam-navy-900 bg-exam-sky-500/35"
+                  : "border-dashed border-white bg-black/10 hover:bg-exam-sky-500/20",
+            )}
+            style={shapeStyle(r.shape)}
+          >
+            {isSelected || isCorrect ? (
+              <span className="grid size-7 place-items-center rounded-[6px] bg-exam-navy-900 text-white" aria-hidden>
+                <IconCheck className="size-4" strokeWidth={3} />
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="space-y-2">
-      <div
-        className="relative mx-auto w-full max-w-2xl cursor-pointer overflow-hidden rounded-[10px] border-2 border-exam-slate-200"
-        onClick={onImageClick}
-      >
-        <MediaImageSlot mediaId={mediaId} className="block w-full" />
-        {visible.map((r, index) => {
-          const isSelected = selected.includes(r.id);
-          const isCorrect = preview && correctIds.has(r.id);
-          return (
-            <button
-              key={r.id}
-              ref={(el) => {
-                regionRefs.current[index] = el;
-              }}
-              type="button"
-              disabled={disabled}
-              aria-pressed={isSelected}
-              aria-label={`${htmlOf(r.label) || `Place ${index + 1}`}${isSelected ? ", chosen" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleRegion(r.id);
-              }}
-              onKeyDown={(e) => onRegionKeyDown(e, index, visible.length)}
-              className={cn(
-                "absolute grid place-items-center border-[3px] transition focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-exam-navy-900 focus-visible:ring-offset-2",
-                isCorrect
-                  ? "border-exam-ok bg-exam-ok/35"
-                  : isSelected
-                    ? "border-exam-navy-900 bg-exam-sky-500/35"
-                    : "border-dashed border-white bg-black/10 hover:bg-exam-sky-500/20",
-              )}
-              style={shapeStyle(r.shape)}
-            >
-              {isSelected || isCorrect ? (
-                <span className="grid size-7 place-items-center rounded-[6px] bg-exam-navy-900 text-white" aria-hidden>
-                  <IconCheck className="size-4" strokeWidth={3} />
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
+    <div className={fill ? "flex min-h-0 flex-1 flex-col gap-2" : "space-y-2"}>
+      {fill ? (
+        // Sahne: flex zincirinden kalan yüksekliği alır. `container-type: size` → içerik yüksekliğe katkı yapmaz,
+        // kutu `cqw/cqh` ile bu alana sığdırılır; p-4 görselin çevresindeki sabit boşluk.
+        // min-h: kap içerik kadarsa (önizleme) ya da ekran çok kısaysa görsel kullanılamayacak kadar küçülmesin (≈20rem boy);
+        // bunun üstündeki her ekranda sahne sayfaya sığar, kaydırma çıkmaz.
+        <div
+          className="grid min-h-[calc(20rem+2rem)] flex-1 basis-0 place-items-center p-4"
+          style={{ containerType: "size" }}
+        >
+          {picture}
+        </div>
+      ) : (
+        picture
+      )}
       {preview && correctIds.size > 0 ? (
         <p className="text-center text-xs font-medium text-exam-ok-ink">Doğru bölgeler: {[...correctIds].join(", ")}</p>
       ) : (

@@ -267,8 +267,10 @@ export default function SectionQuestionPage() {
         {/* Soru alanı: laptopta (1920×1080) oklarla birlikte ekranı doldurur. Kart max-width almaz. */}
         <div className={cn("flex w-full flex-1 flex-col py-3", STAGE_INSET)}>
           <div className="relative flex w-full flex-1 flex-col">
-            {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü. */}
-            <QuestionFrame className={cn("min-h-[calc(100dvh-9.5rem)]", held && "pointer-events-none blur-sm")}>
+            {/* Admin "Öğrenci önizlemesi" (QuestionPreviewShell) ile aynı kap: öğretmenin gördüğü = öğrencinin gördüğü.
+                flex-1: kap, üst/alt çubuktan kalan yüksekliği tam doldurur (sabit calc(100dvh - X) alt çubuk ipucu satırını
+                saymadığı için sayfayı ~30px taşırıyordu). İçerik uzunsa kap uzar, sayfa kayar. */}
+            <QuestionFrame className={cn("flex-1", held && "pointer-events-none blur-sm")}>
               {model ? (
                 <QuestionView
                   key={`${item?.examQuestionId ?? index}:${resetRound}`}

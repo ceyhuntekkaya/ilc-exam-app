@@ -54,12 +54,21 @@ export function QuestionView({
   const sharedHint = parts.length && parts.every((p) => hintKey(p) === hintKey(parts[0])) ? { type: parts[0].interactionType, interaction: parts[0].interaction } : null;
   // Sürükle-bırak soruları tam satır: kendi içinde kart | kutu sütunlarına ayrılır (BoardLayout); metin üstte durur.
   const fullRow = parts.length > 0 && parts.every(isBoardPart);
+  // Uyaran yok → içerik tam genişlik: görsel çoktan seçmelide şıklar genişliği paylaşır (≤4 hepsi tek satır, fazlası 4'erli);
+  // hotspot seçmede görsel kalan alanı doldurur (HotspotSelectView `fill`).
+  // Tek bölümse içerik yönergenin altında kalan boş alana oturur: şıklar dikey ortalanır, hotspot görseli alanı doldurur.
+  // Boşluğu kabın yüksekliği verir (öğrenci ekranında `QuestionFrame` flex-1 ile üst/alt çubuk arasını doldurur);
+  // kap içerik kadarsa (önizleme) fark etmez.
+  const fullWidth = !hasStimulus;
+  const centerChoices = !hasStimulus && parts.length === 1 && isImageChoicePart(parts[0]);
+  const fillStage = !hasStimulus && parts.length === 1 && parts[0].interactionType === "HOTSPOT_SELECT";
 
   const body = (
     <div
       className={cn(
         "exam-player @container min-h-0 w-full bg-white text-exam-slate-800",
         "px-0 py-4 @sm:px-4 @md:px-8",
+        (centerChoices || fillStage) && "flex flex-1 flex-col",
         largeFont && "exam-player--large-font",
         highContrast && "exam-player--high-contrast",
         youngLearnerMode && YOUNG_LEARNER_MODE_CLASS,
@@ -116,6 +125,10 @@ export function QuestionView({
           // Metin + soru yan yana yalnız alan ≥ 48rem iken (tablet yatay / masaüstü). @md'de (28rem) tablet dikeyde
           // iki ~320px sütuna sıkışıyordu (sürükle-bırak havuzu ve kutular daralıyordu); dikeyde alt alta.
           hasStimulus && !fullRow ? "@3xl:grid-cols-2 @3xl:items-start" : "grid-cols-1",
+          // Kalan yüksekliği al, tek satırlık içeriği ortala (içerik taşarsa kap uzar, üstten akar).
+          centerChoices && "flex-1 content-center",
+          // Tek satırlık grid satırı kalan yüksekliğe uzar (align-content: stretch); içindeki zincir flex ile devam eder.
+          fillStage && "flex-1",
         )}
       >
         {hasStimulus ? (
@@ -124,9 +137,9 @@ export function QuestionView({
           </aside>
         ) : null}
 
-        <div className="min-w-0 space-y-8">
+        <div className={cn("min-w-0 space-y-8", fillStage && "flex flex-col")}>
           {parts.map((part, idx) => (
-            <section key={part.id} className="space-y-4">
+            <section key={part.id} className={cn("space-y-4", fillStage && "flex flex-1 flex-col")}>
               {parts.length > 1 ? (
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-exam-slate-500">
                   Part {idx + 1} of {parts.length}
@@ -146,6 +159,8 @@ export function QuestionView({
                 itemId={part.id}
                 answerKey={part.answerKey}
                 timeRemainingMs={timeRemainingMs}
+                // Hotspot görseli yalnız tek bölümde alanı doldurur: çok bölümde doldurulacak boş yükseklik zinciri yok.
+                fullWidth={part.interactionType === "HOTSPOT_SELECT" ? fillStage : fullWidth}
               />
             </section>
           ))}
@@ -161,6 +176,12 @@ export function QuestionView({
   return <PlayerPreviewProvider preview={preview}>{body}</PlayerPreviewProvider>;
 }
 
+/** Şıkları görsel olan çoktan seçmeli / çoklu yanıt bölümü. */
+function isImageChoicePart(part: QuestionViewModel["parts"][number]) {
+  const type = part.interactionType;
+  return (type === "MULTIPLE_CHOICE" || type === "MULTIPLE_RESPONSE") && part.interaction?.format === "IMAGE";
+}
+
 function isBoardPart(part: QuestionViewModel["parts"][number]) {
   const type = part.interactionType;
   if (type === "MATCHING" || type === "GROUPING" || type === "HOTSPOT_PLACE") return true;
@@ -171,8 +192,9 @@ function isBoardPart(part: QuestionViewModel["parts"][number]) {
 export function QuestionFrame({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     // overflow-clip (hidden değil): hidden kaydırma kabı sayılır ve sürükle-bırak kart sütununun sticky'sini bozar.
-    <div className={cn("w-full overflow-clip rounded-[10px] border border-exam-slate-200 border-t-4 border-t-exam-navy-900 bg-white", className)}>
-      <div className="px-4 py-4 sm:px-6">{children}</div>
+    // flex-col + iç kap flex-1: kap `className`'deki flex-1/min-h ile uzadığında içerik (QuestionView) kalan yüksekliği alabilsin.
+    <div className={cn("flex w-full flex-col overflow-clip rounded-[10px] border border-exam-slate-200 border-t-4 border-t-exam-navy-900 bg-white", className)}>
+      <div className="flex flex-1 flex-col px-4 py-4 sm:px-6">{children}</div>
     </div>
   );
 }
