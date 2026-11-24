@@ -4,7 +4,7 @@ import { ExamApiError, enterSection, postState } from "@/src/features/exam-flow/
 import { useExamClock, useExamFlow } from "@/src/features/exam-flow/ExamFlowProvider";
 import { formatClock, formatDuration } from "@/src/features/exam-flow/format";
 import { readSession } from "@/src/features/exam-flow/session";
-import { confirmCloseBatch, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
+import { confirmCloseBatch, markRejectedAnswers, takeCloseBatch } from "@/src/features/exam-player/session/answerOutboxClient";
 import { getAnswerOutbox, type OutboxRecord } from "@/src/features/exam-player/session/answerOutbox";
 import { PackageDownloadCard } from "@/src/features/exam-player/offline/packageDownload";
 import { waitForMediaUploads } from "@/src/features/exam-player/session/mediaOutbox";
@@ -72,6 +72,8 @@ export default function SectionListPage() {
       applyState(await postState(`/applications/${session.applicationId}/finish`, session.sessionToken, { confirmIncomplete, answers }));
       confirmCloseBatch(session.applicationId, answers);
     } catch (err) {
+      // Uyarı "! işaretli sorulara bak" diyor: reddedilen cevaplar gerçekten işaretlensin.
+      if (err instanceof ExamApiError) markRejectedAnswers(session.applicationId, err.rejectedItemIds);
       setError(err instanceof ExamApiError ? err.message : "We could not finish the test. Please try again.");
     } finally {
       setBusy(false);

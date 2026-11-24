@@ -53,7 +53,7 @@ export function StudentResultView({ applicationId }: { applicationId: string }) 
       <LevelReportDownloadSection applicationId={applicationId} />
       <CandidateCertificateSection applicationId={applicationId} />
       <Link href="/student/history" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
-        Geçmişimi gör
+        View my history
       </Link>
     </div>
   );

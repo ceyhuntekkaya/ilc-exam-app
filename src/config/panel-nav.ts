@@ -320,8 +320,8 @@ export function staffNavGroups(): PanelNavGroup[] {
         },
         {
           href: "/staff/reports",
-          label: "Raporlar",
-          description: "Şube, kampüs ve kurum raporları",
+          label: "Atama Özeti",
+          description: "Atama bazında katılım: alıcı, devam, girmedi, tamamlama",
           perms: [Perm.reportViewBranch, Perm.reportViewInstitute, Perm.reportViewCompany],
         },
         {

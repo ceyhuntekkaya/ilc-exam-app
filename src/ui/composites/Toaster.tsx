@@ -84,7 +84,7 @@ export const notify = {
       if (opts.success) push("success", opts.success, DEFAULT_DURATION);
       return result;
     } catch (err) {
-      push("danger", errorMessage(err, opts.error ?? "İşlem başarısız"), 5000);
+      push("danger", errorMessage(err, opts.error ?? "Something went wrong"), 5000);
       throw err;
     }
   },
@@ -137,7 +137,7 @@ function ToastCard({ item }: { item: ToastItem }) {
       <p className="min-w-0 flex-1 pt-1 text-sm font-medium leading-snug text-fg">{item.message}</p>
       <button
         type="button"
-        aria-label="Kapat"
+        aria-label="Close"
         className="flex size-9 shrink-0 items-center justify-center rounded-lg text-fg-muted hover:bg-black/5 hover:text-fg"
         onClick={() => dismiss(item.id)}
       >

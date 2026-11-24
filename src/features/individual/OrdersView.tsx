@@ -17,9 +17,9 @@ export function OrdersView() {
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  if (orders.isLoading) return <KidLoading label="Siparişler yükleniyor…" rows={3} />;
+  if (orders.isLoading) return <KidLoading label="Loading orders…" rows={3} />;
   if (orders.isError) {
-    return <KidError title="Siparişler yüklenemedi" message={orderFailureMessage(orders.error, "Siparişleriniz şu an alınamadı.")} onRetry={() => void orders.refetch()} retryLabel="Yeniden dene" />;
+    return <KidError title="Orders could not be loaded" message={orderFailureMessage(orders.error, "Your orders could not be loaded right now.")} onRetry={() => void orders.refetch()} retryLabel="Try again" />;
   }
   const rows: MyOrderDto[] = orders.data?.data ?? [];
 
@@ -38,10 +38,10 @@ export function OrdersView() {
     return (
       <KidCard className="flex flex-col items-center gap-4 py-10 text-center">
         <Mascot mood="waiting" size="md" />
-        <h2 className="font-kid text-xl font-bold text-slate-900">Henüz siparişiniz yok</h2>
-        <p className="text-slate-600">Kataloğdan bir ürün seçtiğinizde siparişiniz burada görünür.</p>
+        <h2 className="font-kid text-xl font-bold text-slate-900">You have no orders yet</h2>
+        <p className="text-slate-600">When you choose a product from the catalog, your order will appear here.</p>
         <KidButtonLink href="/shop" variant="sun">
-          Kataloğa git
+          Go to catalog
         </KidButtonLink>
       </KidCard>
     );
@@ -65,32 +65,32 @@ export function OrdersView() {
               </div>
             </div>
             <p className="text-sm text-slate-600">
-              {formatMoney(order.price, order.currency)} · Referans: <span className="font-mono font-semibold">{order.referenceCode}</span> · {formatDateTime(order.createdAt)}
+              {formatMoney(order.price, order.currency)} · Reference: <span className="font-mono font-semibold">{order.referenceCode}</span> · {formatDateTime(order.createdAt)}
             </p>
             <div className="flex flex-wrap items-center gap-2">
               {isAwaitingPayment(order) ? (
                 <>
                   <KidButtonLink href={`/shop/orders/${order.id}`} variant="sun">
-                    Öde
+                    Pay
                   </KidButtonLink>
                   {confirmId === order.id ? (
                     <>
                       <KidButton variant="danger" disabled={cancel.isPending} onClick={() => order.id && void cancelOrder(order.id)}>
-                        {cancel.isPending ? "İptal ediliyor…" : "Evet, iptal et"}
+                        {cancel.isPending ? "Cancelling…" : "Yes, cancel"}
                       </KidButton>
                       <KidButton variant="ghost" onClick={() => setConfirmId(null)}>
-                        Vazgeç
+                        Never mind
                       </KidButton>
                     </>
                   ) : (
                     <KidButton variant="ghost" onClick={() => setConfirmId(order.id ?? null)}>
-                      İptal et
+                      Cancel
                     </KidButton>
                   )}
                 </>
               ) : (
                 <KidButtonLink href={`/shop/orders/${order.id}`} variant="soft">
-                  Ayrıntı
+                  Details
                 </KidButtonLink>
               )}
             </div>

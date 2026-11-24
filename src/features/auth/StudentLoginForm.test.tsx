@@ -31,7 +31,8 @@ describe("StudentLoginForm", () => {
     expect(field).toHaveAttribute("type", "password");
     expect(field).toHaveAttribute("autocomplete", "current-password");
     expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute("href", "/forgot-password");
-    expect(screen.getByRole("link", { name: "Kayıt ol" })).toHaveAttribute("href", "/register");
+    // Bireysel kayıt şimdilik kapalı: girişte "Sign up" bağlantısı görünmez.
+    expect(screen.queryByRole("link", { name: "Sign up" })).not.toBeInTheDocument();
   });
 
   it("shows the success note after a password change", () => {

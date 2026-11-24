@@ -4,8 +4,8 @@ import { BackLink } from "@/src/ui/composites/BackLink";
 /** Başlığın yanındaki kayıt sayısı rozeti. */
 export function CountBadge({ count }: { count: number }) {
   return (
-    <span className="numeric rounded-full border border-border bg-surface px-2 py-0.5 text-xs font-semibold text-fg-muted" aria-label={`${count} kayıt`}>
-      {count.toLocaleString("tr-TR")}
+    <span className="numeric rounded-full border border-border bg-surface px-2 py-0.5 text-xs font-semibold text-fg-muted" aria-label={`${count} records`}>
+      {count.toLocaleString("en-GB")}
     </span>
   );
 }

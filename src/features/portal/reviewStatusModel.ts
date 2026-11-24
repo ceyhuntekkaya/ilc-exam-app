@@ -17,8 +17,8 @@ export function toReviewStatusView(dto: ReviewStatusDto | undefined | null): Rev
   if (dto.status !== "RESOLVED") {
     return {
       kind: "open",
-      title: "İnceleniyor",
-      body: dto.message?.trim() || "İnceleme talebiniz alındı, değerlendiriliyor",
+      title: "Under review",
+      body: dto.message?.trim() || "Your review request was received and is being assessed",
       note: null,
       requestedAt,
       resolvedAt: null,
@@ -29,8 +29,8 @@ export function toReviewStatusView(dto: ReviewStatusDto | undefined | null): Rev
   if (dto.outcome === "CHANGED") {
     return {
       kind: "changed",
-      title: "Puanınız güncellendi",
-      body: dto.message?.trim() || "İncelendi, puanınız güncellendi",
+      title: "Your score was updated",
+      body: dto.message?.trim() || "Reviewed — your score was updated",
       note,
       requestedAt,
       resolvedAt,
@@ -38,8 +38,8 @@ export function toReviewStatusView(dto: ReviewStatusDto | undefined | null): Rev
   }
   return {
     kind: "upheld",
-    title: "Sonuçlandı: puan değişmedi",
-    body: dto.message?.trim() || "İncelendi, puanınız değişmedi",
+    title: "Resolved: score unchanged",
+    body: dto.message?.trim() || "Reviewed — your score did not change",
     note,
     requestedAt,
     resolvedAt,

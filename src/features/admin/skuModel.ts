@@ -6,8 +6,8 @@ import { bundleAllowsCertificate, purposeLabel, shortId } from "@/src/features/a
 export const CEFR_LEVELS = ["PRE_A1", "A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
 export const OUTPUT_TYPES = [
-  { value: "LEVEL_REPORT", label: "Seviye raporu" },
-  { value: "CERTIFICATE", label: "Sertifika" },
+  { value: "LEVEL_REPORT", label: "Level report" },
+  { value: "CERTIFICATE", label: "Certificate" },
 ] as const;
 
 export function outputLabel(output?: string | null): string {

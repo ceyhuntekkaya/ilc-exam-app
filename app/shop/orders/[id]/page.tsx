@@ -4,7 +4,7 @@ import { ShopPage } from "@/src/features/individual/ShopPage";
 export default async function ShopOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
-    <ShopPage title="Sipariş ve ödeme">
+    <ShopPage title="Order and payment">
       <CheckoutView orderId={id} />
     </ShopPage>
   );

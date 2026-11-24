@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const logoClass = "mx-auto h-auto w-auto max-h-32 max-w-full sm:max-h-40 md:max-h-44";
+const logoClass = "mx-auto h-auto w-auto max-h-32 max-w-full mix-blend-multiply sm:max-h-40 md:max-h-44";
 
 export function EntryFrame({
   children,
@@ -24,8 +24,8 @@ export function EntryFrame({
     <Image
       src="/brand/logo.png"
       alt="İngiliz Kültür Koleji"
-      width={375}
-      height={175}
+      width={571}
+      height={508}
       priority
       className={logoClass}
     />
@@ -39,7 +39,7 @@ export function EntryFrame({
             <div aria-hidden className="h-2 rounded-t-[20px] bg-gradient-to-r from-indigo-600 via-purple-500 to-amber-400" />
             <div className="px-5 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
               {logoHref ? (
-                <Link href={logoHref} aria-label="İngiliz Kültür Koleji, ana sayfa" className="mx-auto block w-fit rounded-xl transition-transform hover:scale-[1.02]">
+                <Link href={logoHref} aria-label="İngiliz Kültür Koleji, home page" className="mx-auto block w-fit rounded-xl transition-transform hover:scale-[1.02]">
                   {logo}
                 </Link>
               ) : (
@@ -69,7 +69,7 @@ export function EntryFrame({
           <div aria-hidden className="h-2 bg-[#e30c1a]" />
           <div className="px-5 pt-7 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
             {logoHref ? (
-              <Link href={logoHref} aria-label="İngiliz Kültür Koleji, ana sayfa" className="mx-auto block w-fit rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#333167]">
+              <Link href={logoHref} aria-label="İngiliz Kültür Koleji, home page" className="mx-auto block w-fit rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#333167]">
                 {logo}
               </Link>
             ) : (

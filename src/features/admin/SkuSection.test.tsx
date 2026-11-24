@@ -66,32 +66,32 @@ describe("SkuFormDialog", () => {
   it("sertifika kapısı kapalı demette CERTIFICATE çıktısı seçilemez; açık demette seçilebilir", () => {
     renderDialog();
     openList("Çıktı türü");
-    expect(screen.getByRole("option", { name: "Sertifika" })).toHaveAttribute("aria-disabled", "true"); // demet henüz seçilmedi
+    expect(screen.getByRole("option", { name: "Certificate" })).toHaveAttribute("aria-disabled", "true"); // demet henüz seçilmedi
 
-    pick(/Politika demeti/, /^Seviye tespit/);
+    pick(/Politika demeti/, /^Placement/);
     openList("Çıktı türü");
-    expect(screen.getByRole("option", { name: "Sertifika" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("option", { name: "Certificate" })).toHaveAttribute("aria-disabled", "true");
 
-    pick(/Politika demeti/, /^Sertifikasyon/);
+    pick(/Politika demeti/, /^Certification/);
     openList("Çıktı türü");
-    expect(screen.getByRole("option", { name: "Sertifika" })).not.toHaveAttribute("aria-disabled");
+    expect(screen.getByRole("option", { name: "Certificate" })).not.toHaveAttribute("aria-disabled");
   });
 
   it("CERTIFICATE seçiliyken kapalı demete geçilirse çıktı seviye raporuna döner", () => {
     renderDialog();
-    pick(/Politika demeti/, /^Sertifikasyon/);
-    pick("Çıktı türü", "Sertifika");
-    expect(screen.getByLabelText("Çıktı türü")).toHaveTextContent("Sertifika");
-    pick(/Politika demeti/, /^Seviye tespit/);
-    expect(screen.getByLabelText("Çıktı türü")).toHaveTextContent("Seviye raporu");
+    pick(/Politika demeti/, /^Certification/);
+    pick("Çıktı türü", "Certificate");
+    expect(screen.getByLabelText("Çıktı türü")).toHaveTextContent("Certificate");
+    pick(/Politika demeti/, /^Placement/);
+    expect(screen.getByLabelText("Çıktı türü")).toHaveTextContent("Level report");
   });
 
   it("geçerli formu oluşturma isteğine çevirir", async () => {
     createMock.mockResolvedValue({ data: {} });
     renderDialog();
     fillBasics();
-    pick(/Politika demeti/, /^Sertifikasyon/);
-    pick("Çıktı türü", "Sertifika");
+    pick(/Politika demeti/, /^Certification/);
+    pick("Çıktı türü", "Certificate");
     fireEvent.click(screen.getByRole("button", { name: "Oluştur" }));
     await waitFor(() => expect(createMock).toHaveBeenCalledTimes(1));
     expect(createMock.mock.calls[0][0].data).toMatchObject({
@@ -106,7 +106,7 @@ describe("SkuFormDialog", () => {
     createMock.mockRejectedValue(new Error("Sertifika çıktısı için demette CERTIFICATE_ENABLED açık olmalı"));
     renderDialog();
     fillBasics();
-    pick(/Politika demeti/, /^Seviye tespit/);
+    pick(/Politika demeti/, /^Placement/);
     fireEvent.click(screen.getByRole("button", { name: "Oluştur" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("CERTIFICATE_ENABLED açık olmalı");
   });

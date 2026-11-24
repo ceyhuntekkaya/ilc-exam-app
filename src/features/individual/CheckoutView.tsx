@@ -21,9 +21,9 @@ import { useState } from "react";
 /** Tek siparişin ödeme ekranı: havale talimatı + referans kodu; ödeme beklenen siparişi iptal etme. */
 export function CheckoutView({ orderId }: { orderId: string }) {
   const detail = useDetail1(orderId);
-  if (detail.isLoading) return <KidLoading label="Sipariş yükleniyor…" rows={2} />;
+  if (detail.isLoading) return <KidLoading label="Loading order…" rows={2} />;
   if (detail.isError || !detail.data) {
-    return <KidError title="Sipariş açılamadı" message={orderFailureMessage(detail.error, "Sipariş şu an alınamadı.")} onRetry={() => void detail.refetch()} retryLabel="Yeniden dene" />;
+    return <KidError title="Order could not be opened" message={orderFailureMessage(detail.error, "The order could not be loaded right now.")} onRetry={() => void detail.refetch()} retryLabel="Try again" />;
   }
   return <OrderCheckout order={detail.data.data} />;
 }
@@ -66,48 +66,48 @@ export function OrderCheckout({ order }: { order: MyOrderDto }) {
     <div className="grid gap-4">
       <KidCard className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-kid text-xl font-bold text-slate-900">{order.skuName || order.skuCode || "Sipariş"}</h2>
+          <h2 className="font-kid text-xl font-bold text-slate-900">{order.skuName || order.skuCode || "Order"}</h2>
           <OrderStatusPill status={order.status} />
         </div>
         <p className="sb-display text-3xl text-slate-900">{formatMoney(order.price, order.currency)}</p>
-        <p className="text-sm text-slate-500">Sipariş tarihi: {formatDateTime(order.createdAt)}</p>
+        <p className="text-sm text-slate-500">Order date: {formatDateTime(order.createdAt)}</p>
         {order.status === "APPROVED" ? (
           <KidNotice tone={order.entitlementStatus === "GRANTED" ? "mint" : "sky"}>
-            {isGrantPending(order) ? "Ödemeniz onaylandı. Hakkınız hazırlanıyor; birkaç dakika içinde tanımlanır." : entitlementStatusLabel(order.entitlementStatus)}
+            {isGrantPending(order) ? "Your payment has been approved. Your entitlement is being prepared and will be added within a few minutes." : entitlementStatusLabel(order.entitlementStatus)}
           </KidNotice>
         ) : null}
         {order.status === "EXPIRED" ? (
-          <KidNotice tone="coral">Bu siparişin süresi doldu. Ödeme yapmayın; kataloğdan yeni bir sipariş oluşturun.</KidNotice>
+          <KidNotice tone="coral">This order has expired. Do not make a payment; place a new order from the catalog.</KidNotice>
         ) : null}
         {order.status === "CANCELLED" || order.status === "REFUNDED" ? <KidNotice tone="neutral">{orderStatusLabel(order.status)}.</KidNotice> : null}
       </KidCard>
 
       {awaiting ? (
         <KidCard className="grid gap-4">
-          <h3 className="font-kid text-lg font-bold text-slate-900">Havale ile ödeme</h3>
+          <h3 className="font-kid text-lg font-bold text-slate-900">Pay by bank transfer</h3>
           {transfer && transfer.configured ? (
             <>
-              <p className="text-slate-600">Aşağıdaki hesaba havale yapın. Açıklama kısmına referans kodunu aynen yazın; kod olmadan yapılan ödeme eşleştirilemez.</p>
+              <p className="text-slate-600">Make a bank transfer to the account below. Enter the reference code exactly as shown in the description field; payments without the code cannot be matched.</p>
               <dl className="grid gap-3 sm:grid-cols-2">
-                <TransferRow label="Banka" value={transfer.bankName || "—"} />
-                <TransferRow label="Hesap sahibi" value={transfer.accountHolder} />
+                <TransferRow label="Bank" value={transfer.bankName || "—"} />
+                <TransferRow label="Account holder" value={transfer.accountHolder} />
                 <TransferRow label="IBAN" value={groupIban(transfer.iban)} mono />
-                <TransferRow label="Tutar" value={formatMoney(order.price, order.currency)} />
+                <TransferRow label="Amount" value={formatMoney(order.price, order.currency)} />
               </dl>
               <div className="rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/70 p-4 text-center">
-                <p className="text-sm font-semibold text-amber-900">Havale açıklaması (referans kodu)</p>
-                <p aria-label="Referans kodu" className="mt-1 font-mono text-2xl font-extrabold tracking-wider break-all text-slate-900">
+                <p className="text-sm font-semibold text-amber-900">Transfer description (reference code)</p>
+                <p aria-label="Reference code" className="mt-1 font-mono text-2xl font-extrabold tracking-wider break-all text-slate-900">
                   {order.referenceCode}
                 </p>
                 <KidButton variant="soft" className="mt-3" onClick={() => void copyReference()}>
-                  {copied ? "Kopyalandı" : "Kodu kopyala"}
+                  {copied ? "Copied" : "Copy code"}
                 </KidButton>
               </div>
-              <p className="text-sm text-slate-500">Ödemeniz muhasebe tarafından kontrol edilip onaylanınca hakkınız tanımlanır; bu birkaç iş günü sürebilir.</p>
+              <p className="text-sm text-slate-500">Your entitlement will be added once accounting has checked and approved your payment; this may take a few business days.</p>
             </>
           ) : (
             <>
-              <KidNotice tone="sun">Havale bilgileri şu an görüntülenemiyor. Lütfen kurum yetkilisiyle iletişime geçin ve referans kodunuzu iletin.</KidNotice>
+              <KidNotice tone="sun">Transfer details cannot be shown right now. Please contact your institution and give them your reference code.</KidNotice>
               <p className="font-mono text-xl font-bold break-all">{order.referenceCode}</p>
             </>
           )}
@@ -118,18 +118,18 @@ export function OrderCheckout({ order }: { order: MyOrderDto }) {
           ) : null}
           {confirming ? (
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-slate-700">Siparişi iptal etmek istediğinize emin misiniz?</span>
+              <span className="text-slate-700">Are you sure you want to cancel this order?</span>
               <KidButton variant="danger" disabled={cancel.isPending} onClick={() => void cancelOrder()}>
-                {cancel.isPending ? "İptal ediliyor…" : "Evet, iptal et"}
+                {cancel.isPending ? "Cancelling…" : "Yes, cancel"}
               </KidButton>
               <KidButton variant="ghost" onClick={() => setConfirming(false)}>
-                Vazgeç
+                Never mind
               </KidButton>
             </div>
           ) : (
             <div>
               <KidButton variant="ghost" onClick={() => setConfirming(true)}>
-                Siparişi iptal et
+                Cancel order
               </KidButton>
             </div>
           )}
@@ -138,10 +138,10 @@ export function OrderCheckout({ order }: { order: MyOrderDto }) {
 
       <div className="flex flex-wrap gap-3">
         <KidButtonLink href="/shop/orders" variant="soft">
-          Siparişlerim
+          My orders
         </KidButtonLink>
         <KidButtonLink href="/shop" variant="ghost">
-          Kataloğa dön
+          Back to catalog
         </KidButtonLink>
       </div>
     </div>

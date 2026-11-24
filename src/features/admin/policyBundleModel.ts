@@ -89,13 +89,13 @@ export const PURPOSE_ORDER = [
 export const CREATABLE_PURPOSES = ["PLACEMENT", "DIAGNOSTIC", "PRACTICE", "ACHIEVEMENT", "CERTIFICATION"] as const;
 
 const PURPOSE_LABELS: Record<string, string> = {
-  PLACEMENT: "Seviye tespit",
-  DIAGNOSTIC: "Tanılama",
-  PRACTICE: "Alıştırma",
-  ACHIEVEMENT: "Başarı",
-  CERTIFICATION: "Sertifikasyon",
-  MOCK: "Deneme",
-  PROGRESS: "Gelişim",
+  PLACEMENT: "Placement",
+  DIAGNOSTIC: "Diagnostic",
+  PRACTICE: "Practice",
+  ACHIEVEMENT: "Achievement",
+  CERTIFICATION: "Certification",
+  MOCK: "Mock exam",
+  PROGRESS: "Progress",
 };
 
 export function purposeLabel(purpose?: string | null): string {

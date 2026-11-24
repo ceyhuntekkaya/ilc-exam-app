@@ -114,7 +114,7 @@ describe("yasal tutma", () => {
 
 describe("talep üzerine silme", () => {
   it("talep durumları ve yalnız açık talepte işlem", () => {
-    expect(requestStatusView("DEFERRED").label).toMatch(/Ertelendi/);
+    expect(requestStatusView("DEFERRED").label).toMatch(/Deferred/);
     expect(canActOnRequest({ status: "RECEIVED" })).toBe(true);
     expect(canActOnRequest({ status: "DEFERRED" })).toBe(true);
     expect(canActOnRequest({ status: "COMPLETED" })).toBe(false);

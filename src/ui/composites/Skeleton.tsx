@@ -98,7 +98,7 @@ export function TableSkeleton({
   tabs,
   toolbar,
   rows = 8,
-  label = "Kayıtlar yükleniyor",
+  label = "Loading records",
 }: {
   columns: SkeletonColumn[];
   tabs?: ReactNode;

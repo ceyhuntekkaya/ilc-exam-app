@@ -45,13 +45,13 @@ describe("validateRegisterForm", () => {
     expect(Object.keys(issues).sort()).toEqual(["birthDate", "email", "firstName", "lastName"]);
   });
   it("gelecekteki doğum tarihini reddeder", () => {
-    expect(validateRegisterForm({ ...ADULT, birthDate: "2027-01-01" }, TODAY, false).birthDate).toMatch(/gelecekte/);
+    expect(validateRegisterForm({ ...ADULT, birthDate: "2027-01-01" }, TODAY, false).birthDate).toMatch(/future/);
   });
   it("veli gerekiyorsa veli e-postasını ister ve adayın kendi adresini kabul etmez", () => {
-    expect(validateRegisterForm({ ...ADULT, birthDate: "2012-05-05" }, TODAY, true).guardianEmail).toMatch(/gerekir/);
+    expect(validateRegisterForm({ ...ADULT, birthDate: "2012-05-05" }, TODAY, true).guardianEmail).toMatch(/required/);
     expect(
       validateRegisterForm({ ...ADULT, birthDate: "2012-05-05", guardianEmail: "ada@ornek.com" }, TODAY, true).guardianEmail,
-    ).toMatch(/farklı/);
+    ).toMatch(/different/);
     expect(
       validateRegisterForm({ ...ADULT, birthDate: "2012-05-05", guardianEmail: "veli@ornek.com" }, TODAY, true),
     ).toEqual({});
@@ -76,12 +76,12 @@ describe("toRegisterRequest", () => {
 
 describe("hata mesajı eşlemeleri", () => {
   it("kayıt: 429 sabit metin, 400 sunucu açıklaması, veli isteği alanı açar", () => {
-    expect(registerFailure(httpError(429, "rate limit exceeded")).message).toMatch(/Çok fazla deneme/);
+    expect(registerFailure(httpError(429, "rate limit exceeded")).message).toMatch(/Too many attempts/);
     const guardian = registerFailure(httpError(400, "Reşit olmayan aday için veli e-postası zorunlu"));
     expect(guardian.message).toBe("Reşit olmayan aday için veli e-postası zorunlu");
     expect(guardian.needsGuardian).toBe(true);
     expect(registerFailure(httpError(400, "geçersiz email")).needsGuardian).toBe(false);
-    expect(registerFailure(httpError(500, "boom")).message).toMatch(/yeniden deneyin/);
+    expect(registerFailure(httpError(500, "boom")).message).toMatch(/try again later/);
   });
   it("doğrulama: kısa parola ile geçersiz bağlantı ayrılır", () => {
     expect(verifyFailure(httpError(400, "Parola en az 6 karakter olmalı"))).toEqual({

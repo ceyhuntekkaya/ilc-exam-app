@@ -213,13 +213,13 @@ export const ERASURE_FILTERS: { value: string | null; label: string }[] = [
 export function requestStatusView(status?: string | null): { label: string; tone: Tone; open: boolean } {
   switch (status) {
     case "RECEIVED":
-      return { label: "Alındı — değerlendirilecek", tone: "info", open: true };
+      return { label: "Received — to be assessed", tone: "info", open: true };
     case "DEFERRED":
-      return { label: "Ertelendi — engel kalkınca yeniden yürütülür", tone: "warning", open: true };
+      return { label: "Deferred — will be processed once the block is lifted", tone: "warning", open: true };
     case "COMPLETED":
-      return { label: "Tamamlandı", tone: "success", open: false };
+      return { label: "Completed", tone: "success", open: false };
     case "REJECTED":
-      return { label: "Reddedildi", tone: "danger", open: false };
+      return { label: "Rejected", tone: "danger", open: false };
     default:
       return { label: status || "—", tone: "neutral", open: false };
   }
@@ -345,7 +345,7 @@ export function erasureFailureMessage(err: unknown, fallback = "İşlem yapılam
 export const ERASURE_REASON_MAX = 1000;
 
 export function validateErasureReason(reason: string): string | null {
-  return reason.trim().length > ERASURE_REASON_MAX ? `Açıklama en çok ${ERASURE_REASON_MAX} karakter olabilir` : null;
+  return reason.trim().length > ERASURE_REASON_MAX ? `The note can be at most ${ERASURE_REASON_MAX} characters` : null;
 }
 
 /** Aday/personel talebi: gerekçe isteğe bağlıdır. Boşsa alan gönderilmez. */
@@ -364,15 +364,15 @@ export function openRequestOf(requests: readonly RequestView[] | undefined): Req
 export function candidateRequestText(request: Pick<RequestView, "status" | "rejectedReason">): string {
   switch (request.status) {
     case "RECEIVED":
-      return "Talebiniz alındı, merkez tarafından değerlendirilir. Bu aşamada verileriniz silinmemiştir.";
+      return "Your request was received and will be assessed by the centre. Your data has not been deleted at this stage.";
     case "DEFERRED":
-      return "Talebiniz değerlendirildi. Açık itiraz, yasal tutma ya da itiraz süresi gibi bir engel nedeniyle bazı verileriniz henüz silinemedi; engel kalkınca talebiniz yeniden ele alınır.";
+      return "Your request was assessed. Some of your data could not be deleted yet because of a block such as an open appeal, a legal hold or an appeal period; your request will be handled again once the block is lifted.";
     case "COMPLETED":
-      return "Talebiniz tamamlandı. Silinebilen verileriniz silindi; yasal olarak saklanması gereken kayıtlar (sonuç, sertifika, ödeme, rıza ve denetim kayıtları) korunur.";
+      return "Your request is complete. The data that could be deleted has been deleted; records that must be kept by law (results, certificates, payments, consents and audit records) are retained.";
     case "REJECTED":
-      return `Talebiniz reddedildi.${request.rejectedReason ? ` Gerekçe: ${request.rejectedReason}` : ""}`;
+      return `Your request was rejected.${request.rejectedReason ? ` Reason: ${request.rejectedReason}` : ""}`;
     default:
-      return "Talebinizin durumu bilinmiyor.";
+      return "The status of your request is unknown.";
   }
 }
 
@@ -381,6 +381,6 @@ export function submitFailureMessage(err: unknown): string {
   const status = typeof err === "object" && err !== null && "status" in err ? (err as { status?: number }).status : undefined;
   const text = err instanceof Error ? err.message.trim() : "";
   if ((status === 409 || status === 400 || status === 403) && text) return text;
-  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
-  return "Talebiniz şu an iletilemedi. Lütfen biraz sonra yeniden deneyin.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  return "We could not send your request right now. Please try again shortly.";
 }

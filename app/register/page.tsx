@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { RegisterForm } from "@/src/features/registration/RegisterForm";
 
 export const metadata: Metadata = {
-  title: "Kayıt ol",
+  title: "Sign up",
   robots: { index: false, follow: false },
 };
 

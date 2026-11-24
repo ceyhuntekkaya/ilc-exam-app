@@ -109,7 +109,7 @@ export const customInstance = async <T>(
     const message =
       body && typeof body === "object" && body !== null && "error" in body
         ? String((body as { error: string }).error)
-        : response.statusText || "İstek başarısız";
+        : response.statusText || "Request failed";
     const error = new Error(message) as Error & { status?: number; data?: unknown };
     error.status = response.status;
     error.data = body;

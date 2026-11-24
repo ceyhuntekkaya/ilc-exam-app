@@ -3,7 +3,7 @@ import { ShopPage } from "@/src/features/individual/ShopPage";
 
 export default function ShopCatalogPage() {
   return (
-    <ShopPage title="Ürünler" intro="Seviye tespit ve diğer sınav ürünlerini seçin. Ödemeyi banka havalesiyle yaparsınız.">
+    <ShopPage title="Products" intro="Choose a placement test or another exam product. Payment is made by bank transfer.">
       <CatalogView />
     </ShopPage>
   );

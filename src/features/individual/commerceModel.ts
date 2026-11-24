@@ -8,11 +8,11 @@ export type BadgeTone = "neutral" | "success" | "warning" | "danger" | "info";
 export function formatMoney(amount?: number | null, currency?: string | null): string {
   if (amount == null || Number.isNaN(Number(amount))) return "—";
   const value = Number(amount);
-  if (!currency) return value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!currency) return value.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   try {
-    return new Intl.NumberFormat("tr-TR", { style: "currency", currency }).format(value);
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(value);
   } catch {
-    return `${value.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+    return `${value.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
   }
 }
 
@@ -21,7 +21,7 @@ export function formatDateTime(value?: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 }
 
 // ---- Sipariş durumu (CREATED | APPROVED | CANCELLED | REFUNDED | EXPIRED) ----
@@ -29,15 +29,15 @@ export function formatDateTime(value?: string | null): string {
 export function orderStatusLabel(status?: string | null): string {
   switch (status) {
     case "CREATED":
-      return "Ödeme bekleniyor";
+      return "Awaiting payment";
     case "APPROVED":
-      return "Ödeme onaylandı";
+      return "Payment approved";
     case "CANCELLED":
-      return "İptal edildi";
+      return "Cancelled";
     case "REFUNDED":
-      return "İade edildi";
+      return "Refunded";
     case "EXPIRED":
-      return "Süresi doldu";
+      return "Expired";
     default:
       return status || "—";
   }
@@ -63,11 +63,11 @@ export function orderStatusTone(status?: string | null): BadgeTone {
 export function entitlementStatusLabel(status?: string | null): string {
   switch (status) {
     case "GRANTED":
-      return "Hakkınız tanımlandı";
+      return "Entitlement granted";
     case "PENDING":
-      return "Hakkınız hazırlanıyor";
+      return "Entitlement being prepared";
     case "NONE":
-      return "Henüz hak yok";
+      return "No entitlement yet";
     default:
       return status || "—";
   }
@@ -152,11 +152,11 @@ export function toCatalogCard(item: CatalogItemDto): CatalogCard | null {
   if (!item.skuId) return null;
   return {
     skuId: item.skuId,
-    title: item.name || item.code || "Ürün",
+    title: item.name || item.code || "Product",
     purpose: purposeLabel(item.examPurpose),
     level: levelSpan(item.minLevel, item.maxLevel),
     output: outputLabel(item.outputType),
-    validity: item.validityDays ? `${item.validityDays} gün geçerli` : null,
+    validity: item.validityDays ? `Valid for ${item.validityDays} days` : null,
     price: formatMoney(item.price, item.currency),
   };
 }
@@ -186,11 +186,11 @@ function textOf(err: unknown): string | undefined {
  * Sipariş oluşturma/iptal hataları. 409 (tekrar politikası, "önceki ödemenizin hakkı henüz tanımlanmadı")
  * ve 400 (ürün satışta değil) sunucunun açıklamasıyla OLDUĞU GİBİ gösterilir.
  */
-export function orderFailureMessage(err: unknown, fallback = "İşlem şu an yapılamadı. Lütfen biraz sonra yeniden deneyin."): string {
+export function orderFailureMessage(err: unknown, fallback = "This could not be done right now. Please try again shortly."): string {
   const status = statusOf(err);
   const text = textOf(err);
   if ((status === 409 || status === 400 || status === 403) && text) return text;
-  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
-  if (status === 404) return "Sipariş bulunamadı.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status === 404) return "Order not found.";
   return fallback;
 }

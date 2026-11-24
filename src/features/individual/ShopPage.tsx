@@ -4,23 +4,23 @@ import type { ReactNode } from "react";
 /** Mağaza sayfa çerçevesi: Türkçe başlık + gezinme. Sunucu bileşeni (etkileşim yok). */
 export function ShopPage({ title, intro, children }: { title: string; intro?: string; children: ReactNode }) {
   return (
-    <div lang="tr" className="grid gap-5">
+    <div lang="en" className="grid gap-5">
       <header className="grid gap-3">
-        <nav aria-label="Mağaza" className="flex flex-wrap gap-2">
+        <nav aria-label="Shop" className="flex flex-wrap gap-2">
           <KidButtonLink href="/student" variant="ghost">
-            Ana sayfa
+            Home
           </KidButtonLink>
           <KidButtonLink href="/shop" variant="ghost">
-            Ürünler
+            Products
           </KidButtonLink>
           <KidButtonLink href="/shop/entitlements" variant="ghost">
-            Haklarım
+            My entitlements
           </KidButtonLink>
           <KidButtonLink href="/shop/orders" variant="ghost">
-            Siparişlerim
+            My orders
           </KidButtonLink>
           <KidButtonLink href="/student/history" variant="ghost">
-            Geçmişim
+            My history
           </KidButtonLink>
         </nav>
         <h1 className="sb-display text-3xl leading-tight tracking-tight text-slate-900 sm:text-4xl">{title}</h1>

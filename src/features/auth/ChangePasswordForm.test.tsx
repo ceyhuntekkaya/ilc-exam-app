@@ -58,10 +58,10 @@ describe("ChangePasswordForm", () => {
     authUser = { userType: "STAFF" };
     changeMock.mockResolvedValue({ data: undefined, status: 204 });
     renderWithProviders(<ChangePasswordForm />);
-    fireEvent.change(screen.getByLabelText("Mevcut parola"), { target: { value: "old1234" } });
-    fireEvent.change(screen.getByLabelText("Yeni parola"), { target: { value: "new1234" } });
-    fireEvent.change(screen.getByLabelText("Yeni parola (tekrar)"), { target: { value: "new1234" } });
-    fireEvent.click(screen.getByRole("button", { name: "Parolayı kaydet" }));
+    fireEvent.change(screen.getByLabelText("Current password"), { target: { value: "old1234" } });
+    fireEvent.change(screen.getByLabelText("New password"), { target: { value: "new1234" } });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), { target: { value: "new1234" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save password" }));
     await waitFor(() => expect(signOut).toHaveBeenCalledWith("/login?changed=1"));
   });
 

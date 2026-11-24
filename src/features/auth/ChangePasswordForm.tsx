@@ -41,19 +41,19 @@ const KID_COPY: Copy = {
 };
 
 const STAFF_COPY: Copy = {
-  title: "Parolayı değiştir",
-  lead: "Mevcut parolanızı girin ve yeni bir parola belirleyin.",
-  old: "Mevcut parola",
-  next: "Yeni parola",
-  confirm: "Yeni parola (tekrar)",
-  submit: "Parolayı kaydet",
-  pending: "Kaydediliyor…",
+  title: "Change password",
+  lead: "Enter your current password and set a new one.",
+  old: "Current password",
+  next: "New password",
+  confirm: "Confirm new password",
+  submit: "Save password",
+  pending: "Saving…",
   issues: {
-    "too-short": "Yeni parola en az 6 karakter olmalıdır.",
-    "same-as-old": "Yeni parola mevcut paroladan farklı olmalıdır.",
-    mismatch: "Yeni parola ve tekrarı aynı değil.",
+    "too-short": "The new password must be at least 6 characters.",
+    "same-as-old": "The new password must be different from the current one.",
+    mismatch: "The new passwords do not match.",
   },
-  generic: "Parola değiştirilemedi. Mevcut parolanızı kontrol edip tekrar deneyin.",
+  generic: "The password could not be changed. Check your current password and try again.",
 };
 
 /** Hem zorunlu (ilk giriş / yönetici sıfırlaması) hem gönüllü parola değişimi. Oturum şarttır. */
@@ -72,7 +72,7 @@ export function ChangePasswordForm() {
 
   if (loading || !user) {
     return (
-      <EntryFrame logoHref="/">
+      <EntryFrame lang="en" logoHref="/">
         <p role="status" className="mt-7 text-center text-sm text-[#3c3960]/75">
           …
         </p>
@@ -129,7 +129,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <EntryFrame logoHref="/">
+    <EntryFrame lang="en" logoHref="/">
       <form onSubmit={onSubmit} className="mt-7">
         <h1 className="font-display text-2xl font-semibold tracking-tight text-[#241f4a]">{copy.title}</h1>
         <p className="mt-1 text-sm text-[#3c3960]/75">{copy.lead}</p>

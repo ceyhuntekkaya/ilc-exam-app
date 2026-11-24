@@ -15,7 +15,7 @@ describe("toEntitlementCard", () => {
   it("kullanılabilir hak: başlat eylemi, kalan sayısı ve kullanılan", () => {
     const card = toEntitlementCard(base, NOW)!;
     expect(card).toMatchObject({ title: "Seviye Tespit", total: 3, available: 2, used: 1, action: "start", expired: false });
-    expect(card.status).toEqual({ label: "2 hak kaldı", tone: "success" });
+    expect(card.status).toEqual({ label: "2 left", tone: "success" });
   });
   it("açık deneme varsa yeni hak harcanmaz: devam et", () => {
     const card = toEntitlementCard({ ...base, openRecipientId: "rec-9" }, NOW)!;
@@ -25,12 +25,12 @@ describe("toEntitlementCard", () => {
   it("hak kalmadıysa eylem yok", () => {
     const card = toEntitlementCard({ ...base, available: 0 }, NOW)!;
     expect(card.action).toBe("none");
-    expect(card.status.label).toBe("Hak kullanıldı");
+    expect(card.status.label).toBe("All used");
   });
   it("süresi dolmuş hak başlatılamaz (açık deneme olsa bile devam yok)", () => {
     const card = toEntitlementCard({ ...base, validUntil: "2026-01-01T00:00:00Z", openRecipientId: "rec-9" }, NOW)!;
     expect(card).toMatchObject({ expired: true, action: "none" });
-    expect(card.status.label).toBe("Süresi doldu");
+    expect(card.status.label).toBe("Expired");
   });
   it("süresiz hak (validUntil yok) süresi dolmuş sayılmaz; skuId yoksa kart yok; ad yoksa kod", () => {
     expect(toEntitlementCard({ ...base, validUntil: undefined }, NOW)!.expired).toBe(false);
@@ -41,9 +41,9 @@ describe("toEntitlementCard", () => {
 
 describe("geçerlilik metni", () => {
   it("süresiz / geçerli / sona erdi", () => {
-    expect(validityText({ validUntil: null, expired: false })).toBe("Süresiz geçerli");
-    expect(validityText({ validUntil: "2027-06-01T00:00:00Z", expired: false })).toMatch(/kadar geçerli/);
-    expect(validityText({ validUntil: "2026-01-01T00:00:00Z", expired: true })).toMatch(/sona erdi/);
+    expect(validityText({ validUntil: null, expired: false })).toBe("No expiry");
+    expect(validityText({ validUntil: "2027-06-01T00:00:00Z", expired: false })).toMatch(/^Valid until/);
+    expect(validityText({ validUntil: "2026-01-01T00:00:00Z", expired: true })).toMatch(/^Expired on/);
   });
 });
 
@@ -63,9 +63,9 @@ describe("hata mesajları", () => {
     expect(openAttemptFailureMessage(Object.assign(new Error("Tekrar politikası reddetti: x"), { status: 400 }))).toBe("Tekrar politikası reddetti: x");
   });
   it("401, 404 ve bilinmeyen hata için Türkçe yedek metin", () => {
-    expect(openAttemptFailureMessage(Object.assign(new Error("x"), { status: 401 }))).toMatch(/Oturumunuz/);
-    expect(openAttemptFailureMessage(Object.assign(new Error("x"), { status: 404 }))).toMatch(/bulunamadı/);
-    expect(openAttemptFailureMessage(new Error("boom"))).toMatch(/başlatılamadı/);
+    expect(openAttemptFailureMessage(Object.assign(new Error("x"), { status: 401 }))).toMatch(/session has expired/);
+    expect(openAttemptFailureMessage(Object.assign(new Error("x"), { status: 404 }))).toMatch(/not found|No entitlement/);
+    expect(openAttemptFailureMessage(new Error("boom"))).toMatch(/could not be started/);
   });
   it("kurumsal öğrencide 400 'Yalnızca bireysel aday' hata değil açıklamadır", () => {
     expect(entitlementsFailure(Object.assign(new Error("Yalnızca bireysel aday"), { status: 400 }))).toEqual({ message: "Yalnızca bireysel aday", individualOnly: true });

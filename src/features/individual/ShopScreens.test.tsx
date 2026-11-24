@@ -38,7 +38,7 @@ describe("CatalogView", () => {
   it("katalog boşsa hata değil boş durum gösterir", () => {
     catalogState.mockReturnValue(ok([]));
     renderWithProviders(<CatalogView />);
-    expect(screen.getByText("Şu anda satışta ürün yok")).toBeInTheDocument();
+    expect(screen.getByText("No products are on sale right now")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -47,7 +47,7 @@ describe("CatalogView", () => {
     createOrderMock.mockResolvedValue({ data: { order: { id: "ord-9" }, instructions: {} } });
     renderWithProviders(<CatalogView />);
     expect(screen.getByText("Seviye Tespit")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Satın al" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buy" }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/shop/orders/ord-9"));
     expect(createOrderMock).toHaveBeenCalledWith({ data: { skuId: "sku-1" } });
   });
@@ -56,7 +56,7 @@ describe("CatalogView", () => {
     catalogState.mockReturnValue(ok([{ skuId: "sku-1", name: "Ürün", price: 10, currency: "TRY" }]));
     createOrderMock.mockRejectedValue(Object.assign(new Error("Önceki ödemenizin hakkı henüz tanımlanmadı"), { status: 409 }));
     renderWithProviders(<CatalogView />);
-    fireEvent.click(screen.getByRole("button", { name: "Satın al" }));
+    fireEvent.click(screen.getByRole("button", { name: "Buy" }));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Önceki ödemenizin hakkı henüz tanımlanmadı"));
     expect(pushMock).not.toHaveBeenCalled();
   });
@@ -64,7 +64,7 @@ describe("CatalogView", () => {
   it("yükleme hatasında yeniden dene sunar", () => {
     catalogState.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: Object.assign(new Error("x"), { status: 500 }), refetch: vi.fn() });
     renderWithProviders(<CatalogView />);
-    expect(screen.getByRole("button", { name: "Yeniden dene" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });
 
@@ -77,25 +77,25 @@ describe("OrdersView", () => {
   it("boşsa kataloğa yönlendiren boş durum gösterir", () => {
     myOrdersState.mockReturnValue(ok([]));
     renderWithProviders(<OrdersView />);
-    expect(screen.getByText("Henüz siparişiniz yok")).toBeInTheDocument();
+    expect(screen.getByText("You have no orders yet")).toBeInTheDocument();
   });
 
   it("durum ve hak rozetlerini gösterir; yalnız ödeme bekleyende Öde/İptal çıkar", () => {
     myOrdersState.mockReturnValue(ok(rows));
     renderWithProviders(<OrdersView />);
-    expect(screen.getByText("Ödeme bekleniyor")).toBeInTheDocument();
-    expect(screen.getByText("Ödeme onaylandı")).toBeInTheDocument();
-    expect(screen.getByText("Hakkınız hazırlanıyor")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Öde" })).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "İptal et" })).toHaveLength(1);
+    expect(screen.getByText("Awaiting payment")).toBeInTheDocument();
+    expect(screen.getByText("Payment approved")).toBeInTheDocument();
+    expect(screen.getByText("Entitlement being prepared")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Pay" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Cancel" })).toHaveLength(1);
   });
 
   it("iptali onay sonrası gönderir", async () => {
     myOrdersState.mockReturnValue(ok(rows));
     cancelMock.mockResolvedValue({ data: {} });
     renderWithProviders(<OrdersView />);
-    fireEvent.click(screen.getByRole("button", { name: "İptal et" }));
-    fireEvent.click(screen.getByRole("button", { name: "Evet, iptal et" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel" }));
     await waitFor(() => expect(cancelMock).toHaveBeenCalledWith({ id: "o1", data: { reason: "Aday iptal etti" } }));
   });
 });
@@ -118,7 +118,7 @@ describe("CheckoutView", () => {
   it("havale talimatını ve referans kodunu gösterir", () => {
     detailState.mockReturnValue(ok(order));
     renderWithProviders(<CheckoutView orderId="o1" />);
-    expect(screen.getByLabelText("Referans kodu")).toHaveTextContent("ILC-4F7Q-2K");
+    expect(screen.getByLabelText("Reference code")).toHaveTextContent("ILC-4F7Q-2K");
     expect(screen.getByText("TR33 0006 1005 1978 6457 8413 26")).toBeInTheDocument();
     expect(screen.getByText("ILC Eğitim A.Ş.")).toBeInTheDocument();
     expect(screen.getByText("Örnek Banka")).toBeInTheDocument();
@@ -127,19 +127,19 @@ describe("CheckoutView", () => {
   it("IBAN tanımsızsa talimat yerine bilgilendirme gösterir", () => {
     detailState.mockReturnValue(ok({ ...order, instructions: { providerCode: "MANUAL_TRANSFER", details: { iban: "", accountHolder: "", bankName: "", referenceCode: "ILC-4F7Q-2K" } } }));
     renderWithProviders(<CheckoutView orderId="o1" />);
-    expect(screen.getByText(/Havale bilgileri şu an görüntülenemiyor/)).toBeInTheDocument();
+    expect(screen.getByText(/Transfer details cannot be shown right now/)).toBeInTheDocument();
   });
 
   it("süresi dolmuş siparişte havale bilgisini göstermez", () => {
     detailState.mockReturnValue(ok({ ...order, status: "EXPIRED" }));
     renderWithProviders(<CheckoutView orderId="o1" />);
-    expect(screen.getByText(/süresi doldu/)).toBeInTheDocument();
+    expect(screen.getByText(/has expired/)).toBeInTheDocument();
     expect(screen.queryByText("TR33 0006 1005 1978 6457 8413 26")).not.toBeInTheDocument();
   });
 
   it("onaylı siparişte hak hazırlanıyor notunu gösterir", () => {
     detailState.mockReturnValue(ok({ ...order, status: "APPROVED", entitlementStatus: "PENDING", instructions: undefined }));
     renderWithProviders(<CheckoutView orderId="o1" />);
-    expect(screen.getByText(/Hakkınız hazırlanıyor/)).toBeInTheDocument();
+    expect(screen.getByText(/Your entitlement is being prepared/)).toBeInTheDocument();
   });
 });

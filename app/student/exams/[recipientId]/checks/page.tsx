@@ -339,7 +339,7 @@ function DeviceCard({
         setPlayed(false);
       }
     } catch (err) {
-      setError(err instanceof ExamApiError ? err.message : "Onay kaydedilemedi");
+      setError(err instanceof ExamApiError ? err.message : "We could not save the check. Please try again.");
     } finally {
       setBusy(false);
     }

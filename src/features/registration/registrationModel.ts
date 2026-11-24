@@ -8,7 +8,7 @@ export const DEFAULT_MAJORITY_AGE = 18;
  * Ekran yalnız bu genel metni gösterir; yanıt gövdesindeki metne bakılmaz.
  */
 export const REGISTER_NEUTRAL_MESSAGE =
-  "E-postanızı kontrol edin. Bu adres için kayıt başlatılabildiyse, kaydı tamamlamanız için bir doğrulama bağlantısı gönderdik. Gelen kutunuzda görmezseniz gereksiz (spam) klasörüne de bakın.";
+  "Check your email. If sign-up could be started for this address, we have sent you a verification link to complete it. If you do not see it in your inbox, check your spam folder too.";
 
 export type RegisterFormState = {
   email: string;
@@ -82,23 +82,23 @@ export function validateRegisterForm(
   guardianRequired: boolean,
 ): RegisterIssues {
   const issues: RegisterIssues = {};
-  if (!form.firstName.trim()) issues.firstName = "Adınızı yazın.";
-  if (!form.lastName.trim()) issues.lastName = "Soyadınızı yazın.";
-  if (!form.email.trim()) issues.email = "E-posta adresinizi yazın.";
-  else if (!isEmailShaped(form.email)) issues.email = "Geçerli bir e-posta adresi yazın (ör. ad@ornek.com).";
+  if (!form.firstName.trim()) issues.firstName = "Enter your first name.";
+  if (!form.lastName.trim()) issues.lastName = "Enter your last name.";
+  if (!form.email.trim()) issues.email = "Enter your email address.";
+  else if (!isEmailShaped(form.email)) issues.email = "Enter a valid email address (e.g. name@example.com).";
 
-  if (!form.birthDate) issues.birthDate = "Doğum tarihinizi seçin.";
+  if (!form.birthDate) issues.birthDate = "Select your date of birth.";
   else {
     const minor = isMinorByBirthDate(form.birthDate, today);
-    if (minor === null) issues.birthDate = "Geçerli bir doğum tarihi seçin.";
-    else if (form.birthDate > isoDate(today)) issues.birthDate = "Doğum tarihi gelecekte olamaz.";
+    if (minor === null) issues.birthDate = "Select a valid date of birth.";
+    else if (form.birthDate > isoDate(today)) issues.birthDate = "Date of birth cannot be in the future.";
   }
 
   if (guardianRequired) {
-    if (!form.guardianEmail.trim()) issues.guardianEmail = "18 yaşından küçükler için veli e-postası gerekir.";
-    else if (!isEmailShaped(form.guardianEmail)) issues.guardianEmail = "Geçerli bir veli e-postası yazın.";
+    if (!form.guardianEmail.trim()) issues.guardianEmail = "A guardian email is required for candidates under 18.";
+    else if (!isEmailShaped(form.guardianEmail)) issues.guardianEmail = "Enter a valid guardian email.";
     else if (form.guardianEmail.trim().toLowerCase() === form.email.trim().toLowerCase()) {
-      issues.guardianEmail = "Veli e-postası sizin e-postanızdan farklı olmalı.";
+      issues.guardianEmail = "The guardian email must be different from your own.";
     }
   }
   return issues;
@@ -136,12 +136,12 @@ export function registerFailure(err: unknown): RegisterFailure {
   const status = statusOf(err);
   const message = messageOf(err);
   if (status === 429) {
-    return { message: "Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.", needsGuardian: false };
+    return { message: "Too many attempts. Please wait a moment and try again.", needsGuardian: false };
   }
   if (status === 400 && message) {
-    return { message, needsGuardian: /veli/i.test(message) };
+    return { message, needsGuardian: /veli|guardian/i.test(message) };
   }
-  return { message: "Kaydınız şu an alınamadı. Lütfen biraz sonra yeniden deneyin.", needsGuardian: false };
+  return { message: "We could not receive your sign-up right now. Please try again later.", needsGuardian: false };
 }
 
 /** E-posta doğrulama (parola belirleme) hatası. Geçersiz/süresi dolmuş bağlantı ile kısa parola ayrılır. */
@@ -149,32 +149,32 @@ export function verifyFailure(err: unknown): { message: string; invalidLink: boo
   const status = statusOf(err);
   const message = messageOf(err);
   if (status === 429) {
-    return { message: "Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.", invalidLink: false };
+    return { message: "Too many attempts. Please wait a moment and try again.", invalidLink: false };
   }
   if (status === 400) {
-    const passwordIssue = message !== undefined && /parola/i.test(message);
+    const passwordIssue = message !== undefined && /parola|password/i.test(message);
     if (passwordIssue) return { message: message!, invalidLink: false };
     return {
-      message: "Bu bağlantı geçersiz ya da süresi dolmuş. Kaydınızı baştan başlatabilirsiniz.",
+      message: "This link is invalid or has expired. You can start your sign-up again.",
       invalidLink: true,
     };
   }
-  return { message: "Kaydınız tamamlanamadı. Lütfen biraz sonra yeniden deneyin.", invalidLink: false };
+  return { message: "We could not complete your sign-up. Please try again later.", invalidLink: false };
 }
 
 /** Veli onayı hatası. */
 export function consentFailure(err: unknown): { message: string; invalidLink: boolean } {
   const status = statusOf(err);
   if (status === 429) {
-    return { message: "Çok fazla deneme yapıldı. Lütfen biraz bekleyip yeniden deneyin.", invalidLink: false };
+    return { message: "Too many attempts. Please wait a moment and try again.", invalidLink: false };
   }
   if (status === 400) {
     return {
-      message: "Bu onay bağlantısı geçersiz ya da süresi dolmuş. Çocuğunuzun yeni bir bağlantı için kaydı yeniden başlatması gerekebilir.",
+      message: "This consent link is invalid or has expired. Your child may need to start sign-up again to get a new link.",
       invalidLink: true,
     };
   }
-  return { message: "Onayınız alınamadı. Lütfen biraz sonra yeniden deneyin.", invalidLink: false };
+  return { message: "We could not record your consent. Please try again later.", invalidLink: false };
 }
 
 /** Doğrulama yanıtından kullanıcı adı (gövde şeması üretilen tipte yok: `Verify200 = {[k]: unknown}`). */

@@ -1,4 +1,4 @@
-const money = new Intl.NumberFormat("tr-TR", {
+const money = new Intl.NumberFormat("en-GB", {
   style: "currency",
   currency: "TRY",
   minimumFractionDigits: 2,

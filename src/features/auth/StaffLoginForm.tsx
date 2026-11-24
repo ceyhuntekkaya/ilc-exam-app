@@ -26,7 +26,7 @@ export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: 
       });
       const payload = result.data;
       if (!payload.accessToken || !payload.userType) {
-        throw new Error("Beklenmeyen yanıt");
+        throw new Error("Unexpected response");
       }
       await establishSession(
         payload.accessToken,
@@ -35,28 +35,29 @@ export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: 
         { mustChangePassword: payload.mustChangePassword === true },
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Giriş başarısız");
+      setError(err instanceof Error ? err.message : "Login failed");
     }
   }
 
   return (
     <EntryFrame
+      lang="en"
       logoHref="/"
       footer={
         <>
-          Öğrenci misiniz?{" "}
+          Are you a student?{" "}
           <Link href="/login/student" className="font-semibold text-white underline underline-offset-4">
-            Öğrenci girişi
+            Student login
           </Link>
         </>
       }
     >
       <form onSubmit={onSubmit} className="mt-7">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-[#241f4a]">Personel girişi</h1>
-        <p className="mt-1 text-sm text-[#3c3960]/75">Kullanıcı adı ve parola ile giriş yapın.</p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-[#241f4a]">Staff login</h1>
+        <p className="mt-1 text-sm text-[#3c3960]/75">Log in with your username and password.</p>
 
         <label className="mt-6 block text-sm font-medium text-[#241f4a]">
-          Kullanıcı adı
+          Username
           <input
             type="text"
             required
@@ -68,7 +69,7 @@ export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: 
         </label>
 
         <label className="mt-4 block text-sm font-medium text-[#241f4a]">
-          Parola
+          Password
           <input
             type="password"
             required
@@ -81,7 +82,7 @@ export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: 
 
         {passwordChanged && !error ? (
           <p className="mt-4 rounded-xl bg-[#e6f5ec] px-3.5 py-2.5 text-sm text-[#1f6b3d]" role="status">
-            Parola değiştirildi. Lütfen giriş yapın.
+            Password changed. Please log in.
           </p>
         ) : null}
 
@@ -92,7 +93,7 @@ export function StaffLoginForm({ passwordChanged = false }: { passwordChanged?: 
         ) : null}
 
         <button type="submit" disabled={loginMutation.isPending} className={`${entryButtonClass} mt-6`}>
-          {loginMutation.isPending ? "Giriş yapılıyor…" : "Giriş yap"}
+          {loginMutation.isPending ? "Logging in…" : "Log in"}
         </button>
       </form>
     </EntryFrame>

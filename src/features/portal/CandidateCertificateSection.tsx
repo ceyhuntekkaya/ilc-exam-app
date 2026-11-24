@@ -19,7 +19,7 @@ export function CandidateCertificateSection({ applicationId }: { applicationId: 
   // Sonuç henüz yayınlanmadıysa (geçmişte yok) sertifika/talep gösterilmez.
   if (!resultId) return null;
   return (
-    <div lang="tr" className="grid gap-4">
+    <div lang="en" className="grid gap-4">
       <CertificateCard applicationResultId={resultId} />
       <ReviewRequestSection applicationResultId={resultId} />
     </div>
@@ -32,7 +32,7 @@ export function CertificateCard({ applicationResultId }: { applicationResultId: 
 
   if (query.isLoading) return <Skeleton className="h-28 rounded-xl" />;
   if (query.isError) {
-    return <ErrorState compact error={query.error} title="Sertifika bilgisi alınamadı" onRetry={() => void query.refetch()} />;
+    return <ErrorState compact error={query.error} title="We could not load certificate details" onRetry={() => void query.refetch()} />;
   }
   const view = toCertificateView(query.data?.data, typeof window !== "undefined" ? window.location.origin : "");
 
@@ -41,8 +41,8 @@ export function CertificateCard({ applicationResultId }: { applicationResultId: 
     return (
       <EmptyState
         tone="neutral"
-        title="Sertifika henüz verilmiyor"
-        description="Bu sonuç için henüz sertifika düzenlenmedi. Seviye raporunuz yukarıda hazırdır; sertifika verilmeye başlandığında burada görünecek."
+        title="No certificate yet"
+        description="No certificate has been issued for this result yet. Your level report is available above; your certificate will appear here once it is issued."
       />
     );
   }
@@ -53,30 +53,30 @@ export function CertificateCard({ applicationResultId }: { applicationResultId: 
       await navigator.clipboard.writeText(view.shareUrl);
       setCopied(true);
     } catch {
-      notify.error("Bağlantı kopyalanamadı");
+      notify.error("Could not copy the link");
     }
   }
 
   return (
-    <section aria-label="Sertifika" className="grid gap-3 rounded-xl border border-border bg-surface p-4">
+    <section aria-label="Certificate" className="grid gap-3 rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-fg">Sertifika</h2>
+        <h2 className="text-sm font-semibold text-fg">Certificate</h2>
         <Badge tone={view.expired ? "warning" : "success"} dot>
-          {view.expired ? "Süresi doldu" : "Geçerli"}
+          {view.expired ? "Expired" : "Valid"}
         </Badge>
       </div>
       <dl className="grid gap-2 text-sm sm:grid-cols-3">
         <div>
-          <dt className="text-xs text-fg-subtle">Sertifika kodu</dt>
+          <dt className="text-xs text-fg-subtle">Certificate code</dt>
           <dd className="font-mono font-semibold break-all text-fg">{view.code}</dd>
         </div>
         <div>
-          <dt className="text-xs text-fg-subtle">Düzenlenme</dt>
+          <dt className="text-xs text-fg-subtle">Issued</dt>
           <dd className="text-fg">{formatDay(view.issuedAt)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-fg-subtle">Geçerlilik</dt>
-          <dd className="text-fg">{view.validUntil ? formatDay(view.validUntil) : "Süresiz"}</dd>
+          <dt className="text-xs text-fg-subtle">Valid until</dt>
+          <dd className="text-fg">{view.validUntil ? formatDay(view.validUntil) : "No expiry"}</dd>
         </div>
       </dl>
       <div className="flex flex-wrap gap-2">
@@ -86,14 +86,14 @@ export function CertificateCard({ applicationResultId }: { applicationResultId: 
           rel="noopener noreferrer"
           className="inline-flex h-9 items-center rounded-lg border border-border bg-surface px-3 text-sm font-medium text-fg hover:bg-neutral-50"
         >
-          Doğrulama sayfasını aç
+          Open verification page
         </a>
         <Button variant="secondary" size="sm" onClick={() => void copy()}>
-          {copied ? "Kopyalandı" : "Doğrulama bağlantısını kopyala"}
+          {copied ? "Copied" : "Copy verification link"}
         </Button>
       </div>
       <p className="text-xs text-fg-muted">
-        Sertifikanın geçerliliğini herkes bu bağlantıyla doğrulayabilir. Sertifika PDF&apos;i bu sürümde indirilemez.
+        Anyone can verify this certificate with this link. The certificate PDF cannot be downloaded in this version.
       </p>
     </section>
   );
@@ -110,30 +110,30 @@ export function ReviewRequestSection({ applicationResultId }: { applicationResul
   if (view.kind === "none") return <ReviewRequestCard applicationResultId={applicationResultId} />;
   const statusBox = (
     <section
-      aria-label="İnceleme talebi"
+      aria-label="Review request"
       role="status"
       data-status={view.kind}
       className="grid gap-2 rounded-xl border border-border bg-surface p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-fg">İnceleme talebiniz</h2>
+        <h2 className="text-sm font-semibold text-fg">Your review request</h2>
         <Badge tone={view.kind === "open" ? "warning" : view.kind === "changed" ? "info" : "success"} dot>
           {view.title}
         </Badge>
       </div>
       <p className="text-sm text-fg">{view.body}</p>
       {view.kind === "changed" ? (
-        <p className="text-sm text-fg-muted">Yeni sonucunuz bu sayfada gösterilir; önceki sonucunuz geçerli değildir.</p>
+        <p className="text-sm text-fg-muted">Your new result is shown on this page; your previous result is no longer valid.</p>
       ) : null}
       {view.note ? (
         <div className="rounded-lg bg-bg px-3.5 py-3">
-          <p className="text-xs font-medium text-fg-subtle">Değerlendirici notu</p>
+          <p className="text-xs font-medium text-fg-subtle">Reviewer note</p>
           <p className="text-sm whitespace-pre-wrap text-fg">{view.note}</p>
         </div>
       ) : null}
       <p className="text-xs text-fg-muted">
-        Talep tarihi: {formatDay(view.requestedAt)}
-        {view.resolvedAt ? ` · Sonuçlanma: ${formatDay(view.resolvedAt)}` : ""}
+        Requested: {formatDay(view.requestedAt)}
+        {view.resolvedAt ? ` · Resolved: ${formatDay(view.resolvedAt)}` : ""}
       </p>
     </section>
   );
@@ -184,26 +184,26 @@ export function ReviewRequestCard({
 
   if (sentAt) {
     return (
-      <section aria-label="İnceleme talebi" className="rounded-xl border border-success/30 bg-success-bg p-4 text-sm text-success" role="status">
-        İnceleme talebiniz alındı ({formatDay(sentAt)}). Sonuç insan değerlendirici tarafından yeniden incelenecek; gelişmeler size bildirilir.
+      <section aria-label="Review request" className="rounded-xl border border-success/30 bg-success-bg p-4 text-sm text-success" role="status">
+        Your review request was received ({formatDay(sentAt)}). A human reviewer will re-examine the result, and you will be notified of any updates.
       </section>
     );
   }
 
   return (
-    <section aria-label="İnceleme talebi" className="grid gap-3 rounded-xl border border-border bg-surface p-4">
+    <section aria-label="Review request" className="grid gap-3 rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-fg">{followUp ? "Yeni sonuca yeniden inceleme talebi" : "Sonuca itiraz / inceleme talebi"}</h2>
+          <h2 className="text-sm font-semibold text-fg">{followUp ? "Request a review of the new result" : "Appeal / request a review"}</h2>
           <p className="text-xs text-fg-muted">
             {followUp
-              ? "Güncellenen sonucun yeniden incelenmesini isteyebilirsiniz. Talep için süre sınırı vardır; her sonuç için yalnız bir talep açılabilir."
-              : "Sonucun yeniden incelenmesini isteyebilirsiniz. Talep için süre sınırı vardır; aynı sonuç için yalnız bir talep açılabilir."}
+              ? "You can ask for the updated result to be reviewed again. Requests have a deadline, and only one request can be made per result."
+              : "You can ask for your result to be reviewed. Requests have a deadline, and only one request can be made for the same result."}
           </p>
         </div>
         {expanded ? null : (
           <Button variant="secondary" size="sm" onClick={() => setExpanded(true)}>
-            İnceleme talep et
+            Request a review
           </Button>
         )}
       </div>
@@ -216,7 +216,7 @@ export function ReviewRequestCard({
           }}
         >
           <label htmlFor="review-reason" className="text-sm font-medium text-fg">
-            Gerekçeniz
+            Your reason
           </label>
           <Textarea id="review-reason" rows={4} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={touched && issue ? true : undefined} />
           {touched && issue ? <p className="text-xs text-danger">{issue}</p> : null}
@@ -227,10 +227,10 @@ export function ReviewRequestCard({
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" size="sm" loading={open.isPending}>
-              Talebi gönder
+              Send request
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setExpanded(false)}>
-              Vazgeç
+              Cancel
             </Button>
           </div>
         </form>

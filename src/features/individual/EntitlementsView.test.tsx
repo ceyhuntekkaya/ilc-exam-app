@@ -27,16 +27,16 @@ describe("EntitlementsView", () => {
   it("hak yoksa hata değil boş durum gösterir ve mağazaya yönlendirir", () => {
     entitlementsState.mockReturnValue(ok([]));
     renderWithProviders(<EntitlementsView />);
-    expect(screen.getByText("Henüz hakkınız yok")).toBeInTheDocument();
+    expect(screen.getByText("You have no entitlements yet")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ürünlere göz at" })).toHaveAttribute("href", "/shop");
+    expect(screen.getByRole("link", { name: "Browse products" })).toHaveAttribute("href", "/shop");
   });
 
   it("denemeyi başlat: open çağrılır ve mevcut öğrenci sınav akışına yönlendirir", async () => {
     entitlementsState.mockReturnValue(ok([{ skuId: "sku-1", skuName: "Seviye Tespit", total: 2, available: 2, validUntil: future }]));
     openMock.mockResolvedValue({ data: { recipientId: "rec-7", created: true } });
     renderWithProviders(<EntitlementsView />);
-    fireEvent.click(screen.getByRole("button", { name: "Denemeyi başlat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start attempt" }));
     await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/student/exams/rec-7"));
     expect(openMock).toHaveBeenCalledWith({ skuId: "sku-1" });
   });
@@ -44,7 +44,7 @@ describe("EntitlementsView", () => {
   it("açık deneme varsa open çağrılmadan doğrudan devam eder", () => {
     entitlementsState.mockReturnValue(ok([{ skuId: "sku-1", skuName: "Seviye Tespit", total: 1, available: 1, validUntil: future, openRecipientId: "rec-3" }]));
     renderWithProviders(<EntitlementsView />);
-    fireEvent.click(screen.getByRole("button", { name: "Denemeye devam et" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue attempt" }));
     expect(pushMock).toHaveBeenCalledWith("/student/exams/rec-3");
     expect(openMock).not.toHaveBeenCalled();
   });
@@ -53,7 +53,7 @@ describe("EntitlementsView", () => {
     entitlementsState.mockReturnValue(ok([{ skuId: "sku-1", skuName: "Seviye Tespit", total: 1, available: 1, validUntil: future }]));
     openMock.mockRejectedValue(Object.assign(new Error("Sonuç bekleniyor: önceki denemenizin sonucu yayınlanmadan yeni deneme açılamaz"), { status: 409 }));
     renderWithProviders(<EntitlementsView />);
-    fireEvent.click(screen.getByRole("button", { name: "Denemeyi başlat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start attempt" }));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Sonuç bekleniyor"));
     expect(pushMock).not.toHaveBeenCalled();
   });
@@ -66,21 +66,21 @@ describe("EntitlementsView", () => {
       ]),
     );
     renderWithProviders(<EntitlementsView />);
-    expect(screen.queryByRole("button", { name: /Denemeyi başlat|devam et/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Hak kullanıldı")).toBeInTheDocument();
-    expect(screen.getByText("Süresi doldu")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Start attempt|Continue attempt/ })).not.toBeInTheDocument();
+    expect(screen.getByText("All used")).toBeInTheDocument();
+    expect(screen.getByText("Expired")).toBeInTheDocument();
   });
 
   it("kurumsal öğrenci (400 Yalnızca bireysel aday) hata ekranı değil açıklama görür", () => {
     entitlementsState.mockReturnValue(failed(Object.assign(new Error("Yalnızca bireysel aday"), { status: 400 })));
     renderWithProviders(<EntitlementsView />);
-    expect(screen.getByText("Bu bölüm bireysel adaylar içindir")).toBeInTheDocument();
+    expect(screen.getByText("This section is for individual candidates")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("beklenmeyen hatada yeniden dene sunulur", () => {
     entitlementsState.mockReturnValue(failed(Object.assign(new Error("boom"), { status: 500 })));
     renderWithProviders(<EntitlementsView />);
-    expect(screen.getByRole("button", { name: "Yeniden dene" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });

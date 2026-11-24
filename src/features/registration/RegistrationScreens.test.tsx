@@ -17,10 +17,10 @@ const { GuardianConsentView } = await import("./GuardianConsentView");
 const { REGISTER_NEUTRAL_MESSAGE } = await import("./registrationModel");
 
 function fillAdult() {
-  fireEvent.change(screen.getByLabelText("Adınız"), { target: { value: "Ada" } });
-  fireEvent.change(screen.getByLabelText("Soyadınız"), { target: { value: "Yılmaz" } });
-  fireEvent.change(screen.getByLabelText("E-posta adresiniz"), { target: { value: "ada@ornek.com" } });
-  fireEvent.change(screen.getByLabelText("Doğum tarihiniz"), { target: { value: "1990-03-04" } });
+  fireEvent.change(screen.getByLabelText("First name"), { target: { value: "Ada" } });
+  fireEvent.change(screen.getByLabelText("Last name"), { target: { value: "Yılmaz" } });
+  fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "ada@ornek.com" } });
+  fireEvent.change(screen.getByLabelText("Date of birth"), { target: { value: "1990-03-04" } });
 }
 
 describe("RegisterForm", () => {
@@ -34,7 +34,7 @@ describe("RegisterForm", () => {
     registerMock.mockResolvedValue({ data: { message: "sunucu ne derse desin" } });
     renderWithProviders(<RegisterForm />);
     fillAdult();
-    fireEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
     expect(await screen.findByText(REGISTER_NEUTRAL_MESSAGE)).toBeInTheDocument();
     expect(registerMock).toHaveBeenCalledWith({
       data: { email: "ada@ornek.com", firstName: "Ada", lastName: "Yılmaz", birthDate: "1990-03-04" },
@@ -43,21 +43,21 @@ describe("RegisterForm", () => {
 
   it("geçersiz formda istek göndermez", () => {
     renderWithProviders(<RegisterForm />);
-    fireEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
     expect(registerMock).not.toHaveBeenCalled();
-    expect(screen.getByText("Adınızı yazın.")).toBeInTheDocument();
+    expect(screen.getByText("Enter your first name.")).toBeInTheDocument();
   });
 
   it("reşit olmayan doğum tarihinde veli e-postası alanını açar ve ister", async () => {
     registerMock.mockResolvedValue({ data: {} });
     renderWithProviders(<RegisterForm />);
     fillAdult();
-    fireEvent.change(screen.getByLabelText("Doğum tarihiniz"), { target: { value: "2016-01-01" } });
-    expect(screen.getByLabelText("Veli e-posta adresi")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
+    fireEvent.change(screen.getByLabelText("Date of birth"), { target: { value: "2016-01-01" } });
+    expect(screen.getByLabelText("Guardian email address")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
     expect(registerMock).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Veli e-posta adresi"), { target: { value: "veli@ornek.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
+    fireEvent.change(screen.getByLabelText("Guardian email address"), { target: { value: "veli@ornek.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
     await waitFor(() => expect(registerMock).toHaveBeenCalled());
     expect(registerMock.mock.calls[0][0].data.guardianEmail).toBe("veli@ornek.com");
   });
@@ -66,8 +66,8 @@ describe("RegisterForm", () => {
     registerMock.mockRejectedValue(Object.assign(new Error("rate limit exceeded"), { status: 429 }));
     renderWithProviders(<RegisterForm />);
     fillAdult();
-    fireEvent.click(screen.getByRole("button", { name: "Kayıt ol" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Çok fazla deneme"));
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Too many attempts"));
     expect(screen.queryByText(REGISTER_NEUTRAL_MESSAGE)).not.toBeInTheDocument();
   });
 });
@@ -78,29 +78,29 @@ describe("VerifyEmailForm", () => {
   it("parolayı token ile gönderir ve kullanıcı adını gösterir", async () => {
     verifyMock.mockResolvedValue({ data: { userId: "u1", username: "ilc100042" } });
     renderWithProviders(<VerifyEmailForm token="tok-1" />);
-    fireEvent.change(screen.getByLabelText("Parola"), { target: { value: "gizli123" } });
-    fireEvent.change(screen.getByLabelText("Parola (tekrar)"), { target: { value: "gizli123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Kaydı tamamla" }));
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "gizli123" } });
+    fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "gizli123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sign-up" }));
     expect(await screen.findByText("ilc100042")).toBeInTheDocument();
     expect(verifyMock).toHaveBeenCalledWith({ token: "tok-1", data: { password: "gizli123" } });
   });
 
   it("uyuşmayan parolada istek göndermez", () => {
     renderWithProviders(<VerifyEmailForm token="tok-1" />);
-    fireEvent.change(screen.getByLabelText("Parola"), { target: { value: "gizli123" } });
-    fireEvent.change(screen.getByLabelText("Parola (tekrar)"), { target: { value: "baska456" } });
-    fireEvent.click(screen.getByRole("button", { name: "Kaydı tamamla" }));
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "gizli123" } });
+    fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "baska456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sign-up" }));
     expect(verifyMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("aynı değil");
+    expect(screen.getByRole("alert")).toHaveTextContent("do not match");
   });
 
   it("geçersiz bağlantıda yeniden kayıt bağlantısı sunar", async () => {
     verifyMock.mockRejectedValue(Object.assign(new Error("Geçersiz veya süresi dolmuş doğrulama bağlantısı"), { status: 400 }));
     renderWithProviders(<VerifyEmailForm token="eski" />);
-    fireEvent.change(screen.getByLabelText("Parola"), { target: { value: "gizli123" } });
-    fireEvent.change(screen.getByLabelText("Parola (tekrar)"), { target: { value: "gizli123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Kaydı tamamla" }));
-    expect(await screen.findByRole("link", { name: "Kaydı yeniden başlat" })).toHaveAttribute("href", "/register");
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "gizli123" } });
+    fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "gizli123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Complete sign-up" }));
+    expect(await screen.findByRole("link", { name: "Start sign-up again" })).toHaveAttribute("href", "/register");
   });
 });
 
@@ -111,15 +111,15 @@ describe("GuardianConsentView", () => {
     consentMock.mockResolvedValue({ data: { message: "Onaylandı" } });
     renderWithProviders(<GuardianConsentView token="c-1" />);
     expect(consentMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Onaylıyorum" }));
-    expect(await screen.findByText("Onayınız alındı")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "I give consent" }));
+    expect(await screen.findByText("Consent received")).toBeInTheDocument();
     expect(consentMock).toHaveBeenCalledWith({ token: "c-1" });
   });
 
   it("geçersiz bağlantıda hata gösterir", async () => {
     consentMock.mockRejectedValue(Object.assign(new Error("x"), { status: 400 }));
     renderWithProviders(<GuardianConsentView token="c-1" />);
-    fireEvent.click(screen.getByRole("button", { name: "Onaylıyorum" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("geçersiz ya da süresi dolmuş"));
+    fireEvent.click(screen.getByRole("button", { name: "I give consent" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("invalid or has expired"));
   });
 });

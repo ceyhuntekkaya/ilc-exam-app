@@ -41,7 +41,7 @@ describe("CandidateCertificateSection", () => {
     historyState.mockReturnValue(history([{ applicationId: "app-1", applicationResultId: "ar-1" }]));
     certificateState.mockReturnValue(cert({ available: false, message: "Bu sonuç için sertifika yok, seviye raporu kullanılabilir", levelReportUrl: "/report/me/results/ar-1/pdf" }));
     renderWithProviders(<CandidateCertificateSection applicationId="app-1" />);
-    expect(screen.getByText("Sertifika henüz verilmiyor")).toBeInTheDocument();
+    expect(screen.getByText("No certificate yet")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -50,16 +50,16 @@ describe("CandidateCertificateSection", () => {
     certificateState.mockReturnValue(cert({ available: true, certificateCode: "ILC-XYZ-1", issuedAt: "2026-10-01T00:00:00Z", validUntil: "2099-10-01T00:00:00Z", verificationUrl: "https://app.example/verify/ILC-XYZ-1" }));
     renderWithProviders(<CandidateCertificateSection applicationId="app-1" />);
     expect(screen.getByText("ILC-XYZ-1")).toBeInTheDocument();
-    expect(screen.getByText("Geçerli")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Doğrulama sayfasını aç" })).toHaveAttribute("href", "/verify/ILC-XYZ-1");
-    expect(screen.queryByText("Sertifika henüz verilmiyor")).not.toBeInTheDocument();
+    expect(screen.getByText("Valid")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open verification page" })).toHaveAttribute("href", "/verify/ILC-XYZ-1");
+    expect(screen.queryByText("No certificate yet")).not.toBeInTheDocument();
   });
 
   it("sertifika ucu hata verirse bölümde yeniden dene sunulur (sayfa çökmez)", () => {
     historyState.mockReturnValue(history([{ applicationId: "app-1", applicationResultId: "ar-1" }]));
     certificateState.mockReturnValue({ isLoading: false, isError: true, error: Object.assign(new Error("x"), { status: 500 }), refetch: vi.fn() });
     renderWithProviders(<CandidateCertificateSection applicationId="app-1" />);
-    expect(screen.getByText("Sertifika bilgisi alınamadı")).toBeInTheDocument();
+    expect(screen.getByText("We could not load certificate details")).toBeInTheDocument();
   });
 
   it("inceleme talebi: boş gerekçe gönderilmez; gerekçeyle gönderilince onay görünür", async () => {
@@ -67,14 +67,14 @@ describe("CandidateCertificateSection", () => {
     certificateState.mockReturnValue(cert({ available: false }));
     reviewMock.mockResolvedValue({ data: { reviewRequestId: "rr-1", requestedAt: "2026-11-09T10:00:00Z" } });
     renderWithProviders(<CandidateCertificateSection applicationId="app-1" />);
-    fireEvent.click(screen.getByRole("button", { name: "İnceleme talep et" }));
-    fireEvent.click(screen.getByRole("button", { name: "Talebi gönder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request a review" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send request" }));
     expect(reviewMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/gerekçesini yazın/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Gerekçeniz"), { target: { value: "Yazma puanım hatalı" } });
-    fireEvent.click(screen.getByRole("button", { name: "Talebi gönder" }));
+    expect(screen.getByText(/reason for your request/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Your reason"), { target: { value: "Yazma puanım hatalı" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send request" }));
     await waitFor(() => expect(reviewMock).toHaveBeenCalledWith({ applicationResultId: "ar-1", data: { reason: "Yazma puanım hatalı" } }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("İnceleme talebiniz alındı"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Your review request was received"));
   });
 
   it("inceleme talebi 409 (itiraz süresi doldu) sunucu mesajıyla gösterilir", async () => {
@@ -82,9 +82,9 @@ describe("CandidateCertificateSection", () => {
     certificateState.mockReturnValue(cert({ available: false }));
     reviewMock.mockRejectedValue(Object.assign(new Error("İtiraz süresi doldu: 2026-12-01T00:00:00Z"), { status: 409 }));
     renderWithProviders(<CandidateCertificateSection applicationId="app-1" />);
-    fireEvent.click(screen.getByRole("button", { name: "İnceleme talep et" }));
-    fireEvent.change(screen.getByLabelText("Gerekçeniz"), { target: { value: "Gerekçe" } });
-    fireEvent.click(screen.getByRole("button", { name: "Talebi gönder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request a review" }));
+    fireEvent.change(screen.getByLabelText("Your reason"), { target: { value: "Gerekçe" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send request" }));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("İtiraz süresi doldu"));
   });
 });

@@ -29,34 +29,34 @@ export function GuardianConsentView({ token }: { token: string }) {
 
   if (done) {
     return (
-      <EntryFrame lang="tr" panel="student" logoHref="/">
+      <EntryFrame lang="en" panel="student" logoHref="/">
         <div className="mt-7">
           <div className="flex items-center gap-4">
-            <h1 className="sb-display min-w-0 flex-1 text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Onayınız alındı</h1>
+            <h1 className="sb-display min-w-0 flex-1 text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Consent received</h1>
             <Mascot mood="celebrate" size="md" />
           </div>
-          <KidNotice>Teşekkürler. Çocuğunuzun hesabı artık kullanıma açıldı.</KidNotice>
+          <KidNotice>Thank you. Your child&apos;s account is now active.</KidNotice>
         </div>
       </EntryFrame>
     );
   }
 
   return (
-    <EntryFrame lang="tr" panel="student" logoHref="/">
+    <EntryFrame lang="en" panel="student" logoHref="/">
       <div className="mt-7">
         <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="sb-display text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Veli onayı</h1>
+            <h1 className="sb-display text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Guardian consent</h1>
             <p className="mt-2 text-base text-slate-500">
-              18 yaşından küçük bir aday, İngiliz Kültür Koleji sınav platformuna kayıt oldu ve velisi olarak sizi bildirdi. Hesabın açılması için onayınız gerekir.
+              A candidate under 18 has signed up for the İngiliz Kültür Koleji exam platform and named you as their guardian. Your consent is needed to activate the account.
             </p>
           </div>
           <Mascot mood={error ? "thinking" : "hello"} size="md" />
         </div>
-        <p className="mt-4 text-sm text-slate-500">Onaylayarak çocuğunuzun bu platformda sınav ve alıştırmalara katılmasına izin vermiş olursunuz.</p>
+        <p className="mt-4 text-sm text-slate-500">By giving consent, you allow your child to take exams and practice tests on this platform.</p>
         {error ? <KidAlert>{error}</KidAlert> : null}
         <button type="button" onClick={() => void approve()} disabled={mutation.isPending} className={`${kidButtonClass({ variant: "sun", size: "lg", full: true })} mt-6 shadow-md shadow-amber-500/20`}>
-          {mutation.isPending ? "Gönderiliyor…" : "Onaylıyorum"}
+          {mutation.isPending ? "Sending…" : "I give consent"}
         </button>
       </div>
     </EntryFrame>

@@ -23,40 +23,40 @@ describe("ErasureSelfService", () => {
   it("talep açmanın gerçek silmeyi tetiklemediğini açıkça yazar; talep yokken form görünür", () => {
     mineMock.mockReturnValue(state([]));
     renderWithProviders(<ErasureSelfService />);
-    expect(screen.getByText(/hemen silmez/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Silinmesini talep et" })).toBeInTheDocument();
+    expect(screen.getByText(/does not delete your data immediately/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request deletion" })).toBeInTheDocument();
   });
 
   it("gönderince gerekçesiz de iletilir (boş alan gönderilmez) ve 'talebiniz alındı' görünür", async () => {
     mineMock.mockReturnValue(state([]));
     submitMock.mockResolvedValue({ data: {} });
     renderWithProviders(<ErasureSelfService />);
-    fireEvent.click(screen.getByRole("button", { name: "Silinmesini talep et" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request deletion" }));
     await waitFor(() => expect(submitMock).toHaveBeenCalledWith({ data: {} }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Talebiniz alındı, merkez tarafından değerlendirilir");
+    expect(await screen.findByRole("status")).toHaveTextContent("Your request was received and will be assessed by the centre");
   });
 
   it("açıklamayla gönderir", async () => {
     mineMock.mockReturnValue(state([]));
     submitMock.mockResolvedValue({ data: {} });
     renderWithProviders(<ErasureSelfService />);
-    fireEvent.change(screen.getByLabelText(/Açıklama/), { target: { value: " Sınavdan çekildim " } });
-    fireEvent.click(screen.getByRole("button", { name: "Silinmesini talep et" }));
+    fireEvent.change(screen.getByLabelText(/Note/), { target: { value: " Sınavdan çekildim " } });
+    fireEvent.click(screen.getByRole("button", { name: "Request deletion" }));
     await waitFor(() => expect(submitMock).toHaveBeenCalledWith({ data: { reason: "Sınavdan çekildim" } }));
   });
 
   it("açık talep varken form yoktur, durum açıklaması gösterilir", () => {
     mineMock.mockReturnValue(state([{ id: "r1", status: "RECEIVED", createdAt: "2026-11-01T10:00:00Z" }]));
     renderWithProviders(<ErasureSelfService />);
-    expect(screen.queryByRole("button", { name: "Silinmesini talep et" })).not.toBeInTheDocument();
-    expect(screen.getAllByText(/Talebiniz alındı, merkez tarafından değerlendirilir/).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Request deletion" })).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Your request was received and will be assessed by the centre/).length).toBeGreaterThan(0);
   });
 
   it("409 (zaten açık talep) sunucu mesajıyla gösterilir", async () => {
     mineMock.mockReturnValue(state([]));
     submitMock.mockRejectedValue(Object.assign(new Error("Bu kişi için zaten açık bir silme talebi var"), { status: 409 }));
     renderWithProviders(<ErasureSelfService />);
-    fireEvent.click(screen.getByRole("button", { name: "Silinmesini talep et" }));
+    fireEvent.click(screen.getByRole("button", { name: "Request deletion" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Bu kişi için zaten açık bir silme talebi var");
   });
 
@@ -68,7 +68,7 @@ describe("ErasureSelfService", () => {
       ]),
     );
     renderWithProviders(<ErasureSelfService />);
-    expect(screen.getByText(/Gerekçe: Kimlik doğrulanamadı/)).toBeInTheDocument();
-    expect(screen.getByText(/yasal olarak saklanması gereken kayıtlar/)).toBeInTheDocument();
+    expect(screen.getByText(/Reason: Kimlik doğrulanamadı/)).toBeInTheDocument();
+    expect(screen.getByText(/records that must be kept by law/)).toBeInTheDocument();
   });
 });

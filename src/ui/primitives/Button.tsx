@@ -103,7 +103,7 @@ export function Button({ variant = "primary", size = "md", loading = false, full
       {loading ? (
         <span className="absolute inset-0 flex items-center justify-center" role="status">
           <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80" />
-          <span className="sr-only">İşleniyor</span>
+          <span className="sr-only">Processing</span>
         </span>
       ) : null}
     </button>

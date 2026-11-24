@@ -3,7 +3,7 @@ import { ShopPage } from "@/src/features/individual/ShopPage";
 
 export default function ShopOrdersPage() {
   return (
-    <ShopPage title="Siparişlerim" intro="Ödemesi beklenen siparişleri buradan ödeyebilir ya da iptal edebilirsiniz.">
+    <ShopPage title="My orders" intro="You can pay for or cancel orders awaiting payment here.">
       <OrdersView />
     </ShopPage>
   );

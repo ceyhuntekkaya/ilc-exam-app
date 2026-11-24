@@ -12,7 +12,7 @@ function date(value: unknown): string | null {
   const text = str(value);
   if (!text) return null;
   const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? text : parsed.toLocaleDateString("tr-TR");
+  return Number.isNaN(parsed.getTime()) ? text : parsed.toLocaleDateString("en-GB");
 }
 
 function skillLines(value: unknown): { skill: string; band: string }[] {
@@ -59,40 +59,40 @@ function CertificateOrRevokedView({ body, revoked }: { body: VerificationBody; r
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="brand">Sertifika</Badge>
+        <Badge tone="brand">Certificate</Badge>
         {revoked ? (
-          <Badge tone="danger">İptal edilmiştir</Badge>
+          <Badge tone="danger">Revoked</Badge>
         ) : expired ? (
-          <Badge tone="warning">Süresi dolmuş</Badge>
+          <Badge tone="warning">Expired</Badge>
         ) : (
-          <Badge tone="success">Geçerli</Badge>
+          <Badge tone="success">Valid</Badge>
         )}
       </div>
 
       {revoked ? (
         <div className="rounded-lg border border-danger/20 bg-danger-bg p-3 text-sm text-danger">
-          Bu sertifika iptal edilmiştir{revokedAt ? ` (${revokedAt})` : ""}.
-          {revocationReason ? ` Gerekçe: ${revocationReason}` : null}
+          This certificate has been revoked{revokedAt ? ` (${revokedAt})` : ""}.
+          {revocationReason ? ` Reason: ${revocationReason}` : null}
         </div>
       ) : null}
 
       <DefinitionList
         items={[
-          { term: "Ad", description: candidateName },
-          { term: "Sınav", description: examTitle },
-          { term: "Sertifika numarası", description: certificateCode },
-          { term: "Basım tarihi", description: issuedAt ?? "—" },
-          { term: "Geçerlilik bitişi", description: validUntil ?? "Süresiz" },
-          { term: "CEFR bandı", description: cefrLevel ?? "—" },
-          { term: "Kademe", description: grade ?? "—" },
-          { term: "Bütünlük seviyesi", description: integrityLevel ?? "—" },
-          { term: "Güvence seviyesi", description: assuranceLevel ?? "—" },
+          { term: "Name", description: candidateName },
+          { term: "Exam", description: examTitle },
+          { term: "Certificate number", description: certificateCode },
+          { term: "Issue date", description: issuedAt ?? "—" },
+          { term: "Valid until", description: validUntil ?? "No expiry" },
+          { term: "CEFR band", description: cefrLevel ?? "—" },
+          { term: "Grade", description: grade ?? "—" },
+          { term: "Integrity level", description: integrityLevel ?? "—" },
+          { term: "Assurance level", description: assuranceLevel ?? "—" },
         ]}
       />
 
       {skillBreakdownIncluded && skills.length > 0 ? (
         <div>
-          <h3 className="mb-2 text-xs font-medium text-fg-subtle">Beceri kırılımı</h3>
+          <h3 className="mb-2 text-xs font-medium text-fg-subtle">Skill breakdown</h3>
           <DefinitionList items={skills.map((s) => ({ term: s.skill, description: s.band }))} />
         </div>
       ) : null}
@@ -112,14 +112,14 @@ function SupersededLevelReportView() {
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">Seviye raporu</Badge>
-        <Badge tone="danger">Geçersiz kılındı</Badge>
+        <Badge tone="neutral">Level report</Badge>
+        <Badge tone="danger">Superseded</Badge>
       </div>
       <div role="alert" className="rounded-lg border border-danger/20 bg-danger-bg p-3 text-sm text-danger">
-        Bu rapor geçersiz kılındı (sonuç yeniden yayınlandı veya iptal edildi).
+        This report has been superseded (the result was republished or cancelled).
       </div>
       <div className="rounded-lg border border-border bg-neutral-50 p-3 text-sm font-medium text-fg">
-        Bu belge bir sertifika değildir / This document is not a certificate.
+        This document is not a certificate.
       </div>
     </div>
   );
@@ -138,20 +138,20 @@ function LevelReportView({ body }: { body: VerificationBody }) {
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">Seviye raporu</Badge>
+        <Badge tone="neutral">Level report</Badge>
       </div>
       <div className="rounded-lg border border-border bg-neutral-50 p-3 text-sm font-medium text-fg">
-        Bu belge bir sertifika değildir / This document is not a certificate.
+        This document is not a certificate.
       </div>
       <DefinitionList
         items={[
-          { term: "Ad", description: candidateName },
-          { term: "Sınav", description: examTitle },
-          { term: "Basım tarihi", description: issuedAt ?? "—" },
-          { term: "CEFR bandı", description: cefrLevel ?? "—" },
-          { term: "Kademe", description: grade ?? "—" },
-          { term: "Bütünlük seviyesi", description: integrityLevel ?? "—" },
-          { term: "Güvence seviyesi", description: assuranceLevel ?? "—" },
+          { term: "Name", description: candidateName },
+          { term: "Exam", description: examTitle },
+          { term: "Issue date", description: issuedAt ?? "—" },
+          { term: "CEFR band", description: cefrLevel ?? "—" },
+          { term: "Grade", description: grade ?? "—" },
+          { term: "Integrity level", description: integrityLevel ?? "—" },
+          { term: "Assurance level", description: assuranceLevel ?? "—" },
         ]}
       />
     </div>
@@ -162,8 +162,8 @@ function NotFoundView() {
   return (
     <EmptyState
       tone="neutral"
-      title="Bulunamadı"
-      description="Bu kodla eşleşen bir sertifika veya seviye raporu yok. Kodu kontrol edip tekrar deneyin."
+      title="Not found"
+      description="No certificate or level report matches this code. Check the code and try again."
     />
   );
 }

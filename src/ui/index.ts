@@ -10,7 +10,7 @@ export { EmptyState } from "@/src/ui/composites/EmptyState";
 export { ErrorState } from "@/src/ui/composites/ErrorState";
 export { CountBadge, PageHeader } from "@/src/ui/composites/PageHeader";
 export { DataGrid } from "@/src/ui/composites/DataGrid";
-export type { DataGridProps, GridColDef, PaginationModel } from "@/src/ui/composites/DataGrid";
+export type { DataGridProps, GridColDef, GridSortModel, PaginationModel } from "@/src/ui/composites/DataGrid";
 export * from "@/src/ui/icons";
 export { SectionHeading } from "@/src/ui/composites/SectionHeading";
 export { Alert } from "@/src/ui/composites/Alert";

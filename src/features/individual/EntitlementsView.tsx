@@ -32,22 +32,22 @@ export function EntitlementsView() {
   const [error, setError] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
 
-  if (query.isLoading) return <KidLoading label="Haklarınız yükleniyor…" rows={2} />;
+  if (query.isLoading) return <KidLoading label="Loading your entitlements…" rows={2} />;
   if (query.isError) {
     const failure = entitlementsFailure(query.error);
     if (failure.individualOnly) {
       return (
         <KidCard className="flex flex-col items-center gap-4 py-10 text-center">
           <Mascot mood="thinking" size="md" />
-          <h2 className="font-kid text-xl font-bold text-slate-900">Bu bölüm bireysel adaylar içindir</h2>
-          <p className="max-w-md text-slate-600">Kurum öğrencilerinin sınavları kurumları tarafından atanır; atanan sınavlar ana sayfada görünür.</p>
+          <h2 className="font-kid text-xl font-bold text-slate-900">This section is for individual candidates</h2>
+          <p className="max-w-md text-slate-600">Exams for institution students are assigned by their institution; assigned exams appear on the home page.</p>
           <KidButtonLink href="/student" variant="soft">
-            Ana sayfa
+            Home
           </KidButtonLink>
         </KidCard>
       );
     }
-    return <KidError title="Haklar yüklenemedi" message={failure.message} onRetry={() => void query.refetch()} retryLabel="Yeniden dene" />;
+    return <KidError title="Entitlements could not be loaded" message={failure.message} onRetry={() => void query.refetch()} retryLabel="Try again" />;
   }
 
   const cards = (query.data?.data ?? []).map((item) => toEntitlementCard(item)).filter((c): c is EntitlementCard => c !== null);
@@ -64,7 +64,7 @@ export function EntitlementsView() {
       const path = openedExamPath(result.data);
       await queryClient.invalidateQueries({ queryKey: getEntitlementsQueryKey() });
       if (path) router.push(path);
-      else setError("Deneme açıldı ancak sınav bağlantısı alınamadı. Ana sayfadaki sınav listesine bakın.");
+      else setError("The attempt was opened, but the exam link could not be retrieved. Check the exam list on the home page.");
     } catch (err) {
       // 409: sonuç bekleniyor / tekrar politikası / hak yok — sunucu mesajı olduğu gibi.
       setError(openAttemptFailureMessage(err));
@@ -77,14 +77,14 @@ export function EntitlementsView() {
     return (
       <KidCard className="flex flex-col items-center gap-4 py-10 text-center">
         <Mascot mood="waiting" size="md" />
-        <h2 className="font-kid text-xl font-bold text-slate-900">Henüz hakkınız yok</h2>
-        <p className="max-w-md text-slate-600">Bir ürün satın alıp ödemeniz onaylandığında sınav hakkınız burada görünür.</p>
+        <h2 className="font-kid text-xl font-bold text-slate-900">You have no entitlements yet</h2>
+        <p className="max-w-md text-slate-600">Once you buy a product and your payment is approved, your exam entitlement will appear here.</p>
         <div className="flex flex-wrap justify-center gap-2">
           <KidButtonLink href="/shop" variant="sun">
-            Ürünlere göz at
+            Browse products
           </KidButtonLink>
           <KidButtonLink href="/shop/orders" variant="soft">
-            Siparişlerim
+            My orders
           </KidButtonLink>
         </div>
       </KidCard>
@@ -106,17 +106,17 @@ export function EntitlementsView() {
               <StatusPill tone={PILL_TONE[card.status.tone]}>{card.status.label}</StatusPill>
             </div>
             <p className="text-sm text-slate-600">
-              Toplam {card.total} hak · {card.used} kullanıldı · {card.available} kaldı
+              Total {card.total} · {card.used} used · {card.available} left
             </p>
             <p className="text-sm text-slate-500">{validityText(card)}</p>
             {card.action === "none" ? (
               <KidNotice tone="neutral">
-                {card.expired ? "Bu hakkın süresi dolduğu için yeni deneme başlatılamaz." : "Bu üründe kullanılabilir hakkınız kalmadı."}
+                {card.expired ? "This entitlement has expired, so a new attempt cannot be started." : "You have no attempts left for this product."}
               </KidNotice>
             ) : (
               <div>
                 <KidButton variant={card.action === "resume" ? "sun" : "primary"} disabled={startingId === card.skuId} onClick={() => void start(card)}>
-                  {startingId === card.skuId ? "Başlatılıyor…" : card.action === "resume" ? "Denemeye devam et" : "Denemeyi başlat"}
+                  {startingId === card.skuId ? "Starting…" : card.action === "resume" ? "Continue attempt" : "Start attempt"}
                 </KidButton>
               </div>
             )}
@@ -124,11 +124,11 @@ export function EntitlementsView() {
         ))}
       </ul>
       <p className="text-sm text-slate-500">
-        Önceki denemenizin sonucu yayınlanmadan yeni deneme açılamaz; sonuçlarınız{" "}
+        A new attempt cannot be opened until the result of your previous attempt is published; your results appear on the{" "}
         <Link className="font-semibold text-indigo-700 underline-offset-2 hover:underline" href="/student/history">
-          Geçmişim
+          My history
         </Link>{" "}
-        sayfasında görünür.
+        page.
       </p>
     </div>
   );

@@ -83,6 +83,14 @@ export interface DataGridProps<T = Record<string, unknown>> {
   rowCount?: number;
   page?: number;
   onPaginationModelChange?: (model: PaginationModel) => void;
+  /** Başlangıç sıralaması (ör. sayfaya dönüldüğünde geri yüklemek için). */
+  initialSort?: GridSortModel | null;
+  onSortChange?: (sort: GridSortModel | null) => void;
+}
+
+export interface GridSortModel {
+  field: string;
+  direction: "asc" | "desc";
 }
 
 function asRecord(row: object): Record<string, unknown> {
@@ -128,10 +136,12 @@ export function DataGrid<T extends object>({
   rowCount,
   page: pageProp,
   onPaginationModelChange,
+  initialSort,
+  onSortChange,
 }: DataGridProps<T>) {
   const [pagination, setPagination] = useState({ page: pageProp ?? 0, pageSize });
-  const [sortField, setSortField] = useState("");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
+  const [sortField, setSortField] = useState(initialSort?.field ?? "");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(initialSort?.direction ?? null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [internalSearch, setInternalSearch] = useState("");
@@ -247,13 +257,17 @@ export function DataGrid<T extends object>({
   const handleSort = (field: string) => {
     const col = columns.find((item) => String(item.field) === field);
     if (col?.sortable === false) return;
-    if (sortField === field && sortDirection === "asc") setSortDirection("desc");
-    else if (sortField === field && sortDirection === "desc") {
+    if (sortField === field && sortDirection === "asc") {
+      setSortDirection("desc");
+      onSortChange?.({ field, direction: "desc" });
+    } else if (sortField === field && sortDirection === "desc") {
       setSortField("");
       setSortDirection(null);
+      onSortChange?.(null);
     } else {
       setSortField(field);
       setSortDirection("asc");
+      onSortChange?.({ field, direction: "asc" });
     }
   };
 

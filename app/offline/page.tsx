@@ -10,8 +10,8 @@ export default function OfflinePage() {
       <div className="w-full max-w-md">
         <EmptyState
           tone="warning"
-          title="Çevrimdışısınız"
-          description="İnternet bağlantısı yok. Uygulama kabuğu önbellekten açıldı; sınav verisi veya yeni sayfalar bağlantı gelince yüklenir."
+          title="You are offline"
+          description="No internet connection. The app opened from cache; exam data and new pages will load once you are back online."
         />
       </div>
     </main>

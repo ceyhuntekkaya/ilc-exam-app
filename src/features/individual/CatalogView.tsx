@@ -19,9 +19,9 @@ export function CatalogView() {
   const [buyingId, setBuyingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (catalog.isLoading) return <KidLoading label="Ürünler yükleniyor…" rows={3} />;
+  if (catalog.isLoading) return <KidLoading label="Loading products…" rows={3} />;
   if (catalog.isError) {
-    return <KidError title="Ürünler yüklenemedi" message={orderFailureMessage(catalog.error, "Ürün listesi şu an alınamadı.")} onRetry={() => void catalog.refetch()} retryLabel="Yeniden dene" />;
+    return <KidError title="Products could not be loaded" message={orderFailureMessage(catalog.error, "The product list could not be loaded right now.")} onRetry={() => void catalog.refetch()} retryLabel="Try again" />;
   }
 
   const cards = (catalog.data?.data ?? []).map(toCatalogCard).filter((c): c is CatalogCard => c !== null);
@@ -45,10 +45,10 @@ export function CatalogView() {
     return (
       <KidCard className="flex flex-col items-center gap-4 py-10 text-center">
         <Mascot mood="waiting" size="md" />
-        <h2 className="font-kid text-xl font-bold text-slate-900">Şu anda satışta ürün yok</h2>
-        <p className="max-w-md text-slate-600">Satışa açılan sınav ve raporlar burada listelenir. Daha sonra yeniden bakın.</p>
+        <h2 className="font-kid text-xl font-bold text-slate-900">No products are on sale right now</h2>
+        <p className="max-w-md text-slate-600">Exams and reports will be listed here once they go on sale. Please check back later.</p>
         <KidButtonLink href="/shop/orders" variant="soft">
-          Siparişlerim
+          My orders
         </KidButtonLink>
       </KidCard>
     );
@@ -71,12 +71,12 @@ export function CatalogView() {
             <h2 className="font-kid text-xl font-bold text-slate-900">{card.title}</h2>
             <dl className="grid gap-1 text-sm text-slate-600">
               <div className="flex gap-2">
-                <dt className="font-semibold">Seviye:</dt>
+                <dt className="font-semibold">Level:</dt>
                 <dd>{card.level}</dd>
               </div>
               {card.validity ? (
                 <div className="flex gap-2">
-                  <dt className="font-semibold">Geçerlilik:</dt>
+                  <dt className="font-semibold">Validity:</dt>
                   <dd>{card.validity}</dd>
                 </div>
               ) : null}
@@ -84,14 +84,14 @@ export function CatalogView() {
             <div className="mt-auto flex items-center justify-between gap-3 pt-2">
               <p className="sb-display text-2xl text-slate-900">{card.price}</p>
               <KidButton variant="sun" disabled={buyingId !== null} onClick={() => void buy(card.skuId)}>
-                {buyingId === card.skuId ? "Sipariş oluşturuluyor…" : "Satın al"}
+                {buyingId === card.skuId ? "Creating order…" : "Buy"}
               </KidButton>
             </div>
           </KidCard>
         ))}
       </ul>
       <p className="text-sm text-slate-500">
-        Ödeme banka havalesiyle yapılır. Sipariş oluşturduktan sonra havale bilgilerini ve referans kodunuzu göreceksiniz.
+        Payment is made by bank transfer. After you place an order, you will see the transfer details and your reference code.
       </p>
     </div>
   );

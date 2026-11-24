@@ -21,8 +21,8 @@ export function ErasureSelfService() {
   const [sent, setSent] = useState(false);
   const reasonIssue = validateErasureReason(reason);
 
-  if (query.isLoading) return <KidLoading label="Talepleriniz yükleniyor…" rows={1} />;
-  if (query.isError) return <KidError title="Talepler yüklenemedi" message="Silme talepleriniz şu an açılamadı." onRetry={() => void query.refetch()} retryLabel="Yeniden dene" />;
+  if (query.isLoading) return <KidLoading label="Loading your requests…" rows={1} />;
+  if (query.isError) return <KidError title="Could not load requests" message="We could not open your deletion requests right now." onRetry={() => void query.refetch()} retryLabel="Try again" />;
 
   const requests = query.data?.data ?? [];
   const open = openRequestOf(requests);
@@ -43,29 +43,29 @@ export function ErasureSelfService() {
   }
 
   return (
-    <div lang="tr" className="grid gap-5">
+    <div lang="en" className="grid gap-5">
       <KidCard className="grid gap-3 p-5">
-        <h2 className="font-kid text-lg font-bold text-slate-900">Verilerimin silinmesini talep et</h2>
+        <h2 className="font-kid text-lg font-bold text-slate-900">Request deletion of my data</h2>
         <p className="text-slate-700">
-          Kişisel verilerinizin silinmesini isteyebilirsiniz (KVKK). Talep açmak verilerinizi <strong>hemen silmez</strong>: talebiniz merkeze iletilir,
-          merkez tarafından değerlendirilir ve yürütülür.
+          You can ask for your personal data to be deleted (KVKK). Opening a request <strong>does not delete your data immediately</strong>: your request is sent to the centre,
+          which assesses and processes it.
         </p>
         <ul className="ml-5 list-disc text-sm text-slate-600">
-          <li>Açık bir itiraz, yasal tutma ya da itiraz süresi varsa ilgili veriler engel kalkana kadar silinmez; talebiniz bekletilir.</li>
-          <li>Sonuç, sertifika, ödeme, rıza ve denetim kayıtları yasal yükümlülükler nedeniyle saklanır.</li>
+          <li>If there is an open appeal, a legal hold or an appeal period, the related data is not deleted until the block is lifted; your request is put on hold.</li>
+          <li>Results, certificates, payments, consents and audit records are kept because of legal obligations.</li>
         </ul>
       </KidCard>
 
       {open || sent ? (
         <KidNotice tone="sky">
           <p role="status">
-            {open ? candidateRequestText(open) : "Talebiniz alındı, merkez tarafından değerlendirilir. Bu aşamada verileriniz silinmemiştir."}
+            {open ? candidateRequestText(open) : "Your request was received and will be assessed by the centre. Your data has not been deleted at this stage."}
           </p>
         </KidNotice>
       ) : (
         <KidCard className="grid gap-3 p-5">
           <label htmlFor="erasure-reason" className="text-sm font-semibold text-slate-800">
-            Açıklama (isteğe bağlı)
+            Note (optional)
           </label>
           <Textarea id="erasure-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={reasonIssue ? true : undefined} />
           {reasonIssue ? <p className="text-xs text-rose-700">{reasonIssue}</p> : null}
@@ -76,15 +76,15 @@ export function ErasureSelfService() {
           ) : null}
           <div>
             <KidButton variant="primary" onClick={() => void send()} disabled={submit.isPending || Boolean(reasonIssue)}>
-              {submit.isPending ? "Gönderiliyor…" : "Silinmesini talep et"}
+              {submit.isPending ? "Sending…" : "Request deletion"}
             </KidButton>
           </div>
         </KidCard>
       )}
 
       {requests.length > 0 ? (
-        <section aria-label="Taleplerim" className="grid gap-3">
-          <h3 className="font-kid text-base font-bold text-slate-900">Taleplerim</h3>
+        <section aria-label="My requests" className="grid gap-3">
+          <h3 className="font-kid text-base font-bold text-slate-900">My requests</h3>
           <ul className="grid gap-3" data-testid="my-requests">
             {requests.map((r) => {
               const st = requestStatusView(r.status);

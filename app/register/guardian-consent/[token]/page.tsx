@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { GuardianConsentView } from "@/src/features/registration/GuardianConsentView";
 
 export const metadata: Metadata = {
-  title: "Veli onayı",
+  title: "Guardian consent",
   referrer: "no-referrer",
   robots: { index: false, follow: false },
 };

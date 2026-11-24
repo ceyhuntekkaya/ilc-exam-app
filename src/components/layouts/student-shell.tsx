@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 /**
   Öğrenci kabuğu ("Modern Energetic Academy")
   - Sticky glassmorphic üst bar (backdrop-blur-md)
-  - Enerjik rozetli ILC logosu
+  - Enerjik rozetli APEX logosu
   - Renkli monogramlı öğrenci profili
   - Sınav akışında odak modu
  */
@@ -82,12 +82,12 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
 export function Logo() {
   return (
-    <Link href="/student" className="inline-flex items-center gap-2.5 transition-transform hover:scale-[1.02]" aria-label="ILC — home">
+    <Link href="/student" className="inline-flex items-center gap-2.5 transition-transform hover:scale-[1.02]" aria-label="APEX — home">
       <span
         aria-hidden
         className="grid h-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-700 px-2.5 font-kid text-sm font-black tracking-wider text-white shadow-xs shadow-indigo-500/20"
       >
-        ILC
+        APEX
       </span>
       <span className="font-kid text-lg font-bold tracking-tight text-slate-900">
         My Tests

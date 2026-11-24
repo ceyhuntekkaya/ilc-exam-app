@@ -29,7 +29,7 @@ export function toCertificateView(data: CertificateAvailability | undefined | nu
 export function formatDay(value?: string | null): string {
   if (!value) return "—";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("tr-TR", { dateStyle: "long" });
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-GB", { dateStyle: "long" });
 }
 
 function statusOf(err: unknown): number | undefined {
@@ -44,16 +44,16 @@ export function reviewRequestFailureMessage(err: unknown): string {
   const status = statusOf(err);
   const text = err instanceof Error ? err.message.trim() : "";
   if ((status === 409 || status === 400 || status === 403) && text) return text;
-  if (status === 404) return "Bu sonuç için talep açılamadı: sonuç bulunamadı.";
-  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
-  return "Talebiniz şu an iletilemedi. Lütfen biraz sonra yeniden deneyin.";
+  if (status === 404) return "We could not open a request for this result: result not found.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  return "We could not send your request right now. Please try again shortly.";
 }
 
 export const REVIEW_REASON_MAX = 1000;
 
 export function validateReviewReason(reason: string): string | null {
   const text = reason.trim();
-  if (!text) return "Lütfen talebinizin gerekçesini yazın.";
-  if (text.length > REVIEW_REASON_MAX) return `Gerekçe en fazla ${REVIEW_REASON_MAX} karakter olabilir.`;
+  if (!text) return "Please write the reason for your request.";
+  if (text.length > REVIEW_REASON_MAX) return `The reason can be at most ${REVIEW_REASON_MAX} characters.`;
   return null;
 }

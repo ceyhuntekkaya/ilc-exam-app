@@ -33,15 +33,15 @@ describe("yardımcılar", () => {
     expect(formatDay("2026-10-01T00:00:00Z")).toMatch(/2026/);
   });
   it("gerekçe doğrulaması", () => {
-    expect(validateReviewReason("   ")).toMatch(/gerekçe/i);
+    expect(validateReviewReason("   ")).toMatch(/reason/i);
     expect(validateReviewReason("Puanlama hatası var")).toBeNull();
-    expect(validateReviewReason("x".repeat(1001))).toMatch(/en fazla/);
+    expect(validateReviewReason("x".repeat(1001))).toMatch(/at most/);
   });
   it("inceleme talebi hataları: 409 sunucu mesajıyla; 404/401/diğer Türkçe yedek", () => {
     expect(reviewRequestFailureMessage(Object.assign(new Error("İtiraz süresi doldu: 2026-12-01T00:00:00Z"), { status: 409 }))).toBe("İtiraz süresi doldu: 2026-12-01T00:00:00Z");
     expect(reviewRequestFailureMessage(Object.assign(new Error("Bu sonuç için zaten bir inceleme talebi açılmış"), { status: 409 }))).toMatch(/zaten/);
-    expect(reviewRequestFailureMessage(Object.assign(new Error("x"), { status: 404 }))).toMatch(/bulunamadı/);
-    expect(reviewRequestFailureMessage(Object.assign(new Error("x"), { status: 401 }))).toMatch(/Oturumunuz/);
-    expect(reviewRequestFailureMessage(new Error("boom"))).toMatch(/iletilemedi/);
+    expect(reviewRequestFailureMessage(Object.assign(new Error("x"), { status: 404 }))).toMatch(/not found/);
+    expect(reviewRequestFailureMessage(Object.assign(new Error("x"), { status: 401 }))).toMatch(/session has expired/);
+    expect(reviewRequestFailureMessage(new Error("boom"))).toMatch(/could not send/);
   });
 });

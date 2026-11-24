@@ -54,14 +54,14 @@ export function RegisterForm() {
 
   if (done) {
     return (
-      <EntryFrame lang="tr" panel="student" logoHref="/">
+      <EntryFrame lang="en" panel="student" logoHref="/">
         <div className="mt-7">
           <div className="flex items-center gap-4">
-            <h1 className="sb-display min-w-0 flex-1 text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">E-postanızı kontrol edin</h1>
+            <h1 className="sb-display min-w-0 flex-1 text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Check your email</h1>
             <Mascot mood="thumbsUp" size="md" />
           </div>
           <KidNotice>{REGISTER_NEUTRAL_MESSAGE}</KidNotice>
-          <p className="mt-4 text-sm text-slate-500">Bağlantı birkaç dakika içinde ulaşmazsa kayıt formunu yeniden doldurabilirsiniz.</p>
+          <p className="mt-4 text-sm text-slate-500">If the link does not arrive within a few minutes, you can fill in the sign-up form again.</p>
         </div>
       </EntryFrame>
     );
@@ -72,14 +72,14 @@ export function RegisterForm() {
 
   return (
     <EntryFrame
-      lang="tr"
+      lang="en"
       panel="student"
       logoHref="/"
       footer={
         <>
-          Zaten hesabınız var mı?{" "}
+          Already have an account?{" "}
           <Link href="/login/student" className={kidLinkClass}>
-            Giriş yapın
+            Log in
           </Link>
         </>
       }
@@ -87,27 +87,27 @@ export function RegisterForm() {
       <form onSubmit={onSubmit} noValidate className="mt-7">
         <div className="flex items-center gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="sb-display text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Kayıt ol</h1>
-            <p className="mt-2 text-base text-slate-500">Bilgilerinizi yazın; e-postanıza bir doğrulama bağlantısı göndereceğiz.</p>
+            <h1 className="sb-display text-3xl leading-[1.05] tracking-tight text-slate-900 sm:text-4xl">Sign up</h1>
+            <p className="mt-2 text-base text-slate-500">Enter your details and we will send a verification link to your email.</p>
           </div>
           <Mascot mood="hello" size="md" />
         </div>
 
-        <KidField id="firstName" label="Adınız" icon={<IconUser aria-hidden />} className="mt-6" required autoFocus autoComplete="given-name" aria-invalid={invalid("firstName")} aria-describedby={issues.firstName ? "firstName-error" : undefined} value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
+        <KidField id="firstName" label="First name" icon={<IconUser aria-hidden />} className="mt-6" required autoFocus autoComplete="given-name" aria-invalid={invalid("firstName")} aria-describedby={issues.firstName ? "firstName-error" : undefined} value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
         {hint("firstName")}
-        <KidField id="lastName" label="Soyadınız" icon={<IconUser aria-hidden />} required autoComplete="family-name" aria-invalid={invalid("lastName")} aria-describedby={issues.lastName ? "lastName-error" : undefined} value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
+        <KidField id="lastName" label="Last name" icon={<IconUser aria-hidden />} required autoComplete="family-name" aria-invalid={invalid("lastName")} aria-describedby={issues.lastName ? "lastName-error" : undefined} value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
         {hint("lastName")}
-        <KidField id="email" label="E-posta adresiniz" icon={<IconMail aria-hidden />} type="email" required autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="ad@ornek.com" aria-invalid={invalid("email")} aria-describedby={issues.email ? "email-error" : undefined} value={form.email} onChange={(e) => set("email", e.target.value)} />
+        <KidField id="email" label="Email address" icon={<IconMail aria-hidden />} type="email" required autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="name@example.com" aria-invalid={invalid("email")} aria-describedby={issues.email ? "email-error" : undefined} value={form.email} onChange={(e) => set("email", e.target.value)} />
         {hint("email")}
-        <KidField id="birthDate" label="Doğum tarihiniz" icon={<IconCalendar aria-hidden />} type="date" required autoComplete="bday" aria-invalid={invalid("birthDate")} aria-describedby={issues.birthDate ? "birthDate-error" : undefined} value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
+        <KidField id="birthDate" label="Date of birth" icon={<IconCalendar aria-hidden />} type="date" required autoComplete="bday" aria-invalid={invalid("birthDate")} aria-describedby={issues.birthDate ? "birthDate-error" : undefined} value={form.birthDate} onChange={(e) => set("birthDate", e.target.value)} />
         {hint("birthDate")}
 
         {guardianRequired ? (
           <>
             <p className="mt-5 rounded-2xl border border-amber-200/90 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-900">
-              18 yaşından küçükler için velinin onayı gerekir. Hesabınız, velinizin e-postasına gelen bağlantıyı onaylamasıyla açılır.
+              Candidates under 18 need a parent or guardian&apos;s consent. Your account will open once your guardian approves the link sent to their email.
             </p>
-            <KidField id="guardianEmail" label="Veli e-posta adresi" icon={<IconMail aria-hidden />} className="mt-4" type="email" required autoComplete="off" inputMode="email" autoCapitalize="none" spellCheck={false} aria-invalid={invalid("guardianEmail")} aria-describedby={issues.guardianEmail ? "guardianEmail-error" : undefined} value={form.guardianEmail} onChange={(e) => set("guardianEmail", e.target.value)} />
+            <KidField id="guardianEmail" label="Guardian email address" icon={<IconMail aria-hidden />} className="mt-4" type="email" required autoComplete="off" inputMode="email" autoCapitalize="none" spellCheck={false} aria-invalid={invalid("guardianEmail")} aria-describedby={issues.guardianEmail ? "guardianEmail-error" : undefined} value={form.guardianEmail} onChange={(e) => set("guardianEmail", e.target.value)} />
             {hint("guardianEmail")}
           </>
         ) : null}
@@ -115,7 +115,7 @@ export function RegisterForm() {
         {error ? <KidAlert>{error}</KidAlert> : null}
 
         <button type="submit" disabled={mutation.isPending} className={`${kidButtonClass({ variant: "sun", size: "lg", full: true })} mt-6 shadow-md shadow-amber-500/20`}>
-          {mutation.isPending ? "Gönderiliyor…" : "Kayıt ol"}
+          {mutation.isPending ? "Sending…" : "Sign up"}
         </button>
       </form>
     </EntryFrame>

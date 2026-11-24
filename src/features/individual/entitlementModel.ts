@@ -32,21 +32,21 @@ export function toEntitlementCard(item: Entitlement, now: Date = new Date()): En
   let status: EntitlementCard["status"];
   let action: EntitlementCard["action"];
   if (openRecipientId && !expired) {
-    status = { label: "Devam eden deneme var", tone: "info" };
+    status = { label: "Attempt in progress", tone: "info" };
     action = "resume";
   } else if (expired) {
-    status = { label: "Süresi doldu", tone: "warning" };
+    status = { label: "Expired", tone: "warning" };
     action = "none";
   } else if (available <= 0) {
-    status = { label: "Hak kullanıldı", tone: "neutral" };
+    status = { label: "All used", tone: "neutral" };
     action = "none";
   } else {
-    status = { label: `${available} hak kaldı`, tone: "success" };
+    status = { label: `${available} left`, tone: "success" };
     action = "start";
   }
   return {
     skuId: item.skuId,
-    title: item.skuName || item.skuCode || "Ürün",
+    title: item.skuName || item.skuCode || "Product",
     total,
     available,
     used: Math.max(0, total - available),
@@ -85,9 +85,9 @@ export function openAttemptFailureMessage(err: unknown): string {
   const status = statusOf(err);
   const text = textOf(err);
   if ((status === 409 || status === 400 || status === 403) && text) return text;
-  if (status === 401) return "Oturumunuz sona ermiş. Lütfen yeniden giriş yapın.";
-  if (status === 404) return "Bu ürün için hak bulunamadı.";
-  return "Deneme şu an başlatılamadı. Lütfen biraz sonra yeniden deneyin.";
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status === 404) return "No entitlement was found for this product.";
+  return "The attempt could not be started right now. Please try again shortly.";
 }
 
 /**
@@ -98,15 +98,15 @@ export function entitlementsFailure(err: unknown): { message: string; individual
   const status = statusOf(err);
   const text = textOf(err);
   if (status === 400 || status === 403) {
-    return { message: text ?? "Bu bölüm yalnız bireysel adaylar içindir.", individualOnly: true };
+    return { message: text ?? "This section is only for individual candidates.", individualOnly: true };
   }
-  return { message: "Haklarınız şu an alınamadı.", individualOnly: false };
+  return { message: "Your entitlements could not be loaded right now.", individualOnly: false };
 }
 
 export function validityText(card: Pick<EntitlementCard, "validUntil" | "expired">): string {
-  if (!card.validUntil) return "Süresiz geçerli";
+  if (!card.validUntil) return "No expiry";
   const date = new Date(card.validUntil);
   if (Number.isNaN(date.getTime())) return "—";
-  const when = date.toLocaleDateString("tr-TR", { dateStyle: "long" });
-  return card.expired ? `${when} tarihinde sona erdi` : `${when} tarihine kadar geçerli`;
+  const when = date.toLocaleDateString("en-GB", { dateStyle: "long" });
+  return card.expired ? `Expired on ${when}` : `Valid until ${when}`;
 }

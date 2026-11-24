@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ILC Center Exams",
-  description: "İngiliz Kültür Koleji sınav merkezi",
+  description: "İngiliz Kültür Koleji exam center",
   applicationName: "ILC Center Exams",
   // F3-01: manifest.json + ikonlar public/'ta, Next bunu <link rel="manifest"> olarak yazar.
   manifest: "/manifest.json",

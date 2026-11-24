@@ -3,7 +3,7 @@ import { VerifyEmailForm } from "@/src/features/registration/VerifyEmailForm";
 
 // Token URL'de olduğu için üçüncü taraflara Referer ile sızmasın; sayfa dizine alınmasın.
 export const metadata: Metadata = {
-  title: "Kaydı tamamla",
+  title: "Complete sign-up",
   referrer: "no-referrer",
   robots: { index: false, follow: false },
 };

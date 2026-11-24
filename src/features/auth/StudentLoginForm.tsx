@@ -17,6 +17,9 @@ export function loginErrorMessage(status: number | undefined): string {
   return "We could not log you in. Please try again. If it does not work, ask your teacher.";
 }
 
+/** Bireysel aday kaydı şimdilik kapalı (yalnız okullar). Açmak için true yapın; /register rotası yerinde duruyor. */
+const SHOW_SIGN_UP = false;
+
 /** `usernameOnly`: GEÇİCİ pilot modu — yalnız kullanıcı adı sorulur; şifre alanı/bağlantısı gizlenir, kod yerinde kalır. */
 export function StudentLoginForm({
   passwordChanged = false,
@@ -129,12 +132,14 @@ export function StudentLoginForm({
             </Link>
           </p>
         )}
-        {/* R-19: bireysel aday kaydı (R-18 /register). Giriş formu İngilizce kalır (R-02 kapsamı); yalnız bağlantı eklendi. */}
-        <p className="mt-2 text-center text-sm">
-          <Link href="/register" lang="tr" className={kidLinkClass}>
-            Kayıt ol
-          </Link>
-        </p>
+        {/* R-19: bireysel aday kaydı (R-18 /register). Şimdilik yalnız okullara açığız: bağlantı gizli (SHOW_SIGN_UP). */}
+        {SHOW_SIGN_UP ? (
+          <p className="mt-2 text-center text-sm">
+            <Link href="/register" className={kidLinkClass}>
+              Sign up
+            </Link>
+          </p>
+        ) : null}
       </form>
     </EntryFrame>
   );

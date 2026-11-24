@@ -7,33 +7,13 @@ import { formatDuration } from "@/src/features/exam-flow/format";
 import type { AssignmentCard } from "@/src/features/exam-flow/schema";
 import { Mascot, type MascotMood } from "@/src/features/student/mascot";
 import { examGroup, examStatus, finishedAttempts, firstName, friendlyWhen, type FinishedAttempt } from "@/src/features/student/status";
-import { KidButtonLink, KidCard, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
-import { downloadMyReportCardPdf } from "@/src/features/results/downloadReportCardsPdf";
-import { skillClass, skillFamily } from "@/src/features/results/skill";
+import { KidButtonLink, KidError, KidLoading, StatusPill } from "@/src/features/student/ui";
 import { cn } from "@/src/lib/utils/cn";
-import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconDownload, IconFile, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
+import { IconArrowRight, IconCalendar, IconCheck, IconChevronDown, IconClock, IconLayers, IconQuestion, IconTrophy } from "@/src/ui/icons";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-type Result = {
-  applicationId: string;
-  examTitle: string;
-  totalScore?: number | null;
-  shownScore?: number | string | null;
-  shownScale?: number | string | null;
-  cefrLevel?: string | null;
-  skillScores?: Record<string, number> | null;
-  sections?: { title: string; skill?: string | null; earned: number | string | null; available?: number | string | null }[] | null;
-};
-
-const SKILL_LABEL: Record<string, string> = {
-  READING: "Reading",
-  LISTENING: "Listening",
-  WRITING: "Writing",
-  SPEAKING: "Speaking",
-  GRAMMAR: "Grammar",
-  VOCABULARY: "Words",
-};
+type Result = { applicationId: string; examTitle: string };
 
 /**
  * Öğrenci ana sayfası ("Modern Energetic Academy").
@@ -41,7 +21,6 @@ const SKILL_LABEL: Record<string, string> = {
  * 1) Şimdi girebileceğin sınavlar (yarım kalan en üstte, motivasyon vurgulu)
  * 2) Yakında açılacaklar
  * 3) Biten sınavlar
- * 4) Sağ sütunda / altta sonuçlarım ve beceri karnesi
  */
 export default function StudentHomePage() {
   const { user, loading: authLoading } = useAuth();
@@ -88,6 +67,13 @@ export default function StudentHomePage() {
     [groups.done],
   );
 
+  // Sonucu yayınlanan sınavlar: /me/results yalnız paylaşılanları döndürür.
+  const resultByTitle = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const result of results ?? []) if (!map.has(result.examTitle)) map.set(result.examTitle, result.applicationId);
+    return map;
+  }, [results]);
+
   const name = authLoading ? "" : firstName(user?.displayName || user?.username);
 
   return (
@@ -96,75 +82,34 @@ export default function StudentHomePage() {
 
       {error ? <KidError title="We could not load your tests" message="Check your internet and try again." onRetry={retry} /> : null}
 
-      {/* İki sütunlu düzen */}
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_19rem] md:items-start lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10">
-        <div className="space-y-8">
-          <Block title="Tests you can take now" count={groups.now.length} id="simdi">
-            {rows == null && !error ? (
-              <KidLoading label="Loading your tests…" />
-            ) : groups.now.length ? (
-              <ul className="grid gap-5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
-                {groups.now.map((row) => <NowCard key={row.recipientId} row={row} />)}
-              </ul>
-            ) : rows ? (
-              <Empty mood="waiting" title="You have no tests right now" text="When your teacher opens a new test, you will see it here." />
-            ) : null}
-          </Block>
+      <Block title="Tests you can take now" count={groups.now.length} id="simdi">
+        {rows == null && !error ? (
+          <KidLoading label="Loading your tests…" />
+        ) : groups.now.length ? (
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.now.map((row) => <NowCard key={row.recipientId} row={row} />)}
+          </ul>
+        ) : rows ? (
+          <Empty mood="waiting" title="You have no tests right now" text="When your teacher opens a new test, you will see it here." />
+        ) : null}
+      </Block>
 
-          {groups.soon.length ? (
-            <Block title="Coming soon" count={groups.soon.length} id="yakinda">
-              <ul className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
-                {groups.soon.map((row) => <SoonCard key={row.recipientId} row={row} />)}
-              </ul>
-            </Block>
-          ) : null}
+      {groups.soon.length ? (
+        <Block title="Coming soon" count={groups.soon.length} id="yakinda">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groups.soon.map((row) => <SoonCard key={row.recipientId} row={row} />)}
+          </ul>
+        </Block>
+      ) : null}
 
-          {finished.length || closedOnly.length ? (
-            <Block title="Finished tests" count={finished.length + closedOnly.length} id="biten">
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
-                {finished.map((row) => <FinishedRow key={row.key} row={row} />)}
-                {closedOnly.map((row) => <DoneRow key={row.recipientId} row={row} />)}
-              </ul>
-            </Block>
-          ) : null}
-        </div>
-
-        <aside className="space-y-8">
-          {/* R-19: bireysel aday mağaza/haklar/geçmiş girişi (Türkçe; mağaza ekranları R-18/R-19). */}
-          <Block title="Ürünler ve haklarım" id="magaza">
-            <KidCard className="grid gap-3 p-5 sm:p-5.5">
-              <p lang="tr" className="text-sm text-slate-600">
-                Sınav ürünlerine göz atın, satın aldığınız hakları görün ve denemeyi başlatın.
-              </p>
-              <div lang="tr" className="flex flex-wrap gap-2">
-                <KidButtonLink href="/shop/entitlements" variant="sun">
-                  Haklarım
-                </KidButtonLink>
-                <KidButtonLink href="/shop" variant="soft">
-                  Ürünler
-                </KidButtonLink>
-                <KidButtonLink href="/student/history" variant="ghost">
-                  Geçmişim
-                </KidButtonLink>
-                <KidButtonLink href="/student/privacy" variant="ghost">
-                  Verilerim ve gizlilik
-                </KidButtonLink>
-              </div>
-            </KidCard>
-          </Block>
-          <Block title="My results" count={results?.length} id="sonuclar">
-            {results == null ? (
-              <KidLoading rows={1} label="Loading your results…" />
-            ) : results.length ? (
-              <ul className="space-y-4">
-                {results.map((row) => <ResultCard key={row.applicationId} row={row} />)}
-              </ul>
-            ) : (
-              <Empty mood="thinking" title="No results yet" text="When your teacher shares your test results, you will see them here." />
-            )}
-          </Block>
-        </aside>
-      </div>
+      {finished.length || closedOnly.length ? (
+        <CollapsibleBlock title="Finished tests" count={finished.length + closedOnly.length} id="biten">
+          <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
+            {finished.map((row) => <FinishedRow key={row.key} row={row} resultId={resultByTitle.get(row.examTitle)} />)}
+            {closedOnly.map((row) => <DoneRow key={row.recipientId} row={row} />)}
+          </ul>
+        </CollapsibleBlock>
+      ) : null}
     </div>
   );
 }
@@ -203,7 +148,7 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
           <Mascot mood="hello" size="md" priority className="hidden ring-white/20 sm:block lg:size-32" />
           <div className="min-w-0">
             <p className="font-kid text-xs font-bold tracking-widest text-indigo-300 uppercase">
-              ILC Student Portal
+              APEX Student Portal
             </p>
             <h1 className="sb-display mt-2 text-4xl leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
               Hello{name ? <>, <span className="bg-gradient-to-r from-amber-300 via-amber-200 to-amber-400 bg-clip-text text-transparent">{name}</span></> : ""}!
@@ -227,18 +172,53 @@ function Hello({ name, rows, now }: { name: string; rows: AssignmentCard[] | nul
   );
 }
 
+const headingClass = "flex items-center gap-2.5 font-kid text-xl font-bold tracking-tight text-slate-900 sm:text-2xl";
+
+function CountBadge({ count }: { count?: number }) {
+  return count !== undefined && count > 0 ? (
+    <span className="sb-display inline-grid h-6.5 min-w-6.5 place-items-center rounded-full bg-indigo-50 px-2 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200/80">
+      {count}
+    </span>
+  ) : null;
+}
+
 function Block({ title, count, id, children }: { title: string; count?: number; id: string; children: ReactNode }) {
   return (
     <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="flex items-center gap-2.5 font-kid text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+      <h2 id={id} className={headingClass}>
         <span>{title}</span>
-        {count !== undefined && count > 0 ? (
-          <span className="sb-display inline-grid h-6.5 min-w-6.5 place-items-center rounded-full bg-indigo-50 px-2 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200/80">
-            {count}
-          </span>
-        ) : null}
+        <CountBadge count={count} />
       </h2>
       {children}
+    </section>
+  );
+}
+
+/** Başlığa tıklayınca açılıp kapanan blok; varsayılan kapalı. */
+function CollapsibleBlock({ title, count, id, children }: { title: string; count?: number; id: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const panelId = `${id}-panel`;
+  return (
+    <section aria-labelledby={id} className="space-y-4">
+      <h2 id={id} className={headingClass}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((value) => !value)}
+          className="flex items-center gap-2.5 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500"
+        >
+          <span>{title}</span>
+          <CountBadge count={count} />
+          <IconChevronDown
+            aria-hidden
+            className={cn("size-5 shrink-0 text-slate-400 transition-transform duration-200", open && "rotate-180")}
+          />
+        </button>
+      </h2>
+      <div id={panelId} hidden={!open}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -320,7 +300,7 @@ function SoonCard({ row }: { row: AssignmentCard }) {
   );
 }
 
-function FinishedRow({ row }: { row: FinishedAttempt }) {
+function FinishedRow({ row, resultId }: { row: FinishedAttempt; resultId?: string }) {
   const when = friendlyWhen(row.finishedAt);
   const until = row.sharedTitle ? friendlyWhen(row.availableUntil) : null;
   return (
@@ -333,7 +313,13 @@ function FinishedRow({ row }: { row: FinishedAttempt }) {
         </p>
         {until ? <p className="text-xs text-slate-400">Open until {until}</p> : null}
       </div>
-      <StatusPill tone="mint">Done</StatusPill>
+      {resultId ? (
+        <Link href={`/student/results/${resultId}`} aria-label={`Result: ${row.examTitle}`} className="rounded-full focus-visible:outline-2 focus-visible:outline-indigo-500">
+          <StatusPill tone="grape" icon={<IconTrophy aria-hidden />}>Result</StatusPill>
+        </Link>
+      ) : (
+        <StatusPill tone="mint">Done</StatusPill>
+      )}
     </li>
   );
 }
@@ -351,114 +337,6 @@ function DoneRow({ row }: { row: AssignmentCard }) {
     </li>
   );
 }
-
-function headlineScore(row: Result) {
-  const shown = row.shownScore ?? row.totalScore;
-  if (shown == null || shown === "") return "—";
-  const scale = row.shownScale;
-  if (scale == null || scale === "" || Number(scale) <= 0) return String(shown);
-  return `${shown} / ${scale}`;
-}
-
-function ResultCard({ row }: { row: Result }) {
-  const sections = (row.sections ?? []).filter((section) => section.title);
-  const skills = sections.length
-    ? sections.map((section) => [section.title, section.earned, section.skill, section.available] as const)
-    : Object.entries(row.skillScores ?? {}).map(([skill, score]) => [skill, score, skill, null] as const);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState(false);
-
-  async function downloadPdf() {
-    setPdfError(null);
-    setDownloading(true);
-    try {
-      await downloadMyReportCardPdf(row.applicationId);
-    } catch {
-      setPdfError("The PDF could not be downloaded. Try again.");
-    } finally {
-      setDownloading(false);
-    }
-  }
-
-  return (
-    <KidCard as="li" className="p-5 sm:p-5.5">
-      <div className="flex items-start gap-3">
-        <p className="min-w-0 flex-1 font-kid text-lg leading-tight font-bold text-slate-900">{row.examTitle}</p>
-        <div className="flex shrink-0 gap-1.5">
-          <Link
-            href={`/student/results/${row.applicationId}`}
-            aria-label="Report card"
-            title="Report card"
-            className={iconAction}
-          >
-            <IconFile aria-hidden />
-          </Link>
-          <button
-            type="button"
-            aria-label="Download PDF"
-            title="Download PDF"
-            className={iconAction}
-            disabled={downloading}
-            aria-busy={downloading}
-            onClick={() => void downloadPdf()}
-          >
-            <IconDownload aria-hidden />
-          </button>
-        </div>
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
-        <div>
-          <p className="sb-overline text-slate-400">Your score</p>
-          <p className="sb-display mt-0.5 text-4xl leading-none text-slate-900 sm:text-5xl">{headlineScore(row)}</p>
-        </div>
-        {row.cefrLevel ? (
-          <StatusPill className="h-8 px-3 text-sm font-extrabold shadow-2xs" tone="grape" icon={<IconTrophy aria-hidden className="text-purple-600" />}>
-            {row.cefrLevel}
-          </StatusPill>
-        ) : null}
-      </div>
-      {skills.length ? (
-        <ul className="mt-5 space-y-3">
-          {skills.map(([skill, score, skillKey, available], index) => {
-            const value = typeof score === "number" ? score : Number(score);
-            const cap = typeof available === "number" ? available : Number(available);
-            const shown = Number.isFinite(value) ? value : score;
-            const hasCap = Number.isFinite(cap) && cap > 0 && Number.isFinite(value);
-            const family = skillFamily(skillKey);
-            return (
-              <li key={`${skill}-${index}`}>
-                <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-slate-700">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span aria-hidden className={cn("size-2 rounded-full shrink-0", family ? skillClass[family].solid : "bg-indigo-600")} />
-                    <span className="truncate">{SKILL_LABEL[skill] ?? skill}</span>
-                  </span>
-                  <span className="sb-display text-base leading-none text-slate-900">
-                    {hasCap ? `${shown} / ${cap}` : String(shown)}
-                  </span>
-                </div>
-                {hasCap ? (
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-[width] duration-300 ease-out",
-                        family ? skillClass[family].solid : "bg-indigo-600",
-                      )}
-                      style={{ width: `${Math.min(100, (value / cap) * 100)}%` }}
-                    />
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-      {pdfError ? <p role="alert" className="mt-3 text-sm font-medium text-rose-600">{pdfError}</p> : null}
-    </KidCard>
-  );
-}
-
-const iconAction =
-  "grid size-9.5 place-items-center rounded-xl border border-slate-200/80 bg-white text-slate-600 shadow-2xs transition-all hover:border-indigo-300 hover:bg-indigo-50/70 hover:text-indigo-700 disabled:opacity-40 [&>svg]:size-4.5 [&>svg]:stroke-[2.25]";
 
 function Empty({ mood, title, text }: { mood: MascotMood; title: string; text: string }) {
   return (

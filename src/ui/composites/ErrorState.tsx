@@ -4,13 +4,13 @@ import { useState } from "react";
 
 /** HTTP durumuna göre kullanıcıya ne yapacağını söyleyen açıklama (ham "Forbidden" yerine). */
 const STATUS_HINT: Record<number, { title: string; hint: string }> = {
-  401: { title: "Oturum süresi doldu", hint: "Devam etmek için yeniden giriş yapın." },
-  403: { title: "Bu alana erişiminiz yok", hint: "Hesabınızın bu işlem için yetkisi bulunmuyor." },
-  404: { title: "Kayıt bulunamadı", hint: "Kayıt silinmiş ya da bağlantı hatalı olabilir." },
-  409: { title: "Çakışma oluştu", hint: "Kayıt başka biri tarafından değiştirilmiş olabilir; sayfayı yenileyin." },
-  500: { title: "Sunucu hatası", hint: "Sorun bizde. Birkaç saniye sonra yeniden deneyin." },
-  502: { title: "Sunucuya ulaşılamıyor", hint: "Bağlantı geçici olarak kesildi. Yeniden deneyin." },
-  503: { title: "Servis geçici olarak kapalı", hint: "Bakım ya da yoğunluk olabilir. Biraz sonra deneyin." },
+  401: { title: "Session expired", hint: "Please sign in again to continue." },
+  403: { title: "You don't have access to this area", hint: "Your account is not authorised for this action." },
+  404: { title: "Record not found", hint: "The record may have been deleted or the link may be wrong." },
+  409: { title: "Conflict", hint: "Someone else may have changed this record; refresh the page." },
+  500: { title: "Server error", hint: "Something went wrong on our side. Try again in a few seconds." },
+  502: { title: "Can't reach the server", hint: "The connection dropped temporarily. Try again." },
+  503: { title: "Service temporarily unavailable", hint: "It may be under maintenance or busy. Try again shortly." },
 };
 
 function statusOf(error: unknown): number | undefined {
@@ -46,8 +46,8 @@ export function ErrorState({
   const [copied, setCopied] = useState(false);
   const known = STATUS_HINT[statusOf(error) ?? -1];
   const detail = message ?? (error instanceof Error ? error.message : undefined);
-  const heading = title ?? known?.title ?? "Veriler yüklenemedi";
-  const hint = known?.hint ?? "Bağlantınızı kontrol edip yeniden deneyin.";
+  const heading = title ?? known?.title ?? "Couldn't load data";
+  const hint = known?.hint ?? "Check your connection and try again.";
 
   async function copy() {
     if (!traceId) return;
@@ -81,14 +81,14 @@ export function ErrorState({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden className="size-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 0 1 14-5.3L20 9M20 4v5h-5M20 12a8 8 0 0 1-14 5.3L4 15M4 20v-5h5" />
               </svg>
-              Tekrar dene
+              Try again
             </button>
           ) : null}
           {traceId ? (
             <span className="flex items-center gap-2 text-xs">
               <span className="font-mono text-fg-subtle">{traceId}</span>
               <button type="button" className="font-medium text-primary hover:underline" onClick={copy}>
-                {copied ? "Kopyalandı" : "Kopyala"}
+                {copied ? "Copied" : "Copy"}
               </button>
             </span>
           ) : null}

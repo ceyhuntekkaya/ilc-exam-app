@@ -11,13 +11,13 @@ export function AmountDelta({
 }) {
   return (
     <p className="text-sm text-fg">
-      <span className="text-fg-muted">Sipariş anı </span>
+      <span className="text-fg-muted">At order </span>
       <span className="numeric">{formatTry(snapshot)}</span>
-      <span className="text-fg-muted"> · güncel </span>
+      <span className="text-fg-muted"> · current </span>
       <span className="numeric">{formatTry(current)}</span>
       {delta != null && delta !== "" ? (
         <>
-          <span className="text-fg-muted"> · fark </span>
+          <span className="text-fg-muted"> · difference </span>
           <span className="numeric">{typeof delta === "number" || typeof delta === "string" ? formatTry(delta) : delta}</span>
         </>
       ) : null}
