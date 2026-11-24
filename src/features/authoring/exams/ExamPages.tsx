@@ -797,6 +797,18 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
       .catch(() => undefined);
   }
 
+  function reorderSub(sectionId: string, subIndex: number, dir: -1 | 1) {
+    if (!exam) return;
+    const section = exam.sections.find((x) => x.id === sectionId);
+    if (!section) return;
+    const ids = section.subSections.map((x) => x.id);
+    [ids[subIndex + dir], ids[subIndex]] = [ids[subIndex], ids[subIndex + dir]];
+    void notify
+      .run(authoringApi.reorderSubSections(exam.id, sectionId, ids), { error: "Sıralama güncellenemedi" })
+      .then(setExam)
+      .catch(() => undefined);
+  }
+
   function ask(title: string, description: string, confirmLabel: string, run: () => Promise<unknown>) {
     setConfirm({ title, description, confirmLabel, run });
   }
@@ -926,15 +938,15 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                   <button type="button" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={si === exam.sections.length - 1} onClick={() => reorder(si, 1)} aria-label={`${s.title} bölümünü aşağı taşı`}><IconArrowDown className="size-3.5" aria-hidden /></button>
                 </div>
                 <ul className="ml-4 grid gap-0.5 border-l border-border pl-2">
-                  {s.subSections.map((ss) => {
+                  {s.subSections.map((ss, ssi) => {
                     const filled = ss.questions.length;
                     const need = Number(ss.selectionCount ?? ss.blueprint?.count ?? 0);
                     const ok = need > 0 ? filled >= need : filled > 0;
                     return (
-                      <li key={ss.id}>
+                      <li key={ss.id} className="flex items-center gap-0.5">
                         <button
                           type="button"
-                          className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-xs ${selCls(sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id)}`}
+                          className={`flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left text-xs ${selCls(sel.kind !== "exam" && "subId" in sel && sel.subId === ss.id)}`}
                           onClick={() => setSel({ kind: "sub", sectionId: s.id, subId: ss.id })}
                         >
                           <span className="truncate">{ss.title}</span>
@@ -942,6 +954,8 @@ export function ExamBuilderPage({ examId }: { examId: string }) {
                             {filled}{need ? `/${need}` : ""}
                           </span>
                         </button>
+                        <button type="button" className="inline-flex min-h-11 min-w-9 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={ssi === 0} onClick={() => reorderSub(s.id, ssi, -1)} aria-label={`${ss.title} alt bölümünü yukarı taşı`}><IconArrowUp className="size-3.5" aria-hidden /></button>
+                        <button type="button" className="inline-flex min-h-11 min-w-9 items-center justify-center rounded text-xs text-fg-subtle hover:bg-neutral-100 disabled:opacity-30" disabled={ssi === s.subSections.length - 1} onClick={() => reorderSub(s.id, ssi, 1)} aria-label={`${ss.title} alt bölümünü aşağı taşı`}><IconArrowDown className="size-3.5" aria-hidden /></button>
                       </li>
                     );
                   })}

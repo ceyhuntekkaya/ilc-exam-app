@@ -511,6 +511,11 @@ export const authoringApi = {
       method: "POST",
       body: JSON.stringify({ title }),
     }),
+  reorderSubSections: (id: string, sectionId: string, orderedIds: string[]) =>
+    authoringFetch<ExamDetail>(`/authoring/exams/${id}/sections/${sectionId}/sub-sections/reorder`, {
+      method: "PUT",
+      body: JSON.stringify({ orderedIds }),
+    }),
   updateSubSection: (id: string, subId: string, body: Record<string, unknown>) =>
     authoringFetch<ExamDetail>(`/authoring/exams/${id}/sub-sections/${subId}`, {
       method: "PUT",
